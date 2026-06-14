@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadFrameworks, resolveFramework, buildC3Command, applyFrameworkHook } from "../src/framework-starter.js";
+import { loadFrameworks, resolveFramework, buildC3Command, applyFrameworkHook, frameworkNextSteps } from "../src/framework-starter.js";
 import { mkdtempSync, writeFileSync, readFileSync, existsSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -49,4 +49,11 @@ test("applyFrameworkHook appends banner when hookEntry exists", () => {
   writeFileSync(join(dir, "app/layout.tsx"), "export default function L(){}");
   applyFrameworkHook(dir, { id: "nextjs", hookEntry: "app/layout.tsx", label: "Next.js" }, "npm");
   assert.match(readFileSync(join(dir, "app/layout.tsx"), "utf8"), /microservices\.sh/);
+});
+
+test("frameworkNextSteps lists cd, dev, and project-local add command", () => {
+  const lines = frameworkNextSteps("npm", "my-app", { devCommand: "dev", label: "Next.js" });
+  assert.ok(lines.includes("cd my-app"));
+  assert.ok(lines.some((l) => l.includes("npm run dev")));
+  assert.ok(lines.some((l) => l.includes("npm run microservices -- add")));
 });

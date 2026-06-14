@@ -32,6 +32,16 @@ function runScript(pm, args) {
   return pm === "npm" ? `npm run microservices -- ${args}` : `${pm} microservices ${args}`;
 }
 
+export function frameworkNextSteps(pm, appName, row) {
+  const run = (s) => (pm === "npm" ? `npm run ${s}` : `${pm} ${s}`);
+  return [
+    `cd ${appName}`,
+    pm === "npm" ? "npm install" : `${pm} install`,
+    run(row.devCommand ?? "dev"),
+    runScript(pm, "add <module>"),
+  ];
+}
+
 export function applyFrameworkHook(appDir, row, pm) {
   writeFileSync(
     join(appDir, "microservices.config.json"),
