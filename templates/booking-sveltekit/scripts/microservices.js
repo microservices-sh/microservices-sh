@@ -698,6 +698,7 @@ function buildDeployArtifact(flags) {
   const buildOutput = ".svelte-kit/cloudflare";
   const serverOutput = ".svelte-kit/output/server";
   const cloudflareManifestOutput = ".svelte-kit/cloudflare-tmp";
+  const deployBundleOutput = ".microservices/deploy-bundle";
 
   if (!existsSync(buildOutput)) {
     return fail(
@@ -717,6 +718,7 @@ function buildDeployArtifact(flags) {
     collectArtifactFile(process.cwd(), path, files);
   }
   collectArtifactDirectory(process.cwd(), "migrations", files);
+  collectArtifactDirectory(process.cwd(), deployBundleOutput, files);
   collectArtifactDirectory(process.cwd(), buildOutput, files);
   collectArtifactDirectory(process.cwd(), serverOutput, files);
   collectArtifactDirectory(process.cwd(), cloudflareManifestOutput, files);
@@ -724,6 +726,7 @@ function buildDeployArtifact(flags) {
   const required = [
     "package.json",
     "wrangler.jsonc",
+    `${deployBundleOutput}/_worker.js`,
     `${buildOutput}/_worker.js`,
     `${serverOutput}/index.js`,
     `${cloudflareManifestOutput}/manifest.js`
@@ -764,6 +767,7 @@ function buildDeployArtifact(flags) {
           buildOutput,
           serverOutput,
           cloudflareManifestOutput,
+          deployBundleOutput,
           packageManager: "pnpm",
           createdAt: new Date().toISOString(),
           git: ciMetadata()
@@ -853,6 +857,7 @@ function deployPreviewPlan(flags) {
       request: body,
       sideEffects: [
         "run the local build unless --no-build is provided",
+        "run a local Wrangler dry-run bundle unless --no-build is provided",
         "package the Cloudflare build artifact",
         "upload the artifact to the control-plane API",
         "create or reuse a control-plane project",
@@ -904,6 +909,13 @@ async function deployPreview(flags) {
   if (!flags.noBuild) {
     const build = runCommand("deploy:build", "vite", ["build"], flags);
     if (!build.ok) return build;
+    const bundle = runCommand(
+      "deploy:bundle",
+      "wrangler",
+      ["deploy", "--dry-run", "--outdir", ".microservices/deploy-bundle"],
+      flags
+    );
+    if (!bundle.ok) return bundle;
   }
 
   const body = buildDeployArtifact(flags);

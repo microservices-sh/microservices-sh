@@ -174,6 +174,8 @@ try {
     !svelteCli.includes(".svelte-kit/cloudflare") ||
     !svelteCli.includes(".svelte-kit/output/server") ||
     !svelteCli.includes(".svelte-kit/cloudflare-tmp") ||
+    !svelteCli.includes(".microservices/deploy-bundle") ||
+    !svelteCli.includes("deploy:bundle") ||
     !svelteCli.includes("CI_API_KEY_REQUIRED") ||
     !svelteCli.includes("DEPLOYMENT_INPUT_INVALID") ||
     !svelteCli.includes("--input deployment.json") ||
