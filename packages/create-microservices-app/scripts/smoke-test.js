@@ -1,9 +1,11 @@
+import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { mkdir, mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadFrameworks } from "../src/framework-starter.js";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const tempRoot = await mkdtemp(join(tmpdir(), "microservices-create-smoke-"));
@@ -215,6 +217,77 @@ try {
   if (!process.env.KEEP_CREATE_SMOKE) {
     await rm(tempRoot, { recursive: true, force: true });
   }
+
+  // ─── Network-gated C3 framework smoke ────────────────────────────────────
+  // Pass --network to scaffold each framework via the live CLI and assert that
+  // the hook artifacts (config, shim, README, package.json script) land correctly.
+  // Without --network this section is skipped so the test stays green offline.
+  const NETWORK = process.argv.includes("--network");
+  const DIST = resolve(dirname(fileURLToPath(import.meta.url)), "..", "dist", "index.js");
+
+  if (!NETWORK) {
+    process.stdout.write("framework smoke: skipped (pass --network to run)\n");
+  } else {
+    const frameworks = loadFrameworks();
+    for (const row of frameworks) {
+      const dir = mkdtempSync(join(tmpdir(), `smoke-${row.id}-`));
+      process.stdout.write(`framework smoke: scaffolding ${row.id} in ${dir} …\n`);
+
+      const result = spawnSync(
+        "node",
+        [DIST, "app", "--template", row.id, "--package-manager", "npm"],
+        { cwd: dir, stdio: "inherit" }
+      );
+
+      // Tolerate EPERM sandbox quirk: only throw when status is absent
+      if (result.error && typeof result.status !== "number") throw result.error;
+
+      assert.strictEqual(
+        result.status,
+        0,
+        `C3 scaffold for ${row.id} exited with status ${result.status}`
+      );
+
+      const appDir = join(dir, "app");
+      assert.ok(
+        existsSync(join(appDir, "microservices.config.json")),
+        `${row.id}: microservices.config.json missing`
+      );
+      assert.ok(
+        existsSync(join(appDir, "scripts", "microservices.js")),
+        `${row.id}: scripts/microservices.js (vendored shim) missing`
+      );
+
+      const readmeText = readFileSync(join(appDir, "README.microservices.md"), "utf8");
+      assert.ok(
+        readmeText.includes("microservices") && readmeText.includes("add"),
+        `${row.id}: README.microservices.md missing expected content`
+      );
+
+      const appPkg = JSON.parse(readFileSync(join(appDir, "package.json"), "utf8"));
+      assert.strictEqual(
+        appPkg.scripts?.microservices,
+        "node scripts/microservices.js",
+        `${row.id}: package.json scripts.microservices wrong`
+      );
+
+      // Validate the vendored shim actually runs (network-agnostic command)
+      const list = spawnSync(
+        "node",
+        ["scripts/microservices.js", "modules", "list"],
+        { cwd: appDir, stdio: "pipe", encoding: "utf8" }
+      );
+      if (list.error && typeof list.status !== "number") throw list.error;
+      assert.strictEqual(
+        list.status,
+        0,
+        `${row.id}: shim 'modules list' exited ${list.status}\nstdout:${list.stdout}\nstderr:${list.stderr}`
+      );
+
+      process.stdout.write(`framework smoke ok: ${row.id}\n`);
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   process.stdout.write("create-microservices-app smoke test passed\n");
 } catch (error) {
