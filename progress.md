@@ -690,8 +690,9 @@
 - ✅ Remote D1 migration/backfill: `api/migrations/0001_auth_workspace.sql` ALTERs all 6 control-plane tables with `workspace_id DEFAULT 'ws_internal'`; `db:migrate:remote` script added.
 - ✅ First-owner/API-key bootstrap: `api/scripts/bootstrap-owner.js` (`pnpm bootstrap:owner[:remote]`) creates owner+workspace+key, prints raw key once, stores hash only.
 - ✅ Portal session login/logout + cookie hardening (API): passwordless email-code sessions (`auth-flow.ts`/`portal.ts`), `httpOnly+secure+SameSite=Lax` session cookie, CORS origin allowlist. (SvelteKit API-key management UI still pending.)
-- ❌ CLI profile/workspace/key-management behavior — API device-code grant exists; `apps/cli` has no auth commands yet.
-- ◻ Cross-workspace isolation tests: function-level suite **added** (`api/test/isolation.test.mjs`, 11 tests). HTTP-route-level and MCP-identity-level tests still pending.
+- ✅ CLI profile/workspace/key-management — already shipped in `packages/cli` (NOT `apps/cli`): `auth login` device-code flow (poll + slow_down/authorization_pending), `auth login --api-key`, `auth status`/`whoami`/`logout`, token persisted to `~/.microservices/config.json`.
+- ✅ Cross-workspace isolation tests: function-level (`api/test/isolation.test.mjs`) **and** HTTP/MCP-level (`api/test/routes.test.mjs`) — 22 tests via `app.fetch`.
+- ❌ Only remaining auth item: SvelteKit portal API-key management UI (frontend).
 
 ## Session: 2026-06-14 (auth gap #1 — isolation tests)
 ### Phase 24 follow-up: cross-workspace isolation test harness
@@ -706,3 +707,15 @@
 | `pnpm test` in `api` | Isolation suite passes | 11/11 passed (1 file) | Pass |
 | Identity resolution | Each key → own workspace; unknown/revoked/expired → null | Passed | Pass |
 | Control-plane tenancy | ws_b cannot read ws_a project/deployment/artifact/resources/logs; contextless defaults to ws_internal | Passed | Pass |
+
+### Phase 24 follow-up 2: HTTP-route + MCP-level isolation tests
+- **Status:** complete; CLI auth confirmed already shipped (drift); only portal key UI remains
+- Added `api/test/routes.test.mjs` driving the real Hono app via `app.fetch` and the JSON-RPC `/mcp` surface.
+- Extracted shared `api/test/seed.mjs` (workspace + hashed-key seeding) used by both suites.
+
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm test` in `api` | Both suites pass | 22/22 passed (2 files) | Pass |
+| HTTP auth gate | Unauthenticated / unknown bearer → 401 | Passed | Pass |
+| HTTP route tenancy | ws_b → 404 on ws_a deployment/project/artifact/resources; empty logs; ws_a → 200 | Passed | Pass |
+| MCP identity | ws_a tool call succeeds; ws_b call misses (NOT_FOUND/isError); no token → 401 | Passed | Pass |

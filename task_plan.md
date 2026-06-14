@@ -217,10 +217,10 @@ Phase 22
 - [x] Validate API typecheck and fresh local D1 schema application.
 - [x] Add explicit remote D1 migration/backfill for existing deployed control-plane tables. (`migrations/0001_auth_workspace.sql` ALTERs all 6 control-plane tables `ADD COLUMN workspace_id DEFAULT 'ws_internal'`; `db:migrate:remote` script added.)
 - [x] Add first-owner bootstrap/API-key creation route or admin command. (`scripts/bootstrap-owner.js` + `pnpm bootstrap:owner[:remote]`; prints raw key once, stores hash only.)
-- [ ] Add CLI profile/workspace/key-management behavior. (API device-code grant + `/api-keys` exist; `apps/cli` still has no auth commands.)
-- [~] Add portal sessions, API-key management UI, and CSRF/cookie hardening. (API done: passwordless sessions in `auth-flow.ts`/`portal.ts`, `httpOnly+secure+SameSite=Lax` cookies, CORS origin allowlist. SvelteKit key-management UI still pending.)
-- [~] Add cross-workspace route tests and MCP identity tests. (Function-level isolation suite added in `api/test/isolation.test.mjs` — 11 tests, auth + control-plane, node:sqlite D1. HTTP-route-level and MCP-identity-level tests still pending.)
-- **Status:** auth/tenancy slice + remote migration + bootstrap + portal API + function-level isolation tests complete; billing now blocked only on CLI auth, portal key-management UI, and HTTP/MCP-level tests
+- [x] Add CLI profile/workspace/key-management behavior. (Already in `packages/cli`: `auth login` device-code flow with poll/slow_down handling, `auth login --api-key`, `auth status`/`whoami`/`logout`, token persisted to `~/.microservices/config.json`; plus `billing`/`usage`. Note: lives in `packages/cli`, not `apps/cli`.)
+- [~] Add portal sessions, API-key management UI, and CSRF/cookie hardening. (API done: passwordless sessions in `auth-flow.ts`/`portal.ts`, `httpOnly+secure+SameSite=Lax` cookies, CORS origin allowlist. SvelteKit key-management UI still pending — the only open auth item.)
+- [x] Add cross-workspace route tests and MCP identity tests. (`api/test/isolation.test.mjs` function-level + `api/test/routes.test.mjs` HTTP/MCP-level via `app.fetch`; 22 tests total, node:sqlite D1. Covers 401 gates, per-route 404 isolation, and MCP identity scoping.)
+- **Status:** auth/tenancy, remote migration, bootstrap, portal API, CLI auth, and function+route+MCP isolation tests all complete; only the SvelteKit portal API-key UI remains before billing
 
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
