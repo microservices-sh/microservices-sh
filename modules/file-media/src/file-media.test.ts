@@ -31,7 +31,7 @@ describe("file-media: createUploadTicket content-type allowlist", () => {
     );
     expect(res.ok).toBe(true);
     expect(res.status).toBe(201);
-    expect(res.data?.key.startsWith("tenant-1/")).toBe(true);
+    expect(res.data!.key!).toMatch(/^tenant-1\//);
   });
 });
 
