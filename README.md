@@ -1,127 +1,168 @@
 # microservices.sh
 
-Agent-native application infrastructure. Compose verified Cloudflare-native modules with your own AI agent and deploy production apps without setting up Cloudflare.
+Agent-native application infrastructure for building Cloudflare-native apps from source-visible, contract-checked modules.
 
-The marketing landing site and the control-plane API are maintained in separate repos. This repo is the open-source core: create-app, CLI, SDK, modules, templates, release logic, and governance.
-
-See [`plans/`](./plans) for strategy, MVP scope, architecture, and the landing-page brand brief. See [`plans/20-cli-first-create-app-strategy.md`](./plans/20-cli-first-create-app-strategy.md) for the current CLI-first activation decision. See [`docs/modules`](./docs/modules) for LLM-friendly module docs and [`docs/llms.txt`](./docs/llms.txt) for the agent guide.
-
-Contribution and ecosystem rules live in [`CONTRIBUTING.md`](./CONTRIBUTING.md), [`SECURITY.md`](./SECURITY.md), and [`docs/governance`](./docs/governance). Start with the [module submission guide](./docs/governance/module-submission-guide.md) and [review process](./docs/governance/review-process.md) before opening third-party module or template PRs.
-
-## Monorepo Layout
-
-```
-apps/
-  api/            Hono Worker — waitlist + analytics; future control plane / MCP
-packages/
-  cli/            Local agent/developer CLI for the MVP module workflow
-  create-microservices-app/ First create-app distribution package
-  module-contract/ Static module/template registry and composition contract
-  sdk-internal/    Shared SDK used by CLI and future MCP/control-plane surfaces
-  workspace-tools/ Reusable repo-local validation commands for modules/templates
-modules/
-  customer/        Pinned customer module snapshot imported from public modules
-  booking/         Pinned booking module snapshot imported from public modules
-  email/           Pinned email module snapshot imported from public modules
-templates/
-  booking-sveltekit/ Official full-app booking template shell
-docs/
-  modules/         Module reference docs, structure standard, and LLM catalog
-  templates/       Template standards and detailed template specs
-```
-
-## Recommended Local Repo Layout
-
-Use one parent folder with one Git checkout per repository. Do not nest public repos inside the private core repo.
-
-```text
-microservices-sh/
-  microservices-sh/   private core repo: create-app, CLI, API/control plane, templates, pinned module snapshots
-  landing-page/       private marketing site repo
-  dispatcher/         private dispatch Worker repo
-```
-
-Modules and templates live in this repo (`modules/`, `templates/`). The CLI vendors module source from here into generated apps — there is no separate module or registry repo.
-
-| Package | Stack | Purpose |
-|---------|-------|---------|
-| [`packages/cli`](./packages/cli) | Node.js CLI | Agent-friendly local commands with stable `--json` responses |
-| [`packages/create-microservices-app`](./packages/create-microservices-app) | Node.js create package | Generates a new app with module docs, lockfile, and project CLI |
-| [`packages/module-contract`](./packages/module-contract) | ESM JavaScript + types | MVP module and template contracts |
-| [`packages/sdk-internal`](./packages/sdk-internal) | ESM JavaScript + types | Shared implementation for CLI, future MCP Worker, and tests |
-| [`packages/workspace-tools`](./packages/workspace-tools) | Node.js CLI | Shared `check` command for module/template package specs |
-| [`modules/customer`](./modules/customer) | TypeScript module package | Customer module source (vendored into generated apps) |
-| [`modules/booking`](./modules/booking) | TypeScript module package | Booking module source (vendored into generated apps) |
-| [`modules/email`](./modules/email) | TypeScript module package | Email module source (vendored into generated apps) |
-| [`templates/booking-sveltekit`](./templates/booking-sveltekit) | Cloudflare SvelteKit | Official full-app booking template shell composed from detached customer and booking modules |
-
-## Develop
+Start with a working app, then let your coding agent inspect the module docs, plan changes, run checks, and deploy when you are ready. Local generation does not require a microservices.sh account or a Cloudflare account.
 
 ```bash
+pnpm create microservices-app@latest studio-booking --template booking-sveltekit
+cd studio-booking
 pnpm install
-pnpm dev:api     # api worker on :8787
-pnpm cli -- modules list --json
-pnpm cli -- docs booking --json
-pnpm cli -- add payment-stripe --plan --json
-pnpm cli -- updates --json
-pnpm cli -- upgrade booking --plan --json
-pnpm cli -- compose booking-business --json
-pnpm spec:check -- all
-pnpm spec:check -- module modules/booking
-pnpm spec:check -- template templates/booking-sveltekit
-pnpm scaffold:module -- inventory --json
-pnpm scaffold:template -- invoice-sveltekit --framework sveltekit --modules customer --json
-pnpm registry:build -- --json
-pnpm discover -- --json
-pnpm discover -- --path templates/booking-sveltekit --json
-pnpm module:customer -- check:spec
-pnpm module:booking -- check:spec
-pnpm template:booking -- check:spec
-pnpm --filter @microservices-sh/template-booking-sveltekit microservices -- check --json
-pnpm --filter @microservices-sh/template-booking-sveltekit build:app
-pnpm --filter @microservices-sh/template-booking-sveltekit microservices -- local migrate
-pnpm --filter @microservices-sh/template-booking-sveltekit microservices -- local dev
-pnpm --filter @microservices-sh/template-booking-sveltekit microservices -- local smoke
-pnpm create:local -- booking-demo --dir /tmp --no-install
-pnpm test:create  # pack/extract/generate smoke test
+pnpm microservices local setup
+pnpm dev
 ```
 
-## Local Baseline Flow
-
-The current MVP baseline is a generated app that works locally without login:
+Using npm:
 
 ```bash
-pnpm create microservices-app booking-demo --template booking-sveltekit
-cd booking-demo
-pnpm microservices modules list --json
-pnpm microservices docs booking
-pnpm microservices upgrade booking --plan --json
-pnpm microservices check --json
-pnpm microservices local migrate
-pnpm microservices local dev
+npm create microservices-app@latest studio-booking -- --template booking-sveltekit
+```
+
+`studio-booking` is your app directory and slug. The current full-app template id is `booking-sveltekit`.
+
+## What You Get
+
+- A real Cloudflare SvelteKit booking app with public booking flow and admin screens.
+- Source-visible modules for gateway, auth, customer, booking, and audit log.
+- D1 migrations, Wrangler config, local dev commands, and HTTP smoke checks.
+- `microservices.lock.json` to pin module versions and make upgrades reviewable.
+- LLM-readable docs under `docs/` so Claude, Codex, Cursor, or another agent can inspect before editing.
+- A project CLI exposed as `pnpm microservices` for module discovery, checks, upgrades, local setup, and managed preview deployment requests.
+
+The goal is not to hide generated code behind a platform. The generated project is a normal repo you can read, change, export, and deploy.
+
+## Good Fits
+
+| Use case | Why this repo helps |
+|----------|---------------------|
+| Solo founder or small business app | Start from a working booking/customer foundation instead of rebuilding auth, data, migrations, and admin flow from scratch. |
+| Agency or fractional CTO delivery | Reuse a known production foundation across clients while keeping every generated app inspectable and owned by the client. |
+| AI-assisted development | Give your agent stable module contracts, docs, checks, and upgrade plans instead of asking it to invent infrastructure ad hoc. |
+| Internal tools and operations portals | Compose common business primitives such as auth, customers, booking, audit logs, email, and payments into Cloudflare-native apps. |
+| Module/template contributors | Add new modules and templates behind explicit contracts, tests, docs, and governance rules. |
+
+This is probably not the right fit if you want a no-code builder, a black-box hosted SaaS, or a generic starter template with no upgrade contract.
+
+## Current Catalog
+
+| Item | Status | Notes |
+|------|--------|-------|
+| `booking-sveltekit` | Ready local baseline | Full Cloudflare SvelteKit app with booking flow, admin views, D1, local smoke tests, and approval-gated preview deploy commands. |
+| `booking-business` | Procedural generator | Hono/Worker baseline generated from the module contract. Useful for lower-level CLI and SDK checks. |
+| `gateway` | Bundled module | API keys, token issue/verify flow, rate-limit storage adapters. |
+| `auth` | Bundled module | Signing keys, JWT mint/verify, JWKS endpoint foundations. |
+| `customer` | Bundled module | Customer records, D1 and memory adapters, list/get/upsert use cases. |
+| `booking` | Bundled module | Availability, booking creation, cancellation, listing, D1 and memory adapters. |
+| `audit-log` | Bundled module | Append-only event recording and listing. |
+| `email` | In repo | Transactional email module source; provider workflows remain gated by module maturity and integration checks. |
+| `payment` | In repo | Payment module source; Stripe/provider workflows remain gated by approval and integration checks. |
+
+## Local Baseline
+
+After the generated app is running, use a second terminal for smoke checks:
+
+```bash
 pnpm microservices local smoke
 ```
 
-Run `microservices local smoke` in a second terminal after `microservices local dev` starts. Hosted preview/deploy remains approval-gated and is not part of the local baseline gate.
-
-Generated `booking-sveltekit` apps include a preview deploy path once real Cloudflare resources are provisioned:
+Common generated-app commands:
 
 ```bash
-pnpm microservices preview doctor
-pnpm microservices preview bind --d1-id <database-id> --kv-id <namespace-id>
-pnpm microservices preview deploy --dry-run
-pnpm microservices preview migrate --confirm migrate
-pnpm microservices preview deploy --confirm deploy
+pnpm microservices modules list --json
+pnpm microservices docs booking
+pnpm microservices upgrade booking --plan --json
+pnpm microservices add payment-stripe --plan --json
+pnpm microservices check --json
+```
+
+Managed preview deploys are intentionally approval-gated and routed through the microservices.sh API. The generated app should not ask users to run `wrangler login`, create D1/KV resources, or paste Cloudflare resource ids.
+
+```bash
+pnpm microservices auth login
+pnpm microservices deploy doctor
+pnpm microservices deploy preview --plan
+pnpm microservices deploy preview --confirm deploy
+pnpm microservices deploy provision <deployment-id> --plan
+pnpm microservices deploy provision <deployment-id> --confirm provision
+pnpm microservices deploy upload-plan <deployment-id>
+pnpm microservices deploy status <deployment-id>
 pnpm microservices preview smoke --url https://<worker-url>
 ```
 
-Before remote migration or deploy, bind real D1/KV ids with `microservices preview bind`. The compatibility scripts still exist, but generated app operations should go through `pnpm microservices ...`. The create CLI patches the generated Worker name to the app slug so separate generated apps do not all target the same `booking-sveltekit` Worker.
+The generated app is ready for local testing now. End-to-end managed preview remains gated by the hosted control-plane upload adapter; `deploy upload-plan <deployment-id>` reports the current readiness/blockers.
 
-The create package lives at `packages/create-microservices-app`; use `pnpm create:local -- ...` for repo-local scaffold tests and the repo-local `pnpm cli -- ...` commands for direct SDK/CLI checks.
+## Repository Map
 
-The first full-app template baseline is `booking-sveltekit`. Future template expansion should happen after this local baseline stays green in CI. Treat templates as predefined starting repositories composed from the same module contracts; likely next candidates are a generated `landing-page` template and `blog-content`. The generated `landing-page` template is separate from the private marketing site repo. Each template should include module docs, lockfile metadata, generated project CLI commands, and upgrade-plan support from day one.
+This repository contains the core create-app, CLI, SDK, modules, templates, release logic, and governance docs. The marketing landing site and hosted control-plane API are maintained in separate repositories.
 
-New modules and templates should start from the shared workspace scaffolds instead of copying an existing package:
+```text
+packages/
+  cli/                       Local developer/agent CLI
+  create-microservices-app/  npm create package
+  module-contract/           Static module/template contract definitions
+  sdk-internal/              Shared SDK for CLI, tests, and future hosted surfaces
+  workspace-tools/           Repo-local validation and scaffold commands
+modules/
+  gateway/                   API gateway module
+  auth/                      Auth module
+  customer/                  Customer module
+  booking/                   Booking module
+  audit-log/                 Audit log module
+  email/                     Email module source
+  payment/                   Payment module source
+templates/
+  booking-sveltekit/         Official full-app booking template
+docs/
+  modules/                   Module docs and structure standards
+  templates/                 Template standards and specs
+  governance/                Submission, review, and ecosystem rules
+plans/                       Strategy, MVP scope, architecture, and GTM notes
+```
+
+If you work across the private/product repos too, keep one checkout per repo under a shared parent folder:
+
+```text
+microservices-sh/
+  microservices-sh/   core repo
+  landing-page/       marketing site repo
+  dispatcher/         dispatch Worker repo
+```
+
+## Develop This Repo
+
+Requirements:
+
+- Node.js 20+
+- pnpm 10+
+
+Install and inspect:
+
+```bash
+pnpm install
+pnpm cli -- modules list --json
+pnpm cli -- docs booking --json
+pnpm discover -- --json
+pnpm spec:check -- all
+```
+
+Run the template from inside the monorepo:
+
+```bash
+pnpm --filter @microservices-sh/template-booking-sveltekit microservices -- check --json
+pnpm --filter @microservices-sh/template-booking-sveltekit build:app
+pnpm --filter @microservices-sh/template-booking-sveltekit microservices -- local setup
+pnpm --filter @microservices-sh/template-booking-sveltekit microservices -- local dev
+pnpm --filter @microservices-sh/template-booking-sveltekit microservices -- local smoke
+```
+
+Test the create package locally:
+
+```bash
+pnpm create:local -- studio-booking --template booking-sveltekit --dir /tmp --no-install --no-git
+pnpm test:create
+```
+
+Create new catalog items from scaffolds:
 
 ```bash
 pnpm scaffold:module -- inventory
@@ -129,56 +170,22 @@ pnpm scaffold:template -- invoice-sveltekit --framework sveltekit --modules cust
 pnpm spec:check -- all
 ```
 
-Local registry and discovery commands are intentionally read-only. `pnpm registry:build -- --json` scans `modules/*/module.json` and `templates/*/microservices.template.json`, then writes derived catalogs under `.generated/registry`. `pnpm discover -- --path <app>` reports installed modules from `microservices.lock.json` and package dependencies so agents can plan changes without mutating source, secrets, resources, or deployments.
+Local registry and discovery commands are intentionally read-only. `pnpm registry:build -- --json` scans module and template manifests and writes derived catalogs under `.generated/registry`. `pnpm discover -- --path <app>` reports installed modules from `microservices.lock.json` and package dependencies without mutating source, secrets, resources, or deployments.
 
-## Create-App Release
+## Agent And Control-Plane Surfaces
 
-The create package is prepared for npm distribution through `.github/workflows/npm-publish.yml`.
+The local CLI and create package use the same internal SDK intended for hosted MCP, local stdio MCP, and deployment-control surfaces. That keeps agent behavior consistent across access paths.
 
-The workflow is manual and defaults to `dry_run=true`, so it can verify the packed package without publishing. Real npm publication remains gated until the repository has:
+The hosted control-plane API is maintained outside this core repo. It exposes the `/mcp` tool contract and remote deployment endpoints; this repo keeps the shared contracts, generator, SDK, and generated-app client commands.
 
-- GitHub variable: `NPM_PUBLISH_ENABLED=true`
-- GitHub secret: `NPM_TOKEN`
+Representative tool groups:
 
-Before the first real publish, confirm the package version, public license choice, and release notes.
+- Catalog: `list_templates`, `inspect_template`, `list_modules`, `inspect_module`, `list_module_docs`, `get_module_doc`
+- Planning: `plan_add_module`, `check_updates`, `plan_module_upgrade`, `validate_config`
+- Generation and checks: `compose_app`, `generate_project`, `run_checks`
+- Deployments: `deploy_dev`, `deploy_preview`, `deploy_production`, `provision_deployment`, `get_deployment_status`, `get_logs`
 
-## Hosted MCP Preview
-
-The API Worker exposes the first hosted tool contract at `/mcp`.
-
-```bash
-pnpm dev:api
-curl http://localhost:8787/mcp
-```
-
-JSON-RPC tools currently available:
-
-- `list_templates`
-- `inspect_template`
-- `list_modules`
-- `inspect_module`
-- `list_module_docs`
-- `get_module_doc`
-- `plan_add_module`
-- `get_secrets_status`
-- `check_updates`
-- `plan_module_upgrade`
-- `compose_app`
-- `validate_config`
-- `generate_project`
-- `run_checks`
-- `deploy_dev`
-- `deploy_preview`
-- `deploy_production`
-- `get_deployment_status`
-- `get_deployment_artifact`
-- `provision_deployment`
-- `plan_deployment_upload`
-- `activate_deployment`
-- `get_deployment_resources`
-- `get_logs`
-
-## MVP Agent Workflow
+Use the repo-local CLI for direct SDK checks. Deployment commands require a configured API URL and auth where they cross into the hosted control plane.
 
 ```bash
 pnpm cli -- templates list --json
@@ -187,50 +194,34 @@ pnpm cli -- modules inspect booking --json
 pnpm cli -- compose booking-business --json
 pnpm cli -- check booking-business --json
 pnpm cli -- generate booking-business --out /tmp/booking-business
-pnpm cli -- upgrade booking --plan --json
-pnpm cli -- doctor --api-url http://127.0.0.1:8787 --json
-pnpm cli -- deploy dev booking-business --name "Studio Dev" --config '{"appName":"Studio Dev"}' --api-url http://127.0.0.1:8787 --json
-pnpm cli -- deploy preview booking-business --name "Studio Demo" --config '{"appName":"Studio Demo"}' --api-url http://127.0.0.1:8787 --json
 pnpm cli -- deploy production booking-business --plan --json
-pnpm cli -- deploy production booking-business --confirm production --api-url http://127.0.0.1:8787 --json
-pnpm cli -- deploy status <deployment-id> --api-url http://127.0.0.1:8787 --json
-pnpm cli -- deploy artifact <deployment-id> --out /tmp/deployment-artifact --api-url http://127.0.0.1:8787 --json
-pnpm cli -- deploy doctor --dir /tmp/deployment-artifact --api-url http://127.0.0.1:8787 --json
-pnpm cli -- deploy pipeline <deployment-id> --dir /tmp/deployment-artifact --api-url http://127.0.0.1:8787 --json
-pnpm cli -- deploy verify --dir /tmp/deployment-artifact --json
-pnpm cli -- deploy provision <deployment-id> [--confirm production] --api-url http://127.0.0.1:8787 --json
-pnpm cli -- deploy resources <deployment-id> --api-url http://127.0.0.1:8787 --json
-pnpm cli -- deploy bind <deployment-id> --dir /tmp/deployment-artifact --api-url http://127.0.0.1:8787 --json
-pnpm cli -- deploy migrate --dir /tmp/deployment-artifact --plan --json
-pnpm cli -- deploy upload-plan <deployment-id> --api-url http://127.0.0.1:8787 --json
-pnpm cli -- deploy upload --dir /tmp/deployment-artifact --dry-run --json
-pnpm cli -- deploy activate <deployment-id> --url https://<dispatch-route> --api-url http://127.0.0.1:8787 --json
-pnpm cli -- deploy domain <deployment-id> --hostname app.customer.com --api-url http://127.0.0.1:8787 --json
-pnpm cli -- deploy domain-refresh <deployment-id> --hostname app.customer.com --api-url http://127.0.0.1:8787 --json
-pnpm cli -- deploy logs <deployment-id> --api-url http://127.0.0.1:8787 --json
 ```
 
-The CLI uses the same internal SDK intended for the hosted MCP server, local stdio MCP package, and future Dockerized MCP wrapper. This keeps agent behavior consistent across access paths.
+## Releasing The Create Package
 
-Use `doctor` for local CLI/API/Wrangler diagnostics and `deploy doctor --dir <artifact-dir>` before running a deployment pipeline. Use `deploy dev` for managed remote iteration, `deploy preview` for shareable review environments, and `deploy production --plan` for the approval checklist before production. `deploy production --confirm production` prepares a production deployment artifact after approval; later provisioning, migration, upload, and activation steps each keep their own production confirmation gates. `deploy artifact` exports the generated project plus `microservices.deployment.json`, which records the Worker entrypoint, scripts, bindings, placeholders, dispatch namespace, and upload readiness for the next adapter. `deploy pipeline` prints the ordered command sequence for a deployment and artifact directory, including the doctor preflight and the right production confirmation tokens. `deploy verify --dir <artifact-dir>` statically checks that exported artifact before bundling or upload. `deploy bind` rewrites exported `wrangler.jsonc` placeholders from created control-plane resources or explicit `--d1`/`--kv` ids. `deploy migrate` runs remote D1 schema execution through Wrangler and requires `--confirm migrate`, or `--confirm production-migrate` for production artifacts. `deploy upload-plan` reports hosted upload readiness, resource blockers, and the current local upload fallback from the control plane. `deploy upload` runs `pnpm exec wrangler deploy` from the artifact directory, adding `--dispatch-namespace` when the artifact targets Workers for Platforms; it dry-runs by default and requires `--confirm upload` to publish dev/preview artifacts or `--confirm production-upload` for production artifacts. `deploy activate` records the dispatch route or live Worker URL back into the control plane. `deploy domain` records a custom domain route and, when `CF_CUSTOM_HOSTNAMES_ENABLED=true`, creates or reads the Cloudflare for SaaS Custom Hostname in the configured SaaS zone. `deploy domain-refresh` polls Cloudflare after DNS changes and updates `deployment_routes` with hostname and certificate status. Provisioning is guarded by Worker configuration, and production provisioning additionally requires `--confirm production`. Without `CF_PROVISIONING_ENABLED=true`, `CLOUDFLARE_ACCOUNT_ID`, and the `CLOUDFLARE_API_TOKEN` secret, `deploy provision` records the requested resources and returns an explicit configuration error. With credentials, the adapter can create D1/KV resources; hosted Worker upload automation is still the next control-plane adapter.
+The create package lives at [`packages/create-microservices-app`](./packages/create-microservices-app). Distribution builds bundle the generator into `dist/index.js`:
 
-Cloudflare for SaaS automation is optional and separate from D1/KV provisioning. To enable it, set `CF_CUSTOM_HOSTNAMES_ENABLED=true`, `CLOUDFLARE_SAAS_ZONE_ID`, `CF_CUSTOM_HOSTNAME_VALIDATION_METHOD` (`http`, `txt`, or `email`), and the `CLOUDFLARE_API_TOKEN` Worker secret with SSL and Certificates permissions. Customers point DNS at `customers.microservices-sh.site`; Cloudflare customer zones should use a proxied CNAME for O2O, while external providers use a normal CNAME.
+```bash
+pnpm --filter create-microservices-app build
+pnpm --filter create-microservices-app pack --dry-run
+pnpm --filter create-microservices-app smoke
+```
 
-## Deploy
+Publishing uses the manual workflow at `.github/workflows/npm-publish.yml`. Default runs use `dry_run=true`. A real npm publish requires:
 
-Production deploys run through GitHub Actions in `.github/workflows/deploy.yml`.
+- GitHub variable: `NPM_PUBLISH_ENABLED=true`
+- GitHub secret: `NPM_TOKEN`
 
-Required GitHub secrets:
+The `create-microservices-app` package declares an MIT license. Add/verify the root repository license before describing the entire repository as open source.
 
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ACCOUNT_ID`
+## Contributing
 
-Required GitHub variable:
+Start with:
 
-- `DEPLOY_ENABLED=true`
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+- [`SECURITY.md`](./SECURITY.md)
+- [`docs/governance/module-submission-guide.md`](./docs/governance/module-submission-guide.md)
+- [`docs/governance/review-process.md`](./docs/governance/review-process.md)
+- [`docs/llms.txt`](./docs/llms.txt)
 
-Optional Worker secrets for Cloudflare for SaaS automation:
-
-- `CLOUDFLARE_SAAS_ZONE_ID`
-
-On `main` push or manual dispatch, the workflow typechecks the API Worker, applies the remote D1 schema, and deploys the API Worker. The marketing landing site deploys from the separate private `microservices-sh/landing-page` repo.
+New modules and templates should include docs, schemas, tests, manifest metadata, generated-project commands, and upgrade-plan support from day one.
