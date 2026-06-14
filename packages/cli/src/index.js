@@ -3,6 +3,8 @@ import { spawn } from "node:child_process";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, normalize, resolve } from "node:path";
+import { stdin as nodeStdin, stdout as nodeStdout } from "node:process";
+import { createInterface } from "node:readline/promises";
 import {
   composeApp,
   checkUpdates,
@@ -37,7 +39,15 @@ function parseArgs(argv) {
     apiUrl: process.env.MICROSERVICES_API_URL ?? null,
     actor: process.env.USER ?? "agent",
     name: null,
+    subject: null,
+    description: null,
+    category: null,
+    priority: null,
+    contactEmail: null,
+    contactName: null,
     projectId: null,
+    deploymentId: null,
+    pageUrl: null,
     url: null,
     hostname: null,
     apiKey: process.env.MICROSERVICES_API_KEY ?? process.env.MICROSERVICES_TOKEN ?? null,
@@ -50,6 +60,7 @@ function parseArgs(argv) {
     cfHostnameStatus: null,
     cfSslStatus: null,
     dir: null,
+    limit: null,
     d1: [],
     kv: [],
     dryRun: false,
@@ -84,8 +95,32 @@ function parseArgs(argv) {
     } else if (value === "--name") {
       flags.name = argv[index + 1];
       index += 1;
+    } else if (value === "--subject") {
+      flags.subject = argv[index + 1];
+      index += 1;
+    } else if (value === "--description" || value === "--message") {
+      flags.description = argv[index + 1];
+      index += 1;
+    } else if (value === "--category") {
+      flags.category = argv[index + 1];
+      index += 1;
+    } else if (value === "--priority") {
+      flags.priority = argv[index + 1];
+      index += 1;
+    } else if (value === "--email" || value === "--contact-email") {
+      flags.contactEmail = argv[index + 1];
+      index += 1;
+    } else if (value === "--contact-name") {
+      flags.contactName = argv[index + 1];
+      index += 1;
     } else if (value === "--project-id") {
       flags.projectId = argv[index + 1];
+      index += 1;
+    } else if (value === "--deployment-id") {
+      flags.deploymentId = argv[index + 1];
+      index += 1;
+    } else if (value === "--page-url") {
+      flags.pageUrl = argv[index + 1];
       index += 1;
     } else if (value === "--url") {
       flags.url = argv[index + 1];
@@ -122,6 +157,9 @@ function parseArgs(argv) {
       index += 1;
     } else if (value === "--dir") {
       flags.dir = argv[index + 1];
+      index += 1;
+    } else if (value === "--limit") {
+      flags.limit = argv[index + 1];
       index += 1;
     } else if (value === "--d1") {
       flags.d1.push(argv[index + 1]);
@@ -209,6 +247,8 @@ Usage:
   microservices auth status [--json]
   microservices auth whoami [--json]
   microservices auth logout [--json]
+  microservices support ticket [--subject "..."] [--description "..."] [--category bug|feature_request|account|billing|general|other] [--priority critical|high|medium|low] [--email owner@example.com] [--project-id <id>] [--deployment-id <id>] [--url <page-url>] [--json]
+  microservices support tickets [--limit 25] [--json]
   microservices doctor [--dir <artifact-dir>] [--api-url http://127.0.0.1:8787] [--json]
   microservices deploy dev [template-id] [--name "Studio Dev"] [--config '{"appName":"Demo"}'] [--api-url http://127.0.0.1:8787] [--api-key <key>] [--json]
   microservices deploy preview [template-id] [--name "Studio Demo"] [--config '{"appName":"Demo"}'] [--api-url http://127.0.0.1:8787] [--api-key <key>] [--json]
@@ -329,6 +369,153 @@ function isObject(value) {
 
 function optionalString(value) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+const SUPPORT_CATEGORIES = new Set(["bug", "feature_request", "account", "billing", "general", "other"]);
+const SUPPORT_PRIORITIES = new Set(["critical", "high", "medium", "low"]);
+const SUPPORT_EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+function normalizeSupportChoice(value, allowed, fallback) {
+  const normalized = optionalString(value)?.toLowerCase() ?? fallback;
+  return allowed.has(normalized) ? normalized : null;
+}
+
+function canPrompt() {
+  return Boolean(nodeStdin.isTTY && nodeStdout.isTTY);
+}
+
+async function supportTicketInput(flags) {
+  let subject = optionalString(flags.subject);
+  let description = optionalString(flags.description);
+  let contactEmail = optionalString(flags.contactEmail);
+  const missingRequired = [
+    subject ? null : "--subject",
+    description ? null : "--description",
+  ].filter(Boolean);
+
+  if (missingRequired.length && (flags.json || !canPrompt())) {
+    return {
+      ok: false,
+      response: failResponse(
+        "SUPPORT_TICKET_INPUT_REQUIRED",
+        `Missing ${missingRequired.join(" and ")}.`,
+        "Pass --subject and --description, or run `microservices support ticket` in an interactive terminal.",
+        { missing: missingRequired }
+      ),
+    };
+  }
+
+  if ((!subject || !description || !contactEmail) && canPrompt() && !flags.json) {
+    const rl = createInterface({ input: nodeStdin, output: nodeStdout });
+    try {
+      if (!subject) subject = optionalString(await rl.question("Subject: "));
+      if (!description) description = optionalString(await rl.question("Description: "));
+      if (!contactEmail) contactEmail = optionalString(await rl.question("Contact email: "));
+    } finally {
+      rl.close();
+    }
+  }
+
+  if (!subject || !description) {
+    return {
+      ok: false,
+      response: failResponse(
+        "SUPPORT_TICKET_INPUT_REQUIRED",
+        "subject and description are required.",
+        "Pass --subject and --description, or answer both prompts.",
+        {}
+      ),
+    };
+  }
+
+  if (contactEmail && !SUPPORT_EMAIL_RE.test(contactEmail.toLowerCase())) {
+    return {
+      ok: false,
+      response: failResponse(
+        "INVALID_SUPPORT_CONTACT",
+        "A valid contact email is required when --email is provided.",
+        "Pass a valid email address with --email owner@example.com.",
+        {}
+      ),
+    };
+  }
+
+  const category = normalizeSupportChoice(flags.category, SUPPORT_CATEGORIES, "general");
+  if (!category) {
+    return {
+      ok: false,
+      response: failResponse(
+        "INVALID_SUPPORT_CATEGORY",
+        `Unsupported support category: ${flags.category}.`,
+        `Use one of: ${Array.from(SUPPORT_CATEGORIES).join(", ")}.`,
+        {}
+      ),
+    };
+  }
+
+  const priority = normalizeSupportChoice(flags.priority, SUPPORT_PRIORITIES, "medium");
+  if (!priority) {
+    return {
+      ok: false,
+      response: failResponse(
+        "INVALID_SUPPORT_PRIORITY",
+        `Unsupported support priority: ${flags.priority}.`,
+        `Use one of: ${Array.from(SUPPORT_PRIORITIES).join(", ")}.`,
+        {}
+      ),
+    };
+  }
+
+  return {
+    ok: true,
+    body: {
+      subject,
+      description,
+      category,
+      priority,
+      contactEmail: contactEmail ? contactEmail.toLowerCase() : undefined,
+      contactName: optionalString(flags.contactName) ?? undefined,
+      projectId: optionalString(flags.projectId) ?? undefined,
+      deploymentId: optionalString(flags.deploymentId) ?? undefined,
+      pageUrl: optionalString(flags.pageUrl) ?? optionalString(flags.url) ?? undefined,
+      metadata: {
+        source: "microservices-cli",
+      },
+    },
+  };
+}
+
+function favcrmTicketLabel(ticket) {
+  if (ticket.favcrmTicketNumber) return `#${ticket.favcrmTicketNumber}`;
+  return ticket.favcrmTicketId ?? "not synced";
+}
+
+function formatSupportTicketCreated(result) {
+  return `Support ticket created
+Ticket: ${result.id}
+Status: ${result.status}
+FavCRM: ${favcrmTicketLabel(result)}
+`;
+}
+
+function formatSupportTicketList(result) {
+  const tickets = Array.isArray(result.tickets) ? result.tickets : [];
+  if (!tickets.length) return "No support tickets found.\n";
+
+  return `${tickets
+    .map((ticket) => {
+      const createdAt = Number.isFinite(Number(ticket.createdAt))
+        ? new Date(Number(ticket.createdAt)).toISOString()
+        : "unknown";
+      const error = ticket.errorCode
+        ? `\n  Error: ${ticket.errorCode}${ticket.errorMessage ? ` - ${ticket.errorMessage}` : ""}`
+        : "";
+      return `${ticket.id} ${ticket.status} ${ticket.priority}/${ticket.category}
+  FavCRM: ${favcrmTicketLabel(ticket)}
+  Subject: ${ticket.subject}
+  Created: ${createdAt}${error}`;
+    })
+    .join("\n\n")}\n`;
 }
 
 function artifactDispatchNamespace(manifest, microservicesConfig) {
@@ -1790,6 +1977,45 @@ Scopes:    ${result.scopes.length ? result.scopes.join(", ") : "—"}
 API:       ${result.apiUrl}
 `
         );
+  }
+
+  if (resource === "support" && (action === "ticket" || action === "create")) {
+    const input = await supportTicketInput(flags);
+    if (!input.ok) {
+      return flags.json ? writeJson(input.response) : printHuman(input.response, () => "");
+    }
+
+    response = await apiRequest(flags, "/support/tickets", {
+      method: "POST",
+      body: JSON.stringify(input.body),
+    });
+
+    if (flags.json) return writeJson(response);
+    if (!response?.ok) {
+      printApiHuman(response, () => "");
+      if (response?.error?.ticketId) {
+        process.stderr.write(`Local ticket: ${response.error.ticketId}\n`);
+      }
+      return;
+    }
+    return printApiHuman(response, formatSupportTicketCreated);
+  }
+
+  if (resource === "support" && (action === "tickets" || action === "list")) {
+    const limit = flags.limit === null ? 25 : Number(flags.limit);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      response = failResponse(
+        "INVALID_SUPPORT_LIMIT",
+        "--limit must be an integer between 1 and 100.",
+        "Pass --limit 25 or omit it.",
+        {}
+      );
+      return flags.json ? writeJson(response) : printHuman(response, () => "");
+    }
+
+    const params = new URLSearchParams({ limit: String(limit) });
+    response = await apiRequest(flags, `/support/tickets?${params.toString()}`);
+    return flags.json ? writeJson(response) : printApiHuman(response, formatSupportTicketList);
   }
 
   if (resource === "doctor" || (resource === "deploy" && action === "doctor")) {
