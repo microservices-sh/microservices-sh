@@ -79,9 +79,9 @@ Preview deploys are approval-gated and routed through the microservices.sh API. 
 13. After the API reports a live preview URL, run `pnpm microservices preview smoke --url <preview-url>`.
 14. Clean disposable preview resources with `pnpm microservices deploy cleanup --input deployment.json --plan`, then `--confirm cleanup`.
 
-`deploy preview --confirm deploy` runs the local build, packages `.svelte-kit/cloudflare`, `.svelte-kit/output/server`, `.svelte-kit/cloudflare-tmp`, migrations, and project manifests, then uploads that artifact to the API. Remote provisioning, remote D1 migration, Worker/assets upload, preview routing, cleanup, and deploy state belong to the API. The local template keeps `wrangler.jsonc` for local Miniflare/D1 development, but managed preview commands do not mutate it with remote resource ids.
+`deploy preview --confirm deploy` runs the local build, runs a local Wrangler dry-run bundle, packages `.microservices/deploy-bundle/_worker.js`, `.svelte-kit/cloudflare` assets, migrations, and project manifests, then uploads that artifact to the API. Remote provisioning, remote D1 migration, Worker/assets upload, preview routing, cleanup, and deploy state belong to the API. The local template keeps `wrangler.jsonc` for local Miniflare/D1 development, but managed preview commands do not mutate it with remote resource ids.
 
-Hosted Worker/assets upload is now API-owned. `deploy upload-plan` reports readiness for the raw SvelteKit artifact, created D1/KV bindings, Cloudflare credentials, and the managed preview route. `deploy upload --confirm upload` asks the API to upload assets/modules, attach final bindings, create the preview route, and mark the deployment live.
+Hosted Worker/assets upload is now API-owned. `deploy upload-plan` reports readiness for the bundled Worker artifact, created D1/KV bindings, Cloudflare credentials, and the managed preview route. `deploy upload --confirm upload` asks the API to upload assets/modules, attach final bindings, create the preview route, and mark the deployment live.
 
 ## CI Preview
 

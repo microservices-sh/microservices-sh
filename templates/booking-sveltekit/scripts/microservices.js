@@ -696,8 +696,6 @@ function buildDeployArtifact(flags) {
   const input = deploymentInput(flags, "preview");
   const files = [];
   const buildOutput = ".svelte-kit/cloudflare";
-  const serverOutput = ".svelte-kit/output/server";
-  const cloudflareManifestOutput = ".svelte-kit/cloudflare-tmp";
   const deployBundleOutput = ".microservices/deploy-bundle";
 
   if (!existsSync(buildOutput)) {
@@ -718,18 +716,14 @@ function buildDeployArtifact(flags) {
     collectArtifactFile(process.cwd(), path, files);
   }
   collectArtifactDirectory(process.cwd(), "migrations", files);
-  collectArtifactDirectory(process.cwd(), deployBundleOutput, files);
+  collectArtifactFile(process.cwd(), `${deployBundleOutput}/_worker.js`, files);
   collectArtifactDirectory(process.cwd(), buildOutput, files);
-  collectArtifactDirectory(process.cwd(), serverOutput, files);
-  collectArtifactDirectory(process.cwd(), cloudflareManifestOutput, files);
 
   const required = [
     "package.json",
     "wrangler.jsonc",
     `${deployBundleOutput}/_worker.js`,
-    `${buildOutput}/_worker.js`,
-    `${serverOutput}/index.js`,
-    `${cloudflareManifestOutput}/manifest.js`
+    `${buildOutput}/_worker.js`
   ];
   const missing = required.filter((path) => !files.some((file) => file.path === path));
   if (missing.length) {
@@ -765,8 +759,6 @@ function buildDeployArtifact(flags) {
           byteCount,
           fileCount: files.length,
           buildOutput,
-          serverOutput,
-          cloudflareManifestOutput,
           deployBundleOutput,
           packageManager: "pnpm",
           createdAt: new Date().toISOString(),

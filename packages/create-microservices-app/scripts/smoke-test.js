@@ -172,8 +172,6 @@ try {
     !svelteCli.includes("production-cleanup") ||
     !svelteCli.includes("buildDeployArtifact") ||
     !svelteCli.includes(".svelte-kit/cloudflare") ||
-    !svelteCli.includes(".svelte-kit/output/server") ||
-    !svelteCli.includes(".svelte-kit/cloudflare-tmp") ||
     !svelteCli.includes(".microservices/deploy-bundle") ||
     !svelteCli.includes("deploy:bundle") ||
     !svelteCli.includes("CI_API_KEY_REQUIRED") ||
