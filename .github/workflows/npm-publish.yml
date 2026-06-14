@@ -1,19 +1,26 @@
 name: Publish npm
 
-# Reusable, parameterized npm publish for ANY workspace package.
+# Parameterized npm publish for ANY workspace package.
 #
-#   Manual:     Actions → "Publish npm" → choose `package` + `dry_run`.
-#   Cross-repo: call it as a reusable workflow from another repo:
-#     jobs:
-#       release:
-#         uses: microservices-sh/microservices-sh/.github/workflows/npm-publish.yml@main
-#         with: { package: "@microservices-sh/booking", dry_run: false }
+#   Manual:  Actions → "Publish npm" → choose `package` + `dry_run`.
+#   Tag:     push a `<package>@<version>` tag → real publish of that package:
+#              git tag create-microservices-app@0.2.4
+#              git push origin create-microservices-app@0.2.4
+#            (scoped names work: `@microservices-sh/module-contract@0.1.1`)
 #
 # Auth is OIDC trusted publishing — NO NPM_TOKEN. Each published package needs a
 # trusted publisher configured once on npmjs.com:
 #   npmjs.com → package → Settings → Trusted Publisher → GitHub Actions
 #     repository: microservices-sh/microservices-sh
 #     workflow:   npm-publish.yml
+#
+# IMPORTANT: npm matches the OIDC token's TOP-LEVEL workflow (`workflow_ref`),
+# not a reusable workflow's `job_workflow_ref`. So the publish MUST be triggered
+# directly on THIS file (manual dispatch or the tag push above). A wrapper
+# workflow that `uses:` this file as reusable would publish with the wrapper as
+# the top-level workflow and get a 404 — which is why the tag trigger lives here
+# rather than in a separate release.yml.
+#
 # pnpm has no OIDC support yet (pnpm#9812), so we `pnpm pack` (which rewrites
 # workspace:/file: deps into the tarball) then `npm publish` the tarball, which
 # does the OIDC token exchange + provenance attestation.
@@ -31,18 +38,12 @@ on:
         required: true
         type: boolean
         default: true
-  workflow_call:
-    inputs:
-      package:
-        required: true
-        type: string
-      dry_run:
-        required: false
-        type: boolean
-        default: false
+  push:
+    tags:
+      - "*@*"
 
 concurrency:
-  group: npm-publish-${{ github.ref }}-${{ inputs.package }}
+  group: npm-publish-${{ github.ref }}-${{ inputs.package || github.ref_name }}
   cancel-in-progress: false
 
 permissions:
@@ -51,12 +52,28 @@ permissions:
 
 jobs:
   publish:
-    name: publish ${{ inputs.package }}
+    name: publish
     runs-on: ubuntu-latest
-    env:
-      PKG: ${{ inputs.package }}
     steps:
       - uses: actions/checkout@v5
+
+      # Resolve the target package + dry-run flag across both triggers:
+      #   tag push      → parse `<package>` from the tag, real publish
+      #   manual dispatch → use the inputs
+      - name: Resolve target
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          IN_PKG: ${{ inputs.package }}
+          IN_DRY: ${{ inputs.dry_run }}
+        run: |
+          if [ "$EVENT" = "push" ]; then
+            echo "PKG=${REF_NAME%@*}" >> "$GITHUB_ENV"
+            echo "DRY=false" >> "$GITHUB_ENV"
+          else
+            echo "PKG=$IN_PKG" >> "$GITHUB_ENV"
+            echo "DRY=$IN_DRY" >> "$GITHUB_ENV"
+          fi
 
       - uses: actions/setup-node@v5
         with:
@@ -88,9 +105,9 @@ jobs:
           pnpm --filter "$PKG" pack --pack-destination "$RUNNER_TEMP/pkg"
 
       - name: Publish (dry run)
-        if: ${{ inputs.dry_run }}
+        if: ${{ env.DRY == 'true' }}
         run: npm publish "$RUNNER_TEMP"/pkg/*.tgz --dry-run --access public
 
       - name: Publish (OIDC trusted publishing + provenance)
-        if: ${{ !inputs.dry_run }}
+        if: ${{ env.DRY != 'true' }}
         run: npm publish "$RUNNER_TEMP"/pkg/*.tgz --provenance --access public
