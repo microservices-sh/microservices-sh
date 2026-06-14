@@ -15,6 +15,7 @@ import {
   listModuleDocs,
   listTemplates,
   planAddModule,
+  planDeploymentResources,
   planModuleUpgrade,
   runChecks,
   validateConfig,
@@ -195,7 +196,7 @@ Usage:
   microservices modules list [--json]
   microservices modules inspect <id> [--json]
   microservices docs [module-id] [--json]
-  microservices add <module-id> --plan [--json]
+  microservices add <module-id> --plan [--mode embedded|service] [--json]
   microservices secrets status [--json]
   microservices updates [--json]
   microservices upgrade <module-id> --plan [--json]
@@ -203,6 +204,7 @@ Usage:
   microservices validate [template-id] [--config '{"timezone":"America/New_York"}'] [--json]
   microservices generate [template-id] --out <dir> [--json]
   microservices check [template-id] [--json]
+  microservices auth login [--api-url https://api.microservices.sh] [--json]   # browser device-code login
   microservices auth login --api-key <key> [--api-url https://api.microservices.sh] [--json]
   microservices auth status [--json]
   microservices auth logout [--json]
@@ -227,6 +229,7 @@ Usage:
   microservices deploy activate <deployment-id> --url <worker-url> [--mode wrangler-local|dispatch-uploaded] [--confirm production] [--json]
   microservices deploy domain <deployment-id> --hostname app.customer.com [--validation-method txt] [--api-url http://127.0.0.1:8787] [--json]
   microservices deploy domain-refresh <deployment-id> --hostname app.customer.com [--api-url http://127.0.0.1:8787] [--json]
+  microservices deploy plan-resources [template-id] [--mode embedded|service] [--json]
   microservices deploy provision <deployment-id> [--confirm production] [--api-url http://127.0.0.1:8787] [--json]
   microservices deploy resources <deployment-id> [--api-url http://127.0.0.1:8787] [--json]
   microservices deploy logs <deployment-id> [--api-url http://127.0.0.1:8787] [--json]
@@ -257,6 +260,8 @@ async function writeCliConfig(config) {
 async function removeCliConfig() {
   await rm(DEFAULT_CONFIG_PATH, { force: true });
 }
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function redactToken(value) {
   if (!value) return null;
@@ -1575,33 +1580,113 @@ async function main() {
 
   if (resource === "auth" && action === "login") {
     const settings = await resolvedApiSettings(flags);
-    if (!settings.apiKey) {
-      response = failResponse(
-        "API_KEY_REQUIRED",
-        "Missing API key for login.",
-        "Pass --api-key <key> or set MICROSERVICES_API_KEY.",
-        { configPath: DEFAULT_CONFIG_PATH }
-      );
-      return flags.json ? writeJson(response) : printHuman(response, () => "");
+
+    // Path A — explicit API key (agent-friendly, non-interactive): validate + save.
+    if (settings.apiKey) {
+      const warnings = [];
+      let status = null;
+      try {
+        status = await apiRequest(flags, "/auth/status");
+        if (!status.ok) {
+          return flags.json ? writeJson(status) : printApiHuman(status, () => "");
+        }
+      } catch (error) {
+        warnings.push(`Saved credentials without server validation: ${error.message}`);
+      }
+
+      await writeCliConfig({
+        apiUrl: settings.apiUrl,
+        apiKey: settings.apiKey,
+        actor: settings.actor,
+        updatedAt: new Date().toISOString(),
+      });
+
+      response = {
+        ok: true,
+        requestId: `local_${Date.now().toString(36)}`,
+        data: {
+          apiUrl: settings.apiUrl,
+          actor: settings.actor,
+          configPath: DEFAULT_CONFIG_PATH,
+          token: redactToken(settings.apiKey),
+          server: status?.data ?? null,
+        },
+        warnings,
+      };
+      return flags.json
+        ? writeJson(response)
+        : printHuman(response, (result) => `Logged in for ${result.apiUrl}\nToken: ${result.token}\nConfig: ${result.configPath}\n`);
     }
 
-    const warnings = [];
-    let status = null;
-    try {
-      status = await apiRequest(flags, "/auth/status");
-      if (!status.ok) {
-        return flags.json ? writeJson(status) : printApiHuman(status, () => "");
+    // Path B — interactive device-code login (no key): approve in a browser.
+    const start = await apiRequest(flags, "/auth/device/start", { method: "POST", body: "{}" });
+    if (!start.ok) {
+      return flags.json ? writeJson(start) : printApiHuman(start, () => "");
+    }
+    const { userCode, deviceCode, verificationUri, interval, expiresIn } = start.data;
+
+    // Progress goes to stderr so --json keeps a clean stdout for the final result.
+    process.stderr.write(
+      `\nTo finish signing in, open this URL and enter the code:\n\n  ${verificationUri}\n  code: ${userCode}\n\nWaiting for approval (Ctrl-C to cancel)...\n`
+    );
+
+    const deadline = Date.now() + (Number(expiresIn) || 900) * 1000;
+    let pollMs = (Number(interval) || 5) * 1000;
+    let apiKey = null;
+    let failure = null;
+    while (Date.now() < deadline) {
+      await sleep(pollMs);
+      let poll;
+      try {
+        poll = await apiRequest(flags, "/auth/device/poll", { method: "POST", body: JSON.stringify({ deviceCode }) });
+      } catch (error) {
+        process.stderr.write(`  (retrying: ${error.message})\n`);
+        continue;
       }
-    } catch (error) {
-      warnings.push(`Saved credentials without server validation: ${error.message}`);
+      if (poll.ok && poll.data?.status === "approved") {
+        apiKey = poll.data.apiKey;
+        break;
+      }
+      if (poll.ok && poll.data?.status === "pending") {
+        if (poll.data.interval) pollMs = poll.data.interval * 1000;
+        continue;
+      }
+      const code = poll.error?.code;
+      if (code === "slow_down") {
+        pollMs += 2000;
+        continue;
+      }
+      if (code === "denied" || code === "expired" || code === "already_claimed") {
+        failure = code;
+        break;
+      }
+      // unknown transient state — keep waiting until the deadline
+    }
+
+    if (!apiKey) {
+      response = failResponse(
+        failure ? `DEVICE_${failure.toUpperCase()}` : "DEVICE_TIMEOUT",
+        failure ? `Login ${failure.replace(/_/g, " ")}.` : "Login timed out before approval.",
+        "Run microservices auth login again."
+      );
+      return flags.json ? writeJson(response) : printApiHuman(response, () => "");
     }
 
     await writeCliConfig({
       apiUrl: settings.apiUrl,
-      apiKey: settings.apiKey,
+      apiKey,
       actor: settings.actor,
       updatedAt: new Date().toISOString(),
     });
+
+    const warnings = [];
+    let status = null;
+    try {
+      status = await apiRequest(flags, "/auth/status"); // reads the key just written
+      if (!status.ok) warnings.push("Saved key but server validation failed.");
+    } catch (error) {
+      warnings.push(`Saved key without server validation: ${error.message}`);
+    }
 
     response = {
       ok: true,
@@ -1610,8 +1695,8 @@ async function main() {
         apiUrl: settings.apiUrl,
         actor: settings.actor,
         configPath: DEFAULT_CONFIG_PATH,
-        token: redactToken(settings.apiKey),
-        server: status?.data ?? null,
+        token: redactToken(apiKey),
+        server: status?.ok ? status.data : null,
       },
       warnings,
     };
@@ -1738,7 +1823,7 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
         ? writeJson(response)
         : printHuman(response, () => "");
     }
-    response = planAddModule({ moduleId: action, ...templateInput("booking-business", flags) });
+    response = planAddModule({ moduleId: action, mode: flags.mode, ...templateInput("booking-business", flags) });
     return flags.json
       ? writeJson(response)
       : printHuman(
@@ -1826,6 +1911,17 @@ Files: ${plan.filesLikelyTouched.join(", ") || "none"}
     return flags.json
       ? writeJson(output)
       : process.stdout.write(`Generated ${written.length} files in ${resolve(USER_CWD, flags.out)}\n${generated.nextSteps.map((step) => `- ${step}`).join("\n")}\n`);
+  }
+
+  if (resource === "deploy" && action === "plan-resources") {
+    response = planDeploymentResources({ ...templateInput(value, flags), mode: flags.mode });
+    return flags.json
+      ? writeJson(response)
+      : printHuman(response, (result) => {
+          const d1 = result.resources.d1.map((item) => item.binding + " (" + item.databaseName + ")").join(", ");
+          const kv = result.resources.kv.map((item) => item.binding).join(", ");
+          return `Mode: ${result.mode}\nWorkers: ${result.workers.length}\nD1: ${d1 || "none"}\nKV: ${kv || "none"}\n`;
+        });
   }
 
   if (resource === "deploy" && action === "preview") {
