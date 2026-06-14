@@ -59,29 +59,40 @@ landing-page/ (repo)
 
 Current CLI has two modes: **repo templates** (`REPO_TEMPLATES`, copied verbatim from `templates/` and patched) and **procedural** (`generateProject` via sdk-internal). Add a third: **framework starters**, keyed off `frameworks.json`.
 
-Resolution order in `runCreate` (around `src/index.js:552`): if `flags.template` matches a `frameworks.json` id → framework-starter path; else existing repo/procedural logic unchanged. Framework ids must not collide with existing template ids (validated at build).
+Resolution order in `main()` (around `src/index.js:552`): if `flags.template` matches a `frameworks.json` id → framework-starter path; else existing repo/procedural logic unchanged. Framework ids must not collide with existing template ids (validated at build).
 
 ### Flow
 
 ```
 create-microservices-app --template nextjs <app>
   1. Look up row in frameworks.json (else: error listing available ids).
-  2. spawnSync: npm create cloudflare@latest <app> -- \
-        --framework=<c3Framework> --no-deploy --no-git --no-open
-     (package-manager-aware: pnpm/yarn/npm dlx equivalent.)
-  3. Inject hook files from src/hooks/<id>/ over the scaffold (no overwrite of
-     C3 framework files except an additive banner in hookEntry):
-        - microservices.config.json   (modules: [], registry URL)
-        - README.microservices.md      ("Add auth/billing/booking:
-                                          npx microservices add <module>")
+  2. spawnSync C3 (package-manager-aware, see mapping below):
+        npm:  npm create cloudflare@latest <app> -- --framework=<c3Framework> --no-deploy --no-git --no-open
+        pnpm: pnpm create cloudflare@latest <app> --framework=<c3Framework> --no-deploy --no-git --no-open
+        yarn: yarn create cloudflare <app> --framework=<c3Framework> --no-deploy --no-git --no-open
+        bun:  bunx create-cloudflare@latest <app> --framework=<c3Framework> --no-deploy --no-git --no-open
+  3. Inject hook over the scaffold (additive only — no overwrite of C3
+     framework files except one banner line in hookEntry):
+        - microservices.config.json    (modules: [], registry URL)
+        - patch package.json: add devDependency on the microservices CLI
+          + a "microservices" script — so the advertised add command resolves
+          (same project-local pattern as existing product templates).
+        - README.microservices.md       ("Add auth/billing/booking:
+                                           <pm-run> microservices add <module>")
         - additive banner comment/link in hookEntry route
-  4. Print next-steps: cd, dev command, and `microservices add <module>`.
+  4. Print next-steps: cd, install, dev command, and the project-local
+     `<pm-run> microservices add <module>` (NOT a global binary).
 ```
+
+Package-manager `<pm-run>` form mirrors the existing `packageScriptCommand`
+helper: `npm run microservices -- add <module>` for npm; `pnpm microservices
+add <module>` / `yarn microservices add <module>` / `bun microservices add
+<module>` otherwise.
 
 ### Boundaries / interfaces
 
 - **C3 dependency** is a hard runtime dependency (network + npm required). Approved. On C3 spawn failure (offline, C3 error), fail loudly with the C3 exit output and a clear message — never silently fall back.
-- The hook layer is purely additive. It must not edit C3's framework code beyond inserting one banner line in `hookEntry`. This keeps the CLI resilient to C3 scaffold changes.
+- The hook layer is additive: it adds new files (`microservices.config.json`, `README.microservices.md`), patches `package.json` (one devDependency + one script), and inserts one banner line in `hookEntry`. It must not otherwise edit C3's framework code. This keeps the CLI resilient to C3 scaffold changes.
 - `microservices.config.json` written here is the same shape the rest of the toolchain reads, so a later `microservices add` works without migration.
 
 ### Error handling
@@ -90,7 +101,7 @@ create-microservices-app --template nextjs <app>
 - C3 spawn non-zero exit → surface C3 stderr verbatim, exit non-zero.
 - Missing `hookEntry` file after scaffold (C3 changed layout) → warn, skip banner injection, still write config + README (degrade, don't crash).
 
-## Deliverable C — Programmatic SEO Pages
+## Deliverable B — Programmatic SEO Pages
 
 - **Generator:** one page template → N pages from `frameworks.json`. Built with **seo-programmatic** + **seo-page** skills; term mapping via **content-strategy** skill.
 - **Route:** `/templates/<id>-cloudflare` (e.g. `/templates/nextjs-cloudflare`).
