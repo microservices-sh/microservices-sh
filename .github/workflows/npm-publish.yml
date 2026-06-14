@@ -17,7 +17,6 @@ name: Publish npm
 # pnpm has no OIDC support yet (pnpm#9812), so we `pnpm pack` (which rewrites
 # workspace:/file: deps into the tarball) then `npm publish` the tarball, which
 # does the OIDC token exchange + provenance attestation.
-# Real publish is gated on repo variable NPM_PUBLISH_ENABLED=true.
 
 on:
   workflow_dispatch:
@@ -53,7 +52,6 @@ permissions:
 jobs:
   publish:
     name: publish ${{ inputs.package }}
-    if: ${{ inputs.dry_run || vars.NPM_PUBLISH_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     env:
       PKG: ${{ inputs.package }}
