@@ -1,0 +1,42 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "microservices.sh Customer Module",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/customers": {
+      "get": {
+        "summary": "List customers",
+        "responses": {
+          "200": { "description": "Customer list" }
+        }
+      },
+      "post": {
+        "summary": "Create or update a customer by email",
+        "responses": {
+          "200": { "description": "Existing customer updated" },
+          "201": { "description": "Customer created" },
+          "400": { "description": "Invalid customer input" }
+        }
+      }
+    },
+    "/customers/{id}": {
+      "get": {
+        "summary": "Get a customer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Customer detail" },
+          "404": { "description": "Customer not found" }
+        }
+      }
+    }
+  }
+}

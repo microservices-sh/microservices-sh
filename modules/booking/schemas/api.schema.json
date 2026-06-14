@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Booking Module API",
+  "type": "object",
+  "description": "See src/schemas.ts for the executable Zod schemas used by the module."
+}

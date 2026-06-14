@@ -2,7 +2,7 @@
 
 Agent-native application infrastructure. Compose verified Cloudflare-native modules with your own AI agent and deploy production apps without setting up Cloudflare.
 
-The marketing landing site is maintained separately in the private [`microservices-sh/landing-page`](https://github.com/microservices-sh/landing-page) repo. Public module source and module PRs live in [`microservices-sh/modules`](https://github.com/microservices-sh/modules). This private core repo stays focused on create-app, CLI, API/control-plane, templates, pinned module snapshots, release logic, and governance.
+The marketing landing site and the control-plane API are maintained in separate repos. This repo is the open-source core: create-app, CLI, SDK, modules, templates, release logic, and governance.
 
 See [`plans/`](./plans) for strategy, MVP scope, architecture, and the landing-page brand brief. See [`plans/20-cli-first-create-app-strategy.md`](./plans/20-cli-first-create-app-strategy.md) for the current CLI-first activation decision. See [`docs/modules`](./docs/modules) for LLM-friendly module docs and [`docs/llms.txt`](./docs/llms.txt) for the agent guide.
 
@@ -37,13 +37,11 @@ Use one parent folder with one Git checkout per repository. Do not nest public r
 ```text
 microservices-sh/
   microservices-sh/   private core repo: create-app, CLI, API/control plane, templates, pinned module snapshots
-  modules/            public module repo: module source, proposals, public PRs, module CI
-  registry/           public registry repo: discovery metadata and maturity status
   landing-page/       private marketing site repo
   dispatcher/         private dispatch Worker repo
 ```
 
-Public module changes should start in `microservices-sh/modules`. This repo imports accepted public module snapshots for release, template generation, and managed platform tests.
+Modules and templates live in this repo (`modules/`, `templates/`). The CLI vendors module source from here into generated apps — there is no separate module or registry repo.
 
 | Package | Stack | Purpose |
 |---------|-------|---------|
@@ -52,9 +50,9 @@ Public module changes should start in `microservices-sh/modules`. This repo impo
 | [`packages/module-contract`](./packages/module-contract) | ESM JavaScript + types | MVP module and template contracts |
 | [`packages/sdk-internal`](./packages/sdk-internal) | ESM JavaScript + types | Shared implementation for CLI, future MCP Worker, and tests |
 | [`packages/workspace-tools`](./packages/workspace-tools) | Node.js CLI | Shared `check` command for module/template package specs |
-| [`modules/customer`](./modules/customer) | TypeScript module package | Pinned customer module snapshot imported from public modules |
-| [`modules/booking`](./modules/booking) | TypeScript module package | Pinned booking module snapshot imported from public modules |
-| [`modules/email`](./modules/email) | TypeScript module package | Pinned email module snapshot imported from public modules |
+| [`modules/customer`](./modules/customer) | TypeScript module package | Customer module source (vendored into generated apps) |
+| [`modules/booking`](./modules/booking) | TypeScript module package | Booking module source (vendored into generated apps) |
+| [`modules/email`](./modules/email) | TypeScript module package | Email module source (vendored into generated apps) |
 | [`templates/booking-sveltekit`](./templates/booking-sveltekit) | Cloudflare SvelteKit | Official full-app booking template shell composed from detached customer and booking modules |
 
 ## Develop

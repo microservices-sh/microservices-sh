@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Email Config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "provider": {
+      "const": "resend",
+      "default": "resend"
+    },
+    "defaultFrom": {
+      "type": ["string", "null"],
+      "description": "Default sender address. Use a verified Resend domain in production.",
+      "default": null
+    },
+    "apiBaseUrl": {
+      "type": "string",
+      "format": "uri",
+      "default": "https://api.resend.com"
+    },
+    "userAgent": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "default": "microservices-sh-email/0.1.0"
+    },
+    "testMode": {
+      "type": "boolean",
+      "default": false
+    },
+    "redactRecipientsInEvents": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

@@ -15,7 +15,7 @@ import {
 import { tmpdir } from "node:os";
 import { delimiter, join, relative, resolve } from "node:path";
 
-const REGISTRY_RAW = "https://raw.githubusercontent.com/microservices-sh/registry/main";
+const SOURCE_REPO = "microservices-sh/microservices-sh";
 const IGNORE = new Set(["node_modules", "dist", ".svelte-kit", ".wrangler", ".git"]);
 
 function readJson(path, fallback = null) {
@@ -61,37 +61,18 @@ async function addModule(id) {
     return fail("MODULE_ID_REQUIRED", "Missing module id.", "Run microservices add <module-id>.");
   }
 
-  const response = await fetch(`${REGISTRY_RAW}/modules/${id}.json`);
-  if (!response.ok) {
-    return fail("MODULE_NOT_FOUND", `Unknown module: ${id}.`, "Check the module id and try again.", {
-      status: response.status
-    });
-  }
-
-  const listing = await response.json();
-  const dist = listing.dist;
-  if (!dist) {
-    return fail(
-      "MODULE_NOT_FETCHABLE",
-      `Module ${id} is not fetchable yet.`,
-      "Wait for the registry listing to include a dist block.",
-      { id }
-    );
-  }
-
   const tmp = mkdtempSync(join(tmpdir(), "ms-add-"));
   try {
-    execFileSync("git", ["clone", "-q", "--no-tags", `https://github.com/${dist.repo}.git`, tmp], { stdio: "pipe" });
-    execFileSync("git", ["-C", tmp, "checkout", "-q", dist.ref], { stdio: "pipe" });
+    execFileSync("git", ["clone", "-q", "--no-tags", "--depth", "1", `https://github.com/${SOURCE_REPO}.git`, tmp], { stdio: "pipe" });
 
-    const src = join(tmp, dist.path);
-    const integrity = integrityOf(src);
-    if (dist.integrity && dist.integrity !== integrity) {
-      return fail("MODULE_INTEGRITY_MISMATCH", `Integrity mismatch for ${id}.`, "Do not install this module until the registry entry is corrected.", {
-        expected: dist.integrity,
-        got: integrity
-      });
+    const src = join(tmp, "modules", id);
+    if (!existsSync(src)) {
+      return fail("MODULE_NOT_FOUND", `Unknown module: ${id}.`, "Run microservices modules list, or browse modules/ in microservices-sh/microservices-sh.", { id });
     }
+
+    const ref = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    const integrity = integrityOf(src);
+    const modulePkg = readJson(join(src, "package.json"), {});
 
     const dest = resolve("modules", id);
     mkdirSync(dest, { recursive: true });
@@ -105,10 +86,10 @@ async function addModule(id) {
     lockData.modules = (lockData.modules ?? []).filter((module) => module.id !== id);
     lockData.modules.push({
       id,
-      version: dist.version ?? null,
-      repo: dist.repo,
-      ref: dist.ref,
-      path: dist.path,
+      version: modulePkg.version ?? null,
+      repo: SOURCE_REPO,
+      ref,
+      path: `modules/${id}`,
       integrity
     });
     writeJson(lockPath, lockData);
@@ -119,8 +100,8 @@ async function addModule(id) {
         id,
         vendoredTo: `modules/${id}`,
         integrity,
-        version: dist.version ?? null,
-        source: dist.repo
+        version: modulePkg.version ?? null,
+        source: SOURCE_REPO
       },
       warnings: [`Add "@microservices-sh/${id}": "file:./modules/${id}" to dependencies and reinstall to wire it in.`]
     };

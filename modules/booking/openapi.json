@@ -1,0 +1,64 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "microservices.sh Booking Module",
+    "version": "0.1.0",
+    "description": "Requires the customer module for customer create/list/read behavior."
+  },
+  "paths": {
+    "/bookings/availability": {
+      "get": {
+        "summary": "List available booking slots",
+        "parameters": [
+          { "name": "serviceId", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "date", "in": "query", "required": true, "schema": { "type": "string", "format": "date" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Available slots"
+          }
+        }
+      }
+    },
+    "/bookings": {
+      "get": {
+        "summary": "List bookings",
+        "responses": {
+          "200": {
+            "description": "Booking list"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a booking",
+        "responses": {
+          "201": {
+            "description": "Booking created"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "409": {
+            "description": "Slot unavailable"
+          }
+        }
+      }
+    },
+    "/bookings/{id}": {
+      "get": {
+        "summary": "Read booking detail",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Booking detail"
+          },
+          "404": {
+            "description": "Booking not found"
+          }
+        }
+      }
+    }
+  }
+}

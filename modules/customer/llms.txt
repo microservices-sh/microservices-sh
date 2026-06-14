@@ -1,0 +1,18 @@
+# Customer Module LLM Guide
+
+Purpose: reusable prebuilt customer logic for microservices.sh templates.
+
+Entry points:
+- `src/index.ts` exports the safe public surface.
+- `src/use-cases/` contains framework-neutral behavior.
+- `src/ports/` defines repository interfaces.
+- `src/adapters/` contains Cloudflare D1 and memory implementations.
+- `schemas/` and `openapi.json` describe API-facing contracts.
+- `module.json` is the machine-readable module manifest.
+
+Agent rules:
+- Keep customer behavior in this module.
+- Keep app routes and UI in templates.
+- Use `CustomerRepository` for persistence.
+- Do not print secret values.
+- Ask before changing PII schema, migrations, external syncs, or production deploy behavior.

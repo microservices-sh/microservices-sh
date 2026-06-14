@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Email Events",
+  "type": "string",
+  "enum": [
+    "email.queued",
+    "email.sent",
+    "email.failed"
+  ]
+}

@@ -1,0 +1,10 @@
+export { moduleDefinition, manifest } from "./manifest";
+export { defaultConfig, configSchema } from "./config";
+export { events } from "./events";
+export { permissions } from "./permissions";
+export { resources } from "./resources";
+export { getCustomer } from "./use-cases/get-customer";
+export { listCustomers } from "./use-cases/list-customers";
+export { upsertCustomer } from "./use-cases/upsert-customer";
+export type { CustomerRepository } from "./ports";
+export type { Actor, Customer, DomainEvent } from "./types";

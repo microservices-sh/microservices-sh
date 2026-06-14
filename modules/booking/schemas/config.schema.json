@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Booking Module Config",
+  "type": "object",
+  "properties": {
+    "timezone": { "type": "string", "default": "UTC" },
+    "slotIntervalMinutes": { "type": "integer", "minimum": 5, "default": 60 },
+    "defaultDurationMinutes": { "type": "integer", "minimum": 5, "default": 60 },
+    "maxFutureDays": { "type": "integer", "minimum": 1, "default": 90 }
+  },
+  "additionalProperties": true
+}

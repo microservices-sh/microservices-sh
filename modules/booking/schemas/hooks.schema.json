@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Booking Module Hooks",
+  "type": "object",
+  "properties": {
+    "calculateAvailability": { "type": "string" },
+    "beforeBookingCreate": { "type": "string" },
+    "afterBookingConfirmed": { "type": "string" },
+    "beforeBookingCancel": { "type": "string" }
+  },
+  "additionalProperties": false
+}

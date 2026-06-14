@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Email Hooks",
+  "type": "object",
+  "properties": {
+    "beforeEmailSend": {
+      "type": "string"
+    },
+    "afterEmailQueued": {
+      "type": "string"
+    },
+    "afterEmailFailed": {
+      "type": "string"
+    }
+  }
+}

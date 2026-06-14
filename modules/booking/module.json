@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "booking",
+  "name": "Booking",
+  "version": "0.1.0",
+  "status": "available",
+  "class": "vertical",
+  "summary": "Service booking, availability, booking records, domain events, and booking admin data access.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    { "type": "d1", "binding": "DB", "tables": ["services", "bookings", "domain_events", "audit_events"] },
+    { "type": "kv", "binding": "CACHE_KV", "optional": true }
+  ],
+  "permissions": ["booking.read", "booking.write", "booking.admin"],
+  "requires": ["customer"],
+  "optional": ["auth", "audit-log", "payment-stripe", "email"],
+  "hooks": ["calculateAvailability", "beforeBookingCreate", "afterBookingConfirmed", "beforeBookingCancel"],
+  "events": ["booking.created", "booking.confirmed", "booking.cancelled"],
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": ["migrations", "pii-fields", "production-deploy", "payment-or-email-side-effects"]
+  }
+}

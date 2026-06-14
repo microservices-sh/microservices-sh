@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Customer Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": ["customer.created", "customer.updated"]
+    },
+    "entityType": {
+      "type": "string",
+      "const": "customer"
+    }
+  },
+  "required": ["eventName", "entityType"]
+}

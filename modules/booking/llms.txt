@@ -1,0 +1,21 @@
+# Booking Module LLM Guide
+
+Purpose: reusable prebuilt booking logic for microservices.sh templates.
+
+Read first:
+
+- `module.json`
+- `README.md`
+- `src/index.ts`
+- `src/ports/index.ts`
+- `src/use-cases/create-booking.ts`
+- `src/adapters/d1-booking-repository.ts`
+
+Stable imports:
+
+- `@microservices-sh/booking`
+- `@microservices-sh/booking/ports`
+- `@microservices-sh/booking/adapters/d1`
+- `@microservices-sh/booking/adapters/memory`
+
+Route adapters should parse framework input, call exported use cases, and map framework-neutral results to framework responses.

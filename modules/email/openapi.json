@@ -1,0 +1,30 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "microservices.sh Email Module",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/emails/send": {
+      "post": {
+        "summary": "Send a transactional email",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./schemas/api.schema.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": { "description": "Email accepted by provider" },
+          "400": { "description": "Invalid email input" },
+          "429": { "description": "Provider rate limit exceeded" },
+          "502": { "description": "Provider send failed" }
+        }
+      }
+    }
+  }
+}

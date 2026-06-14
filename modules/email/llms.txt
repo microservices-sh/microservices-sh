@@ -1,0 +1,13 @@
+# Email Module
+
+Module ID: email
+Status: available
+Purpose: Transactional email module with provider-neutral ports and a Resend HTTP adapter.
+Entrypoint: src/index.ts
+Check: pnpm check:spec
+Build: pnpm build
+Provider: Resend over fetch, POST https://api.resend.com/emails
+Secret: RESEND_API_KEY
+Primary use case: sendEmail(input, deps)
+Adapters: adapters/resend, adapters/d1, adapters/memory
+Safety: production sends are external side effects; require approval and idempotency for retries.
