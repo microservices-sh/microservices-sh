@@ -608,3 +608,101 @@
 | `pnpm test:create` | Create package smoke test still passes | Passed | Pass |
 | `pnpm --filter api typecheck` | API Worker/MCP typecheck still passes | Passed | Pass |
 | `git diff --check` | No whitespace errors | Passed with no output | Pass |
+
+### Phase 22: Auth-First Account, CLI, And Admin Portal Plan
+- **Status:** auth-first implementation plan complete; first API auth slice is tracked in Phase 24
+- Actions taken:
+  - Reviewed current CLI auth and API bearer-token validation.
+  - Confirmed current auth is a static-key bootstrap, not self-serve product auth.
+  - Added an auth-first plan that precedes billing.
+  - Defined user/workspace/session/API-key/device-code/audit data model.
+  - Defined portal login, API-key management, CLI commands, future device login, security defaults, rollout, and verification gates.
+  - Updated the planning index, task plan, findings, and billing plan prerequisite note.
+- Files created/modified:
+  - `plans/21-auth-first-account-and-cli-plan.md`
+  - `plans/22-product-billing-cli-admin-portal.md`
+  - `plans/README.md`
+  - `task_plan.md`
+  - `findings.md`
+  - `progress.md`
+
+## Latest Auth-First Planning Verification Results
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| Current auth check | CLI/API auth status is clear | Current auth is static bearer-token bootstrap | Pass |
+| Auth-first plan | Dedicated plan exists | `plans/21-auth-first-account-and-cli-plan.md` added | Pass |
+| Billing dependency | Billing plan depends on auth | Billing plan now points to auth-first prerequisite | Pass |
+| Security references | Auth/session guidance uses current primary references | OWASP auth/session and RFC 8628 sources linked | Pass |
+
+### Phase 23: Auth And Billing Plan Review
+- **Status:** review complete; first API auth remediation slice is tracked in Phase 24
+- Actions taken:
+  - Spawned three parallel subagents to review auth implementation fit, billing/Stripe sequencing, and planning consistency.
+  - Performed a local review of auth/billing plans, current API schema, current API auth, control-plane tenancy, CLI auth, and planning index state.
+  - Consolidated findings into a dedicated review document.
+  - Identified blocking issues around workspace tenancy, static key fallback, webhook idempotency, auth schema duplication, MCP identity propagation, CLI workspace semantics, subscription lifecycle mapping, and test infrastructure.
+- Files created/modified:
+  - `plans/23-auth-billing-plan-review.md`
+  - `plans/README.md`
+  - `task_plan.md`
+  - `progress.md`
+
+## Latest Auth/Billing Plan Review Verification Results
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| Subagent dispatch | Multiple independent reviews run in parallel | Auth, billing, and planning consistency subagents completed | Pass |
+| Review artifact | Consolidated review exists | `plans/23-auth-billing-plan-review.md` added | Pass |
+| Findings order | Blocking issues are prioritized | Critical findings lead the review | Pass |
+| Remediation order | Next implementation sequence is explicit | Review doc includes docs cleanup, auth implementation, portal auth, billing implementation, and verification order | Pass |
+
+### Phase 24: Auth Implementation Phase A/B API Slice
+- **Status:** first API auth/tenancy slice implemented; billing implementation still blocked by migration, bootstrap, CLI, portal, and test work
+- Actions taken:
+  - Cleaned the billing plan so billing no longer owns or duplicates auth/account tables.
+  - Added API auth/account tables for users, workspaces, memberships, login challenges, sessions, API keys, device codes, and audit events.
+  - Added bootstrap `usr_internal` and `ws_internal` records for the temporary static-key path.
+  - Added D1-backed API-key resolution with hashed keys, scopes, expiry/revocation checks, and `last_used_at` updates.
+  - Mapped static env bearer keys and auth-disabled mode to the internal bootstrap workspace only.
+  - Added `workspace_id` to control-plane schema tables and included workspace IDs in API responses.
+  - Scoped project, deployment, artifact, route, resource, and log read/write queries by workspace.
+  - Passed request identity through HTTP deployment routes and MCP tool calls.
+  - Added custom-domain conflict handling so a hostname owned by another workspace is not silently reassigned.
+- Files created/modified:
+  - `../api/schema.sql`
+  - `../api/src/auth.ts`
+  - `../api/src/control-plane.ts`
+  - `../api/src/index.ts`
+  - `../api/src/mcp.ts`
+  - `plans/22-product-billing-cli-admin-portal.md`
+  - `task_plan.md`
+  - `progress.md`
+
+## Latest Auth Implementation Verification Results
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm typecheck` in `../api` | API Worker/MCP typecheck passes | Passed | Pass |
+| `pnpm db:init` in `../api` | Fresh local D1 schema applies | 43 SQL commands executed successfully | Pass |
+| Sandbox note | Wrangler local D1 needs socket/log permissions | First sandboxed run failed with `EROFS`/`EPERM`; escalated rerun passed | Pass |
+| Wrangler local API smoke | Auth and deployment routes work against local D1 | `/health` 200, unauthenticated `/auth/status` 401, D1 API key `/auth/status` 200, `POST /deployments/preview` 201, status/logs 200, MCP `get_deployment_status` 200 | Pass |
+| Cross-workspace isolation smoke | A second workspace key cannot read the first workspace deployment | Second key authenticated as `ws_other_smoke`; first workspace deployment returned 404 | Pass |
+
+## Remaining Auth Implementation Gaps
+- ✅ Remote D1 migration/backfill: `api/migrations/0001_auth_workspace.sql` ALTERs all 6 control-plane tables with `workspace_id DEFAULT 'ws_internal'`; `db:migrate:remote` script added.
+- ✅ First-owner/API-key bootstrap: `api/scripts/bootstrap-owner.js` (`pnpm bootstrap:owner[:remote]`) creates owner+workspace+key, prints raw key once, stores hash only.
+- ✅ Portal session login/logout + cookie hardening (API): passwordless email-code sessions (`auth-flow.ts`/`portal.ts`), `httpOnly+secure+SameSite=Lax` session cookie, CORS origin allowlist. (SvelteKit API-key management UI still pending.)
+- ❌ CLI profile/workspace/key-management behavior — API device-code grant exists; `apps/cli` has no auth commands yet.
+- ◻ Cross-workspace isolation tests: function-level suite **added** (`api/test/isolation.test.mjs`, 11 tests). HTTP-route-level and MCP-identity-level tests still pending.
+
+## Session: 2026-06-14 (auth gap #1 — isolation tests)
+### Phase 24 follow-up: cross-workspace isolation test harness
+- **Status:** function-level isolation tests complete; CLI auth + route/MCP tests remain
+- Verified another agent already shipped remote migration, bootstrap-owner, and portal/session API; corrected stale plan status (and confirmed `create-microservices-app` is already published to npm at 0.2.2).
+- Added a zero-extra-runtime D1 test adapter over `node:sqlite` (`api/test/d1.mjs`) implementing the prepare/bind/first/all/run/exec subset the code uses.
+- Added `api/test/isolation.test.mjs`: seeds two workspaces+keys, runs the real `resolveRequestIdentity` and control-plane reads.
+- Added `vitest` devDep and `test`/`test:watch` scripts to `api/package.json`.
+
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm test` in `api` | Isolation suite passes | 11/11 passed (1 file) | Pass |
+| Identity resolution | Each key → own workspace; unknown/revoked/expired → null | Passed | Pass |
+| Control-plane tenancy | ws_b cannot read ws_a project/deployment/artifact/resources/logs; contextless defaults to ws_internal | Passed | Pass |

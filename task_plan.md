@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 20
+Phase 22
 
 ## Phases
 
@@ -188,6 +188,40 @@ Phase 20
 - [ ] Add provider module plans for Stripe payment and email.
 - **Status:** first runnable booking SvelteKit shell complete; browser screenshot verification and provider modules pending
 
+### Phase 22: Auth-First Account, CLI, And Admin Portal Plan
+- [x] Confirm current CLI auth is implemented only as static bearer-token bootstrap.
+- [x] Define auth-first prerequisite before billing.
+- [x] Define user, workspace, membership, session, API-key, device-code, and audit tables.
+- [x] Define portal login, workspace, API-key, and future device-login routes.
+- [x] Define CLI auth, workspace, and key-management command plan.
+- [x] Define migration from static env keys to D1-backed workspace-scoped API keys.
+- [x] Define security defaults, verification, rollout, and billing readiness criteria.
+- **Status:** auth-first implementation plan complete; first API auth slice is tracked in Phase 24
+
+### Phase 23: Auth And Billing Plan Review
+- [x] Dispatch parallel subagents for auth implementation fit, billing/Stripe sequencing, and planning consistency.
+- [x] Consolidate subagent findings with local plan review.
+- [x] Identify blocking issues before auth or billing implementation.
+- [x] Create `plans/23-auth-billing-plan-review.md` with prioritized findings and remediation order.
+- **Status:** review complete; first API auth remediation slice is tracked in Phase 24
+
+### Phase 24: Auth Implementation Phase A/B API Slice
+- [x] Tighten the billing plan so auth/account tables stay owned by the auth plan.
+- [x] Add D1 auth/account foundation tables to the API schema.
+- [x] Add bootstrap internal owner/workspace rows for temporary static-key compatibility.
+- [x] Add D1-backed API-key lookup for `Authorization: Bearer` with workspace/scopes.
+- [x] Map the temporary static bearer-key fallback to `ws_internal`.
+- [x] Add `workspace_id` columns and indexes to control-plane tables in the schema.
+- [x] Scope project, deployment, artifact, route, resource, and log reads/writes by workspace.
+- [x] Pass workspace context through HTTP routes and hosted MCP tool calls.
+- [x] Validate API typecheck and fresh local D1 schema application.
+- [x] Add explicit remote D1 migration/backfill for existing deployed control-plane tables. (`migrations/0001_auth_workspace.sql` ALTERs all 6 control-plane tables `ADD COLUMN workspace_id DEFAULT 'ws_internal'`; `db:migrate:remote` script added.)
+- [x] Add first-owner bootstrap/API-key creation route or admin command. (`scripts/bootstrap-owner.js` + `pnpm bootstrap:owner[:remote]`; prints raw key once, stores hash only.)
+- [ ] Add CLI profile/workspace/key-management behavior. (API device-code grant + `/api-keys` exist; `apps/cli` still has no auth commands.)
+- [~] Add portal sessions, API-key management UI, and CSRF/cookie hardening. (API done: passwordless sessions in `auth-flow.ts`/`portal.ts`, `httpOnly+secure+SameSite=Lax` cookies, CORS origin allowlist. SvelteKit key-management UI still pending.)
+- [~] Add cross-workspace route tests and MCP identity tests. (Function-level isolation suite added in `api/test/isolation.test.mjs` — 11 tests, auth + control-plane, node:sqlite D1. HTTP-route-level and MCP-identity-level tests still pending.)
+- **Status:** auth/tenancy slice + remote migration + bootstrap + portal API + function-level isolation tests complete; billing now blocked only on CLI auth, portal key-management UI, and HTTP/MCP-level tests
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.
@@ -228,6 +262,10 @@ Phase 20
 | Make create package and project CLI the first activation path | Users should see a working local app before configuring MCP, Cloudflare, billing, or hosted tools. |
 | Keep MCP as a parity interface over the same SDK | Preserves agent-native distribution while avoiding MCP setup as the first value gate. |
 | Start create package distribution with a local workspace scaffold | Lets us validate the flow immediately while leaving npm publish hardening as an explicit next step. |
+| Add auth before billing | Stripe checkout and deploy entitlements need reliable user, workspace, owner, session, and CLI API-key identity. |
+| Use opaque portal sessions and scoped D1 API keys before JWT-first auth | Browser sessions need revocation and safe cookie storage; CLI/agent access needs stable workspace-scoped keys. Long-lived JWTs are not the right first primitive. |
+| Keep static bearer-token auth only as a temporary internal fallback | Existing control-plane tests and internal operations should not break while real workspace auth is introduced. |
+| Do not start billing implementation before resolving auth/billing plan review blockers | Workspace tenancy, webhook idempotency, static-key scope, and subscription lifecycle rules are currently not tight enough for safe implementation. |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
