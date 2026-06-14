@@ -696,6 +696,8 @@ function buildDeployArtifact(flags) {
   const input = deploymentInput(flags, "preview");
   const files = [];
   const buildOutput = ".svelte-kit/cloudflare";
+  const serverOutput = ".svelte-kit/output/server";
+  const cloudflareManifestOutput = ".svelte-kit/cloudflare-tmp";
 
   if (!existsSync(buildOutput)) {
     return fail(
@@ -716,13 +718,21 @@ function buildDeployArtifact(flags) {
   }
   collectArtifactDirectory(process.cwd(), "migrations", files);
   collectArtifactDirectory(process.cwd(), buildOutput, files);
+  collectArtifactDirectory(process.cwd(), serverOutput, files);
+  collectArtifactDirectory(process.cwd(), cloudflareManifestOutput, files);
 
-  const required = ["package.json", "wrangler.jsonc", `${buildOutput}/_worker.js`];
+  const required = [
+    "package.json",
+    "wrangler.jsonc",
+    `${buildOutput}/_worker.js`,
+    `${serverOutput}/index.js`,
+    `${cloudflareManifestOutput}/manifest.js`
+  ];
   const missing = required.filter((path) => !files.some((file) => file.path === path));
   if (missing.length) {
     return fail(
       "ARTIFACT_INCOMPLETE",
-      "Deployment artifact is missing required files.",
+      "Deployment artifact is missing required SvelteKit Cloudflare files.",
       "Run pnpm build and ensure the Cloudflare adapter output exists.",
       { missing }
     );
@@ -752,6 +762,8 @@ function buildDeployArtifact(flags) {
           byteCount,
           fileCount: files.length,
           buildOutput,
+          serverOutput,
+          cloudflareManifestOutput,
           packageManager: "pnpm",
           createdAt: new Date().toISOString(),
           git: ciMetadata()
@@ -862,7 +874,7 @@ function deployPreviewPlan(flags) {
       ]
     },
     warnings: [
-      "The control-plane API can own resource provisioning and remote migration; hosted Worker upload remains blocked until the deploy-ready bundle/assets adapter is enabled."
+      "The control-plane API owns resource provisioning, remote migration, Worker/assets upload, preview routing, and cleanup when operator Cloudflare credentials are configured."
     ]
   };
 }
@@ -1088,7 +1100,7 @@ function deployUploadActionPlan(deploymentId, flags) {
       productionConfirmationRequired: "production-upload",
       sideEffects: [
         "ask the control-plane API to validate managed Worker upload prerequisites",
-        "upload the Worker only after the API has a deploy-ready Worker/assets bundle adapter",
+        "ask the API to upload raw SvelteKit assets/modules and attach the managed preview route",
         "update deployment logs and lifecycle state"
       ],
       notDoneLocally: [
@@ -1186,7 +1198,7 @@ async function deployActivate(deploymentId, flags) {
     return fail(
       "DEPLOYMENT_URL_REQUIRED",
       "Activation requires a deployment URL from the managed upload step.",
-      "Run microservices deploy upload-plan <deployment-id>, then deploy upload after the API has a deploy-ready Worker/assets bundle."
+      "Run microservices deploy upload-plan <deployment-id>, then deploy upload to let the API publish the raw SvelteKit Worker/assets artifact."
     );
   }
   return apiRequest(flags, `/deployments/${deploymentId}/activate`, {
