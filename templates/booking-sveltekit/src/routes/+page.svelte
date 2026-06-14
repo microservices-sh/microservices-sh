@@ -20,11 +20,14 @@
         SvelteKit routes parse requests and render UI. Booking behavior lives in framework-neutral
         use cases with D1 and in-memory adapters.
       </p>
-      <div class="stat-grid">
-        <div class="list-item">D1-ready schema</div>
-        <div class="list-item">Thin API routes</div>
-        <div class="list-item">Upgrade lockfile</div>
-      </div>
+      <ul class="list mt-6" role="list">
+        {#each ["D1-ready schema", "Thin API routes", "Upgrade lockfile"] as feature}
+          <li class="list-item flex items-center gap-2.5">
+            <span class="text-accent font-semibold" aria-hidden="true">✓</span>
+            {feature}
+          </li>
+        {/each}
+      </ul>
     </aside>
   </div>
 </main>

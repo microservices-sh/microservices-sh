@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { statusPillClass } from "$lib/status";
   let { data } = $props();
 </script>
 
@@ -18,7 +19,7 @@
       <dl class="detail-list">
         <div>
           <dt>Status</dt>
-          <dd><span class="pill">{data.booking.status}</span></dd>
+          <dd><span class={statusPillClass(data.booking.status)}>{data.booking.status}</span></dd>
         </div>
         <div>
           <dt>Customer</dt>

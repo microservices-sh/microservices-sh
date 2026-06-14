@@ -16,6 +16,10 @@
     "discover": "node packages/workspace-tools/src/index.js discover",
     "mvp:modules": "pnpm --filter @microservices-sh/cli cli -- modules list --json",
     "mvp:generate": "pnpm --filter @microservices-sh/cli cli -- generate booking-business --out generated/examples/booking-business",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
   }
 }

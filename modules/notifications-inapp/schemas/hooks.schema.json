@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "In-App Notifications Hooks",
+  "type": "object",
+  "properties": {
+    "beforeNotify": { "type": "string" },
+    "renderNotification": { "type": "string" }
+  },
+  "additionalProperties": false
+}

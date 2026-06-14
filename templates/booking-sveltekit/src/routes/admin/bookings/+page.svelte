@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { statusPillClass } from "$lib/status";
   let { data } = $props();
 </script>
 
@@ -25,7 +26,7 @@
                   {booking.serviceName} · {new Date(booking.startsAt).toLocaleString()}
                 </p>
               </div>
-              <span class="pill">{booking.status}</span>
+              <span class={statusPillClass(booking.status)}>{booking.status}</span>
             </li>
           {/each}
         </ul>

@@ -1,0 +1,143 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Forms & Intake Module",
+    "version": "0.1.0",
+    "description": "Dynamic forms with serializable field schemas, pure submission validation (including conditional visibility), idempotent submissions, optional Turnstile spam protection, and validated attachment references. Routes are owned by the host app; these are the boundary shapes."
+  },
+  "paths": {
+    "/forms": {
+      "post": {
+        "summary": "Create a draft form",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tenantId", "name"],
+                "properties": {
+                  "tenantId": { "type": "string" },
+                  "name": { "type": "string" },
+                  "requireTurnstile": { "type": "boolean" },
+                  "fields": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["id", "label", "type"],
+                      "properties": {
+                        "id": { "type": "string" },
+                        "label": { "type": "string" },
+                        "type": { "type": "string", "enum": ["text", "email", "number", "checkbox", "select"] },
+                        "required": { "type": "boolean" },
+                        "validation": {
+                          "type": "object",
+                          "properties": {
+                            "minLength": { "type": "integer" },
+                            "maxLength": { "type": "integer" },
+                            "min": { "type": "number" },
+                            "max": { "type": "number" },
+                            "pattern": { "type": "string" },
+                            "options": { "type": "array", "items": { "type": "string" } }
+                          }
+                        },
+                        "visibleWhen": {
+                          "type": "object",
+                          "required": ["field", "equals"],
+                          "properties": {
+                            "field": { "type": "string" },
+                            "equals": { "type": "string" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Draft form created" } }
+      },
+      "get": {
+        "summary": "List forms (tenant-scoped)",
+        "parameters": [
+          { "name": "tenantId", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["draft", "published", "archived"] } }
+        ],
+        "responses": { "200": { "description": "Form list" } }
+      }
+    },
+    "/forms/{id}": {
+      "get": {
+        "summary": "Get a form (tenant-scoped)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "tenantId", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Form" }, "404": { "description": "Not found" } }
+      },
+      "patch": {
+        "summary": "Update a form (draft only)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Updated" },
+          "409": { "description": "Form is not editable (published)" }
+        }
+      }
+    },
+    "/forms/{id}/submissions": {
+      "post": {
+        "summary": "Submit to a form (validates, spam-checks, dedups)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tenantId"],
+                "properties": {
+                  "tenantId": { "type": "string" },
+                  "values": { "type": "object", "additionalProperties": true },
+                  "attachments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["fieldId", "key", "contentType", "bytes", "originalName"],
+                      "properties": {
+                        "fieldId": { "type": "string" },
+                        "key": { "type": "string" },
+                        "contentType": { "type": "string" },
+                        "bytes": { "type": "integer", "minimum": 1 },
+                        "originalName": { "type": "string" }
+                      }
+                    }
+                  },
+                  "idempotencyKey": { "type": "string" },
+                  "turnstileToken": { "type": "string" },
+                  "ip": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Submission accepted" },
+          "200": { "description": "Duplicate submission (deduplicated)" },
+          "403": { "description": "Spam protection failed" },
+          "415": { "description": "Attachment rejected" },
+          "422": { "description": "Submission failed validation" }
+        }
+      },
+      "get": {
+        "summary": "List submissions (tenant + form scoped)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "tenantId", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Submission list" } }
+      }
+    }
+  }
+}

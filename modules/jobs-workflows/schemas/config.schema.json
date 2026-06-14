@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Jobs & Workflows Module Config",
+  "type": "object",
+  "properties": {
+    "defaultMaxAttempts": { "type": "integer", "minimum": 1, "maximum": 50, "default": 5 },
+    "backoffBaseMs": { "type": "integer", "minimum": 1, "maximum": 3600000, "default": 1000 },
+    "backoffCapMs": { "type": "integer", "minimum": 1, "maximum": 86400000, "default": 300000 },
+    "pullBatchSize": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 25 },
+    "defaultListLimit": { "type": "integer", "minimum": 1, "maximum": 500, "default": 100 }
+  },
+  "additionalProperties": false
+}

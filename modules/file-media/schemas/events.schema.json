@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "File & Media Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": ["media.upload_requested", "media.uploaded", "media.deleted", "media.ticket_expired"]
+    },
+    "entityType": {
+      "type": "string",
+      "const": "media"
+    }
+  },
+  "required": ["eventName", "entityType"]
+}

@@ -1,0 +1,44 @@
+{
+  "name": "@microservices-sh/template-client-portal-sveltekit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Official microservices.sh Cloudflare SvelteKit client portal app template shell.",
+  "scripts": {
+    "dev": "node scripts/microservices.js local dev",
+    "dev:local": "node scripts/microservices.js local dev",
+    "dev:raw": "vite dev",
+    "build": "vite build",
+    "build:app": "vite build",
+    "preview": "vite preview",
+    "check:spec": "node ../../packages/workspace-tools/src/index.js check template --path .",
+    "setup:local": "node scripts/microservices.js local setup",
+    "db:migrate:local": "node scripts/microservices.js local migrate",
+    "deploy:preview:plan": "node scripts/microservices.js deploy preview --plan",
+    "deploy:preview:dry-run": "node scripts/microservices.js deploy preview --plan",
+    "deploy:preview": "node scripts/microservices.js deploy preview --confirm deploy",
+    "smoke:http": "node scripts/microservices.js preview smoke",
+    "smoke:local": "node scripts/microservices.js local smoke",
+    "microservices": "node scripts/microservices.js"
+  },
+  "dependencies": {
+    "@microservices-sh/audit-log": "workspace:*",
+    "@microservices-sh/auth": "workspace:*",
+    "@microservices-sh/customer": "workspace:*",
+    "@microservices-sh/file-media": "workspace:*",
+    "@microservices-sh/invoice": "workspace:*",
+    "@sveltejs/adapter-cloudflare": "^7.2.4",
+    "@sveltejs/kit": "^2.9.0",
+    "svelte": "^5.0.0",
+    "vite": "^5.0.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "@sveltejs/vite-plugin-svelte": "^4.0.4",
+    "@tailwindcss/vite": "^4.1.13",
+    "tailwindcss": "^4.1.13",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.58.0"
+  }
+}

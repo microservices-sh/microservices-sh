@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Billing Subscriptions Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": ["subscription.started", "subscription.activated", "subscription.past_due", "subscription.canceled", "subscription.plan_changed"]
+    },
+    "entityType": {
+      "type": "string",
+      "const": "subscription"
+    }
+  },
+  "required": ["eventName", "entityType"]
+}

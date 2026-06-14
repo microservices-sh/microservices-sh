@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "calendar-google",
+  "name": "Google Calendar",
+  "version": "0.1.0",
+  "status": "available",
+  "class": "vertical",
+  "summary": "Google Calendar sync for Cloudflare Workers + D1: single-flight OAuth token refresh, watch-channel renewal before the ~7-day expiry, incremental syncToken sync with 410-Gone full-resync fallback, pure RRULE expansion, and push+poll dedup.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    { "type": "d1", "binding": "DB", "tables": ["calendar_tokens", "calendar_sync_state", "calendar_channels", "calendar_events"] }
+  ],
+  "permissions": ["calendar-google.read", "calendar-google.write", "calendar-google.admin"],
+  "requires": [],
+  "optional": ["auth", "audit-log", "jobs-workflows", "webhook-delivery"],
+  "hooks": ["beforeCalendarSync", "onCalendarEventUpserted", "onChannelRenewed"],
+  "events": ["calendar-google.connected", "calendar-google.synced", "calendar-google.event.upserted", "calendar-google.event.deleted", "calendar-google.channel.renewed", "calendar-google.token.refreshed"],
+  "rpc": [],
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "approval": {
+    "risk": "high",
+    "requiresApprovalFor": ["migrations", "oauth-secrets", "external-side-effects", "production-deploy"]
+  }
+}

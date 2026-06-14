@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "2026-06-13",
+  "template": "client-portal-sveltekit",
+  "business": {
+    "name": "Client Portal",
+    "tenantId": "demo-tenant",
+    "timezone": "UTC",
+    "currency": "USD"
+  },
+  "customer": {
+    "profileFields": ["name", "email", "phone", "notes"],
+    "consentFields": ["emailMarketingConsent"]
+  },
+  "invoice": {
+    "series": "INV",
+    "currency": "USD",
+    "defaultTermsDays": 14
+  },
+  "fileMedia": {
+    "allowedContentTypes": ["application/pdf", "image/png", "image/jpeg"],
+    "maxBytesMb": 25
+  },
+  "theme": {
+    "primaryColor": "#146c54",
+    "surface": "#ffffff",
+    "radius": "14px"
+  }
+}

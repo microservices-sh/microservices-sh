@@ -1,0 +1,88 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Google Calendar Module",
+    "version": "0.1.0",
+    "description": "Google Calendar sync with single-flight token refresh, channel renewal, incremental + 410-resync, and push+poll dedup. Routes are owned by the host app; these are the boundary shapes."
+  },
+  "paths": {
+    "/calendar-google/connections": {
+      "post": {
+        "summary": "Connect a calendar (store OAuth credentials, seed sync state)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tenantId", "refreshToken"],
+                "properties": {
+                  "tenantId": { "type": "string" },
+                  "calendarId": { "type": "string", "default": "primary" },
+                  "refreshToken": { "type": "string" },
+                  "accessToken": { "type": "string" },
+                  "accessTokenExpiresAt": { "type": "integer" },
+                  "scope": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Connected" } }
+      }
+    },
+    "/calendar-google/connections/{calendarId}/sync": {
+      "post": {
+        "summary": "Run an incremental sync (full-resync on 410 Gone)",
+        "parameters": [{ "name": "calendarId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Sync result with inserted/updated/deduped counts and didResync flag" },
+          "400": { "description": "Invalid input" }
+        }
+      }
+    },
+    "/calendar-google/channels/renew": {
+      "post": {
+        "summary": "Renew watch channels nearing expiry (scheduled job)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["callbackUrl"],
+                "properties": {
+                  "callbackUrl": { "type": "string", "format": "uri" },
+                  "renewWithinMs": { "type": "integer" },
+                  "ttlMs": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Renewal summary (renewed/skipped/failed channel ids)" } }
+      }
+    },
+    "/calendar-google/push": {
+      "post": {
+        "summary": "Inbound Google push notification (authenticated by channel token)",
+        "description": "Validates the X-Goog-* headers and returns shouldSync; event data is fetched via sync, not from the push body, so dedup holds.",
+        "responses": {
+          "200": { "description": "Acknowledged; may indicate shouldSync" },
+          "401": { "description": "Channel token/resource mismatch" },
+          "404": { "description": "Unknown channel" }
+        }
+      }
+    },
+    "/calendar-google/connections/{calendarId}/events": {
+      "get": {
+        "summary": "List locally-cached, deduped events for a connection",
+        "parameters": [
+          { "name": "calendarId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "tenantId", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Event list" } }
+      }
+    }
+  }
+}

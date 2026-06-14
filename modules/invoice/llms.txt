@@ -1,0 +1,31 @@
+# Invoice Module LLM Guide
+
+Purpose: invoices for Cloudflare Workers + D1. Completes booking/order -> payment
+-> invoice; powers client-portal billing.
+
+Entry points:
+- `src/index.ts` exports the safe public surface.
+- `src/use-cases/` holds framework-neutral behavior: createInvoice, addLineItem,
+  issueInvoice, recordPayment, voidInvoice, listInvoices, dueForReminder.
+- `src/totals.ts` is the pure money math (integer cents, per-line tax rounding).
+- `src/ports/` defines InvoiceStore and NumberAllocator.
+- `src/adapters/` contains D1 + memory invoice stores and atomic + memory allocators.
+- `migrations/0001_invoice.sql` owns invoices, invoice_line_items,
+  invoice_sequences (atomic counter), invoice_payments (idempotency ledger).
+- `module.json` is the machine-readable manifest.
+
+Model:
+- Core record module. Lifecycle: draft -> open (issued, numbered, frozen) -> paid | void.
+- Money is integer cents; tax is in basis points and rounded per line.
+
+Correctness invariants (the point of the module — do not remove):
+- Numbers are allocated atomically via NumberAllocator (upsert + RETURNING),
+  never MAX(number)+1. Allocation happens at issue, after the abort hook.
+- Issued invoices are immutable; only drafts can be edited.
+- Payments are idempotent (recordPaymentKey) so a redelivered webhook applies once.
+- Void never deletes; paid invoices cannot be voided.
+
+Agent rules:
+- Keep use cases neutral; persistence behind InvoiceStore, numbering behind NumberAllocator.
+- Never make real I/O in tests; inject the memory adapters.
+- Ask before changing migrations, money mutations, or production deploy.

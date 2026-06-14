@@ -1,0 +1,76 @@
+# Client Portal SvelteKit LLM Guide
+
+Purpose: guide agents implementing or customizing the `client-portal-sveltekit` template.
+
+Template ID: client-portal-sveltekit
+Status: ready (local baseline)
+Framework: sveltekit
+Required modules: auth, customer, invoice, file-media, audit-log
+Check: pnpm check:spec
+
+## Read First
+
+- `microservices.template.json`
+- `microservices.config.json`
+- `microservices.lock.json`
+- `README.agent.md`
+- `docs/api-boundary.md`
+
+## What It Is
+
+An auth-gated client portal for professional-services businesses. A logged-in
+customer sees only their own invoices and documents and their account; staff get
+an admin side spanning all customers, invoices, and activity.
+
+## Architecture Rule
+
+SvelteKit route files (`+page.server.ts`, `+server.ts`) are adapters. Domain/API
+logic lives in detached module use cases.
+
+```txt
+src/routes/portal/invoices/+page.server.ts
+  -> parse session + call listInvoices (customerId-scoped)
+
+src/routes/portal/files/+page.server.ts
+  -> two-step upload: createUploadTicket -> PUT bytes -> completeUpload
+
+modules/invoice/src/use-cases/*.ts        -> billing behavior
+modules/file-media/src/use-cases/*.ts     -> document/file behavior
+modules/customer/src/use-cases/*.ts       -> account behavior
+modules/audit-log/src/use-cases/*.ts      -> activity trail
+modules/auth/...                          -> identity / sessions
+```
+
+Dependencies (repositories/stores) are created in `src/hooks.server.ts` and
+injected through `event.locals`. D1/R2 adapters are used when bindings exist;
+in-memory adapters back local dev and are seeded by `src/lib/server/demo.ts`.
+
+## Scoping Rule
+
+Customer sessions are scoped to their own `customerId`. Portal routes pass
+`customerId` to `listInvoices` and verify ownership before opening a record, so
+existence never leaks across customers. Staff routes are gated on `role === "staff"`.
+
+## Approval Gates
+
+Require user approval before changing:
+
+- secrets
+- remote migrations
+- webhooks
+- payment/email provider behavior
+- Cloudflare resources
+- remote deployments
+- forked module internals
+
+## Local Baseline
+
+```bash
+pnpm microservices check --json
+pnpm microservices local setup
+pnpm dev
+```
+
+Before beta, replace the demo role cookie in `src/hooks.server.ts` and
+`src/routes/login` with real `@microservices-sh/auth` session verification, and
+add D1/R2 migrations for managed persistence.

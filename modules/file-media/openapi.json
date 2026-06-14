@@ -1,0 +1,74 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "File & Media Module",
+    "version": "0.1.0",
+    "description": "Two-step R2 uploads with tenant-scoped keys, validation, and orphan cleanup. Routes are owned by the host app; these are the boundary shapes."
+  },
+  "paths": {
+    "/media/tickets": {
+      "post": {
+        "summary": "Create an upload ticket (validates content type + size, reserves a tenant key)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tenantId", "originalName", "contentType"],
+                "properties": {
+                  "tenantId": { "type": "string" },
+                  "originalName": { "type": "string" },
+                  "contentType": { "type": "string" },
+                  "declaredBytes": { "type": "integer", "minimum": 1 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Ticket created (returns key to upload to)" },
+          "413": { "description": "Declared size exceeds limit" },
+          "415": { "description": "Content type not allowed" }
+        }
+      }
+    },
+    "/media/complete": {
+      "post": {
+        "summary": "Complete an upload after the bytes are stored",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["ticketId", "tenantId"],
+                "properties": {
+                  "ticketId": { "type": "string" },
+                  "tenantId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "File recorded" },
+          "410": { "description": "Ticket expired" },
+          "413": { "description": "Uploaded object exceeds limit" },
+          "422": { "description": "Object not found at key" }
+        }
+      }
+    },
+    "/media": {
+      "get": {
+        "summary": "List a tenant's files",
+        "parameters": [
+          { "name": "tenantId", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["active", "deleted"] } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 500 } }
+        ],
+        "responses": { "200": { "description": "File list" } }
+      }
+    }
+  }
+}

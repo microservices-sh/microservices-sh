@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Google Calendar Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": [
+        "calendar-google.connected",
+        "calendar-google.synced",
+        "calendar-google.event.upserted",
+        "calendar-google.event.deleted",
+        "calendar-google.channel.renewed",
+        "calendar-google.token.refreshed"
+      ]
+    },
+    "entityType": {
+      "type": "string",
+      "const": "calendar-google"
+    }
+  },
+  "required": ["eventName", "entityType"]
+}

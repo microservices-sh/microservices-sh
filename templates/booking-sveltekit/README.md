@@ -7,6 +7,13 @@ This is the official full-app booking template shell. It is intentionally separa
 
 Booking behavior comes from `@microservices-sh/booking`. Customer behavior comes from `@microservices-sh/customer`. The template owns only SvelteKit routes, UI, composition glue, and Cloudflare binding wiring.
 
+## Styling
+
+The UI uses **Tailwind CSS v4** (CSS-first, no config file). The whole design
+system — colors, fonts, radius, shadows — lives in one `@theme` block in
+`src/app.css`. Change `--color-accent` to rebrand the whole app. See
+[`THEMING.md`](./THEMING.md) for the full guide.
+
 ## Design Rules
 
 - Keep SvelteKit route files thin.
@@ -72,9 +79,9 @@ Preview deploys are approval-gated and routed through the microservices.sh API. 
 13. After the API reports a live preview URL, run `pnpm microservices preview smoke --url <preview-url>`.
 14. Clean disposable preview resources with `pnpm microservices deploy cleanup --input deployment.json --plan`, then `--confirm cleanup`.
 
-`deploy preview --confirm deploy` runs the local build, packages `.svelte-kit/cloudflare`, migrations, and project manifests, then uploads that artifact to the API. Remote provisioning, remote D1 migration, cleanup, and deploy state belong to the API. The local template keeps `wrangler.jsonc` for local Miniflare/D1 development, but managed preview commands do not mutate it with remote resource ids.
+`deploy preview --confirm deploy` runs the local build, packages `.svelte-kit/cloudflare`, `.svelte-kit/output/server`, `.svelte-kit/cloudflare-tmp`, migrations, and project manifests, then uploads that artifact to the API. Remote provisioning, remote D1 migration, Worker/assets upload, preview routing, cleanup, and deploy state belong to the API. The local template keeps `wrangler.jsonc` for local Miniflare/D1 development, but managed preview commands do not mutate it with remote resource ids.
 
-Current upstream blocker: the control-plane API can prepare deployments, provision D1/KV, apply remote D1 migrations, and clean up created resources when configured. Hosted Worker/assets upload is still reported as blocked by `deploy upload-plan` until the artifact includes a deploy-ready bundle and the API upload adapter is enabled. A generated app is ready for local testing now; full live managed preview testing should wait for that upload adapter.
+Hosted Worker/assets upload is now API-owned. `deploy upload-plan` reports readiness for the raw SvelteKit artifact, created D1/KV bindings, Cloudflare credentials, and the managed preview route. `deploy upload --confirm upload` asks the API to upload assets/modules, attach final bindings, create the preview route, and mark the deployment live.
 
 ## CI Preview
 
@@ -85,15 +92,16 @@ MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy preview --co
 MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy provision --input deployment.json --confirm provision --ci --json --output provision.json
 MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy migrate --input deployment.json --confirm migrate --ci --json --output migrate.json
 MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy upload-plan --input deployment.json --ci --json --output upload-plan.json
+MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy upload --input deployment.json --confirm upload --ci --json --output upload.json
 MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy cleanup --input deployment.json --confirm cleanup --ci --json --output cleanup.json
 ```
 
-Use `--wait --timeout 10m` only after hosted upload is ready; until then it fails fast with `HOSTED_UPLOAD_BLOCKED`.
+Use `--wait --timeout 10m` when CI should wait for the API to report a live preview URL before continuing to smoke tests.
 
 ## Pending Before Beta
 
 1. Run browser screenshot checks for desktop and mobile.
-2. Implement the deploy-ready Worker/assets bundle producer and hosted upload adapter.
+2. Add browser-level smoke coverage for managed preview URLs after hosted upload.
 3. Harden auth/gateway/audit onboarding and browser-facing setup docs.
 4. Add Stripe and email provider modules as gated plans.
 

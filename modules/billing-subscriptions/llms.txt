@@ -1,0 +1,33 @@
+# Billing & Subscriptions Module LLM Guide
+
+Purpose: recurring plans and subscription state on Stripe for Cloudflare Workers +
+D1. Turns the one-off payment module into a monetization stack.
+
+Entry points:
+- `src/index.ts` exports the safe public surface.
+- `src/use-cases/` holds framework-neutral behavior: createPlan, listPlans,
+  startSubscription, applyStripeEvent, changePlan, cancelSubscription, recordUsage,
+  listSubscriptions, dueForDunning.
+- `src/state.ts` maps Stripe statuses to ours and derives access (grantsAccess).
+- `src/ports/` defines BillingStore.
+- `src/adapters/` contains D1 + memory stores.
+- `migrations/0001_billing_subscriptions.sql` owns plans, subscriptions,
+  billing_events (idempotency), usage_records.
+- `module.json` is the machine-readable manifest.
+
+Model:
+- Provider module on Stripe. The host normalizes raw Stripe webhooks into
+  NormalizedBillingEvent; this module owns subscription state + idempotency.
+- Statuses: trialing | active | past_due | unpaid | paused | canceled.
+
+Correctness invariants (the point of the module — do not remove):
+- Every Stripe status maps via mapStripeStatus; unknown -> non-access, never active.
+- applyStripeEvent is idempotent (event-id ledger); looks up the sub first so an
+  early event can retry.
+- recordUsage is idempotent on its key.
+- Access is derived from status via grantsAccess.
+
+Agent rules:
+- Keep use cases neutral; no Stripe SDK here. Persistence behind BillingStore.
+- Never make real I/O in tests; inject createMemoryBillingStore().
+- Ask before changing migrations, money mutations, or production deploy.

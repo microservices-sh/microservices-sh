@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Org Team RBAC Module Config",
+  "type": "object",
+  "properties": {
+    "invitationTtlMs": { "type": "integer", "minimum": 1, "default": 604800000 },
+    "ownerRoleName": { "type": "string", "default": "owner" },
+    "memberRoleName": { "type": "string", "default": "member" }
+  },
+  "additionalProperties": false
+}

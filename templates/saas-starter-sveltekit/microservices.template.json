@@ -1,0 +1,104 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "saas-starter-sveltekit",
+  "version": "0.1.0",
+  "status": "ready",
+  "displayName": "SaaS Starter SvelteKit",
+  "category": "business-system",
+  "summary": "Multi-tenant B2B SaaS starter for Cloudflare SvelteKit: org sign-up, team management with RBAC, and subscription billing over detached module use cases.",
+  "runtime": {
+    "language": "typescript",
+    "framework": "sveltekit",
+    "adapter": "@sveltejs/adapter-cloudflare",
+    "platform": "cloudflare-workers",
+    "entrypoint": ".svelte-kit/cloudflare/_worker.js"
+  },
+  "deployment": {
+    "defaultMode": "managed-cloudflare",
+    "managedNamespace": "microservices-sh",
+    "byoCloudflare": "later"
+  },
+  "modules": {
+    "required": [
+      "auth",
+      "org-team-rbac",
+      "billing-subscriptions",
+      "admin-shell",
+      "audit-log"
+    ],
+    "optional": [
+      "payment",
+      "email",
+      "webhook-delivery",
+      "notifications-inapp"
+    ]
+  },
+  "slots": {
+    "identity": {
+      "activeModule": "auth",
+      "allowedModules": [
+        "auth"
+      ],
+      "approvalRisk": "high"
+    },
+    "tenancy": {
+      "activeModule": "org-team-rbac",
+      "allowedModules": [
+        "org-team-rbac"
+      ],
+      "approvalRisk": "high"
+    },
+    "billing": {
+      "activeModule": "billing-subscriptions",
+      "allowedModules": [
+        "billing-subscriptions"
+      ],
+      "approvalRisk": "high"
+    },
+    "admin": {
+      "activeModule": "admin-shell",
+      "allowedModules": [
+        "admin-shell"
+      ],
+      "approvalRisk": "medium"
+    },
+    "audit": {
+      "activeModule": "audit-log",
+      "allowedModules": [
+        "audit-log"
+      ],
+      "approvalRisk": "medium"
+    },
+    "payment": {
+      "activeModule": null,
+      "allowedModules": [
+        "payment"
+      ],
+      "approvalRisk": "high"
+    },
+    "messaging": {
+      "activeModule": null,
+      "allowedModules": [
+        "email"
+      ],
+      "approvalRisk": "high"
+    }
+  },
+  "sourcePolicy": {
+    "templateOwns": [
+      "app shell",
+      "routes",
+      "layout",
+      "UI overlays",
+      "composition glue"
+    ],
+    "modulesOwn": [
+      "domain behavior",
+      "schemas",
+      "use cases",
+      "ports",
+      "migrations"
+    ],
+    "apiLogic": "detached-use-cases-with-sveltekit-adapters"
+  }
+}

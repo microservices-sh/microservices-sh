@@ -1,0 +1,37 @@
+# In-App Notifications Module LLM Guide
+
+Purpose: a per-user in-app notification feed for microservices.sh apps. Owns
+persistence and correct read/unread state. The realtime WebSocket / Durable
+Object push layer is the HOST app's concern, not this module.
+
+Entry points:
+- `src/index.ts` exports the safe public surface.
+- `src/use-cases/` contains framework-neutral behavior (notify, listNotifications,
+  markRead, markAllRead, getUnreadCount).
+- `src/ports/` defines the `NotificationStore` interface.
+- `src/adapters/` contains Cloudflare D1 and memory implementations.
+- `schemas/` and `openapi.json` describe API-facing contracts.
+- `module.json` is the machine-readable module manifest.
+
+Model (the failure modes this module encodes — do not regress these):
+- PER-USER, NOT BROADCAST: every notification has a `userId`. There is no
+  "notify everyone" path; fan-out is one notify() call per recipient. Every
+  list/count is scoped by userId.
+- READ/UNREAD STATE: markRead(ids, userId), markAllRead(userId), and
+  unreadCount(userId). unreadCount counts rows in the store (readAt IS NULL),
+  never the length of a paginated list.
+- POLYMORPHIC TYPES: a `type` discriminator + a JSON `data` payload. Different
+  notification types (booking.confirmed, payment.received, mention) carry their
+  own `data` shape; the module does not hardcode one shape.
+- RECONNECT / MISSED DELIVERY: listNotifications accepts `sinceIso` so a client
+  that reconnects fetches only what it missed.
+- IDEMPOTENT NOTIFY: an optional `dedupKey` (unique per user) means the same
+  upstream event delivered twice does not create two notifications.
+
+Agent rules:
+- Keep notification logic in this module; keep app routes, UI, and the realtime
+  transport in the host app / templates.
+- Use `NotificationStore` for persistence; never query the table directly from
+  routes.
+- Always pass `userId` — never read or mutate across users.
+- Ask before changing migrations or production deploy behavior.

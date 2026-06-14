@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "In-App Notifications Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": ["notification.created", "notification.read"]
+    },
+    "entityType": {
+      "type": "string",
+      "const": "notification"
+    }
+  },
+  "required": ["eventName", "entityType"]
+}

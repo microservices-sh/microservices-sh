@@ -1,0 +1,76 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Jobs & Workflows Module",
+    "version": "0.1.0",
+    "description": "Durable background jobs: idempotent enqueue, backoff retries, dead-letter, and catch-up scheduling. Routes are owned by the host app; these are the boundary shapes."
+  },
+  "paths": {
+    "/jobs": {
+      "post": {
+        "summary": "Enqueue a job (idempotent when idempotencyKey is set)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["type"],
+                "properties": {
+                  "type": { "type": "string" },
+                  "payload": { "type": "object", "additionalProperties": true },
+                  "idempotencyKey": { "type": "string" },
+                  "maxAttempts": { "type": "integer", "minimum": 1, "maximum": 50 },
+                  "delayMs": { "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Job enqueued" },
+          "200": { "description": "Existing job returned (deduplicated)" },
+          "400": { "description": "Invalid input" }
+        }
+      },
+      "get": {
+        "summary": "List jobs by status/type (includes the dead-letter view)",
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["pending", "running", "succeeded", "dead"] } },
+          { "name": "type", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 500 } }
+        ],
+        "responses": { "200": { "description": "Job list" } }
+      }
+    },
+    "/jobs/schedules": {
+      "post": {
+        "summary": "Create or update a recurring schedule",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["type", "intervalMs"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "type": { "type": "string" },
+                  "payload": { "type": "object", "additionalProperties": true },
+                  "intervalMs": { "type": "integer", "minimum": 1 },
+                  "maxAttempts": { "type": "integer", "minimum": 1, "maximum": 50 },
+                  "firstRunAt": { "type": "string", "format": "date-time" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Schedule created" },
+          "200": { "description": "Schedule updated" },
+          "400": { "description": "Invalid input" }
+        }
+      }
+    }
+  }
+}

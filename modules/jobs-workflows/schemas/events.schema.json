@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Jobs & Workflows Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": ["job.enqueued", "job.succeeded", "job.retried", "job.dead", "job.scheduled"]
+    },
+    "entityType": {
+      "type": "string",
+      "const": "job"
+    }
+  },
+  "required": ["eventName", "entityType"]
+}

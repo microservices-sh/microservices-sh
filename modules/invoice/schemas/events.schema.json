@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Invoice Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": ["invoice.created", "invoice.issued", "invoice.paid", "invoice.voided", "invoice.overdue"]
+    },
+    "entityType": {
+      "type": "string",
+      "const": "invoice"
+    }
+  },
+  "required": ["eventName", "entityType"]
+}

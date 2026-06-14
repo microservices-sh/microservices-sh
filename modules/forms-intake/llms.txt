@@ -1,0 +1,39 @@
+# Forms & Intake Module LLM Guide
+
+Purpose: dynamic forms + intake for Cloudflare Workers + D1. Build a form once
+(serializable field set), accept validated submissions; powers contact forms,
+applications, lead capture, surveys.
+
+Entry points:
+- `src/index.ts` exports the safe public surface.
+- `src/use-cases/` holds framework-neutral behavior: createForm, getForm,
+  updateForm, submitForm, listSubmissions.
+- `src/validate-submission.ts` is the PURE validator: evaluates conditional
+  visibility, coerces values per field type, applies rules; plus validateAttachment.
+- `src/ports/` defines FormStore and TurnstileVerifier (spam protection injected).
+- `src/adapters/` contains D1 + memory FormStore, a fetch-based Turnstile verifier
+  and a memory/always-pass one.
+- `migrations/0001_forms_intake.sql` owns forms, form_submissions, and
+  submission_keys (idempotency ledger).
+- `module.json` is the machine-readable manifest.
+
+Model:
+- Vertical intake module. Form lifecycle: draft (editable) -> published (field set
+  frozen) -> archived (no new submissions).
+- A form's fields are serializable data; the same stored definition drives validation.
+
+Correctness invariants (the point of the module — do not remove):
+- Submission validation is a single PURE function driven by the stored field set.
+  Conditional visibility is evaluated first: a required-but-HIDDEN field is NOT
+  required. No second copy of validation in route code.
+- Submissions are idempotent via recordSubmissionKey (optional idempotencyKey) so
+  a retried POST is stored exactly once.
+- Spam protection (Turnstile) runs behind the TurnstileVerifier port; the use case
+  never calls fetch. Optional/configurable per form; verifier fails closed.
+- Attachments are references only (content-type allowlist + size cap); never bytes.
+- Only draft forms can be edited; a published field set is frozen.
+
+Agent rules:
+- Keep use cases neutral; persistence behind FormStore, spam behind TurnstileVerifier.
+- Never make real I/O in tests; inject the memory adapters.
+- Ask before changing migrations, pii fields, external side effects, or production deploy.

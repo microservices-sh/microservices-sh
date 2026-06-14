@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "File & Media Hooks",
+  "type": "object",
+  "properties": {
+    "beforeUpload": { "type": "string" },
+    "allowContentType": { "type": "string" },
+    "onFileUploaded": { "type": "string" }
+  },
+  "additionalProperties": false
+}

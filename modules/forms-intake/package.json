@@ -1,0 +1,38 @@
+{
+  "name": "@microservices-sh/forms-intake",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Prebuilt microservices.sh forms-intake module: dynamic serializable form schemas with conditional visibility, pure submission validation, idempotent submissions, optional Turnstile spam protection, and validated attachment references.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./schemas": "./src/schemas.ts",
+    "./hooks": "./src/hooks.ts",
+    "./manifest": "./src/manifest/index.ts",
+    "./config": "./src/config/index.ts",
+    "./schema": "./src/schema/index.ts",
+    "./events": "./src/events/index.ts",
+    "./permissions": "./src/permissions/index.ts",
+    "./resources": "./src/resources/index.ts",
+    "./service": "./src/service/index.ts",
+    "./ports": "./src/ports/index.ts",
+    "./validate-submission": "./src/validate-submission.ts",
+    "./adapters/d1": "./src/adapters/d1-form-store.ts",
+    "./adapters/memory": "./src/adapters/memory-form-store.ts",
+    "./adapters/turnstile": "./src/adapters/fetch-turnstile-verifier.ts",
+    "./adapters/turnstile-memory": "./src/adapters/memory-turnstile-verifier.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "2026-06-13",
+  "template": "saas-starter-sveltekit",
+  "business": {
+    "name": "SaaS Starter",
+    "timezone": "UTC",
+    "currency": "USD"
+  },
+  "org": {
+    "defaultRoles": ["owner", "admin", "member"],
+    "invitationTtlDays": 7
+  },
+  "billing": {
+    "trialDays": 14,
+    "plans": ["starter", "growth", "scale"]
+  },
+  "theme": {
+    "primaryColor": "#4f46e5",
+    "surface": "#ffffff",
+    "radius": "14px"
+  }
+}

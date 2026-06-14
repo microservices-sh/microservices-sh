@@ -36,6 +36,8 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",
     "@sveltejs/vite-plugin-svelte": "^4.0.4",
+    "@tailwindcss/vite": "^4.1.13",
+    "tailwindcss": "^4.1.13",
     "typescript": "^5.9.3",
     "wrangler": "^4.58.0"
   }

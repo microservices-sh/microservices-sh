@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Org Team RBAC Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": ["org.created", "member.invited", "member.joined", "member.removed", "role.updated"]
+    },
+    "entityType": {
+      "type": "string",
+      "const": "org"
+    }
+  },
+  "required": ["eventName", "entityType"]
+}

@@ -1,0 +1,95 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Billing & Subscriptions Module",
+    "version": "0.1.0",
+    "description": "Plans, subscriptions, idempotent Stripe webhook application, and usage. Routes are owned by the host app; these are the boundary shapes."
+  },
+  "paths": {
+    "/billing/plans": {
+      "post": {
+        "summary": "Create a plan",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "priceCents"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "priceCents": { "type": "integer", "minimum": 0 },
+                  "currency": { "type": "string" },
+                  "interval": { "type": "string", "enum": ["month", "year"] },
+                  "stripePriceId": { "type": "string" },
+                  "features": { "type": "array", "items": { "type": "string" } }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Plan created" } }
+      },
+      "get": { "summary": "List active plans", "responses": { "200": { "description": "Plan list" } } }
+    },
+    "/billing/subscriptions": {
+      "post": {
+        "summary": "Start a subscription (trialing or active)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["subscriberId", "planId"],
+                "properties": {
+                  "subscriberId": { "type": "string" },
+                  "planId": { "type": "string" },
+                  "trialDays": { "type": "integer", "minimum": 0 },
+                  "stripeSubscriptionId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Subscription started" }, "404": { "description": "Plan not found" } }
+      },
+      "get": {
+        "summary": "List subscriptions",
+        "parameters": [
+          { "name": "subscriberId", "in": "query", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["trialing", "active", "past_due", "unpaid", "paused", "canceled"] } }
+        ],
+        "responses": { "200": { "description": "Subscription list" } }
+      }
+    },
+    "/billing/webhook": {
+      "post": {
+        "summary": "Apply a normalized Stripe event (idempotent)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id", "type", "stripeSubscriptionId"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "type": { "type": "string" },
+                  "stripeSubscriptionId": { "type": "string" },
+                  "stripeStatus": { "type": "string" },
+                  "periodStart": { "type": "string" },
+                  "periodEnd": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Applied (or deduplicated)" },
+          "404": { "description": "Subscription not found (retryable)" }
+        }
+      }
+    }
+  }
+}

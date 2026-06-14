@@ -1,0 +1,121 @@
+{
+  "schemaVersion": "2026-06-13",
+  "generatedAt": "template-scaffold",
+  "registry": {
+    "id": "microservices.sh",
+    "contractVersion": "2026-06-13"
+  },
+  "generator": {
+    "package": "create-microservices-app",
+    "version": "0.0.0"
+  },
+  "template": {
+    "id": "saas-starter-sveltekit",
+    "version": "0.1.0",
+    "source": "registry:saas-starter-sveltekit@0.1.0",
+    "checksum": "sha256:scaffold-saas-starter-sveltekit-0.1.0"
+  },
+  "deploy": { "mode": "embedded" },
+  "modules": [
+    {
+      "id": "auth",
+      "version": "0.1.0",
+      "source": "registry:auth@0.1.0",
+      "checksum": "sha256:preview-auth-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/auth",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["auth.mint", "auth.verify", "auth.admin"],
+        "rpc": [
+          { "method": "mintToken", "scope": "auth.mint", "public": false },
+          { "method": "verifyToken", "scope": "auth.verify", "public": false },
+          { "method": "getJwks", "scope": null, "public": true }
+        ],
+        "hooks": ["beforeMintToken", "afterTokenMinted"],
+        "events": ["auth.token_minted", "auth.key_rotated"],
+        "requires": []
+      }
+    },
+    {
+      "id": "org-team-rbac",
+      "version": "0.1.0",
+      "source": "registry:org-team-rbac@0.1.0",
+      "checksum": "sha256:preview-org-team-rbac-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/orgs",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["org.read", "org.manage", "member.manage"],
+        "rpc": [],
+        "hooks": ["beforeInvite", "onMembershipChanged"],
+        "events": ["org.created", "member.invited", "member.joined", "member.removed", "role.updated"],
+        "requires": []
+      }
+    },
+    {
+      "id": "billing-subscriptions",
+      "version": "0.1.0",
+      "source": "registry:billing-subscriptions@0.1.0",
+      "checksum": "sha256:preview-billing-subscriptions-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/billing",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["billing.read", "billing.write", "billing.admin"],
+        "rpc": [],
+        "hooks": ["beforeSubscriptionChange", "onSubscriptionActivated", "onSubscriptionPastDue"],
+        "events": ["subscription.started", "subscription.activated", "subscription.past_due", "subscription.canceled", "subscription.plan_changed"],
+        "requires": []
+      }
+    },
+    {
+      "id": "admin-shell",
+      "version": "0.1.0",
+      "source": "registry:admin-shell@0.1.0",
+      "checksum": "sha256:preview-admin-shell-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/admin",
+        "bindings": ["DB"],
+        "resources": [],
+        "permissions": ["admin.access", "admin.read", "admin.write"],
+        "rpc": [],
+        "hooks": ["beforeWrite", "onAdminAction"],
+        "events": ["admin.record_created", "admin.record_updated", "admin.record_deleted"],
+        "requires": []
+      }
+    },
+    {
+      "id": "audit-log",
+      "version": "0.1.0",
+      "source": "registry:audit-log@0.1.0",
+      "checksum": "sha256:preview-audit-log-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/audit",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["audit.read", "audit.export", "audit.admin"],
+        "rpc": [],
+        "hooks": ["redactAuditPayload", "beforeAuditExport"],
+        "events": ["audit.recorded", "audit.exported"],
+        "requires": []
+      }
+    }
+  ],
+  "customizations": {
+    "config": true,
+    "hooks": ["beforeInvite", "onMembershipChanged", "beforeSubscriptionChange", "onSubscriptionActivated", "beforeWrite", "onAdminAction", "redactAuditPayload"],
+    "overlays": [],
+    "forks": []
+  }
+}

@@ -1,0 +1,32 @@
+# Org, Team & RBAC Module LLM Guide
+
+Purpose: multi-tenant organizations, memberships, roles, and invitations for
+Cloudflare Workers + D1. The B2B foundation other modules scope against.
+
+Entry points:
+- `src/index.ts` exports the safe public surface.
+- `src/use-cases/` holds framework-neutral behavior: createOrganization,
+  inviteMember, acceptInvitation, updateMemberRole, removeMember, authorize
+  (+ resolvePermissions), listMembers, createRole.
+- `src/authz.ts` is permission matching (wildcards: "*", "prefix.*").
+- `src/ports/` defines RbacStore.
+- `src/adapters/` contains D1 + memory stores.
+- `migrations/0001_org_team_rbac.sql` owns organizations, memberships, roles, invitations.
+- `module.json` is the machine-readable manifest.
+
+Model:
+- Platform module. New orgs seed owner/admin/member roles; the creator is owner.
+- Lifecycle: invite (token) -> accept (single-use) -> membership; roles carry
+  permission strings resolved at authorize time.
+
+Correctness invariants (the point of the module — do not remove):
+- Tenant isolation: a non-member resolves to [] permissions; membership keyed by (org,user).
+- Permissions resolve from the role with wildcard matching, not flat role checks.
+- Invitations are single-use and expire.
+- The last owner cannot be removed or downgraded.
+
+Agent rules:
+- Keep use cases neutral; persistence behind RbacStore.
+- Never make real I/O in tests; inject createMemoryRbacStore().
+- Never read/write across orgs without an (orgId, userId) scope.
+- Ask before changing migrations, permission logic, or production deploy.

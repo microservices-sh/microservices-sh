@@ -1,0 +1,31 @@
+# File & Media Module LLM Guide
+
+Purpose: R2-backed file uploads for Cloudflare Workers — portals, avatars,
+documents, CMS images, attachments.
+
+Entry points:
+- `src/index.ts` exports the safe public surface.
+- `src/use-cases/` holds framework-neutral behavior: createUploadTicket,
+  completeUpload, expireStaleTickets, deleteFile, listFiles.
+- `src/keys.ts` builds tenant-scoped object keys (the isolation source of truth).
+- `src/ports/` defines MediaStore and ObjectStorage.
+- `src/adapters/` contains D1 + memory metadata stores and R2 + memory object stores.
+- `migrations/0001_file_media.sql` owns upload_tickets and media_files.
+- `module.json` is the machine-readable manifest.
+
+Model:
+- Provider module wrapping R2. Two-step upload: ticket (intent) -> put bytes ->
+  complete (verify + record). Object bytes live in R2; D1 holds metadata only.
+
+Correctness invariants (the point of the module — do not remove):
+- Keys are tenant-prefixed via buildObjectKey; reads/deletes are tenant-guarded.
+- Content type is allow-listed and size-capped before an upload is accepted.
+- completeUpload verifies the object exists and fits the size limit before recording.
+- expireStaleTickets removes orphaned objects for tickets never completed.
+- deleteFile is a soft delete (object removed, record retained).
+
+Agent rules:
+- Keep use cases neutral; metadata behind MediaStore, object I/O behind ObjectStorage.
+- Never make real I/O in tests; inject the memory adapters.
+- Run image variants async via jobs-workflows (onFileUploaded hook), never inline.
+- Ask before changing migrations, object deletion, or production deploy.

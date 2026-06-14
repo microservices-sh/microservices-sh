@@ -1,0 +1,32 @@
+# Admin Shell Module LLM Guide
+
+Purpose: schema-driven admin CRUD over the host app's existing D1 tables. You
+declare resources; the module provides governed list/get/create/update/delete.
+The UI is rendered by the host app.
+
+Entry points:
+- `src/index.ts` exports the safe public surface.
+- `src/registry.ts` defines resources (table, columns, permissions, softDelete).
+- `src/authz.ts` is the permission gate (hasPermission, wildcard "*").
+- `src/validate.ts` coerces/validates values against a definition (editable only).
+- `src/use-cases/` holds framework-neutral behavior: listRecords, getRecord,
+  createRecord, updateRecord, deleteRecord.
+- `src/ports/` defines TableGateway.
+- `src/adapters/` contains a D1 gateway (identifier-whitelisted SQL) and a memory gateway.
+- `module.json` is the machine-readable manifest. The module owns no tables.
+
+Model:
+- Platform module. ResourceDefinitions are the only source of SQL identifiers, so
+  the generic query builder is injection-safe.
+
+Correctness invariants (the point of the module — do not remove):
+- Every action checks the resource read/write permission (hasPermission).
+- delete honors softDelete config (no always-hard-delete).
+- Writes accept only editable columns (validateValues); unknown fields rejected.
+- list is one query + one count with clamped pagination (no N+1).
+
+Agent rules:
+- Keep use cases neutral; data access behind TableGateway. UI lives in the host.
+- Never interpolate request input into SQL; identifiers come from the registry.
+- Never make real I/O in tests; inject createMemoryTableGateway().
+- Ask before changing data mutations, permission logic, or production deploy.

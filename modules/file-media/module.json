@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "file-media",
+  "name": "File & Media",
+  "version": "0.1.0",
+  "status": "available",
+  "class": "provider",
+  "summary": "R2-backed file uploads with tenant-scoped keys, validated upload tickets, orphan cleanup, and soft-deletes. Async image variants fan out through jobs-workflows.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    { "type": "d1", "binding": "DB", "tables": ["media_files", "upload_tickets"] },
+    { "type": "r2", "binding": "MEDIA_BUCKET" }
+  ],
+  "permissions": ["media.upload", "media.read", "media.admin"],
+  "requires": [],
+  "optional": ["auth", "audit-log", "jobs-workflows"],
+  "hooks": ["beforeUpload", "allowContentType", "onFileUploaded"],
+  "events": ["media.upload_requested", "media.uploaded", "media.deleted", "media.ticket_expired"],
+  "rpc": [],
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": ["migrations", "object-deletion", "production-deploy"]
+  }
+}

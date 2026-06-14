@@ -1,0 +1,43 @@
+# Google Calendar Module LLM Guide
+
+Purpose: two-way-ready Google Calendar sync for Cloudflare Workers + D1. Connect a
+calendar, keep its OAuth token fresh, keep push channels alive, sync events
+incrementally, and expand recurrences for display.
+
+Entry points:
+- `src/index.ts` exports the safe public surface.
+- `src/use-cases/` holds framework-neutral behavior: connectCalendar,
+  refreshAccessToken, syncCalendar, renewExpiringChannels, handlePushNotification,
+  listEvents (plus the shared applyEvents dedup helper).
+- `src/rrule.ts` is the PURE recurrence expander (parseRRule, expandRecurrence).
+- `src/ports/` defines GoogleCalendarClient, TokenStore, SyncStateStore,
+  ChannelStore, CalendarEventStore.
+- `src/adapters/` has D1 + memory stores and a fetch-based GoogleCalendarClient.
+- `migrations/0001_calendar_google.sql` owns calendar_tokens, calendar_sync_state,
+  calendar_channels, calendar_events.
+- `module.json` is the machine-readable manifest.
+
+The five failure modes this module encapsulates (do NOT remove — they are the point):
+1. Single-flight OAuth refresh. Concurrent workers must not all refresh at once.
+   refreshAccessToken claims an atomic DB lease (TokenStore.acquireRefreshLock);
+   one caller calls Google, the rest wait and reuse the stored token.
+2. Watch-channel renewal. Google push channels expire (~7 days); renewExpiringChannels
+   renews channels in the renewal window (renew-then-stop, no delivery gap) so sync
+   does not silently stop after a week.
+3. Incremental sync + 410 resync. syncCalendar pages with the stored syncToken; when
+   the GoogleCalendarClient signals { gone: true } (HTTP 410) it clears the cursor,
+   bumps resyncCount, and full-resyncs.
+4. Pure RRULE expansion. expandRecurrence(rules, dtstart, dtend, window) is
+   deterministic (UTC instants, no Date.now). Subset: FREQ=DAILY/WEEKLY/MONTHLY,
+   INTERVAL, COUNT/UNTIL. Unsupported parts are ignored, not guessed.
+5. Push+poll dedup. CalendarEventStore.upsert returns inserted|updated|duplicate by
+   (tenant, calendar, googleEventId) + the `updated` marker; the change hook fires
+   once. An event seen via push AND poll is processed exactly once.
+
+Agent rules:
+- Keep use cases neutral. ALL Google HTTP lives behind GoogleCalendarClient; the only
+  file that calls fetch is src/adapters/fetch-google-client.ts.
+- Never make real I/O in tests; inject the memory adapters and a fake client.
+- OAuth client id/secret are injected secrets — never hard-code them.
+- Ask before changing migrations, OAuth secret handling, external side effects, or
+  production deploy.

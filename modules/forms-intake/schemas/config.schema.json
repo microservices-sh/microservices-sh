@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Forms & Intake Module Config",
+  "type": "object",
+  "properties": {
+    "allowedAttachmentTypes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"]
+    },
+    "maxAttachmentBytes": { "type": "integer", "minimum": 1, "default": 10485760 },
+    "defaultRequireTurnstile": { "type": "boolean", "default": false },
+    "defaultListLimit": { "type": "integer", "minimum": 1, "maximum": 500, "default": 100 }
+  },
+  "additionalProperties": false
+}

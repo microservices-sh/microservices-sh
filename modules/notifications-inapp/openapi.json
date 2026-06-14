@@ -1,0 +1,49 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "microservices.sh In-App Notifications Module",
+    "version": "0.1.0",
+    "description": "Per-user in-app notification feed. All reads and writes are user-scoped. The realtime push transport (WebSocket / Durable Object) is the host app's concern; this module owns persistence and read/unread state."
+  },
+  "paths": {
+    "/notifications": {
+      "get": {
+        "summary": "List the current user's notifications (requires notifications.read)",
+        "parameters": [
+          { "name": "unreadOnly", "in": "query", "schema": { "type": "boolean" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 200 } },
+          { "name": "since", "in": "query", "schema": { "type": "string", "format": "date-time" }, "description": "Reconnect cursor: return only notifications created after this timestamp." }
+        ],
+        "responses": {
+          "200": { "description": "User-scoped notifications, newest first" },
+          "400": { "description": "Invalid filter" }
+        }
+      }
+    },
+    "/notifications/unread-count": {
+      "get": {
+        "summary": "Accurate unread count for the current user (requires notifications.read)",
+        "responses": {
+          "200": { "description": "Unread count" }
+        }
+      }
+    },
+    "/notifications/read": {
+      "post": {
+        "summary": "Mark specific notification ids read for the current user (requires notifications.write)",
+        "responses": {
+          "200": { "description": "Number updated" },
+          "400": { "description": "Invalid input" }
+        }
+      }
+    },
+    "/notifications/read-all": {
+      "post": {
+        "summary": "Mark all of the current user's notifications read (requires notifications.write)",
+        "responses": {
+          "200": { "description": "Number updated" }
+        }
+      }
+    }
+  }
+}

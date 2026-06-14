@@ -1,0 +1,121 @@
+{
+  "schemaVersion": "2026-06-13",
+  "generatedAt": "template-scaffold",
+  "registry": {
+    "id": "microservices.sh",
+    "contractVersion": "2026-06-13"
+  },
+  "generator": {
+    "package": "create-microservices-app",
+    "version": "0.0.0"
+  },
+  "template": {
+    "id": "client-portal-sveltekit",
+    "version": "0.1.0",
+    "source": "registry:client-portal-sveltekit@0.1.0",
+    "checksum": "sha256:scaffold-client-portal-sveltekit-0.1.0"
+  },
+  "deploy": { "mode": "embedded" },
+  "modules": [
+    {
+      "id": "auth",
+      "version": "0.1.0",
+      "source": "registry:auth@0.1.0",
+      "checksum": "sha256:preview-auth-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/auth",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["auth.mint", "auth.verify", "auth.admin"],
+        "rpc": [
+          { "method": "mintToken", "scope": "auth.mint", "public": false },
+          { "method": "verifyToken", "scope": "auth.verify", "public": false },
+          { "method": "getJwks", "scope": null, "public": true }
+        ],
+        "hooks": ["beforeMintToken", "afterTokenMinted"],
+        "events": ["auth.token_minted", "auth.key_rotated"],
+        "requires": []
+      }
+    },
+    {
+      "id": "customer",
+      "version": "0.1.0",
+      "source": "registry:customer@0.1.0",
+      "checksum": "sha256:preview-customer-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/customers",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["customer.read", "customer.write", "customer.admin"],
+        "rpc": [],
+        "hooks": ["beforeCustomerCreate", "afterCustomerUpdated"],
+        "events": ["customer.created", "customer.updated"],
+        "requires": []
+      }
+    },
+    {
+      "id": "invoice",
+      "version": "0.1.0",
+      "source": "registry:invoice@0.1.0",
+      "checksum": "sha256:preview-invoice-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/invoices",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["invoice.read", "invoice.write", "invoice.admin"],
+        "rpc": [],
+        "hooks": ["beforeInvoiceIssue", "onInvoiceIssued", "onInvoicePaid"],
+        "events": ["invoice.created", "invoice.issued", "invoice.paid", "invoice.voided", "invoice.overdue"],
+        "requires": ["customer"]
+      }
+    },
+    {
+      "id": "file-media",
+      "version": "0.1.0",
+      "source": "registry:file-media@0.1.0",
+      "checksum": "sha256:preview-file-media-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/files",
+        "bindings": ["DB", "MEDIA_BUCKET"],
+        "resources": ["D1", "R2"],
+        "permissions": ["media.upload", "media.read", "media.admin"],
+        "rpc": [],
+        "hooks": ["beforeUpload", "allowContentType", "onFileUploaded"],
+        "events": ["media.upload_requested", "media.uploaded", "media.deleted", "media.ticket_expired"],
+        "requires": []
+      }
+    },
+    {
+      "id": "audit-log",
+      "version": "0.1.0",
+      "source": "registry:audit-log@0.1.0",
+      "checksum": "sha256:preview-audit-log-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/audit",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["audit.read", "audit.export", "audit.admin"],
+        "rpc": [],
+        "hooks": ["redactAuditPayload", "beforeAuditExport"],
+        "events": ["audit.recorded", "audit.exported"],
+        "requires": []
+      }
+    }
+  ],
+  "customizations": {
+    "config": true,
+    "hooks": ["beforeMintToken", "afterTokenMinted", "beforeCustomerCreate", "afterCustomerUpdated", "beforeInvoiceIssue", "onInvoiceIssued", "onInvoicePaid", "beforeUpload", "allowContentType", "onFileUploaded", "redactAuditPayload"],
+    "overlays": [],
+    "forks": []
+  }
+}

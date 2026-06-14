@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Google Calendar Hooks",
+  "type": "object",
+  "properties": {
+    "beforeCalendarSync": { "type": "string" },
+    "onCalendarEventUpserted": { "type": "string" },
+    "onChannelRenewed": { "type": "string" }
+  },
+  "additionalProperties": false
+}

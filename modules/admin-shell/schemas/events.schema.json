@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Admin Shell Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": ["admin.record_created", "admin.record_updated", "admin.record_deleted"]
+    },
+    "entityType": {
+      "type": "string",
+      "const": "admin"
+    }
+  },
+  "required": ["eventName", "entityType"]
+}

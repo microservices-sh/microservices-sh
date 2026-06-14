@@ -1,0 +1,69 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Admin Shell Module",
+    "version": "0.1.0",
+    "description": "Generic admin CRUD over registry-declared resources. Routes are owned by the host app; these are the boundary shapes (resourceName is a path segment)."
+  },
+  "paths": {
+    "/admin/{resource}": {
+      "get": {
+        "summary": "List records (RBAC read, soft-deleted excluded by default)",
+        "parameters": [
+          { "name": "resource", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 1000 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "minimum": 0 } }
+        ],
+        "responses": {
+          "200": { "description": "Page of records + total" },
+          "403": { "description": "Missing read permission" },
+          "404": { "description": "Unknown resource" }
+        }
+      },
+      "post": {
+        "summary": "Create a record (RBAC write, editable columns only)",
+        "parameters": [{ "name": "resource", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true } } }
+        },
+        "responses": {
+          "201": { "description": "Created" },
+          "400": { "description": "Validation failed" },
+          "403": { "description": "Missing write permission" }
+        }
+      }
+    },
+    "/admin/{resource}/{id}": {
+      "get": {
+        "summary": "Get one record",
+        "parameters": [
+          { "name": "resource", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Record" }, "404": { "description": "Not found" } }
+      },
+      "patch": {
+        "summary": "Update a record (RBAC write, editable columns only)",
+        "parameters": [
+          { "name": "resource", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true } } }
+        },
+        "responses": { "200": { "description": "Updated" }, "400": { "description": "Validation failed" } }
+      },
+      "delete": {
+        "summary": "Delete a record (soft-delete when configured)",
+        "parameters": [
+          { "name": "resource", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Deleted (mode: soft|hard)" }, "403": { "description": "Missing write permission" } }
+      }
+    }
+  }
+}

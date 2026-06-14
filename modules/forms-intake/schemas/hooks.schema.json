@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Forms & Intake Hooks",
+  "type": "object",
+  "properties": {
+    "beforeFormPublish": { "type": "string" },
+    "onSubmissionReceived": { "type": "string" }
+  },
+  "additionalProperties": false
+}

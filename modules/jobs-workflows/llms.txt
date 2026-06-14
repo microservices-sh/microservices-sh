@@ -1,0 +1,32 @@
+# Jobs & Workflows Module LLM Guide
+
+Purpose: durable background jobs for Cloudflare Workers + D1. The async backbone
+other modules use for retries, reconciliation, reminders, dunning, and media
+processing.
+
+Entry points:
+- `src/index.ts` exports the safe public surface.
+- `src/use-cases/` holds framework-neutral behavior: enqueueJob, runJob,
+  runDueJobs, dueScheduledJobs, upsertSchedule, listJobs.
+- `src/backoff.ts` is the deterministic exponential backoff + schedule catch-up math.
+- `src/ports/` defines JobStore, JobRunStore, ScheduleStore, QueueProducer.
+- `src/adapters/` contains D1 + memory stores and a Cloudflare Queue + memory producer.
+- `migrations/0001_jobs_workflows.sql` owns jobs, job_runs, job_schedules.
+- `module.json` is the machine-readable manifest.
+
+Model:
+- Platform module (foundational infra). D1 is the source of truth; the optional
+  Queue is only a wake-up signal.
+- Lifecycle: pending -> running -> (succeeded | dead). running -> pending on retry.
+
+Correctness invariants (the point of the module — do not remove):
+- Enqueue is idempotent via a unique idempotency_key (DB-enforced + app dedup).
+- Execution is idempotent: terminal jobs are never re-run (at-least-once safe).
+- Retries use bounded exponential backoff, then dead-letter (no retry storm).
+- Scheduling catches up: a missed window enqueues once, not once per miss.
+
+Agent rules:
+- Keep use cases neutral; persistence behind ports; queue behind QueueProducer.
+- Never make real I/O in tests; inject createMemory* adapters.
+- Keep job_runs append-only.
+- Ask before changing migrations, background side-effects, or production deploy.

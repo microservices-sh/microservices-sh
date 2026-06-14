@@ -1,0 +1,80 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Org, Team & RBAC Module",
+    "version": "0.1.0",
+    "description": "Multi-tenant orgs, memberships, roles, invitations, and an authorize gate. Routes are owned by the host app; these are the boundary shapes."
+  },
+  "paths": {
+    "/orgs": {
+      "post": {
+        "summary": "Create an organization (creator becomes owner)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "slug", "ownerUserId"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "slug": { "type": "string" },
+                  "ownerUserId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created" }, "409": { "description": "Slug taken" } }
+      }
+    },
+    "/orgs/{orgId}/invitations": {
+      "post": {
+        "summary": "Invite a member (single-use, expiring token)",
+        "parameters": [{ "name": "orgId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "roleId"],
+                "properties": { "email": { "type": "string", "format": "email" }, "roleId": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Invitation created (returns token)" } }
+      }
+    },
+    "/invitations/accept": {
+      "post": {
+        "summary": "Accept an invitation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token", "userId"],
+                "properties": { "token": { "type": "string" }, "userId": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Joined" },
+          "409": { "description": "Invitation already used" },
+          "410": { "description": "Invitation expired" }
+        }
+      }
+    },
+    "/orgs/{orgId}/members": {
+      "get": {
+        "summary": "List active members",
+        "parameters": [{ "name": "orgId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Member list" } }
+      }
+    }
+  }
+}

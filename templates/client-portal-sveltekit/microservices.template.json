@@ -1,0 +1,112 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "client-portal-sveltekit",
+  "version": "0.1.0",
+  "status": "ready",
+  "displayName": "Client Portal SvelteKit",
+  "category": "business-system",
+  "summary": "Auth-gated Cloudflare SvelteKit client portal: customers see their own invoices, files, and account; staff get an admin side. Detached invoice/file/customer logic.",
+  "runtime": {
+    "language": "typescript",
+    "framework": "sveltekit",
+    "adapter": "@sveltejs/adapter-cloudflare",
+    "platform": "cloudflare-workers",
+    "entrypoint": ".svelte-kit/cloudflare/_worker.js"
+  },
+  "deployment": {
+    "defaultMode": "managed-cloudflare",
+    "managedNamespace": "microservices-sh",
+    "byoCloudflare": "later"
+  },
+  "modules": {
+    "required": [
+      "auth",
+      "customer",
+      "invoice",
+      "file-media",
+      "audit-log"
+    ],
+    "optional": [
+      "gateway",
+      "payment",
+      "email",
+      "admin-shell",
+      "webhook-delivery"
+    ]
+  },
+  "slots": {
+    "identity": {
+      "activeModule": "auth",
+      "allowedModules": [
+        "auth"
+      ],
+      "approvalRisk": "high"
+    },
+    "profile": {
+      "activeModule": "customer",
+      "allowedModules": [
+        "customer"
+      ],
+      "approvalRisk": "medium"
+    },
+    "billing": {
+      "activeModule": "invoice",
+      "allowedModules": [
+        "invoice"
+      ],
+      "approvalRisk": "medium"
+    },
+    "files": {
+      "activeModule": "file-media",
+      "allowedModules": [
+        "file-media"
+      ],
+      "approvalRisk": "medium"
+    },
+    "audit": {
+      "activeModule": "audit-log",
+      "allowedModules": [
+        "audit-log"
+      ],
+      "approvalRisk": "medium"
+    },
+    "payment": {
+      "activeModule": null,
+      "allowedModules": [
+        "payment"
+      ],
+      "approvalRisk": "high"
+    },
+    "messaging": {
+      "activeModule": null,
+      "allowedModules": [
+        "email"
+      ],
+      "approvalRisk": "high"
+    },
+    "admin": {
+      "activeModule": null,
+      "allowedModules": [
+        "admin-shell"
+      ],
+      "approvalRisk": "medium"
+    }
+  },
+  "sourcePolicy": {
+    "templateOwns": [
+      "app shell",
+      "routes",
+      "layout",
+      "UI overlays",
+      "composition glue"
+    ],
+    "modulesOwn": [
+      "domain behavior",
+      "schemas",
+      "use cases",
+      "ports",
+      "migrations"
+    ],
+    "apiLogic": "detached-use-cases-with-sveltekit-adapters"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "notifications-inapp",
+  "name": "In-App Notifications",
+  "version": "0.1.0",
+  "status": "available",
+  "class": "provider",
+  "summary": "Per-user in-app notification feed: user-scoped lists/counts, read/unread state, polymorphic typed payloads, reconnect catch-up (listSince), and idempotent delivery via dedupKey. Owns persistence; the realtime push layer is the host's concern.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    { "type": "d1", "binding": "DB", "tables": ["notifications"] }
+  ],
+  "permissions": ["notifications.read", "notifications.write", "notifications.admin"],
+  "requires": [],
+  "optional": [],
+  "hooks": ["beforeNotify", "renderNotification"],
+  "events": ["notification.created", "notification.read"],
+  "rpc": [],
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": ["migrations", "production-deploy"]
+  }
+}
