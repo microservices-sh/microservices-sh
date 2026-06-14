@@ -62,6 +62,9 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+          # setup-node@v5 caches the pnpm store by default, but pnpm isn't on
+          # PATH until corepack runs below — disable to avoid "pnpm not found".
+          package-manager-cache: false
 
       - name: Enable pnpm
         run: |
