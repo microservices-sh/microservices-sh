@@ -6,6 +6,7 @@ import { dirname, normalize, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { generateProject, listModuleDocs, listModules, listTemplates } from "@microservices-sh/sdk-internal";
+import { loadFrameworks, resolveFramework, buildC3Command, applyFrameworkHook, frameworkNextSteps } from "./framework-starter.js";
 
 const PACKAGE_VERSION = "0.2.3";
 const USER_CWD = process.env.INIT_CWD || process.cwd();
@@ -138,7 +139,15 @@ function availableTemplateList() {
   const procedural = sdk.ok ? sdk.data : [];
   const repo = Object.values(REPO_TEMPLATES);
   const seen = new Set(procedural.map((template) => template.id));
-  return [...procedural, ...repo.filter((template) => !seen.has(template.id))];
+  const base = [...procedural, ...repo.filter((template) => !seen.has(template.id))];
+  const frameworks = loadFrameworks().map((row) => ({
+    id: row.id,
+    name: `${row.label} (Cloudflare starter)`,
+    status: row.status,
+    summary: `${row.label} on Cloudflare Workers — empty starter, add modules via microservices.sh.`,
+  }));
+  const baseIds = new Set(base.map((t) => t.id));
+  return [...base, ...frameworks.filter((f) => !baseIds.has(f.id))];
 }
 
 function parseArgs(argv) {
@@ -559,6 +568,20 @@ async function main() {
       { available: allTemplates.map((template) => template.id) }
     );
     return flags.json ? writeJson(response) : process.stderr.write(`Error: ${response.error.message}\n`);
+  }
+
+  const frameworkRow = resolveFramework(flags.template);
+  if (frameworkRow) {
+    const { cmd, args } = buildC3Command(flags.packageManager, frameworkRow, appName);
+    const result = spawnSync(cmd, args, { stdio: "inherit", cwd: USER_CWD });
+    if (result.status !== 0) {
+      process.stderr.write(`\nC3 scaffold failed (exit ${result.status}). See output above.\n`);
+      process.exit(result.status ?? 1);
+    }
+    const appDir = resolve(USER_CWD, appName);
+    applyFrameworkHook(appDir, frameworkRow, flags.packageManager);
+    process.stdout.write("\nNext steps:\n" + frameworkNextSteps(flags.packageManager, appName, frameworkRow).map((l) => `  ${l}`).join("\n") + "\n");
+    return;
   }
 
   let generatedFiles;
