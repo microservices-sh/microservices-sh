@@ -1,0 +1,82 @@
+{
+  "frameworks": [
+    {
+      "id": "nextjs",
+      "label": "Next.js",
+      "c3Framework": "next",
+      "adapter": "@opennextjs/cloudflare",
+      "searchTerms": [
+        "nextjs cloudflare",
+        "next.js cloudflare workers starter"
+      ],
+      "hookEntry": "app/layout.tsx",
+      "devCommand": "dev",
+      "status": "ready"
+    },
+    {
+      "id": "astro",
+      "label": "Astro",
+      "c3Framework": "astro",
+      "adapter": "@astrojs/cloudflare",
+      "searchTerms": [
+        "astro cloudflare",
+        "astro cloudflare workers starter"
+      ],
+      "hookEntry": "src/layouts/Layout.astro",
+      "devCommand": "dev",
+      "status": "ready"
+    },
+    {
+      "id": "react-router",
+      "label": "React Router",
+      "c3Framework": "react-router",
+      "adapter": "@cloudflare/vite-plugin",
+      "searchTerms": [
+        "react router cloudflare",
+        "react router 7 cloudflare workers"
+      ],
+      "hookEntry": "app/root.tsx",
+      "devCommand": "dev",
+      "status": "ready"
+    },
+    {
+      "id": "nuxt",
+      "label": "Nuxt",
+      "c3Framework": "nuxt",
+      "adapter": "nitro-cloudflare",
+      "searchTerms": [
+        "nuxt cloudflare",
+        "nuxt cloudflare workers starter"
+      ],
+      "hookEntry": "app.vue",
+      "devCommand": "dev",
+      "status": "ready"
+    },
+    {
+      "id": "hono",
+      "label": "Hono",
+      "c3Framework": "hono",
+      "adapter": "none",
+      "searchTerms": [
+        "hono cloudflare",
+        "hono cloudflare workers starter"
+      ],
+      "hookEntry": "src/index.ts",
+      "devCommand": "dev",
+      "status": "ready"
+    },
+    {
+      "id": "sveltekit",
+      "label": "SvelteKit",
+      "c3Framework": "svelte",
+      "adapter": "@sveltejs/adapter-cloudflare",
+      "searchTerms": [
+        "sveltekit cloudflare",
+        "sveltekit cloudflare workers starter"
+      ],
+      "hookEntry": "src/routes/+layout.svelte",
+      "devCommand": "dev",
+      "status": "ready"
+    }
+  ]
+}
