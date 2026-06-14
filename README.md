@@ -20,6 +20,37 @@ npm create microservices-app@latest studio-booking -- --template booking-sveltek
 
 `studio-booking` is your app directory and slug. The current full-app template id is `booking-sveltekit`.
 
+## Agent Skill
+
+This repo includes a portable agent skill at [`skills/microservices-sh`](./skills/microservices-sh). Use it with Codex or another skill-aware coding agent to inspect generated apps, read module contracts, plan module changes, run local checks, and keep secrets, migrations, provider actions, and deployments approval-gated.
+
+Install from the published GitHub repo with the Skills CLI:
+
+```bash
+npx skills add microservices-sh/microservices-sh --skill microservices-sh
+```
+
+For a user-level install that is available across projects:
+
+```bash
+npx skills add microservices-sh/microservices-sh --skill microservices-sh --global
+```
+
+To inspect what the repo exposes before installing:
+
+```bash
+npx skills add microservices-sh/microservices-sh --list
+```
+
+If you already have this repo checked out locally, you can also install it for Codex by copying the skill folder:
+
+```bash
+mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
+cp -R skills/microservices-sh "${CODEX_HOME:-$HOME/.codex}/skills/"
+```
+
+Or use it directly by asking your agent to use the skill at `skills/microservices-sh` while working inside a generated microservices.sh app.
+
 ## What You Get
 
 - A real Cloudflare SvelteKit booking app with public booking flow and admin screens.

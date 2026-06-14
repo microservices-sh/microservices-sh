@@ -1,0 +1,4 @@
+interface:
+  display_name: "microservices.sh"
+  short_description: "Build apps with microservices.sh"
+  default_prompt: "Use $microservices-sh to create, inspect, or safely modify a microservices.sh app."
