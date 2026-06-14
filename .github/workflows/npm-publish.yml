@@ -79,9 +79,9 @@ jobs:
         run: pnpm --filter "$PKG" publish --no-git-checks --dry-run
 
       - name: Publish
-        # No --provenance: attestations need a public source repo. Add
-        # `--provenance` here once this repo is public.
+        # --provenance signs an attestation linking the package to this public
+        # source repo + workflow run (requires id-token: write, set above).
         if: ${{ !inputs.dry_run }}
         run: |
           test -n "$NODE_AUTH_TOKEN" || { echo "NPM_TOKEN is not set"; exit 1; }
-          pnpm --filter "$PKG" publish --no-git-checks
+          pnpm --filter "$PKG" publish --no-git-checks --provenance
