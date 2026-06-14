@@ -1,5 +1,12 @@
 # Repository Strategy
 
+> **Status (2026-06): partially superseded.** The standalone public `modules` and
+> `registry` repos described below were **not** created. Module source lives in
+> this monorepo under `modules/<id>`; catalog/discovery metadata lives in
+> `landing-page/src/data/registry/` (the `registry` repo is retired); and the
+> marketing site is public. Community modules are submitted by PR to this
+> monorepo. Treat the repo split below as historical context pending a rewrite.
+
 ## Current Decision
 
 Keep `microservices-sh/microservices-sh` as the core platform monorepo.
@@ -43,9 +50,9 @@ Create repos only when they have a distinct lifecycle:
 | Repo | Create now? | Purpose |
 | --- | --- | --- |
 | `microservices-sh` | Yes, existing | Core platform monorepo |
-| `modules` | Yes, existing | Public module source, module PRs, module CI, and contributor docs |
-| `landing-page` | Yes, existing | Private Astro marketing site and Cloudflare landing deploy workflow |
-| `registry` | Yes | Public/read-only catalog metadata for modules and templates |
+| `modules` | No — use monorepo `modules/` | Module source + PRs live in the monorepo, not a separate repo |
+| `landing-page` | Yes, existing | Astro marketing site (public) and Cloudflare landing deploy workflow |
+| `registry` | No — retired | Catalog metadata now vendored in `landing-page/src/data/registry/` |
 | `template-booking-sveltekit` | Later | GitHub template repo generated from the official template when stable |
 | `payment-stripe` | Later | Standalone provider module only if it needs independent ownership |
 | `email-*` | Later | Standalone provider modules only if they need independent ownership |
@@ -66,11 +73,14 @@ Keep paths stable as `modules/<module-id>` so accepted changes can be imported i
 
 Do not put hosted control-plane code, billing logic, deployment credentials, private API endpoints, customer data, production logs, or unreleased commercial roadmap in the public modules repo.
 
-## Registry Repo
+## Registry (retired)
 
-The registry repo should be treated as metadata and discovery infrastructure, not as the source of all module code.
+The standalone registry repo is **retired**. Catalog/discovery metadata now lives,
+vendored and hand-maintained, in `landing-page/src/data/registry/` and is rendered
+by the `/modules` and `/templates` pages. It remains metadata and discovery
+infrastructure, not the source of module code.
 
-It should contain:
+It contains:
 
 - generated catalog JSON
 - module/template index files
@@ -98,13 +108,13 @@ Template repos should be regenerated through a controlled release process, not m
 
 ## Third-Party Module Repos
 
-Third-party modules should start in `microservices-sh/modules` or an external contributor repo, then be listed in `microservices-sh/registry` when evidence is sufficient.
+Third-party modules should start in the monorepo's `modules/` (or an external contributor repo), then get a catalog listing in `landing-page/src/data/registry/` when evidence is sufficient.
 
 Promotion stages:
 
-1. Proposal issue in `microservices-sh/modules`.
+1. Proposal issue in the monorepo.
 2. Public experimental module PR or external repo/package.
-3. Registry listing with maturity status.
+3. Catalog listing with maturity status.
 4. Verified module after tests, docs, security review, and ownership are clear.
 5. Official module only when maintainers accept long-term support.
 

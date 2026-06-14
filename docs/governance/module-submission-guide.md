@@ -1,13 +1,20 @@
 # Module Submission Guide
 
-Use this guide when proposing or submitting a first-party, verified, or third-party module. Public module PRs should go to `microservices-sh/modules`, not the private core repo.
+> **Process update (2026-06).** The standalone `modules` and `registry` repos this
+> guide assumes do **not** exist. Module code is submitted by PR to the monorepo
+> `microservices-sh/microservices-sh` under `modules/<id>`; catalog/discovery
+> metadata (the retired `registry` repo's old role) now lives in
+> `landing-page/src/data/registry/`. Read every `microservices-sh/modules` below
+> as the monorepo's `modules/` directory.
+
+Use this guide when proposing or submitting a first-party, verified, or third-party module. Module code is submitted by PR to the monorepo's `modules/` directory; do not put private control-plane code in a module PR.
 
 ## Where To Start
 
 | Goal | Start here |
 | --- | --- |
 | Propose a module idea | Open a module proposal issue in `microservices-sh/modules` |
-| List an external module for discovery | Open a PR to `microservices-sh/registry` |
+| List an external module for discovery | Add a listing JSON under `landing-page/src/data/registry/` via PR |
 | Add an official module to the platform | Open a proposal issue first, then a PR to `microservices-sh/modules` after maintainer approval |
 | Add a provider module such as Stripe or email | Start with proposal and threat/permission review before code |
 
@@ -90,9 +97,9 @@ Credential-only connector modules should stay experimental. A verified provider 
 ## Submission Flow
 
 1. Open a module proposal issue.
-2. Wait for maintainer triage: accepted, needs research, registry-only, or declined.
-3. If accepted for registry only, submit metadata to `microservices-sh/registry`.
-4. If accepted for implementation, scaffold the module in `microservices-sh/modules`:
+2. Wait for maintainer triage: accepted, needs research, discovery-only, or declined.
+3. If accepted for discovery only, add a listing under `landing-page/src/data/registry/`.
+4. If accepted for implementation, scaffold the module in the monorepo's `modules/`:
 
 ```bash
 pnpm scaffold:module -- <module-id>
@@ -109,14 +116,14 @@ pnpm build
 
 7. Open a PR in `microservices-sh/modules` and link the proposal issue.
 
-Maintainers import accepted module changes into the private core repo as pinned snapshots for create-app, template, and managed platform releases.
+Maintainers pin accepted module changes as snapshots for create-app, template, and managed platform releases.
 
 ## Review Outcomes
 
 Review can result in:
 
 - `needs-info`: proposal is incomplete
-- `registry-only`: module can be listed but not owned by core
+- `discovery-only`: module can be listed in the catalog but not owned by core
 - `experimental`: module can be tested by early adopters
 - `verified`: module meets docs, tests, contract, and security review requirements
 - `official`: module is accepted for long-term microservices.sh maintenance
