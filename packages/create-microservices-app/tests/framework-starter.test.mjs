@@ -36,7 +36,7 @@ test("applyFrameworkHook injects config, readme, shim + script; tolerates missin
   assert.ok(existsSync(join(dir, "microservices.config.json")));
   const cfg = JSON.parse(readFileSync(join(dir, "microservices.config.json"), "utf8"));
   assert.deepEqual(cfg.modules, []);
-  assert.match(readFileSync(join(dir, "README.microservices.md"), "utf8"), /microservices add/);
+  assert.match(readFileSync(join(dir, "README.microservices.md"), "utf8"), /microservices -- add/);
   assert.ok(existsSync(join(dir, "scripts/microservices.js")), "shim vendored");
   const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
   assert.equal(pkg.scripts.microservices, "node scripts/microservices.js");

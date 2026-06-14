@@ -27,7 +27,9 @@ export function buildC3Command(packageManager, row, appName) {
 const SHIM_PATH = resolve(dirname(fileURLToPath(import.meta.url)), "..", "shim", "microservices.js");
 
 function runScript(pm, args) {
-  return pm === "npm" ? `npm run microservices ${args}` : `${pm} microservices ${args}`;
+  // npm needs `--` to forward args/flags (e.g. `add auth --plan`) to the script,
+  // matching the existing packageScriptCommand convention in src/index.js.
+  return pm === "npm" ? `npm run microservices -- ${args}` : `${pm} microservices ${args}`;
 }
 
 export function applyFrameworkHook(appDir, row, pm) {
