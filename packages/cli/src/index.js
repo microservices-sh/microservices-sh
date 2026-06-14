@@ -1486,7 +1486,7 @@ async function apiRequest(flags, path, options = {}) {
   return payload;
 }
 
-function printApiHuman(response, formatter) {
+function printApiHuman(response, formatter = () => "") {
   if (!response?.ok) {
     const message = response?.error?.message ?? "API request failed.";
     const code = response?.error?.code;
@@ -1506,6 +1506,28 @@ function printApiHuman(response, formatter) {
   if (response.warnings?.length) {
     process.stdout.write(`\nWarnings:\n${response.warnings.map((warning) => `- ${warning}`).join("\n")}\n`);
   }
+}
+
+/** Render the shared success result for both `auth login` paths (api-key + device). */
+function emitLoginResult(flags, settings, apiKey, server, warnings) {
+  const response = {
+    ok: true,
+    requestId: `local_${Date.now().toString(36)}`,
+    data: {
+      apiUrl: settings.apiUrl,
+      actor: settings.actor,
+      configPath: DEFAULT_CONFIG_PATH,
+      token: redactToken(apiKey),
+      server: server ?? null,
+    },
+    warnings,
+  };
+  return flags.json
+    ? writeJson(response)
+    : printHuman(
+        response,
+        (result) => `Logged in for ${result.apiUrl}\nToken: ${result.token}\nConfig: ${result.configPath}\n`
+      );
 }
 
 function productionDeployPlan(templateId, flags) {
@@ -1593,7 +1615,7 @@ async function main() {
       try {
         status = await apiRequest(flags, "/auth/status");
         if (!status.ok) {
-          return flags.json ? writeJson(status) : printApiHuman(status, () => "");
+          return flags.json ? writeJson(status) : printApiHuman(status);
         }
       } catch (error) {
         warnings.push(`Saved credentials without server validation: ${error.message}`);
@@ -1606,27 +1628,13 @@ async function main() {
         updatedAt: new Date().toISOString(),
       });
 
-      response = {
-        ok: true,
-        requestId: `local_${Date.now().toString(36)}`,
-        data: {
-          apiUrl: settings.apiUrl,
-          actor: settings.actor,
-          configPath: DEFAULT_CONFIG_PATH,
-          token: redactToken(settings.apiKey),
-          server: status?.data ?? null,
-        },
-        warnings,
-      };
-      return flags.json
-        ? writeJson(response)
-        : printHuman(response, (result) => `Logged in for ${result.apiUrl}\nToken: ${result.token}\nConfig: ${result.configPath}\n`);
+      return emitLoginResult(flags, settings, settings.apiKey, status?.data ?? null, warnings);
     }
 
     // Path B — interactive device-code login (no key): approve in a browser.
     const start = await apiRequest(flags, "/auth/device/start", { method: "POST", body: "{}" });
     if (!start.ok) {
-      return flags.json ? writeJson(start) : printApiHuman(start, () => "");
+      return flags.json ? writeJson(start) : printApiHuman(start);
     }
     const { userCode, deviceCode, verificationUri, interval, expiresIn } = start.data;
 
@@ -1674,7 +1682,7 @@ async function main() {
         failure ? `Login ${failure.replace(/_/g, " ")}.` : "Login timed out before approval.",
         "Run microservices auth login again."
       );
-      return flags.json ? writeJson(response) : printApiHuman(response, () => "");
+      return flags.json ? writeJson(response) : printApiHuman(response);
     }
 
     await writeCliConfig({
@@ -1693,21 +1701,7 @@ async function main() {
       warnings.push(`Saved key without server validation: ${error.message}`);
     }
 
-    response = {
-      ok: true,
-      requestId: `local_${Date.now().toString(36)}`,
-      data: {
-        apiUrl: settings.apiUrl,
-        actor: settings.actor,
-        configPath: DEFAULT_CONFIG_PATH,
-        token: redactToken(apiKey),
-        server: status?.ok ? status.data : null,
-      },
-      warnings,
-    };
-    return flags.json
-      ? writeJson(response)
-      : printHuman(response, (result) => `Logged in for ${result.apiUrl}\nToken: ${result.token}\nConfig: ${result.configPath}\n`);
+    return emitLoginResult(flags, settings, apiKey, status?.ok ? status.data : null, warnings);
   }
 
   if (resource === "auth" && action === "status") {
