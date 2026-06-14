@@ -207,6 +207,7 @@ Usage:
   microservices auth login [--api-url https://api.microservices.sh] [--json]   # browser device-code login
   microservices auth login --api-key <key> [--api-url https://api.microservices.sh] [--json]
   microservices auth status [--json]
+  microservices auth whoami [--json]
   microservices auth logout [--json]
   microservices doctor [--dir <artifact-dir>] [--api-url http://127.0.0.1:8787] [--json]
   microservices deploy dev [template-id] [--name "Studio Dev"] [--config '{"appName":"Demo"}'] [--api-url http://127.0.0.1:8787] [--api-key <key>] [--json]
@@ -1488,7 +1489,11 @@ async function apiRequest(flags, path, options = {}) {
 function printApiHuman(response, formatter) {
   if (!response?.ok) {
     const message = response?.error?.message ?? "API request failed.";
-    const remediation = response?.error?.remediation;
+    const code = response?.error?.code;
+    let remediation = response?.error?.remediation;
+    if (!remediation && (response?.httpStatus === 401 || code === "UNAUTHORIZED")) {
+      remediation = "Run `microservices auth login` to authenticate.";
+    }
     process.stderr.write(`Error: ${message}\n`);
     if (remediation) {
       process.stderr.write(`Next: ${remediation}\n`);
@@ -1754,6 +1759,43 @@ Config: ${result.configPath}
     return flags.json
       ? writeJson(response)
       : printHuman(response, (result) => `Logged out. Removed ${result.configPath}\n`);
+  }
+
+  if (resource === "auth" && action === "whoami") {
+    const settings = await resolvedApiSettings(flags);
+    let server = null;
+    try {
+      server = await apiRequest(flags, "/auth/status");
+    } catch (error) {
+      response = failResponse("API_UNREACHABLE", `Could not reach API: ${error.message}`, "Check --api-url and network.");
+      return flags.json ? writeJson(response) : printApiHuman(response, () => "");
+    }
+    if (!server.ok || !server.data?.authenticated) {
+      response = failResponse("UNAUTHENTICATED", "Not signed in.", "Run `microservices auth login`.");
+      return flags.json ? writeJson(response) : printApiHuman(response, () => "");
+    }
+    response = {
+      ok: true,
+      requestId: `local_${Date.now().toString(36)}`,
+      data: {
+        apiUrl: settings.apiUrl,
+        mode: server.data.mode,
+        workspaceId: server.data.workspaceId,
+        scopes: server.data.scopes ?? [],
+        internal: Boolean(server.data.internal),
+      },
+      warnings: [],
+    };
+    return flags.json
+      ? writeJson(response)
+      : printHuman(
+          response,
+          (result) => `Workspace: ${result.workspaceId ?? "—"}
+Mode:      ${result.mode}
+Scopes:    ${result.scopes.length ? result.scopes.join(", ") : "—"}
+API:       ${result.apiUrl}
+`
+        );
   }
 
   if (resource === "doctor" || (resource === "deploy" && action === "doctor")) {
