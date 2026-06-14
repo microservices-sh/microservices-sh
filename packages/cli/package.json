@@ -1,0 +1,16 @@
+{
+  "name": "@microservices-sh/cli",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "bin": {
+    "microservices": "src/index.js"
+  },
+  "scripts": {
+    "cli": "node src/index.js",
+    "build": "node --check src/index.js"
+  },
+  "dependencies": {
+    "@microservices-sh/sdk-internal": "workspace:*"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "2026-06-13",
+  "template": "booking-sveltekit",
+  "business": {
+    "name": "Booking Business",
+    "timezone": "UTC",
+    "currency": "USD"
+  },
+  "booking": {
+    "serviceTypes": ["consultation", "standard-service"],
+    "slotIntervalMinutes": 30,
+    "defaultDurationMinutes": 60,
+    "leadTimeMinutes": 120,
+    "cancellationWindowHours": 24,
+    "maxFutureDays": 90,
+    "allowWaitlist": false
+  },
+  "customer": {
+    "profileFields": ["name", "email", "phone", "notes"],
+    "consentFields": ["emailMarketingConsent"]
+  },
+  "theme": {
+    "primaryColor": "#39ff88",
+    "surface": "#0b0f12",
+    "radius": "8px"
+  }
+}

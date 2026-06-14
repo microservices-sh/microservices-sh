@@ -1,0 +1,55 @@
+name: PR Governance
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr-governance:
+    name: PR body and review gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR body
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          node <<'NODE'
+          const body = process.env.PR_BODY || "";
+          const requiredSections = [
+            "## Summary",
+            "## Feature List",
+            "## Surface",
+            "## Risk",
+            "## Checks",
+            "## Review Gate"
+          ];
+
+          const missing = requiredSections.filter((section) => !body.includes(section));
+          if (missing.length > 0) {
+            console.error(`Missing required PR section(s): ${missing.join(", ")}`);
+            process.exit(1);
+          }
+
+          const reviewGateIndex = body.lastIndexOf("## Review Gate");
+          const reviewGate = reviewGateIndex === -1 ? "" : body.slice(reviewGateIndex);
+          const requiredReviewItems = [
+            "non-author reviewer requested",
+            "CODEOWNERS/security reviewers requested",
+            "merge waits for passing CI and non-author approval"
+          ];
+          const missingReviewItems = requiredReviewItems.filter(
+            (item) => !reviewGate.toLowerCase().includes(item.toLowerCase())
+          );
+
+          if (missingReviewItems.length > 0) {
+            console.error(`Missing required Review Gate item(s): ${missingReviewItems.join(", ")}`);
+            process.exit(1);
+          }
+
+          console.log("PR governance body check passed");
+          NODE

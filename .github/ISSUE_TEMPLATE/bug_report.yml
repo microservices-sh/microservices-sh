@@ -1,0 +1,40 @@
+name: Bug report
+description: Report a reproducible issue.
+title: "Bug: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Include commands, input, output, and affected package/module/template.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node, pnpm, Wrangler, Cloudflare mode, and any relevant package versions.
+  - type: checkboxes
+    id: sensitive
+    attributes:
+      label: Sensitive areas
+      options:
+        - label: Secrets or credentials
+        - label: Auth/session behavior
+        - label: PII/customer data
+        - label: Payment/email/provider side effects
+        - label: Migrations/resources/deployments
+        - label: Public npm package or release workflow

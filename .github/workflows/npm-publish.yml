@@ -1,0 +1,87 @@
+name: Publish npm
+
+# Reusable, parameterized npm publish for ANY workspace package.
+#
+#   Manual:     Actions → "Publish npm" → choose `package` + `dry_run`.
+#   Cross-repo: call it as a reusable workflow from another repo:
+#     jobs:
+#       release:
+#         uses: microservices-sh/microservices-sh/.github/workflows/npm-publish.yml@main
+#         with:    { package: "@microservices/booking", dry_run: false }
+#         secrets: { NPM_TOKEN: ${{ secrets.NPM_TOKEN }} }
+#
+# Real publish is gated: repo variable NPM_PUBLISH_ENABLED=true + secret NPM_TOKEN.
+# pnpm publish auto-replaces workspace:/file: deps with real versions.
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Workspace package to publish (pnpm filter / package name)"
+        required: true
+        type: string
+        default: create-microservices-app
+      dry_run:
+        description: "Dry run (no actual publish)"
+        required: true
+        type: boolean
+        default: true
+  workflow_call:
+    inputs:
+      package:
+        required: true
+        type: string
+      dry_run:
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      NPM_TOKEN:
+        required: true
+
+concurrency:
+  group: npm-publish-${{ github.ref }}-${{ inputs.package }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: publish ${{ inputs.package }}
+    if: ${{ inputs.dry_run || vars.NPM_PUBLISH_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      PKG: ${{ inputs.package }}
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package
+        run: pnpm --filter "$PKG" build
+
+      - name: Publish (dry run)
+        if: ${{ inputs.dry_run }}
+        run: pnpm --filter "$PKG" publish --no-git-checks --dry-run
+
+      - name: Publish
+        # No --provenance: attestations need a public source repo. Add
+        # `--provenance` here once this repo is public.
+        if: ${{ !inputs.dry_run }}
+        run: |
+          test -n "$NODE_AUTH_TOKEN" || { echo "NPM_TOKEN is not set"; exit 1; }
+          pnpm --filter "$PKG" publish --no-git-checks

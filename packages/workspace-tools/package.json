@@ -1,0 +1,13 @@
+{
+  "name": "@microservices-sh/workspace-tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Reusable repo-local commands for validating microservices.sh modules and templates.",
+  "bin": {
+    "microservices-workspace": "./src/index.js"
+  },
+  "scripts": {
+    "build": "node --check src/index.js"
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "booking-sveltekit",
+  "version": "0.1.0",
+  "status": "ready",
+  "displayName": "Booking SvelteKit",
+  "category": "business-system",
+  "summary": "Full Cloudflare SvelteKit booking app template with detached booking API/domain logic.",
+  "runtime": {
+    "language": "typescript",
+    "framework": "sveltekit",
+    "adapter": "@sveltejs/adapter-cloudflare",
+    "platform": "cloudflare-workers",
+    "entrypoint": ".svelte-kit/cloudflare/_worker.js"
+  },
+  "deployment": {
+    "defaultMode": "managed-cloudflare",
+    "managedNamespace": "microservices-sh",
+    "byoCloudflare": "later"
+  },
+  "modules": {
+    "required": [
+      "auth",
+      "customer",
+      "booking",
+      "audit-log"
+    ],
+    "optional": [
+      "payment-stripe",
+      "email",
+      "admin-shell",
+      "analytics"
+    ]
+  },
+  "slots": {
+    "identity": {
+      "activeModule": "auth",
+      "allowedModules": [
+        "auth"
+      ],
+      "approvalRisk": "high"
+    },
+    "profile": {
+      "activeModule": "customer",
+      "allowedModules": [
+        "customer"
+      ],
+      "approvalRisk": "medium"
+    },
+    "scheduling": {
+      "activeModule": "booking",
+      "allowedModules": [
+        "booking"
+      ],
+      "approvalRisk": "medium"
+    },
+    "audit": {
+      "activeModule": "audit-log",
+      "allowedModules": [
+        "audit-log"
+      ],
+      "approvalRisk": "medium"
+    },
+    "payment": {
+      "activeModule": null,
+      "allowedModules": [
+        "payment-stripe"
+      ],
+      "approvalRisk": "high"
+    },
+    "messaging": {
+      "activeModule": null,
+      "allowedModules": [
+        "email"
+      ],
+      "approvalRisk": "high"
+    },
+    "admin": {
+      "activeModule": null,
+      "allowedModules": [
+        "admin-shell"
+      ],
+      "approvalRisk": "medium"
+    },
+    "analytics": {
+      "activeModule": null,
+      "allowedModules": [
+        "analytics"
+      ],
+      "approvalRisk": "medium"
+    }
+  },
+  "sourcePolicy": {
+    "templateOwns": [
+      "app shell",
+      "routes",
+      "layout",
+      "UI overlays",
+      "composition glue"
+    ],
+    "modulesOwn": [
+      "domain behavior",
+      "schemas",
+      "use cases",
+      "ports",
+      "migrations"
+    ],
+    "apiLogic": "detached-use-cases-with-sveltekit-adapters"
+  }
+}

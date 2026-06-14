@@ -1,0 +1,52 @@
+# Booking SvelteKit LLM Guide
+
+Purpose: guide agents implementing or customizing the `booking-sveltekit` template.
+
+## Read First
+
+- `microservices.template.json`
+- `microservices.config.json`
+- `microservices.lock.json`
+- `README.agent.md`
+- root `docs/templates/booking-sveltekit.md`
+
+## Architecture Rule
+
+SvelteKit route files are adapters. Domain/API logic lives in detached use cases.
+
+```txt
+src/routes/api/bookings/+server.ts
+  -> parse request and call createBooking
+
+modules/booking/src/use-cases/create-booking.ts
+  -> domain orchestration
+
+modules/customer/src/use-cases/upsert-customer.ts
+  -> customer create/update behavior used by booking
+
+modules/booking/src/adapters/d1-booking-repository.ts
+  -> Cloudflare D1 booking persistence
+
+modules/customer/src/adapters/d1-customer-repository.ts
+  -> Cloudflare D1 customer persistence
+```
+
+## Approval Gates
+
+Require user approval before changing:
+
+- secrets
+- remote migrations
+- webhooks
+- payment/email provider behavior
+- Cloudflare resources
+- remote deployments
+- forked module internals
+
+Local baseline commands may apply the checked-in D1 migrations to Wrangler's local database:
+
+```bash
+pnpm microservices local migrate
+pnpm microservices local dev
+pnpm microservices local smoke
+```

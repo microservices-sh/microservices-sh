@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "2026-06-13",
+  "generatedAt": "template-scaffold",
+  "registry": {
+    "id": "microservices.sh",
+    "contractVersion": "2026-06-13"
+  },
+  "generator": {
+    "package": "create-microservices-app",
+    "version": "0.0.0"
+  },
+  "template": {
+    "id": "booking-sveltekit",
+    "version": "0.1.0",
+    "source": "registry:booking-sveltekit@0.1.0",
+    "checksum": "sha256:scaffold-booking-sveltekit-0.1.0"
+  },
+  "modules": [
+    {
+      "id": "auth",
+      "version": "0.1.0",
+      "source": "registry:auth@0.1.0",
+      "checksum": "sha256:preview-auth-0.1.0",
+      "customizationMode": "config-hooks",
+      "contract": {
+        "mount": "/auth",
+        "bindings": ["DB", "CACHE_KV"],
+        "resources": ["D1", "KV"],
+        "permissions": ["auth.read", "auth.write", "auth.admin"],
+        "hooks": ["beforeSignup", "afterSignup"],
+        "events": ["auth.user_created", "auth.session_created"],
+        "requires": []
+      }
+    },
+    {
+      "id": "customer",
+      "version": "0.1.0",
+      "source": "registry:customer@0.1.0",
+      "checksum": "sha256:preview-customer-0.1.0",
+      "customizationMode": "config-hooks",
+      "contract": {
+        "mount": "/customers",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["customer.read", "customer.write", "customer.admin"],
+        "hooks": ["beforeCustomerCreate", "afterCustomerUpdated"],
+        "events": ["customer.created", "customer.updated", "auth.user_created"],
+        "requires": []
+      }
+    },
+    {
+      "id": "booking",
+      "version": "0.1.0",
+      "source": "registry:booking@0.1.0",
+      "checksum": "sha256:preview-booking-0.1.0",
+      "customizationMode": "config-hooks",
+      "contract": {
+        "mount": "/bookings",
+        "bindings": ["DB", "CACHE_KV"],
+        "resources": ["D1", "KV"],
+        "permissions": ["booking.read", "booking.write", "booking.admin"],
+        "hooks": ["calculateAvailability", "beforeBookingCreate", "afterBookingConfirmed", "beforeBookingCancel"],
+        "events": ["booking.hold_created", "booking.created", "booking.confirmed", "booking.cancelled"],
+        "requires": ["auth", "customer"]
+      }
+    },
+    {
+      "id": "audit-log",
+      "version": "0.1.0",
+      "source": "registry:audit-log@0.1.0",
+      "checksum": "sha256:preview-audit-log-0.1.0",
+      "customizationMode": "config-hooks",
+      "contract": {
+        "mount": "/audit",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["audit.read", "audit.export", "audit.admin"],
+        "hooks": ["redactAuditPayload", "beforeAuditExport"],
+        "events": ["audit.recorded", "audit.exported"],
+        "requires": []
+      }
+    }
+  ],
+  "customizations": {
+    "config": true,
+    "hooks": ["beforeSignup", "afterSignup", "beforeCustomerCreate", "afterCustomerUpdated", "calculateAvailability", "beforeBookingCreate", "afterBookingConfirmed", "beforeBookingCancel"],
+    "overlays": [],
+    "forks": []
+  }
+}

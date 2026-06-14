@@ -1,0 +1,31 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# build
+dist/
+.astro/
+.svelte-kit/
+.output/
+.vercel/
+.wrangler/
+
+# generated example apps (reproducible via `pnpm mvp:generate`)
+generated/
+.generated/
+packages/create-microservices-app/templates/
+
+# env / secrets
+.env
+.env.*
+!.env.example
+.dev.vars
+
+# misc
+.DS_Store
+*.log
+coverage/
+
+# session / planning tooling (not monorepo source)
+.agents/
+skills-lock.json

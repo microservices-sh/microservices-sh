@@ -1,0 +1,91 @@
+{
+  "schemaVersion": "2026-06-13",
+  "description": "Compact LLM-readable catalog for microservices.sh modules. Read the referenced Markdown docs for full payload, response, event, hook, secret, and permission details.",
+  "structureDocPath": "docs/modules/module-package-structure.md",
+  "agentGuidance": {
+    "preferDocsBeforeCodeChanges": true,
+    "neverExposeSecretValues": true,
+    "defaultCustomizationOrder": ["config", "hooks", "overlays", "fork"],
+    "approvalGatedCategories": ["auth", "payment", "email", "pii", "webhook", "migration", "production_deploy", "delete"],
+    "sourceOwnershipDefault": "user-owned repository with branch/PR or patch workflow"
+  },
+  "moduleClasses": {
+    "core": "First-party application capability maintained by microservices.sh.",
+    "provider": "Full third-party service implementation, including API logic, webhooks, schemas, tests, and deployment configuration.",
+    "connector": "Low-level internal client used by provider modules. Users should normally install provider modules instead."
+  },
+  "modules": [
+    {
+      "id": "auth",
+      "name": "Auth",
+      "status": "available",
+      "class": "core",
+      "mount": "/auth",
+      "docPath": "docs/modules/auth.md",
+      "summary": "Passwordless identity, sessions, roles, route protection, and auth audit events.",
+      "requires": [],
+      "permissions": ["auth.read", "auth.write", "auth.admin"],
+      "approvalRisk": "high"
+    },
+    {
+      "id": "customer",
+      "name": "Customer",
+      "status": "available",
+      "class": "core",
+      "mount": "/customers",
+      "docPath": "docs/modules/customer.md",
+      "summary": "Customer profiles, contact fields, tags, consent fields, notes, and customer lifecycle events.",
+      "requires": ["auth"],
+      "permissions": ["customer.read", "customer.write", "customer.admin"],
+      "approvalRisk": "medium"
+    },
+    {
+      "id": "booking",
+      "name": "Booking",
+      "status": "available",
+      "class": "core",
+      "mount": "/bookings",
+      "docPath": "docs/modules/booking.md",
+      "summary": "Bookable services, availability, booking creation, confirmation, cancellation, and booking lifecycle events.",
+      "requires": ["auth", "customer"],
+      "permissions": ["booking.read", "booking.write", "booking.admin"],
+      "approvalRisk": "medium"
+    },
+    {
+      "id": "payment-stripe",
+      "name": "Stripe Payment",
+      "status": "planned",
+      "class": "provider",
+      "mount": "/payments",
+      "docPath": "docs/modules/payment-stripe.md",
+      "summary": "Full Stripe payment workflow: products, prices, checkout, payment links, webhooks, refunds, and payment events.",
+      "requires": ["auth", "customer"],
+      "permissions": ["payment.read", "payment.write", "payment.admin"],
+      "approvalRisk": "high"
+    },
+    {
+      "id": "email",
+      "name": "Email",
+      "status": "planned",
+      "class": "provider-capable core",
+      "mount": "/emails",
+      "docPath": "docs/modules/email.md",
+      "summary": "Transactional email templates, provider adapters, delivery jobs, and delivery events.",
+      "requires": [],
+      "permissions": ["email.read", "email.write", "email.admin"],
+      "approvalRisk": "high"
+    },
+    {
+      "id": "audit-log",
+      "name": "Audit Log",
+      "status": "planned",
+      "class": "core",
+      "mount": "/audit",
+      "docPath": "docs/modules/audit-log.md",
+      "summary": "Mutation audit trail and domain event recording with actor, action, resource, request id, and metadata.",
+      "requires": [],
+      "permissions": ["audit.read", "audit.export", "audit.admin"],
+      "approvalRisk": "medium"
+    }
+  ]
+}

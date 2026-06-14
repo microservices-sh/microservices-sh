@@ -1,0 +1,26 @@
+# GitHub teams are created as part of repository setup:
+# - @microservices-sh/maintainers
+# - @microservices-sh/module-reviewers
+# - @microservices-sh/template-reviewers
+# - @microservices-sh/security
+
+* @microservices-sh/maintainers
+
+/.github/workflows/ @microservices-sh/maintainers @microservices-sh/security
+/.github/ISSUE_TEMPLATE/ @microservices-sh/maintainers
+/.github/pull_request_template.md @microservices-sh/maintainers
+/apps/api/ @microservices-sh/maintainers @microservices-sh/security
+/packages/cli/ @microservices-sh/maintainers
+/packages/create-microservices-app/ @microservices-sh/maintainers
+/packages/sdk-internal/ @microservices-sh/maintainers
+/packages/module-contract/ @microservices-sh/maintainers @microservices-sh/module-reviewers
+
+/modules/ @microservices-sh/module-reviewers
+/docs/modules/ @microservices-sh/module-reviewers
+
+/templates/ @microservices-sh/template-reviewers
+/docs/templates/ @microservices-sh/template-reviewers
+
+/CONTRIBUTING.md @microservices-sh/maintainers
+/docs/governance/ @microservices-sh/maintainers @microservices-sh/security
+/SECURITY.md @microservices-sh/security

@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Build & verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm -r build
+
+      - name: Check workspace contracts
+        run: pnpm spec:check:all
+
+      - name: Smoke-test agent workflow (compose → check → generate)
+        run: |
+          set -euo pipefail
+          pnpm cli -- modules list --json > /dev/null
+          pnpm cli -- compose booking-business --json > /dev/null
+          pnpm cli -- check booking-business --json > /dev/null
+          pnpm cli -- generate booking-business --out "$RUNNER_TEMP/booking-business" --json > /dev/null
+          test -f "$RUNNER_TEMP/booking-business/microservices.lock.json"
+          test -f "$RUNNER_TEMP/booking-business/wrangler.jsonc"
+          echo "generated app verified"
+
+  generated-app:
+    name: Generated app installs & builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build create package
+        run: pnpm --filter create-microservices-app build
+
+      - name: Scaffold booking-sveltekit
+        run: >
+          node packages/create-microservices-app/dist/index.js
+          ci-booking-sveltekit --template booking-sveltekit --no-install --no-git
+          --dir "$RUNNER_TEMP"
+
+      # The point of the template: a generated app must install + build + check
+      # standalone (no workspace), then run the local D1-backed booking flow.
+      # This guards against re-coupling and local-baseline regressions.
+      - name: Install, build, check & smoke generated app
+        working-directory: ${{ runner.temp }}/ci-booking-sveltekit
+        run: |
+          set -euo pipefail
+          pnpm install
+          pnpm build
+          pnpm microservices check
+          pnpm microservices local migrate
+
+          pnpm microservices local dev > "$RUNNER_TEMP/booking-sveltekit-dev.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+
+          ready=false
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:5174/ > /dev/null; then
+              ready=true
+              break
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat "$RUNNER_TEMP/booking-sveltekit-dev.log"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          if [ "$ready" != "true" ]; then
+            cat "$RUNNER_TEMP/booking-sveltekit-dev.log"
+            exit 1
+          fi
+
+          pnpm microservices local smoke
+          echo "standalone booking-sveltekit local baseline verified"
+

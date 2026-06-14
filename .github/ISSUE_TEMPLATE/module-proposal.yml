@@ -1,0 +1,53 @@
+name: Module proposal
+description: Propose a new first-party or third-party module.
+title: "Module proposal: "
+labels: ["module-proposal"]
+body:
+  - type: input
+    id: module_id
+    attributes:
+      label: Module ID
+      description: Lowercase kebab-case, for example payment-stripe.
+      placeholder: payment-stripe
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What workflow should this module solve?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Proposed scope
+      description: Include routes, use cases, storage, hooks, events, and generated app behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: provider
+    attributes:
+      label: Provider details
+      description: Required only for third-party provider modules. Include APIs, secrets, webhooks, scopes, test mode, and side effects.
+  - type: textarea
+    id: resources
+    attributes:
+      label: Resources and permissions
+      description: Cloudflare bindings, D1/KV/R2/Queues, migrations, provider scopes, and approval gates.
+    validations:
+      required: true
+  - type: textarea
+    id: ownership
+    attributes:
+      label: Ownership and maintenance
+      description: Who will maintain this module, respond to provider changes, and triage bugs?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What tests, docs, and demo flow should prove the module is ready?
+    validations:
+      required: true

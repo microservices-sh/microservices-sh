@@ -1,0 +1,44 @@
+{
+  "name": "create-microservices-app",
+  "version": "0.2.3",
+  "description": "Create a microservices.sh Cloudflare-native app from verified modules.",
+  "type": "module",
+  "homepage": "https://microservices.sh",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/microservices-sh/microservices-sh.git",
+    "directory": "packages/create-microservices-app"
+  },
+  "bugs": "https://github.com/microservices-sh/microservices-sh/issues",
+  "bin": {
+    "create-microservices-app": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "README.md"
+  ],
+  "scripts": {
+    "start": "pnpm run build && node dist/index.js",
+    "build": "node scripts/build.js && node --check dist/index.js",
+    "smoke": "node scripts/smoke-test.js"
+  },
+  "devDependencies": {
+    "esbuild": "0.27.7"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "hono",
+    "ai-agents",
+    "microservices",
+    "create-app"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

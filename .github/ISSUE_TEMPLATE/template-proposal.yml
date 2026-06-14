@@ -1,0 +1,48 @@
+name: Template proposal
+description: Propose a generated app template.
+title: "Template proposal: "
+labels: ["template"]
+body:
+  - type: input
+    id: template_id
+    attributes:
+      label: Template ID
+      description: Lowercase kebab-case, for example booking-sveltekit.
+      placeholder: booking-sveltekit
+    validations:
+      required: true
+  - type: textarea
+    id: target_user
+    attributes:
+      label: Target user and use case
+      description: Who is this template for, and what should they be able to build?
+    validations:
+      required: true
+  - type: textarea
+    id: modules
+    attributes:
+      label: Modules
+      description: Required and optional modules, including provider modules.
+    validations:
+      required: true
+  - type: textarea
+    id: runtime
+    attributes:
+      label: Runtime and deployment
+      description: Framework, Cloudflare mode, bindings, migrations, and deployment expectations.
+    validations:
+      required: true
+  - type: textarea
+    id: ownership
+    attributes:
+      label: Source ownership and customization boundaries
+      description: What does the template own, what do modules own, and what should users customize?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Checks, screenshots, smoke tests, docs, and generated project CLI behavior required before release.
+    validations:
+      required: true
