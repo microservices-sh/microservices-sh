@@ -247,6 +247,10 @@ Usage:
   microservices auth status [--json]
   microservices auth whoami [--json]
   microservices auth logout [--json]
+  microservices billing plans [--api-url https://api.microservices.sh] [--json]
+  microservices billing status [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices billing usage [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices usage [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices support ticket [--subject "..."] [--description "..."] [--category bug|feature_request|account|billing|general|other] [--priority critical|high|medium|low] [--email owner@example.com] [--project-id <id>] [--deployment-id <id>] [--url <page-url>] [--json]
   microservices support tickets [--limit 25] [--json]
   microservices doctor [--dir <artifact-dir>] [--api-url http://127.0.0.1:8787] [--json]
@@ -516,6 +520,57 @@ function formatSupportTicketList(result) {
   Created: ${createdAt}${error}`;
     })
     .join("\n\n")}\n`;
+}
+
+function formatBillingPlans(plans) {
+  const items = Array.isArray(plans) ? plans : [];
+  if (!items.length) return "No billing plans returned.\n";
+
+  return `${items
+    .map((plan) => {
+      const cadence = plan.cadence ?? "";
+      const popular = plan.popular ? " popular" : "";
+      const mode = plan.selfServe ? "self-serve" : "contact us";
+      const features = Array.isArray(plan.features) && plan.features.length
+        ? `\n  ${plan.features.join("\n  ")}`
+        : "";
+      return `${plan.label} (${plan.id})${popular}
+  Price: ${plan.price}${cadence}
+  Mode:  ${mode}
+  ${plan.tagline ?? ""}${features}`;
+    })
+    .join("\n\n")}\n`;
+}
+
+function formatBillingStatus(status) {
+  const invoices = Array.isArray(status.invoices) ? status.invoices : [];
+  const invoiceLines = invoices.length
+    ? invoices.map((invoice) => `- ${invoice.label}: ${invoice.amount} (${invoice.status})`).join("\n")
+    : "- none";
+  return `Billing
+Plan:      ${status.planLabel ?? status.planId ?? "unknown"}
+Price:     ${status.priceLabel ?? "unknown"}
+Status:    ${status.status ?? "unknown"}
+Renewal:   ${status.renewalDate ?? "none"}
+Canceling: ${status.cancelAtPeriodEnd ? "yes" : "no"}
+Invoices:
+${invoiceLines}
+`;
+}
+
+function formatUsageStatus(result) {
+  const items = Array.isArray(result.items) ? result.items : [];
+  if (!items.length) return "No usage data returned.\n";
+
+  return `Usage
+${items
+  .map((item) => {
+    const limit = item.limit === null || item.limit === undefined ? "unlimited" : item.limit;
+    const unit = item.unit ? ` ${item.unit}` : "";
+    return `- ${item.label}: ${item.used}${unit} / ${limit}${unit}`;
+  })
+  .join("\n")}
+`;
 }
 
 function artifactDispatchNamespace(manifest, microservicesConfig) {
@@ -1977,6 +2032,36 @@ Scopes:    ${result.scopes.length ? result.scopes.join(", ") : "—"}
 API:       ${result.apiUrl}
 `
         );
+  }
+
+  if (resource === "billing") {
+    if (!action || action === "status") {
+      response = await apiRequest(flags, "/billing/status");
+      return flags.json ? writeJson(response) : printApiHuman(response, formatBillingStatus);
+    }
+
+    if (action === "plans" || action === "plan") {
+      response = await apiRequest(flags, "/billing/plans");
+      return flags.json ? writeJson(response) : printApiHuman(response, formatBillingPlans);
+    }
+
+    if (action === "usage") {
+      response = await apiRequest(flags, "/usage");
+      return flags.json ? writeJson(response) : printApiHuman(response, formatUsageStatus);
+    }
+
+    response = failResponse(
+      "UNKNOWN_BILLING_COMMAND",
+      `Unknown billing command: ${action}.`,
+      "Use `microservices billing plans`, `microservices billing status`, or `microservices billing usage`.",
+      { command: action }
+    );
+    return flags.json ? writeJson(response) : printHuman(response, () => "");
+  }
+
+  if (resource === "usage") {
+    response = await apiRequest(flags, "/usage");
+    return flags.json ? writeJson(response) : printApiHuman(response, formatUsageStatus);
   }
 
   if (resource === "support" && (action === "ticket" || action === "create")) {
