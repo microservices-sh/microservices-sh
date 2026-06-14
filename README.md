@@ -22,7 +22,14 @@ npm create microservices-app@latest studio-booking -- --template booking-sveltek
 
 ## Agent Skill
 
-This repo includes a portable agent skill at [`skills/microservices-sh`](./skills/microservices-sh). Use it with Codex or another skill-aware coding agent to inspect generated apps, read module contracts, plan module changes, run local checks, and keep secrets, migrations, provider actions, and deployments approval-gated.
+This repo includes portable agent skills under [`skills/`](./skills). Use them with Codex or another skill-aware coding agent.
+
+- [`skills/microservices-sh`](./skills/microservices-sh) — work inside a generated app: inspect it, read module contracts, plan module changes, run local checks, and keep secrets, migrations, provider actions, and deployments approval-gated.
+- [`skills/supabase-to-microservices`](./skills/supabase-to-microservices) — migrate a Supabase app (Postgres, Auth, Storage, Realtime, Edge Functions) onto microservices.sh modules backed by D1, R2, Durable Objects, and Workers.
+- [`skills/firebase-to-microservices`](./skills/firebase-to-microservices) — migrate a Firebase app (Firestore, Auth, Storage, Cloud Functions, FCM) the same way, modeling documents as relational D1 tables.
+- [`skills/prisma-postgres-to-d1`](./skills/prisma-postgres-to-d1) — translate a Prisma + Postgres data layer to Drizzle on D1: schema, query rewrites, and data import.
+- [`skills/express-api-to-workers`](./skills/express-api-to-workers) — port an Express/Node API onto the Workers runtime behind module boundaries, covering the runtime gap (no process state, no filesystem, no native DB drivers).
+- [`skills/vercel-next-to-cloudflare`](./skills/vercel-next-to-cloudflare) — move a Vercel/Next.js app to Cloudflare: a host-level OpenNext move, or a deeper backend rebuild onto microservices.sh modules.
 
 Install from the published GitHub repo with the Skills CLI:
 
