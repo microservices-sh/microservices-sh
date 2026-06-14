@@ -112,6 +112,14 @@ export function createMemoryBookingRepository(): BookingRepository {
       return bookings.get(id) ?? null;
     },
 
+    async cancelBooking(id) {
+      const existing = bookings.get(id);
+      if (!existing) return null;
+      const updated: Booking = { ...existing, status: "cancelled", updatedAt: now() };
+      bookings.set(id, updated);
+      return updated;
+    },
+
     async writeEvent(event) {
       events.push(event);
     }

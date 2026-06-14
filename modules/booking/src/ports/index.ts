@@ -17,6 +17,7 @@ export interface BookingRepository {
   }): Promise<Booking>;
   listBookings(): Promise<Booking[]>;
   getBooking(id: string): Promise<Booking | null>;
+  cancelBooking(id: string): Promise<Booking | null>;
   writeEvent(event: DomainEvent): Promise<void>;
 }
 

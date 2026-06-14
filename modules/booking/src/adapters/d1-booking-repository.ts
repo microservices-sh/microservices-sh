@@ -134,6 +134,15 @@ export function createD1BookingRepository(db: D1Database): BookingRepository {
       return row ? rowToBooking(row) : null;
     },
 
+    async cancelBooking(id) {
+      const timestamp = new Date().toISOString();
+      await db
+        .prepare("UPDATE bookings SET status = 'cancelled', updated_at = ? WHERE id = ?")
+        .bind(timestamp, id)
+        .run();
+      return this.getBooking(id);
+    },
+
     async writeEvent(event: DomainEvent) {
       const timestamp = new Date().toISOString();
       await db

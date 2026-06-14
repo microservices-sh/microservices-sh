@@ -20,3 +20,7 @@ export async function afterBookingConfirmed(input: { booking: Booking }) {
 export async function beforeBookingCancel(input: { bookingId: string; reason?: string }) {
   return input;
 }
+
+export async function afterBookingCancelled(input: { booking: Booking }) {
+  return input;
+}

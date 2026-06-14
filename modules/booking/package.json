@@ -24,8 +24,8 @@
   "scripts": {
     "build": "tsc --noEmit",
     "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path .",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "NODE_OPTIONS=--experimental-sqlite vitest run",
+    "test:watch": "NODE_OPTIONS=--experimental-sqlite vitest"
   },
   "dependencies": {
     "@microservices-sh/customer": "workspace:*",

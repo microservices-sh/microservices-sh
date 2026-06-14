@@ -1,3 +1,4 @@
+import { cancelBooking } from "./use-cases/cancel-booking";
 import { getAvailability } from "./use-cases/get-availability";
 import { getBooking } from "./use-cases/get-booking";
 import { listBookings } from "./use-cases/list-bookings";
@@ -42,6 +43,12 @@ export const rpcContract: Record<string, RpcMethod> = {
     public: false,
     description: "Compute availability slots for a service/date (pure, booking's own data).",
     handler: (input, deps) => getAvailability(input, deps)
+  },
+  cancelBooking: {
+    scope: "booking.write",
+    public: false,
+    description: "Cancel a booking by id, freeing its slot (booking's own data).",
+    handler: (input, deps) => cancelBooking(input as { id: string; reason?: string }, deps)
   }
 };
 
