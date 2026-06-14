@@ -162,6 +162,17 @@ try {
     !svelteCli.includes("microservices local setup") ||
     !svelteCli.includes("deploy preview --confirm deploy") ||
     !svelteCli.includes("/deployments/preview") ||
+    !svelteCli.includes("/deployments/${deploymentId}/migrate") ||
+    !svelteCli.includes("/deployments/${deploymentId}/upload") ||
+    !svelteCli.includes("/deployments/${deploymentId}/cleanup") ||
+    !svelteCli.includes("production-migrate") ||
+    !svelteCli.includes("production-upload") ||
+    !svelteCli.includes("production-cleanup") ||
+    !svelteCli.includes("buildDeployArtifact") ||
+    !svelteCli.includes(".svelte-kit/cloudflare") ||
+    !svelteCli.includes("CI_API_KEY_REQUIRED") ||
+    !svelteCli.includes("DEPLOYMENT_INPUT_INVALID") ||
+    !svelteCli.includes("--input deployment.json") ||
     svelteCli.includes("wrangler whoami") ||
     svelteCli.includes("preview bind --d1-id <id> --kv-id <id>")
   ) {

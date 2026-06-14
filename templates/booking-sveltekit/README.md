@@ -1,6 +1,6 @@
 # Booking SvelteKit Template
 
-Status: ready local baseline; managed preview onboarding is API-proxy ready, with hosted Worker upload still blocked upstream
+Status: ready local baseline; managed preview onboarding proxies artifact upload, resources, migration, and cleanup through the API; hosted Worker upload still needs the deploy-ready bundle/assets adapter
 Template ID: `booking-sveltekit`
 
 This is the official full-app booking template shell. It is intentionally separate from the current Hono API generator and should evolve into the default visual proof template.
@@ -60,22 +60,40 @@ Preview deploys are approval-gated and routed through the microservices.sh API. 
 1. Run `pnpm microservices auth login` or `pnpm microservices auth login --api-key <key>`.
 2. Run `pnpm microservices deploy doctor`.
 3. Run `pnpm microservices deploy preview --plan`.
-4. Run `pnpm microservices deploy preview --confirm deploy`.
-5. Copy the returned deployment id.
-6. Run `pnpm microservices deploy provision <deployment-id> --plan`.
-7. Run `pnpm microservices deploy provision <deployment-id> --confirm provision`.
-8. Run `pnpm microservices deploy upload-plan <deployment-id>`.
-9. Run `pnpm microservices deploy status <deployment-id>`.
-10. After the API reports a live preview URL, run `pnpm microservices preview smoke --url <preview-url>`.
+4. Run `pnpm microservices deploy preview --confirm deploy --output deployment.json`.
+5. Run `pnpm microservices deploy provision --input deployment.json --plan`.
+6. Run `pnpm microservices deploy provision --input deployment.json --confirm provision`.
+7. Run `pnpm microservices deploy migrate --input deployment.json --plan`.
+8. Run `pnpm microservices deploy migrate --input deployment.json --confirm migrate`.
+9. Run `pnpm microservices deploy upload-plan --input deployment.json`.
+10. Run `pnpm microservices deploy upload --input deployment.json --plan`.
+11. Run `pnpm microservices deploy status --input deployment.json`.
+12. Or pass the returned deployment id directly with `--deployment-id <deployment-id>`.
+13. After the API reports a live preview URL, run `pnpm microservices preview smoke --url <preview-url>`.
+14. Clean disposable preview resources with `pnpm microservices deploy cleanup --input deployment.json --plan`, then `--confirm cleanup`.
 
-Remote provisioning and deploy state belong to the API. The local template keeps `wrangler.jsonc` for local Miniflare/D1 development, but managed preview commands do not mutate it with remote resource ids.
+`deploy preview --confirm deploy` runs the local build, packages `.svelte-kit/cloudflare`, migrations, and project manifests, then uploads that artifact to the API. Remote provisioning, remote D1 migration, cleanup, and deploy state belong to the API. The local template keeps `wrangler.jsonc` for local Miniflare/D1 development, but managed preview commands do not mutate it with remote resource ids.
 
-Current upstream blocker: the control-plane API can prepare deployments and provision D1/KV when configured, but hosted Worker bundling/upload is still reported as blocked by `deploy upload-plan`. A generated app is ready for local testing now; end-to-end managed preview testing should wait until the API upload adapter is implemented.
+Current upstream blocker: the control-plane API can prepare deployments, provision D1/KV, apply remote D1 migrations, and clean up created resources when configured. Hosted Worker/assets upload is still reported as blocked by `deploy upload-plan` until the artifact includes a deploy-ready bundle and the API upload adapter is enabled. A generated app is ready for local testing now; full live managed preview testing should wait for that upload adapter.
+
+## CI Preview
+
+CI should use non-interactive auth and machine-readable output:
+
+```bash
+MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy preview --confirm deploy --ci --json --output deployment.json
+MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy provision --input deployment.json --confirm provision --ci --json --output provision.json
+MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy migrate --input deployment.json --confirm migrate --ci --json --output migrate.json
+MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy upload-plan --input deployment.json --ci --json --output upload-plan.json
+MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy cleanup --input deployment.json --confirm cleanup --ci --json --output cleanup.json
+```
+
+Use `--wait --timeout 10m` only after hosted upload is ready; until then it fails fast with `HOSTED_UPLOAD_BLOCKED`.
 
 ## Pending Before Beta
 
 1. Run browser screenshot checks for desktop and mobile.
-2. Implement the hosted Worker bundling/upload adapter in the control-plane API.
+2. Implement the deploy-ready Worker/assets bundle producer and hosted upload adapter.
 3. Harden auth/gateway/audit onboarding and browser-facing setup docs.
 4. Add Stripe and email provider modules as gated plans.
 

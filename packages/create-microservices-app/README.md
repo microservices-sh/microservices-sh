@@ -61,15 +61,29 @@ The generated SvelteKit app also includes approval-gated managed preview command
 pnpm microservices auth login
 pnpm microservices deploy doctor
 pnpm microservices deploy preview --plan
-pnpm microservices deploy preview --confirm deploy
-pnpm microservices deploy provision <deployment-id> --plan
-pnpm microservices deploy provision <deployment-id> --confirm provision
-pnpm microservices deploy upload-plan <deployment-id>
-pnpm microservices deploy status <deployment-id>
+pnpm microservices deploy preview --confirm deploy --output deployment.json
+pnpm microservices deploy provision --input deployment.json --plan
+pnpm microservices deploy provision --input deployment.json --confirm provision
+pnpm microservices deploy migrate --input deployment.json --plan
+pnpm microservices deploy migrate --input deployment.json --confirm migrate
+pnpm microservices deploy upload-plan --input deployment.json
+pnpm microservices deploy upload --input deployment.json --plan
+pnpm microservices deploy status --input deployment.json
+pnpm microservices deploy cleanup --input deployment.json --plan
 pnpm microservices preview smoke --url <preview-url>
 ```
 
-Remote deployment preparation and resource provisioning require explicit approval. The control-plane API owns remote state and resource ids; the generated `wrangler.jsonc` remains a local-dev config. Hosted Worker upload is still an API-side blocker surfaced by `microservices deploy upload-plan <deployment-id>`, so the template is ready for local testing before it is ready for full managed preview testing.
+Remote deployment preparation, resource provisioning, remote migration, hosted upload attempts, and cleanup require explicit approval. The control-plane API owns remote state and resource ids; the generated `wrangler.jsonc` remains a local-dev config. Hosted Worker upload is still blocked until the API has a deploy-ready Worker/assets bundle, surfaced by `microservices deploy upload-plan --input deployment.json`, so the template is ready for local testing before it is ready for full live preview testing.
+
+`microservices deploy preview --confirm deploy` builds locally, packages the Cloudflare SvelteKit output, and uploads that artifact to the microservices.sh API. In CI, use:
+
+```bash
+MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy preview --confirm deploy --ci --json --output deployment.json
+MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy provision --input deployment.json --confirm provision --ci --json --output provision.json
+MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy migrate --input deployment.json --confirm migrate --ci --json --output migrate.json
+MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy upload-plan --input deployment.json --ci --json --output upload-plan.json
+MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy cleanup --input deployment.json --confirm cleanup --ci --json --output cleanup.json
+```
 
 Interactive setup asks for project name, template, extra modules, an optional Git remote, and package manager. Template, module, and package-manager prompts show numbered choices and accept either numbers or ids; enter nothing or `none` for template defaults. Available modules are generated immediately; planned modules are returned as follow-up `add --plan` commands. Local generation still works without login.
 

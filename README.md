@@ -112,15 +112,29 @@ Managed preview deploys are intentionally approval-gated and routed through the 
 pnpm microservices auth login
 pnpm microservices deploy doctor
 pnpm microservices deploy preview --plan
-pnpm microservices deploy preview --confirm deploy
-pnpm microservices deploy provision <deployment-id> --plan
-pnpm microservices deploy provision <deployment-id> --confirm provision
-pnpm microservices deploy upload-plan <deployment-id>
-pnpm microservices deploy status <deployment-id>
+pnpm microservices deploy preview --confirm deploy --output deployment.json
+pnpm microservices deploy provision --input deployment.json --plan
+pnpm microservices deploy provision --input deployment.json --confirm provision
+pnpm microservices deploy migrate --input deployment.json --plan
+pnpm microservices deploy migrate --input deployment.json --confirm migrate
+pnpm microservices deploy upload-plan --input deployment.json
+pnpm microservices deploy upload --input deployment.json --plan
+pnpm microservices deploy status --input deployment.json
+pnpm microservices deploy cleanup --input deployment.json --plan
 pnpm microservices preview smoke --url <preview-url>
 ```
 
-The generated app is ready for local testing now. End-to-end managed preview remains gated by the hosted control-plane upload adapter; `deploy upload-plan <deployment-id>` reports the current readiness/blockers.
+The generated app is ready for local testing now. Managed preview can now proxy artifact upload, D1/KV provisioning, remote D1 migrations, status checks, and cleanup through the API. End-to-end live preview remains gated by the hosted Worker/assets upload adapter; `deploy upload-plan --input deployment.json` reports the current readiness/blockers.
+
+For CI, use a workspace API key and keep Cloudflare credentials out of the customer pipeline:
+
+```bash
+MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy preview --confirm deploy --ci --json --output deployment.json
+MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy provision --input deployment.json --confirm provision --ci --json --output provision.json
+MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy migrate --input deployment.json --confirm migrate --ci --json --output migrate.json
+MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy upload-plan --input deployment.json --ci --json --output upload-plan.json
+MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy cleanup --input deployment.json --confirm cleanup --ci --json --output cleanup.json
+```
 
 ## Repository Map
 
@@ -214,7 +228,7 @@ Representative tool groups:
 - Catalog: `list_templates`, `inspect_template`, `list_modules`, `inspect_module`, `list_module_docs`, `get_module_doc`
 - Planning: `plan_add_module`, `check_updates`, `plan_module_upgrade`, `validate_config`
 - Generation and checks: `compose_app`, `generate_project`, `run_checks`
-- Deployments: `deploy_dev`, `deploy_preview`, `deploy_production`, `provision_deployment`, `get_deployment_status`, `get_logs`
+- Deployments: `deploy_dev`, `deploy_preview`, `deploy_production`, `provision_deployment`, `migrate_deployment`, `plan_deployment_upload`, `upload_deployment`, `cleanup_deployment`, `get_deployment_status`, `get_deployment_resources`, `get_logs`
 
 Use the repo-local CLI for direct SDK checks. Deployment commands require a configured API URL and auth where they cross into the hosted control plane.
 

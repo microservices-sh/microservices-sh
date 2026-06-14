@@ -52,22 +52,24 @@ function fail(code, message, remediation, details = {}) {
 }
 
 function emit(response, formatter = null, flags = { json: false }) {
+  const result = flags.output ? attachOutputFile(response, flags.output) : response;
+
   if (flags.json) {
-    output(response);
-  } else if (!response.ok) {
-    process.stderr.write(`Error: ${response.error.message}\n`);
-    process.stderr.write(`Next: ${response.error.remediation}\n`);
+    output(result);
+  } else if (!result.ok) {
+    process.stderr.write(`Error: ${result.error.message}\n`);
+    process.stderr.write(`Next: ${result.error.remediation}\n`);
   } else if (formatter) {
-    process.stdout.write(formatter(response.data));
+    process.stdout.write(formatter(result.data));
   } else {
-    output(response);
+    output(result);
   }
 
-  if (!flags.json && response.warnings?.length) {
-    process.stdout.write(`Warnings:\n${response.warnings.map((warning) => `- ${warning}`).join("\n")}\n`);
+  if (!flags.json && result.warnings?.length) {
+    process.stdout.write(`Warnings:\n${result.warnings.map((warning) => `- ${warning}`).join("\n")}\n`);
   }
 
-  process.exitCode = response.ok ? 0 : 1;
+  process.exitCode = result.ok ? 0 : 1;
 }
 
 const manifest = readJson("microservices.template.json", {});
@@ -87,6 +89,13 @@ function parseArgs(argv) {
     name: null,
     projectId: null,
     mode: null,
+    ci: process.env.CI === "true",
+    wait: false,
+    noBuild: false,
+    output: null,
+    input: null,
+    deploymentId: null,
+    timeoutMs: 10 * 60 * 1000,
     host: "127.0.0.1",
     port: "5174"
   };
@@ -126,6 +135,24 @@ function parseArgs(argv) {
     } else if (value === "--mode") {
       flags.mode = argv[index + 1] ?? "";
       index += 1;
+    } else if (value === "--ci") {
+      flags.ci = true;
+    } else if (value === "--wait") {
+      flags.wait = true;
+    } else if (value === "--no-build") {
+      flags.noBuild = true;
+    } else if (value === "--output" || value === "--out") {
+      flags.output = argv[index + 1] ?? "";
+      index += 1;
+    } else if (value === "--input" || value === "--from") {
+      flags.input = argv[index + 1] ?? "";
+      index += 1;
+    } else if (value === "--deployment-id") {
+      flags.deploymentId = argv[index + 1] ?? "";
+      index += 1;
+    } else if (value === "--timeout") {
+      flags.timeoutMs = parseDurationMs(argv[index + 1] ?? "") ?? flags.timeoutMs;
+      index += 1;
     } else if (value === "--host") {
       flags.host = argv[index + 1] ?? flags.host;
       index += 1;
@@ -138,6 +165,18 @@ function parseArgs(argv) {
   }
 
   return { args, flags };
+}
+
+function parseDurationMs(value) {
+  const text = String(value ?? "").trim().toLowerCase();
+  const match = text.match(/^(\d+)(ms|s|m)?$/);
+  if (!match) return null;
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount)) return null;
+  if (match[2] === "ms") return amount;
+  if (match[2] === "s") return amount * 1000;
+  if (match[2] === "m") return amount * 60 * 1000;
+  return amount;
 }
 
 function commandEnv() {
@@ -571,6 +610,220 @@ function deploymentInput(flags, environment = "preview") {
   };
 }
 
+function safeArtifactPath(path) {
+  const normalized = String(path).replaceAll("\\", "/").replace(/^\.\/+/, "");
+  if (!normalized || normalized.startsWith("/") || normalized.includes("\0")) return null;
+  const parts = normalized.split("/").filter(Boolean);
+  if (!parts.length || parts.some((part) => part === "." || part === "..")) return null;
+  if (parts.some((part) => [".git", ".wrangler", "node_modules"].includes(part))) return null;
+  if (parts.some((part) => part === ".env" || part.startsWith(".env."))) return null;
+  return parts.join("/");
+}
+
+function collectArtifactFile(root, relativePath, files) {
+  const safePath = safeArtifactPath(relativePath);
+  if (!safePath) return;
+  const absolutePath = resolve(root, safePath);
+  if (!existsSync(absolutePath) || statSync(absolutePath).isDirectory()) return;
+  files.push({
+    path: safePath,
+    contents: readFileSync(absolutePath, "utf8")
+  });
+}
+
+function collectArtifactDirectory(root, relativeDirectory, files) {
+  const safeDirectory = safeArtifactPath(relativeDirectory);
+  if (!safeDirectory) return;
+  const absoluteDirectory = resolve(root, safeDirectory);
+  if (!existsSync(absoluteDirectory) || !statSync(absoluteDirectory).isDirectory()) return;
+
+  (function walk(directory) {
+    for (const name of readdirSync(directory)) {
+      const absolutePath = join(directory, name);
+      const stat = statSync(absolutePath);
+      if (stat.isDirectory()) {
+        walk(absolutePath);
+      } else {
+        const path = relative(root, absolutePath).replaceAll("\\", "/");
+        collectArtifactFile(root, path, files);
+      }
+    }
+  })(absoluteDirectory);
+}
+
+function gitValue(args) {
+  const result = spawnSync("git", args, {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    stdio: "pipe"
+  });
+  return (result.status ?? 1) === 0 ? result.stdout.trim() || null : null;
+}
+
+function ciMetadata() {
+  return {
+    ci: Boolean(process.env.CI),
+    provider: process.env.GITHUB_ACTIONS === "true" ? "github-actions" : process.env.GITLAB_CI === "true" ? "gitlab-ci" : null,
+    branch:
+      process.env.GITHUB_HEAD_REF ||
+      process.env.GITHUB_REF_NAME ||
+      process.env.CI_COMMIT_REF_NAME ||
+      gitValue(["rev-parse", "--abbrev-ref", "HEAD"]),
+    commit:
+      process.env.GITHUB_SHA ||
+      process.env.CI_COMMIT_SHA ||
+      gitValue(["rev-parse", "HEAD"]),
+    pullRequest:
+      process.env.GITHUB_EVENT_NAME === "pull_request"
+        ? process.env.GITHUB_REF_NAME ?? null
+        : process.env.CI_MERGE_REQUEST_IID ?? null,
+    repository:
+      process.env.GITHUB_REPOSITORY ||
+      process.env.CI_PROJECT_PATH ||
+      gitValue(["config", "--get", "remote.origin.url"])
+  };
+}
+
+function artifactChecksum(files) {
+  const manifestText = files
+    .map((file) => `${file.path}:${createHash("sha256").update(file.contents).digest("hex")}`)
+    .sort()
+    .join("\n");
+  return `sha256:${createHash("sha256").update(manifestText).digest("hex")}`;
+}
+
+function buildDeployArtifact(flags) {
+  const input = deploymentInput(flags, "preview");
+  const files = [];
+  const buildOutput = ".svelte-kit/cloudflare";
+
+  if (!existsSync(buildOutput)) {
+    return fail(
+      "BUILD_OUTPUT_MISSING",
+      "Cloudflare build output is missing.",
+      "Run pnpm build, or rerun deploy preview without --no-build."
+    );
+  }
+
+  for (const path of [
+    "package.json",
+    "wrangler.jsonc",
+    "microservices.config.json",
+    "microservices.lock.json",
+    "microservices.template.json"
+  ]) {
+    collectArtifactFile(process.cwd(), path, files);
+  }
+  collectArtifactDirectory(process.cwd(), "migrations", files);
+  collectArtifactDirectory(process.cwd(), buildOutput, files);
+
+  const required = ["package.json", "wrangler.jsonc", `${buildOutput}/_worker.js`];
+  const missing = required.filter((path) => !files.some((file) => file.path === path));
+  if (missing.length) {
+    return fail(
+      "ARTIFACT_INCOMPLETE",
+      "Deployment artifact is missing required files.",
+      "Run pnpm build and ensure the Cloudflare adapter output exists.",
+      { missing }
+    );
+  }
+
+  const checksum = artifactChecksum(files);
+  const byteCount = files.reduce((total, file) => total + Buffer.byteLength(file.contents, "utf8"), 0);
+  return {
+    ok: true,
+    data: {
+      ...input,
+      artifact: {
+        source: "booking-sveltekit-local-build",
+        schemaVersion: "2026-06-14",
+        composition: {
+          compositionId: checksum,
+          template: {
+            id: input.templateId,
+            name: "Booking SvelteKit"
+          },
+          modules: input.modules.map((id) => ({ id })),
+          config: input.config
+        },
+        files,
+        metadata: {
+          checksum,
+          byteCount,
+          fileCount: files.length,
+          buildOutput,
+          packageManager: "pnpm",
+          createdAt: new Date().toISOString(),
+          git: ciMetadata()
+        },
+        nextSteps: [
+          "Provision managed resources through microservices deploy provision --input deployment.json.",
+          "Apply managed D1 migrations through microservices deploy migrate --input deployment.json.",
+          "Check hosted upload readiness through microservices deploy upload-plan --input deployment.json.",
+          "Use microservices deploy cleanup --input deployment.json when a disposable preview is no longer needed."
+        ]
+      }
+    }
+  };
+}
+
+function writeOutput(path, value) {
+  if (!path) return null;
+  const target = resolve(path);
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(target, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  return target;
+}
+
+function attachOutputFile(response, path) {
+  if (!path || !response || typeof response !== "object") return response;
+  const target = resolve(path);
+  const data =
+    response.data && typeof response.data === "object" && !Array.isArray(response.data)
+      ? { ...response.data, outputPath: target }
+      : { outputPath: target };
+  const result = { ...response, data };
+  writeOutput(target, result);
+  return result;
+}
+
+function deploymentIdFromPayload(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+  const body = payload.data && typeof payload.data === "object" && !Array.isArray(payload.data) ? payload.data : payload;
+  const deployment = body.deployment && typeof body.deployment === "object" && !Array.isArray(body.deployment) ? body.deployment : null;
+  return typeof deployment?.id === "string" && deployment.id.trim() ? deployment.id.trim() : null;
+}
+
+function deploymentIdArg(value, flags) {
+  if (flags.deploymentId) return { ok: true, data: flags.deploymentId };
+  if (value) return { ok: true, data: value };
+  if (!flags.input) return { ok: true, data: null };
+
+  let payload;
+  try {
+    payload = readJson(resolve(flags.input), null);
+  } catch (error) {
+    return fail(
+      "DEPLOYMENT_INPUT_INVALID",
+      "Could not read deployment input JSON.",
+      "Pass a JSON file written by --output, or pass --deployment-id directly.",
+      { input: flags.input, cause: error.message }
+    );
+  }
+
+  const deploymentId = deploymentIdFromPayload(payload);
+  if (!deploymentId) {
+    return fail(
+      "DEPLOYMENT_ID_NOT_FOUND",
+      "Deployment input JSON does not contain data.deployment.id.",
+      "Use the JSON file written by deploy preview --output, or pass --deployment-id directly.",
+      { input: flags.input }
+    );
+  }
+
+  return { ok: true, data: deploymentId };
+}
+
 function deployPreviewPlan(flags) {
   const checks = checkResponse();
   if (!checks.ok) return checks;
@@ -587,6 +840,9 @@ function deployPreviewPlan(flags) {
       confirmationRequired: "deploy",
       request: body,
       sideEffects: [
+        "run the local build unless --no-build is provided",
+        "package the Cloudflare build artifact",
+        "upload the artifact to the control-plane API",
         "create or reuse a control-plane project",
         "prepare a preview deployment record",
         "reserve a managed preview route when the API is configured for it"
@@ -599,13 +855,14 @@ function deployPreviewPlan(flags) {
       ],
       nextSteps: [
         "Run microservices auth login, or set MICROSERVICES_API_KEY.",
-        "Run microservices deploy preview --confirm deploy.",
-        "Run microservices deploy provision <deployment-id> --confirm provision.",
-        "Run microservices deploy upload-plan <deployment-id> to see API upload readiness."
+        "Run microservices deploy preview --confirm deploy --output deployment.json.",
+        "Run microservices deploy provision --input deployment.json --confirm provision.",
+        "Run microservices deploy migrate --input deployment.json --confirm migrate.",
+        "Run microservices deploy upload-plan --input deployment.json to see API upload readiness."
       ]
     },
     warnings: [
-      "The control-plane API currently reports hosted Worker upload as blocked until the upload adapter is implemented."
+      "The control-plane API can own resource provisioning and remote migration; hosted Worker upload remains blocked until the deploy-ready bundle/assets adapter is enabled."
     ]
   };
 }
@@ -623,11 +880,92 @@ async function deployPreview(flags) {
       { confirmationRequired: "deploy" }
     );
   }
+  const settings = resolvedApiSettings(flags);
+  if (flags.ci && !settings.apiKey) {
+    return fail(
+      "CI_API_KEY_REQUIRED",
+      "CI preview deploy requires MICROSERVICES_API_KEY or --api-key.",
+      "Create a workspace API key and store it as a CI secret."
+    );
+  }
 
-  return apiRequest(flags, "/deployments/preview", {
+  if (!flags.noBuild) {
+    const build = runCommand("deploy:build", "vite", ["build"], flags);
+    if (!build.ok) return build;
+  }
+
+  const body = buildDeployArtifact(flags);
+  if (!body.ok) return body;
+
+  const response = await apiRequest(flags, "/deployments/preview", {
     method: "POST",
-    body: JSON.stringify(deploymentInput(flags, "preview"))
+    body: JSON.stringify(body.data)
   });
+  if (!response.ok) return response;
+
+  if (flags.wait) {
+    return waitForDeployment(response, flags);
+  }
+
+  return response;
+}
+
+async function waitForDeployment(response, flags) {
+  const deploymentId = response.data?.deployment?.id;
+  if (!deploymentId) return response;
+
+  const uploadPlan = await deployUploadPlan(deploymentId, flags);
+  if (uploadPlan.ok && uploadPlan.data?.status === "blocked" && uploadPlan.data?.adapter?.ready === false) {
+    return {
+      ok: false,
+      data: {
+        ...response.data,
+        uploadPlan: uploadPlan.data
+      },
+      warnings: response.warnings,
+      error: {
+        code: "HOSTED_UPLOAD_BLOCKED",
+        message: "Preview artifact was uploaded, but hosted Worker upload is still blocked.",
+        remediation: "Run without --wait to create the prepared deployment, then run provision, migrate, and upload-plan.",
+        details: {
+          deploymentId,
+          blockers: uploadPlan.data.adapter.blockedBy
+        }
+      }
+    };
+  }
+
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < flags.timeoutMs) {
+    await sleep(3000);
+    const status = await deployStatus(deploymentId, flags);
+    if (!status.ok) return status;
+    const state = status.data?.deployment?.status;
+    if (state === "live") return status;
+    if (state === "failed" || state === "disabled") {
+      return {
+        ok: false,
+        data: status.data,
+        error: {
+          code: "DEPLOYMENT_NOT_LIVE",
+          message: `Deployment ended with status ${state}.`,
+          remediation: "Run deploy logs for details.",
+          details: { deploymentId, status: state }
+        }
+      };
+    }
+  }
+
+  return {
+    ok: false,
+    data: response.data,
+    error: {
+      code: "DEPLOYMENT_WAIT_TIMEOUT",
+      message: "Timed out waiting for preview deployment to become live.",
+      remediation: "Run deploy status and deploy logs for the deployment id.",
+      details: { deploymentId, timeoutMs: flags.timeoutMs }
+    }
+  };
 }
 
 function deployProvisionPlan(deploymentId, flags) {
@@ -656,6 +994,10 @@ function deployProvisionPlan(deploymentId, flags) {
 }
 
 async function deployProvision(deploymentId, flags) {
+  const resolved = deploymentIdArg(deploymentId, flags);
+  if (!resolved.ok) return resolved;
+  deploymentId = resolved.data;
+
   if (flags.plan) return deployProvisionPlan(deploymentId, flags);
   if (!deploymentId) {
     return fail(
@@ -679,7 +1021,120 @@ async function deployProvision(deploymentId, flags) {
   });
 }
 
+function deployMigratePlan(deploymentId, flags) {
+  return {
+    ok: true,
+    data: {
+      status: "planned",
+      apiUrl: resolvedApiSettings(flags).apiUrl,
+      deploymentId: deploymentId ?? null,
+      endpoint: deploymentId ? `POST /deployments/${deploymentId}/migrate` : "POST /deployments/<deployment-id>/migrate",
+      confirmationRequired: "migrate",
+      productionConfirmationRequired: "production-migrate",
+      sideEffects: [
+        "ask the control-plane API to apply uploaded SQL migrations to the managed D1 database",
+        "record applied migration checksums in the managed D1 database",
+        "update deployment logs and lifecycle state"
+      ],
+      notDoneLocally: [
+        "no local wrangler d1 migrations apply --remote",
+        "no local Cloudflare API token",
+        "no local D1 resource id handling"
+      ],
+      nextSteps: deploymentId
+        ? [`Run microservices deploy migrate ${deploymentId} --confirm migrate.`]
+        : ["Run microservices deploy preview --confirm deploy first, provision resources, then migrate the returned deployment id."]
+    }
+  };
+}
+
+async function deployMigrate(deploymentId, flags) {
+  const resolved = deploymentIdArg(deploymentId, flags);
+  if (!resolved.ok) return resolved;
+  deploymentId = resolved.data;
+
+  if (flags.plan) return deployMigratePlan(deploymentId, flags);
+  if (!deploymentId) {
+    return fail(
+      "DEPLOYMENT_ID_REQUIRED",
+      "Missing deployment id.",
+      "Run deploy preview and deploy provision first, then pass the deployment id."
+    );
+  }
+  if (!["migrate", "production-migrate"].includes(flags.confirm ?? "")) {
+    return fail(
+      "MIGRATION_CONFIRMATION_REQUIRED",
+      "Remote migration requires explicit confirmation.",
+      `Run microservices deploy migrate ${deploymentId} --plan, then rerun with --confirm migrate.`,
+      { confirmationRequired: "migrate", productionConfirmationRequired: "production-migrate" }
+    );
+  }
+
+  return apiRequest(flags, `/deployments/${deploymentId}/migrate`, {
+    method: "POST",
+    body: JSON.stringify({ confirm: flags.confirm })
+  });
+}
+
+function deployUploadActionPlan(deploymentId, flags) {
+  return {
+    ok: true,
+    data: {
+      status: "planned",
+      apiUrl: resolvedApiSettings(flags).apiUrl,
+      deploymentId: deploymentId ?? null,
+      endpoint: deploymentId ? `POST /deployments/${deploymentId}/upload` : "POST /deployments/<deployment-id>/upload",
+      confirmationRequired: "upload",
+      productionConfirmationRequired: "production-upload",
+      sideEffects: [
+        "ask the control-plane API to validate managed Worker upload prerequisites",
+        "upload the Worker only after the API has a deploy-ready Worker/assets bundle adapter",
+        "update deployment logs and lifecycle state"
+      ],
+      notDoneLocally: [
+        "no local wrangler deploy",
+        "no local wrangler login",
+        "no local Cloudflare resource id mutation"
+      ],
+      nextSteps: deploymentId
+        ? [
+            `Run microservices deploy upload-plan ${deploymentId}.`,
+            `Run microservices deploy upload ${deploymentId} --confirm upload when upload-plan is ready.`
+          ]
+        : ["Run microservices deploy preview --confirm deploy first, then use upload-plan on the returned deployment id."]
+    }
+  };
+}
+
+async function deployUpload(deploymentId, flags) {
+  const resolved = deploymentIdArg(deploymentId, flags);
+  if (!resolved.ok) return resolved;
+  deploymentId = resolved.data;
+
+  if (flags.plan) return deployUploadActionPlan(deploymentId, flags);
+  if (!deploymentId) {
+    return fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id returned by deploy preview.");
+  }
+  if (!["upload", "production-upload"].includes(flags.confirm ?? "")) {
+    return fail(
+      "UPLOAD_CONFIRMATION_REQUIRED",
+      "Hosted Worker upload requires explicit confirmation.",
+      `Run microservices deploy upload ${deploymentId} --plan, then rerun with --confirm upload.`,
+      { confirmationRequired: "upload", productionConfirmationRequired: "production-upload" }
+    );
+  }
+
+  return apiRequest(flags, `/deployments/${deploymentId}/upload`, {
+    method: "POST",
+    body: JSON.stringify({ confirm: flags.confirm })
+  });
+}
+
 async function deployStatus(deploymentId, flags) {
+  const resolved = deploymentIdArg(deploymentId, flags);
+  if (!resolved.ok) return resolved;
+  deploymentId = resolved.data;
+
   if (!deploymentId) {
     return fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id returned by deploy preview.");
   }
@@ -687,6 +1142,10 @@ async function deployStatus(deploymentId, flags) {
 }
 
 async function deployUploadPlan(deploymentId, flags) {
+  const resolved = deploymentIdArg(deploymentId, flags);
+  if (!resolved.ok) return resolved;
+  deploymentId = resolved.data;
+
   if (!deploymentId) {
     return fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id returned by deploy preview.");
   }
@@ -694,6 +1153,10 @@ async function deployUploadPlan(deploymentId, flags) {
 }
 
 async function deployResources(deploymentId, flags) {
+  const resolved = deploymentIdArg(deploymentId, flags);
+  if (!resolved.ok) return resolved;
+  deploymentId = resolved.data;
+
   if (!deploymentId) {
     return fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id returned by deploy preview.");
   }
@@ -701,6 +1164,10 @@ async function deployResources(deploymentId, flags) {
 }
 
 async function deployLogs(deploymentId, flags) {
+  const resolved = deploymentIdArg(deploymentId, flags);
+  if (!resolved.ok) return resolved;
+  deploymentId = resolved.data;
+
   if (!deploymentId) {
     return fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id returned by deploy preview.");
   }
@@ -708,6 +1175,10 @@ async function deployLogs(deploymentId, flags) {
 }
 
 async function deployActivate(deploymentId, flags) {
+  const resolved = deploymentIdArg(deploymentId, flags);
+  if (!resolved.ok) return resolved;
+  deploymentId = resolved.data;
+
   if (!deploymentId) {
     return fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id returned by deploy preview.");
   }
@@ -715,7 +1186,7 @@ async function deployActivate(deploymentId, flags) {
     return fail(
       "DEPLOYMENT_URL_REQUIRED",
       "Activation requires a deployment URL from the managed upload step.",
-      "Run microservices deploy upload-plan <deployment-id> and wait for the API upload adapter to be ready."
+      "Run microservices deploy upload-plan <deployment-id>, then deploy upload after the API has a deploy-ready Worker/assets bundle."
     );
   }
   return apiRequest(flags, `/deployments/${deploymentId}/activate`, {
@@ -729,6 +1200,10 @@ async function deployActivate(deploymentId, flags) {
 }
 
 async function deployDisable(deploymentId, flags) {
+  const resolved = deploymentIdArg(deploymentId, flags);
+  if (!resolved.ok) return resolved;
+  deploymentId = resolved.data;
+
   if (!deploymentId) {
     return fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id to disable.");
   }
@@ -743,7 +1218,62 @@ async function deployDisable(deploymentId, flags) {
   return apiRequest(flags, `/deployments/${deploymentId}/disable`, { method: "POST", body: "{}" });
 }
 
+function deployCleanupPlan(deploymentId, flags) {
+  return {
+    ok: true,
+    data: {
+      status: "planned",
+      apiUrl: resolvedApiSettings(flags).apiUrl,
+      deploymentId: deploymentId ?? null,
+      endpoint: deploymentId ? `POST /deployments/${deploymentId}/cleanup` : "POST /deployments/<deployment-id>/cleanup",
+      confirmationRequired: "cleanup",
+      productionConfirmationRequired: "production-cleanup",
+      sideEffects: [
+        "ask the control-plane API to delete managed Worker, KV, and D1 resources for this deployment",
+        "mark deployment resource records deleted",
+        "disable deployment routes and deployment status"
+      ],
+      notDoneLocally: [
+        "no local wrangler delete",
+        "no local wrangler d1 delete",
+        "no local wrangler kv namespace delete"
+      ],
+      nextSteps: deploymentId
+        ? [`Run microservices deploy cleanup ${deploymentId} --confirm cleanup.`]
+        : ["Pass the deployment id returned by deploy preview or --input deployment.json."]
+    }
+  };
+}
+
+async function deployCleanup(deploymentId, flags) {
+  const resolved = deploymentIdArg(deploymentId, flags);
+  if (!resolved.ok) return resolved;
+  deploymentId = resolved.data;
+
+  if (flags.plan) return deployCleanupPlan(deploymentId, flags);
+  if (!deploymentId) {
+    return fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id to clean up.");
+  }
+  if (!["cleanup", "production-cleanup"].includes(flags.confirm ?? "")) {
+    return fail(
+      "CLEANUP_CONFIRMATION_REQUIRED",
+      "Resource cleanup requires explicit confirmation.",
+      `Run microservices deploy cleanup ${deploymentId} --plan, then rerun with --confirm cleanup.`,
+      { confirmationRequired: "cleanup", productionConfirmationRequired: "production-cleanup" }
+    );
+  }
+
+  return apiRequest(flags, `/deployments/${deploymentId}/cleanup`, {
+    method: "POST",
+    body: JSON.stringify({ confirm: flags.confirm })
+  });
+}
+
 async function deployDoctor(flags, deploymentId = null) {
+  const resolved = deploymentIdArg(deploymentId, flags);
+  if (!resolved.ok) return resolved;
+  deploymentId = resolved.data;
+
   const local = checkResponse();
   const settings = resolvedApiSettings(flags);
   const checks = [
@@ -827,7 +1357,7 @@ function unsupportedLocalRemoteCommand(name) {
   return fail(
     "MANAGED_DEPLOY_ONLY",
     `${name} is no longer a local Cloudflare command in this template.`,
-    "Use microservices deploy preview/provision/upload-plan/status so the managed API owns remote resources and deployment state."
+    "Use microservices deploy preview/provision/migrate/upload-plan/upload/status/cleanup so the managed API owns remote resources and deployment state."
   );
 }
 
@@ -864,6 +1394,17 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
 `;
 }
 
+function formatMigration(result) {
+  const migration = result.migration ?? { applied: [], appliedCount: 0, skippedCount: 0 };
+  return `Deployment: ${result.deployment.id}
+Status: ${result.deployment.status}
+Remote migrations: ${migration.appliedCount} applied, ${migration.skippedCount} skipped
+${migration.applied.length ? migration.applied.map((item) => `- ${item.name}: ${item.status}`).join("\n") : "none"}
+Next:
+${result.nextSteps.map((step) => `- ${step}`).join("\n")}
+`;
+}
+
 function formatUploadPlan(result) {
   return `Deployment upload plan: ${result.status}
 Deployment: ${result.deployment.id}
@@ -883,12 +1424,21 @@ ${result.resources.length ? result.resources.map((item) => `- ${item.resourceTyp
 `;
 }
 
+function formatCleanup(result) {
+  return `Deployment: ${result.deployment.id}
+Status: ${result.deployment.status}
+Cleanup:
+${result.cleanup.length ? result.cleanup.map((item) => `- ${item.resource.resourceType}/${item.resource.binding}: ${item.status}`).join("\n") : "none"}
+`;
+}
+
 function formatLogs(result) {
   return `${result.logs.map((log) => `${log.level.toUpperCase()} ${log.message}`).join("\n")}\n`;
 }
 
 function usage() {
   return `booking-sveltekit microservices commands:
+  Global flags: [--json] [--api-url <url>] [--api-key <key>] [--input deployment.json] [--deployment-id <id>] [--output result.json]
   microservices modules list [--json]
   microservices add <id> [--json]
   microservices docs <id> [--json]
@@ -904,16 +1454,22 @@ function usage() {
   microservices auth status [--json]
   microservices auth logout [--json]
   microservices deploy doctor [deployment-id] [--json]
-  microservices deploy preview [--plan] [--confirm deploy] [--name <name>] [--project-id <id>] [--json]
-  microservices deploy provision <deployment-id> [--plan] --confirm provision [--json]
-  microservices deploy upload-plan <deployment-id> [--json]
-  microservices deploy status <deployment-id> [--json]
-  microservices deploy resources <deployment-id> [--json]
-  microservices deploy logs <deployment-id> [--json]
-  microservices deploy activate <deployment-id> --url <managed-url> [--mode dispatch-uploaded] [--json]
-  microservices deploy disable <deployment-id> --confirm disable [--json]
-  microservices preview deploy [--plan] [--confirm deploy] [--json]       # alias
+  microservices deploy preview [--plan] [--confirm deploy] [--name <name>] [--project-id <id>] [--ci] [--wait] [--timeout 10m] [--output deployment.json] [--json]
+  microservices deploy provision [deployment-id] [--input deployment.json] [--plan] --confirm provision [--json]
+  microservices deploy migrate [deployment-id] [--input deployment.json] [--plan] --confirm migrate [--json]
+  microservices deploy upload-plan [deployment-id] [--input deployment.json] [--json]
+  microservices deploy upload [deployment-id] [--input deployment.json] [--plan] --confirm upload [--json]
+  microservices deploy status [deployment-id] [--input deployment.json] [--json]
+  microservices deploy resources [deployment-id] [--input deployment.json] [--json]
+  microservices deploy logs [deployment-id] [--input deployment.json] [--json]
+  microservices deploy activate [deployment-id] [--input deployment.json] --url <managed-url> [--mode dispatch-uploaded] [--json]
+  microservices deploy disable [deployment-id] [--input deployment.json] --confirm disable [--json]
+  microservices deploy cleanup [deployment-id] [--input deployment.json] [--plan] --confirm cleanup [--json]
+  microservices preview deploy [--plan] [--confirm deploy] [--ci] [--wait] [--json]       # alias
   microservices preview provision <deployment-id> --confirm provision      # alias
+  microservices preview migrate <deployment-id> --confirm migrate          # alias
+  microservices preview upload <deployment-id> --confirm upload            # alias
+  microservices preview cleanup <deployment-id> --confirm cleanup          # alias
   microservices preview smoke --url <preview-url> [--json]
 `;
 }
@@ -1010,8 +1566,12 @@ async function main() {
     emit(await deployPreview(flags), formatPreparedDeployment, flags);
   } else if (resource === "deploy" && action === "provision") {
     emit(await deployProvision(value, flags), (data) => data.resources ? formatProvision(data) : `Provision plan: ${data.status}\n`, flags);
+  } else if (resource === "deploy" && action === "migrate") {
+    emit(await deployMigrate(value, flags), (data) => data.migration ? formatMigration(data) : `Migration plan: ${data.status}\n`, flags);
   } else if (resource === "deploy" && action === "upload-plan") {
     emit(await deployUploadPlan(value, flags), formatUploadPlan, flags);
+  } else if (resource === "deploy" && action === "upload") {
+    emit(await deployUpload(value, flags), (data) => `Upload plan: ${data.status}\n`, flags);
   } else if (resource === "deploy" && action === "status") {
     emit(await deployStatus(value, flags), formatStatus, flags);
   } else if (resource === "deploy" && action === "resources") {
@@ -1023,6 +1583,8 @@ async function main() {
     emit(await deployActivate(value, flags), formatStatus, flags);
   } else if (resource === "deploy" && action === "disable") {
     emit(await deployDisable(value, flags), formatStatus, flags);
+  } else if (resource === "deploy" && action === "cleanup") {
+    emit(await deployCleanup(value, flags), (data) => data.cleanup ? formatCleanup(data) : `Cleanup plan: ${data.status}\n`, flags);
   } else if (resource === "preview" && action === "doctor") {
     emit(await deployDoctor(flags, value ?? null), (data) => `Deploy doctor: ${data.status}\n`, flags);
   } else if (resource === "preview" && action === "auth") {
@@ -1031,8 +1593,12 @@ async function main() {
     emit(await deployPreview(flags), formatPreparedDeployment, flags);
   } else if (resource === "preview" && action === "provision") {
     emit(await deployProvision(value, flags), (data) => data.resources ? formatProvision(data) : `Provision plan: ${data.status}\n`, flags);
+  } else if (resource === "preview" && action === "migrate") {
+    emit(await deployMigrate(value, flags), (data) => data.migration ? formatMigration(data) : `Migration plan: ${data.status}\n`, flags);
   } else if (resource === "preview" && action === "upload-plan") {
     emit(await deployUploadPlan(value, flags), formatUploadPlan, flags);
+  } else if (resource === "preview" && action === "upload") {
+    emit(await deployUpload(value, flags), (data) => `Upload plan: ${data.status}\n`, flags);
   } else if (resource === "preview" && action === "status") {
     emit(await deployStatus(value, flags), formatStatus, flags);
   } else if (resource === "preview" && action === "resources") {
@@ -1043,9 +1609,11 @@ async function main() {
     emit(await deployActivate(value, flags), formatStatus, flags);
   } else if (resource === "preview" && action === "disable") {
     emit(await deployDisable(value, flags), formatStatus, flags);
+  } else if (resource === "preview" && action === "cleanup") {
+    emit(await deployCleanup(value, flags), (data) => data.cleanup ? formatCleanup(data) : `Cleanup plan: ${data.status}\n`, flags);
   } else if (resource === "preview" && action === "smoke") {
     emit(previewSmoke(flags, value), (data) => `Preview smoke exited ${data.exitCode}.\n`, flags);
-  } else if (resource === "preview" && ["bind", "migrate", "cleanup"].includes(action)) {
+  } else if (resource === "preview" && action === "bind") {
     emit(unsupportedLocalRemoteCommand(`preview ${action}`), null, flags);
   } else {
     process.stdout.write(usage());

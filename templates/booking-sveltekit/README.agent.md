@@ -17,6 +17,11 @@ pnpm microservices local smoke
 pnpm microservices auth status
 pnpm microservices deploy doctor
 pnpm microservices deploy preview --plan
+pnpm microservices deploy preview --confirm deploy --output deployment.json
+pnpm microservices deploy provision --input deployment.json --confirm provision
+pnpm microservices deploy migrate --input deployment.json --confirm migrate
+pnpm microservices deploy upload-plan --input deployment.json
+pnpm microservices deploy cleanup --input deployment.json --plan
 ```
 
 ## Rules
@@ -30,7 +35,8 @@ pnpm microservices deploy preview --plan
 7. Do not request or print secret values.
 8. Ask for approval before provider modules, webhooks, managed remote resources, preview deploy, or production deploy.
 9. Do not ask template users to run `wrangler login`, create D1/KV resources, or paste Cloudflare resource ids for managed preview.
-10. Before managed preview, run `pnpm microservices auth login`, `pnpm microservices deploy doctor`, and `pnpm microservices deploy preview --plan`; use `--confirm deploy` and `--confirm provision` only after approval.
+10. Before managed preview, run `pnpm microservices auth login`, `pnpm microservices deploy doctor`, and `pnpm microservices deploy preview --plan`; use `--confirm deploy`, `--confirm provision`, `--confirm migrate`, `--confirm upload`, and `--confirm cleanup` only after approval.
+11. In CI, use `MICROSERVICES_API_KEY` with `pnpm microservices deploy preview --confirm deploy --ci --json --output deployment.json`; chain follow-up commands with `--input deployment.json` and never start an interactive auth flow.
 
 ## Current Status
 
@@ -39,6 +45,6 @@ The template now has a minimal runnable SvelteKit app shell, prebuilt booking/cu
 Still pending before this is a full beta template:
 
 - browser screenshot checks for desktop and mobile
-- hosted Worker upload in the control-plane API; D1/KV provisioning can be driven by API once a deployment id exists
+- hosted Worker/assets upload in the control-plane API; D1/KV provisioning, remote migration, and cleanup can be driven by API once a deployment id exists
 - hardened auth/gateway/audit onboarding docs
 - Stripe and email provider modules behind approval gates

@@ -265,12 +265,15 @@ Usage:
   microservices deploy verify --dir <artifact-dir> [--json]
   microservices deploy bind <deployment-id> --dir <artifact-dir> [--api-url http://127.0.0.1:8787] [--json]
   microservices deploy bind --dir <artifact-dir> --d1 DB=<database-id> --kv CACHE_KV=<namespace-id> [--json]
+  microservices deploy migrate <deployment-id> [--confirm migrate|production-migrate] [--api-url http://127.0.0.1:8787] [--json]
   microservices deploy migrate --dir <artifact-dir> [--plan] [--confirm migrate] [--json]
   microservices deploy migrate --dir <production-artifact-dir> [--confirm production-migrate] [--json]
   microservices deploy upload-plan <deployment-id> [--api-url http://127.0.0.1:8787] [--json]
+  microservices deploy upload <deployment-id> [--plan] [--confirm upload|production-upload] [--api-url http://127.0.0.1:8787] [--json]
   microservices deploy upload --dir <artifact-dir> [--dry-run] [--plan] [--json]
   microservices deploy upload --dir <artifact-dir> --confirm upload [--json]
   microservices deploy upload --dir <production-artifact-dir> --confirm production-upload [--json]
+  microservices deploy cleanup <deployment-id> [--plan] [--confirm cleanup|production-cleanup] [--api-url http://127.0.0.1:8787] [--json]
   microservices deploy activate <deployment-id> --url <worker-url> [--mode wrangler-local|dispatch-uploaded] [--confirm production] [--json]
   microservices deploy domain <deployment-id> --hostname app.customer.com [--validation-method txt] [--api-url http://127.0.0.1:8787] [--json]
   microservices deploy domain-refresh <deployment-id> --hostname app.customer.com [--api-url http://127.0.0.1:8787] [--json]
@@ -1837,6 +1840,24 @@ Next: ${result.nextSteps.join(" ")}
 `;
 }
 
+function formatRemoteMigration(result) {
+  const migration = result.migration ?? { applied: [], appliedCount: 0, skippedCount: 0 };
+  return `Deployment: ${result.deployment.id}
+Status: ${result.deployment.status}
+Remote migrations: ${migration.appliedCount} applied, ${migration.skippedCount} skipped
+${migration.applied.length ? migration.applied.map((item) => `- ${item.name}: ${item.status}`).join("\n") : "none"}
+Next: ${result.nextSteps.join(" ")}
+`;
+}
+
+function formatRemoteCleanup(result) {
+  return `Deployment: ${result.deployment.id}
+Status: ${result.deployment.status}
+Cleanup:
+${result.cleanup?.length ? result.cleanup.map((item) => `- ${item.resource.resourceType}/${item.resource.binding}: ${item.status}`).join("\n") : "none"}
+`;
+}
+
 async function main() {
   const { args, flags } = parseArgs(process.argv.slice(2));
   const [resource, action, value] = args;
@@ -2488,6 +2509,14 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
   }
 
   if (resource === "deploy" && action === "migrate") {
+    if (!flags.dir && value) {
+      response = await apiRequest(flags, `/deployments/${value}/migrate`, {
+        method: "POST",
+        body: JSON.stringify({ confirm: flags.confirm ?? undefined }),
+      });
+      return flags.json ? writeJson(response) : printApiHuman(response, formatRemoteMigration);
+    }
+
     response = await migrateDeploymentArtifact(flags.dir ?? value, flags);
     if (!response.ok) {
       process.exitCode = 1;
@@ -2511,6 +2540,35 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
   }
 
   if (resource === "deploy" && action === "upload") {
+    if (!flags.dir && value) {
+      if (flags.plan || flags.dryRun) {
+        response = await apiRequest(flags, `/deployments/${value}/upload-plan`);
+        return flags.json
+          ? writeJson(response)
+          : printApiHuman(
+              response,
+              (result) => `Deployment upload plan: ${result.status}
+Deployment: ${result.deployment.id}
+Worker: ${result.workerName}
+Adapter ready: ${result.adapter.ready}
+Checks:
+${result.checks.map((check) => `- ${check.id}: ${check.status} - ${check.message}`).join("\n")}
+`
+            );
+      }
+
+      response = await apiRequest(flags, `/deployments/${value}/upload`, {
+        method: "POST",
+        body: JSON.stringify({ confirm: flags.confirm ?? undefined }),
+      });
+      return flags.json
+        ? writeJson(response)
+        : printApiHuman(
+            response,
+            (result) => `Deployment upload: ${result.deployment?.status ?? "submitted"}\n`
+          );
+    }
+
     response = await uploadDeploymentArtifact(flags.dir ?? value, flags);
     if (!response.ok) {
       process.exitCode = 1;
@@ -2554,6 +2612,42 @@ Local fallback:
 ${result.localFallback.commands.map((command) => `- ${command}`).join("\n")}
 `
         );
+  }
+
+  if (resource === "deploy" && action === "cleanup") {
+    if (!value) {
+      throw new Error("Missing deployment id.");
+    }
+
+    if (flags.plan) {
+      response = {
+        ok: true,
+        requestId: `local_${Date.now().toString(36)}`,
+        data: {
+          status: "planned",
+          deploymentId: value,
+          endpoint: `/deployments/${value}/cleanup`,
+          confirmationRequired: "cleanup",
+          productionConfirmationRequired: "production-cleanup",
+          sideEffects: [
+            "delete managed Worker, KV, and D1 resources through the control-plane API",
+            "mark deployment resources deleted",
+            "disable deployment routes and status",
+          ],
+          nextSteps: [`Run microservices deploy cleanup ${value} --confirm cleanup.`],
+        },
+        warnings: [],
+      };
+      return flags.json
+        ? writeJson(response)
+        : printHuman(response, (result) => `Cleanup plan: ${result.status}\nNext: ${result.nextSteps.join(" ")}\n`);
+    }
+
+    response = await apiRequest(flags, `/deployments/${value}/cleanup`, {
+      method: "POST",
+      body: JSON.stringify({ confirm: flags.confirm ?? undefined }),
+    });
+    return flags.json ? writeJson(response) : printApiHuman(response, formatRemoteCleanup);
   }
 
   if (resource === "deploy" && (action === "domain" || action === "custom-domain")) {
