@@ -20,6 +20,7 @@ The spec sketched `src/hooks/<framework>/` directories. Since v1 is **README-onl
 
 **Repo: `microservices-sh/` — package `packages/create-microservices-app/`**
 - Create: `frameworks.json` — manifest (single source of truth), shipped at package root.
+- Create: `shim/microservices.js` — copy of the self-contained module CLI shim (the same `scripts/microservices.js` that `templates/booking-sveltekit` vendors: node-builtins only, no deps, fetches modules from `api.microservices.sh`). Bundled into the package and copied into each scaffolded app. **There is no published `@microservices-sh/cli` package** (`packages/cli` is `private:true`, unpublished) — vendoring the shim is the only mechanism that makes `microservices add` runnable in a standalone app.
 - Create: `src/framework-starter.js` — all framework-starter logic, exported for unit tests: `loadFrameworks`, `resolveFramework`, `buildC3Command`, `applyFrameworkHook`, `frameworkNextSteps`.
 - Modify: `src/index.js` — import the module; branch in `main()`/`runCreate` resolution to the framework-starter path; merge manifest ids into `listTemplates` output and `--template` validation.
 - Create: `tests/framework-starter.test.mjs` — `node:test` unit tests (tmp fixture dir, no network).
@@ -205,10 +206,23 @@ git commit -m "feat(create-app): package-manager-aware C3 command builder"
 ## Task 4: Additive hook injection
 
 **Files:**
+- Create: `shim/microservices.js`
 - Modify: `src/framework-starter.js`
 - Test: `tests/framework-starter.test.mjs`
 
-`applyFrameworkHook(appDir, row, pm)` writes `microservices.config.json`, `README.microservices.md`, patches `package.json` (adds `microservices` script + CLI devDependency), and appends a banner comment to `hookEntry` if present. All operations additive; missing `hookEntry` → skip banner, do not throw.
+- [ ] **Step 0: Vendor the shim**
+
+Copy the self-contained module CLI into the package so it can be both unit-tested and shipped:
+```bash
+cd packages/create-microservices-app
+mkdir -p shim
+cp templates/booking-sveltekit/scripts/microservices.js shim/microservices.js
+```
+(Single source for the shim is the booking template; if it later diverges, revisit whether the framework starters need their own copy. For v1 a verbatim copy is correct.)
+
+`applyFrameworkHook(appDir, row, pm)` writes `microservices.config.json`, `README.microservices.md`, copies the vendored shim into `appDir/scripts/microservices.js`, patches `package.json` (adds a `"microservices": "node scripts/microservices.js"` script — **no devDependency**, the shim is dependency-free), and appends a banner comment to `hookEntry` if present. All operations additive; missing `hookEntry` → skip banner, do not throw.
+
+> Compatibility note: the shim's `add` was built for the SvelteKit product template's layout. `microservices modules list` (a remote fetch) is framework-agnostic and will work in any scaffolded app; `microservices add <module>` into a bare non-SvelteKit app is the part to validate (Task 7 asserts `modules list` runs). If `add` proves layout-specific, that is a follow-up to the shim, not a blocker for v1's funnel (README + list still route users to the ecosystem).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -218,9 +232,9 @@ import { mkdtempSync, writeFileSync, readFileSync, existsSync, mkdirSync } from 
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 
-test("applyFrameworkHook injects config, readme, package.json script; tolerates missing hookEntry", () => {
+test("applyFrameworkHook injects config, readme, shim + script; tolerates missing hookEntry", () => {
   const dir = mkdtempSync(join(tmpdir(), "fw-"));
-  writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "x", scripts: {}, devDependencies: {} }));
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "x", scripts: {} }));
   const row = { id: "nextjs", label: "Next.js", hookEntry: "app/layout.tsx", adapter: "@opennextjs/cloudflare" };
 
   applyFrameworkHook(dir, row, "npm"); // hookEntry absent -> must not throw
@@ -229,9 +243,9 @@ test("applyFrameworkHook injects config, readme, package.json script; tolerates 
   const cfg = JSON.parse(readFileSync(join(dir, "microservices.config.json"), "utf8"));
   assert.deepEqual(cfg.modules, []);
   assert.match(readFileSync(join(dir, "README.microservices.md"), "utf8"), /microservices add/);
+  assert.ok(existsSync(join(dir, "scripts/microservices.js")), "shim vendored");
   const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
-  assert.ok(pkg.scripts.microservices, "microservices script added");
-  assert.ok(Object.keys(pkg.devDependencies).some((d) => d.includes("microservices")), "CLI dep added");
+  assert.equal(pkg.scripts.microservices, "node scripts/microservices.js");
 });
 
 test("applyFrameworkHook appends banner when hookEntry exists", () => {
@@ -253,10 +267,11 @@ Expected: FAIL — `applyFrameworkHook` not exported.
 
 ```js
 // add to src/framework-starter.js
-import { writeFileSync, readFileSync, existsSync, appendFileSync } from "node:fs";
-import { join } from "node:path";
+import { writeFileSync, readFileSync, existsSync, appendFileSync, mkdirSync, copyFileSync } from "node:fs";
+import { join, dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const CLI_PACKAGE = "@microservices-sh/cli"; // verify exact published name during Task 7
+const SHIM_PATH = resolve(dirname(fileURLToPath(import.meta.url)), "..", "shim", "microservices.js");
 
 function runScript(pm, args) {
   return pm === "npm" ? `npm run microservices -- ${args}` : `${pm} microservices ${args}`;
@@ -276,10 +291,14 @@ export function applyFrameworkHook(appDir, row, pm) {
       `List available modules:\n\n\`\`\`bash\n${runScript(pm, "modules list")}\n\`\`\`\n`,
   );
 
+  // Vendor the self-contained shim (node-builtins only, no deps) so the
+  // project-local `microservices` script resolves with zero install.
+  mkdirSync(join(appDir, "scripts"), { recursive: true });
+  copyFileSync(SHIM_PATH, join(appDir, "scripts", "microservices.js"));
+
   const pkgPath = join(appDir, "package.json");
   const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
-  pkg.scripts = { ...pkg.scripts, microservices: "microservices" };
-  pkg.devDependencies = { ...pkg.devDependencies, [CLI_PACKAGE]: "latest" };
+  pkg.scripts = { ...pkg.scripts, microservices: "node scripts/microservices.js" };
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
 
   const entry = join(appDir, row.hookEntry ?? "");
@@ -289,6 +308,8 @@ export function applyFrameworkHook(appDir, row, pm) {
 }
 ```
 
+> Test setup: the unit test needs `shim/microservices.js` to exist relative to the package. Create it in **Step 0** of this task by copying `templates/booking-sveltekit/scripts/microservices.js` → `shim/microservices.js`, then commit it with the rest. (Task 6 wires it into `files`/`build.js` so it ships.)
+
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `node --test tests/framework-starter.test.mjs`
@@ -297,8 +318,8 @@ Expected: PASS (banner + non-banner cases).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/framework-starter.js tests/framework-starter.test.mjs
-git commit -m "feat(create-app): additive framework hook injection"
+git add shim/microservices.js src/framework-starter.js tests/framework-starter.test.mjs
+git commit -m "feat(create-app): additive framework hook injection (vendored shim)"
 ```
 
 ---
@@ -400,14 +421,20 @@ if (frameworkRow) {
 ```
 (Adjust `appName`/`packageManager`/`USER_CWD` variable names to match the surrounding code.)
 
-- [ ] **Step 4: Ship the manifest**
+- [ ] **Step 4: Ship the manifest + shim**
 
-In `package.json`, add `"frameworks.json"` to the `files` array and add `"test": "node --test tests/"` to `scripts`.
+In `package.json`, add `"frameworks.json"` and `"shim"` to the `files` array and add `"test": "node --test tests/"` to `scripts`. (`frameworks.json` and `shim/microservices.js` are read at runtime relative to `dist/`, so they must be in the published `files` — esbuild does not bundle them.)
 
-- [ ] **Step 5: Verify the bundle builds and lists frameworks**
+- [ ] **Step 5: Verify the bundle builds and the framework branch is reachable**
 
-Run: `cd packages/create-microservices-app && pnpm run build && node dist/index.js --help`
-Expected: build succeeds (`node --check` passes); help output lists `nextjs`, `astro`, `react-router`, `nuxt`, `hono`, `sveltekit` among templates.
+Run: `cd packages/create-microservices-app && pnpm run build`
+Expected: build succeeds (`node --check dist/index.js` passes).
+
+Then verify a framework id is accepted (not rejected as unknown) using a no-op that does not invoke C3 — assert the loaded template list includes the six ids:
+Run: `node -e "const {loadFrameworks}=require('./frameworks.json')?{}:{}; const ids=require('./frameworks.json').frameworks.map(f=>f.id); const need=['nextjs','astro','react-router','nuxt','hono','sveltekit']; if(!need.every(i=>ids.includes(i)))process.exit(1); console.log('manifest ok')"`
+Expected: `manifest ok`.
+
+Note: `usage()` (the `--help` text) is a static string and intentionally does **not** enumerate every template — framework ids surface in the interactive/guided listing and pass `--template` validation. Do not assert framework ids in `--help` output. (Optionally add a one-line pointer to the framework starters in `usage()`, but that is cosmetic.)
 
 - [ ] **Step 6: Verify unknown framework still errors cleanly**
 
@@ -443,7 +470,12 @@ else {
     assert.equal(r.status, 0, `${row.id} scaffold failed`);
     const appDir = join(dir, "app");
     assert.ok(existsSync(join(appDir, "microservices.config.json")));
-    // ...assert README + package.json script
+    assert.ok(existsSync(join(appDir, "scripts/microservices.js")), "shim vendored");
+    // ...assert README contains "microservices add" + package.json script
+    // Validate the vendored shim actually runs in the bare app (remote fetch,
+    // framework-agnostic). This is the real funnel-works check.
+    const list = spawnSync("node", ["scripts/microservices.js", "modules", "list"], { cwd: appDir });
+    assert.equal(list.status, 0, `${row.id}: shim "modules list" failed`);
     console.log(`framework smoke ok: ${row.id}`);
   }
 }
@@ -540,7 +572,7 @@ Create `src/components/FrameworkStarter.astro`: H1 `"<label> on Cloudflare Worke
 
 - [ ] **Step 4: Build the site**
 
-Run: `cd landing-page && npm run build`
+Run: `cd landing-page && pnpm build`
 Expected: build succeeds; `dist/templates/nextjs-cloudflare/` (and the other five) exist.
 
 - [ ] **Step 5: Verify a page renders the funnel content**
