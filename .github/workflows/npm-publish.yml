@@ -7,11 +7,17 @@ name: Publish npm
 #     jobs:
 #       release:
 #         uses: microservices-sh/microservices-sh/.github/workflows/npm-publish.yml@main
-#         with:    { package: "@microservices/booking", dry_run: false }
-#         secrets: { NPM_TOKEN: ${{ secrets.NPM_TOKEN }} }
+#         with: { package: "@microservices-sh/booking", dry_run: false }
 #
-# Real publish is gated: repo variable NPM_PUBLISH_ENABLED=true + secret NPM_TOKEN.
-# pnpm publish auto-replaces workspace:/file: deps with real versions.
+# Auth is OIDC trusted publishing — NO NPM_TOKEN. Each published package needs a
+# trusted publisher configured once on npmjs.com:
+#   npmjs.com → package → Settings → Trusted Publisher → GitHub Actions
+#     repository: microservices-sh/microservices-sh
+#     workflow:   npm-publish.yml
+# pnpm has no OIDC support yet (pnpm#9812), so we `pnpm pack` (which rewrites
+# workspace:/file: deps into the tarball) then `npm publish` the tarball, which
+# does the OIDC token exchange + provenance attestation.
+# Real publish is gated on repo variable NPM_PUBLISH_ENABLED=true.
 
 on:
   workflow_dispatch:
@@ -35,9 +41,6 @@ on:
         required: false
         type: boolean
         default: false
-    secrets:
-      NPM_TOKEN:
-        required: true
 
 concurrency:
   group: npm-publish-${{ github.ref }}-${{ inputs.package }}
@@ -54,7 +57,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PKG: ${{ inputs.package }}
-      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -68,20 +70,26 @@ jobs:
           corepack enable
           corepack prepare pnpm@10 --activate
 
+      # OIDC trusted publishing needs npm >= 11.5.1 (node 22 ships npm 10.x).
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Build package
         run: pnpm --filter "$PKG" build
 
+      # pnpm pack rewrites workspace:/file: deps to real versions in the tarball.
+      - name: Pack
+        run: |
+          rm -rf "$RUNNER_TEMP/pkg" && mkdir -p "$RUNNER_TEMP/pkg"
+          pnpm --filter "$PKG" pack --pack-destination "$RUNNER_TEMP/pkg"
+
       - name: Publish (dry run)
         if: ${{ inputs.dry_run }}
-        run: pnpm --filter "$PKG" publish --no-git-checks --dry-run
+        run: npm publish "$RUNNER_TEMP"/pkg/*.tgz --dry-run --access public
 
-      - name: Publish
-        # --provenance signs an attestation linking the package to this public
-        # source repo + workflow run (requires id-token: write, set above).
+      - name: Publish (OIDC trusted publishing + provenance)
         if: ${{ !inputs.dry_run }}
-        run: |
-          test -n "$NODE_AUTH_TOKEN" || { echo "NPM_TOKEN is not set"; exit 1; }
-          pnpm --filter "$PKG" publish --no-git-checks --provenance
+        run: npm publish "$RUNNER_TEMP"/pkg/*.tgz --provenance --access public
