@@ -308,7 +308,7 @@ export function applyFrameworkHook(appDir, row, pm) {
 }
 ```
 
-> Test setup: the unit test needs `shim/microservices.js` to exist relative to the package. Create it in **Step 0** of this task by copying `templates/booking-sveltekit/scripts/microservices.js` → `shim/microservices.js`, then commit it with the rest. (Task 6 wires it into `files`/`build.js` so it ships.)
+> Test setup: the unit test needs `shim/microservices.js` to exist relative to the package. Create it in **Step 0** of this task by copying `templates/booking-sveltekit/scripts/microservices.js` → `shim/microservices.js`, then commit it with the rest. (Task 6 adds `shim` to `package.json` `files` so it ships — no `build.js` change needed; it is committed source, not a build artifact.)
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -431,7 +431,7 @@ Run: `cd packages/create-microservices-app && pnpm run build`
 Expected: build succeeds (`node --check dist/index.js` passes).
 
 Then verify a framework id is accepted (not rejected as unknown) using a no-op that does not invoke C3 — assert the loaded template list includes the six ids:
-Run: `node -e "const {loadFrameworks}=require('./frameworks.json')?{}:{}; const ids=require('./frameworks.json').frameworks.map(f=>f.id); const need=['nextjs','astro','react-router','nuxt','hono','sveltekit']; if(!need.every(i=>ids.includes(i)))process.exit(1); console.log('manifest ok')"`
+Run: `node -e "const ids=require('./frameworks.json').frameworks.map(f=>f.id); const need=['nextjs','astro','react-router','nuxt','hono','sveltekit']; if(!need.every(i=>ids.includes(i)))process.exit(1); console.log('manifest ok')"`
 Expected: `manifest ok`.
 
 Note: `usage()` (the `--help` text) is a static string and intentionally does **not** enumerate every template — framework ids surface in the interactive/guided listing and pass `--template` validation. Do not assert framework ids in `--help` output. (Optionally add a one-line pointer to the framework starters in `usage()`, but that is cosmetic.)
