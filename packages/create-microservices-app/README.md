@@ -3,10 +3,12 @@
 Create a microservices.sh app from verified Cloudflare-native modules.
 
 ```bash
-npm create microservices-app@latest booking-demo
-pnpm create microservices-app booking-demo
-pnpm create microservices-app --interactive
+npm create microservices-app@latest studio-booking -- --template booking-sveltekit
+pnpm create microservices-app@latest studio-booking --template booking-sveltekit
+pnpm create microservices-app@latest --interactive
 ```
+
+`studio-booking` is only the generated app directory and slug. The current full app template id is `booking-sveltekit`; there is no `booking-svelte` template, and `booking-demo` is not a special template name.
 
 The generated app includes:
 
@@ -20,16 +22,16 @@ The generated app includes:
 For local scaffold testing inside this repo:
 
 ```bash
-pnpm --filter create-microservices-app start -- booking-demo --no-install
+pnpm --filter create-microservices-app start -- studio-booking --template booking-sveltekit --no-install
 ```
 
 Useful setup flags:
 
 ```bash
-pnpm create microservices-app booking-demo --template booking-business --modules payment-stripe,email
-pnpm create microservices-app booking-ui --template booking-sveltekit
-pnpm create microservices-app booking-demo --git-repo git@github.com:acme/booking-demo.git
-pnpm create microservices-app --interactive
+pnpm create microservices-app@latest worker-booking --template booking-business --modules payment-stripe,email
+pnpm create microservices-app@latest studio-booking --template booking-sveltekit
+pnpm create microservices-app@latest studio-booking --template booking-sveltekit --git-repo git@github.com:acme/studio-booking.git
+pnpm create microservices-app@latest --interactive
 ```
 
 `booking-business` is the default Cloudflare Worker/Hono app generated from the module contract. `booking-sveltekit` is a full Cloudflare SvelteKit app template bundled with source-visible customer and booking modules through local `file:` dependencies, so the generated app can install and build outside this monorepo.
@@ -37,8 +39,8 @@ pnpm create microservices-app --interactive
 For the SvelteKit template local baseline:
 
 ```bash
-pnpm create microservices-app booking-ui --template booking-sveltekit
-cd booking-ui
+pnpm create microservices-app@latest studio-booking --template booking-sveltekit
+cd studio-booking
 pnpm microservices local setup
 pnpm dev
 pnpm microservices local smoke
