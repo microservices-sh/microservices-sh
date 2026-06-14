@@ -17,6 +17,7 @@
     "./resources": "./src/resources/index.ts",
     "./service": "./src/service/index.ts",
     "./ports": "./src/ports/index.ts",
+    "./rpc": "./src/rpc.ts",
     "./adapters/d1": "./src/adapters/d1-customer-repository.ts",
     "./adapters/memory": "./src/adapters/memory-customer-repository.ts"
   },

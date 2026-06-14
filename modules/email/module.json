@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "status": "available",
   "class": "provider",
-  "summary": "Transactional email module with provider-neutral ports and a Resend HTTP adapter.",
+  "summary": "Transactional email module with provider-neutral ports and Resend and StackSuite (AWS SES) HTTP adapters.",
   "runtime": {
     "language": "typescript",
     "platform": "cloudflare-workers",
@@ -32,6 +32,14 @@
     {
       "type": "outbound-fetch",
       "host": "api.resend.com"
+    },
+    {
+      "type": "secret",
+      "binding": "EMAIL_SERVICE_API_KEY"
+    },
+    {
+      "type": "outbound-fetch",
+      "host": "*.execute-api.amazonaws.com"
     }
   ],
   "permissions": [

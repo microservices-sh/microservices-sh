@@ -1,0 +1,37 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "microservices.sh Auth Module",
+    "version": "0.1.0",
+    "description": "Internal auth surface: token mint/verify and JWKS. Only JWKS is public; mint/verify are reached via service-binding RPC."
+  },
+  "paths": {
+    "/.well-known/jwks.json": {
+      "get": {
+        "summary": "Public JWKS for token verification",
+        "responses": {
+          "200": { "description": "JWKS key set" }
+        }
+      }
+    },
+    "/internal/tokens": {
+      "post": {
+        "summary": "Mint a short-lived service token (requires auth.mint scope)",
+        "responses": {
+          "200": { "description": "Token minted" },
+          "400": { "description": "Invalid mint input" },
+          "500": { "description": "No active signing key" }
+        }
+      }
+    },
+    "/internal/tokens/verify": {
+      "post": {
+        "summary": "Verify a token (requires auth.verify scope)",
+        "responses": {
+          "200": { "description": "Token valid; claims returned" },
+          "401": { "description": "Token invalid, unknown key, or expired" }
+        }
+      }
+    }
+  }
+}

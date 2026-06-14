@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Gateway Hooks",
+  "type": "object",
+  "properties": {
+    "beforeIssueToken": { "type": "string" },
+    "afterTokenIssued": { "type": "string" }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Payment Hooks",
+  "type": "object",
+  "properties": {
+    "beforeCreatePaymentIntent": { "type": "string" },
+    "afterPaymentSucceeded": { "type": "string" }
+  },
+  "additionalProperties": false
+}

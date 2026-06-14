@@ -20,16 +20,18 @@
   },
   "modules": {
     "required": [
+      "gateway",
       "auth",
       "customer",
       "booking",
       "audit-log"
     ],
     "optional": [
-      "payment-stripe",
+      "payment",
       "email",
       "admin-shell",
-      "analytics"
+      "analytics",
+      "webhook-delivery"
     ]
   },
   "slots": {
@@ -64,7 +66,7 @@
     "payment": {
       "activeModule": null,
       "allowedModules": [
-        "payment-stripe"
+        "payment"
       ],
       "approvalRisk": "high"
     },

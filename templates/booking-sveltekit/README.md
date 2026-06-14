@@ -37,13 +37,20 @@ pnpm check:spec
 pnpm --filter @microservices-sh/customer check:spec
 pnpm --filter @microservices-sh/booking check:spec
 pnpm build:app
-pnpm microservices local migrate
-pnpm microservices local dev
+pnpm microservices local setup
+pnpm dev
 pnpm microservices local smoke
 pnpm microservices preview deploy --dry-run
 ```
 
-Run `microservices local smoke` in a second terminal after `microservices local dev` is ready. `microservices local migrate` applies the generated D1 migrations to Wrangler's local database only; remote D1 migrations still require explicit approval. The smoke command verifies the homepage, booking form, availability API, booking creation API, admin overview, booking list/detail, and customer list/detail.
+Run `microservices local smoke` in a second terminal after `pnpm dev` is ready. `pnpm dev` routes through `microservices local dev`, which applies local D1 migrations before starting Vite so `/book` does not fail on a fresh database. `microservices local setup` runs the build and local migration preflight explicitly. Remote D1 migrations still require explicit approval. The smoke command verifies the homepage, booking form, availability API, booking creation API, admin overview, booking list/detail, and customer list/detail.
+
+If port 5174 is busy:
+
+```bash
+pnpm dev -- --port 5175
+pnpm microservices local smoke --url http://127.0.0.1:5175
+```
 
 ## Preview Deployment
 
@@ -63,7 +70,7 @@ Generated apps use their app slug as the Worker name, so separate projects do no
 ## Pending Before Beta
 
 1. Run browser screenshot checks for desktop and mobile.
-2. Add real auth/audit modules.
+2. Harden auth/gateway/audit onboarding and browser-facing setup docs.
 3. Add Stripe and email provider modules as gated plans.
 
 ## Reference

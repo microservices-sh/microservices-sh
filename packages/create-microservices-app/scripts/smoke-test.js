@@ -40,6 +40,16 @@ function run(command, args, options = {}) {
   };
 }
 
+// wrangler.jsonc legitimately allows // line comments, so strip them before
+// parsing. Only handles whole-line comments, which is all the templates emit.
+function parseJsonc(text) {
+  const stripped = text
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("//"))
+    .join("\n");
+  return JSON.parse(stripped);
+}
+
 try {
   run("pnpm", ["run", "build"], { stdio: "inherit" });
   run("pnpm", ["pack", "--pack-destination", tempRoot], { stdio: "inherit" });
@@ -77,7 +87,7 @@ try {
     "--no-install",
     "--json"
   ], { stdio: "inherit" });
-  run("node", [createEntrypoint, "plan-only-smoke", "--dir", tempRoot, "--no-install", "--json", "--modules", "payment-stripe,email"], { stdio: "inherit" });
+  run("node", [createEntrypoint, "plan-only-smoke", "--dir", tempRoot, "--no-install", "--json", "--modules", "payment,email"], { stdio: "inherit" });
   run("node", [createEntrypoint, "--interactive", "--dir", tempRoot, "--no-install", "--json"], {
     env: {
       ...process.env,
@@ -109,26 +119,33 @@ try {
   if (!existsSync(join(svelteRoot, "modules", "booking", "package.json"))) {
     throw new Error("SvelteKit create command did not include the booking module source.");
   }
+  for (const moduleId of ["audit-log", "auth", "gateway"]) {
+    if (!existsSync(join(svelteRoot, "modules", moduleId, "package.json"))) {
+      throw new Error(`SvelteKit create command did not include the ${moduleId} module source.`);
+    }
+  }
 
   const createBundle = readFileSync(createEntrypoint, "utf8");
-  if (!createBundle.includes("localSetup") || !createBundle.includes("local\", \"migrate")) {
+  if (!createBundle.includes("localSetup") || !createBundle.includes("local\", \"setup")) {
     throw new Error("Packed create bundle should guide SvelteKit users through microservices local commands.");
   }
 
   const sveltePackage = JSON.parse(readFileSync(join(svelteRoot, "package.json"), "utf8"));
   const svelteBookingPackage = JSON.parse(readFileSync(join(svelteRoot, "modules", "booking", "package.json"), "utf8"));
-  if (sveltePackage.dependencies?.["@microservices-sh/customer"] !== "file:./modules/customer") {
-    throw new Error("SvelteKit generated app should depend on local customer module source.");
-  }
-  if (sveltePackage.dependencies?.["@microservices-sh/booking"] !== "file:./modules/booking") {
-    throw new Error("SvelteKit generated app should depend on local booking module source.");
+  const svelteGatewayPackage = JSON.parse(readFileSync(join(svelteRoot, "modules", "gateway", "package.json"), "utf8"));
+  for (const moduleId of ["audit-log", "auth", "booking", "customer", "gateway"]) {
+    if (sveltePackage.dependencies?.[`@microservices-sh/${moduleId}`] !== `file:./modules/${moduleId}`) {
+      throw new Error(`SvelteKit generated app should depend on local ${moduleId} module source.`);
+    }
   }
   if (
+    sveltePackage.scripts?.dev !== "node scripts/microservices.js local dev" ||
+    sveltePackage.scripts?.["setup:local"] !== "node scripts/microservices.js local setup" ||
     sveltePackage.scripts?.["db:migrate:local"] !== "node scripts/microservices.js local migrate" ||
     sveltePackage.scripts?.["dev:local"] !== "node scripts/microservices.js local dev" ||
     sveltePackage.scripts?.["smoke:local"] !== "node scripts/microservices.js local smoke"
   ) {
-    throw new Error("SvelteKit generated app should route local migration, dev, and smoke scripts through the project CLI.");
+    throw new Error("SvelteKit generated app should route local setup, migration, dev, and smoke scripts through the project CLI.");
   }
   if (
     sveltePackage.scripts?.["deploy:preview:dry-run"] !== "node scripts/microservices.js preview deploy --dry-run" ||
@@ -138,13 +155,16 @@ try {
     throw new Error("SvelteKit generated app should route preview deploy and remote migration scripts through the project CLI.");
   }
   const svelteCli = readFileSync(join(svelteRoot, "scripts", "microservices.js"), "utf8");
-  if (!svelteCli.includes("\"DB\", \"--local\"") || !svelteCli.includes("preview bind --d1-id <id> --kv-id <id>")) {
+  if (!svelteCli.includes("\"DB\", \"--local\"") || !svelteCli.includes("microservices local setup") || !svelteCli.includes("preview bind --d1-id <id> --kv-id <id>")) {
     throw new Error("SvelteKit generated app CLI should own D1 migration and preview binding commands.");
   }
   if (svelteBookingPackage.dependencies?.["@microservices-sh/customer"] !== "file:../customer") {
     throw new Error("Embedded booking module should depend on local customer module source.");
   }
-  const svelteWrangler = JSON.parse(readFileSync(join(svelteRoot, "wrangler.jsonc"), "utf8"));
+  if (svelteGatewayPackage.dependencies?.["@microservices-sh/auth"] !== "file:../auth") {
+    throw new Error("Embedded gateway module should depend on local auth module source.");
+  }
+  const svelteWrangler = parseJsonc(readFileSync(join(svelteRoot, "wrangler.jsonc"), "utf8"));
   if (svelteWrangler.name !== "sveltekit-smoke") {
     throw new Error(`SvelteKit generated app should use the app slug as the Worker name. Got ${svelteWrangler.name}.`);
   }
@@ -156,8 +176,8 @@ try {
   run("node", ["scripts/microservices.js", "check", "--json"], { cwd: svelteRoot, stdio: "inherit" });
   const catalog = JSON.parse(readFileSync(join(appRoot, "docs", "modules", "catalog.json"), "utf8"));
   const lock = JSON.parse(readFileSync(join(appRoot, "microservices.lock.json"), "utf8"));
-  if (!catalog.modules?.some((module) => module.id === "payment-stripe")) {
-    throw new Error("Generated catalog is missing payment-stripe.");
+  if (!catalog.modules?.some((module) => module.id === "payment")) {
+    throw new Error("Generated catalog is missing payment.");
   }
   if (!lock.modules?.some((module) => module.id === "booking")) {
     throw new Error("Generated lockfile is missing booking.");
@@ -165,7 +185,7 @@ try {
 
   run("node", ["scripts/microservices.js", "modules", "list", "--json"], { cwd: appRoot, stdio: "inherit" });
   run("node", ["scripts/microservices.js", "docs", "booking", "--json"], { cwd: appRoot, stdio: "inherit" });
-  run("node", ["scripts/microservices.js", "add", "payment-stripe", "--plan", "--json"], { cwd: appRoot, stdio: "inherit" });
+  run("node", ["scripts/microservices.js", "add", "payment", "--plan", "--json"], { cwd: appRoot, stdio: "inherit" });
   run("node", ["scripts/microservices.js", "updates", "--json"], { cwd: appRoot, stdio: "inherit" });
   run("node", ["scripts/microservices.js", "upgrade", "booking", "--plan", "--json"], { cwd: appRoot, stdio: "inherit" });
   run("node", ["scripts/microservices.js", "check", "--json"], { cwd: appRoot, stdio: "inherit" });

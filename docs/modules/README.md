@@ -54,12 +54,14 @@ Future MCP/CLI tools should expose the same content through:
 
 | Module | Status | Purpose |
 |--------|--------|---------|
-| [`auth`](./auth.md) | Available | Passwordless identity, sessions, roles, and auth events. |
+| [`auth`](./auth.md) | Available | EdDSA service-token mint/verify, scope checks, and JWKS for inter-service auth. |
+| [`gateway`](./gateway.md) | Available | Public trust boundary: API-key auth, rate limiting, scope narrowing, token exchange via auth. |
 | [`customer`](./customer.md) | Available | Customer profiles, tags, consent fields, and customer events. |
 | [`booking`](./booking.md) | Available | Service booking, availability, cancellation, and booking events. |
-| [`payment-stripe`](./payment-stripe.md) | Planned | Full Stripe payment workflow module, not just credential storage. |
+| [`payment`](./payment.md) | Available | Stripe-backed payment provider: payment intents, payment records, and signed webhook verification. |
 | [`email`](./email.md) | Planned | Transactional email sending, templates, jobs, and delivery events. |
-| [`audit-log`](./audit-log.md) | Planned | Mutation audit trail and domain event recording. |
+| [`audit-log`](./audit-log.md) | Available | Append-only audit trail; pure event sink with signed-envelope verification. |
+| [`webhook-delivery`](./webhook-delivery.md) | Available | Outbound mirror of the event bus: HMAC-signed event delivery to external endpoints with delivery logging. |
 
 ## Naming
 

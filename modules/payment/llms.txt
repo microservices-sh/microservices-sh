@@ -1,0 +1,26 @@
+# Payment Module LLM Guide
+
+Purpose: Stripe-backed payment provider for microservices.sh apps. Creates
+payment intents, records payments, and verifies signed Stripe webhooks.
+
+Entry points:
+- `src/index.ts` exports the safe public surface.
+- `src/use-cases/` contains framework-neutral behavior (createPaymentIntent,
+  handleWebhook, getPayment, listPayments).
+- `src/webhook.ts` signs/verifies Stripe webhook signatures (HMAC-SHA256).
+- `src/ports/` defines `PaymentRepository` and `PaymentGateway`.
+- `src/adapters/` contains D1 + memory repositories and Stripe + memory gateways.
+- `src/rpc.ts` declares the `createPaymentIntent` RPC method (scope payment.write).
+- `schemas/` and `openapi.json` describe API-facing contracts.
+- `module.json` is the machine-readable module manifest.
+
+Model:
+- Provider module: holds Stripe secrets, makes outbound calls (gateway adapter only).
+- Webhooks are verified by HMAC signature, not by scope.
+- Emits payment.checkout_created / succeeded / refunded / failed.
+
+Agent rules:
+- Keep Stripe HTTP in the gateway adapter; keep use cases neutral.
+- Never call Stripe from tests; use the memory gateway.
+- Verify webhook signatures before trusting events.
+- Ask before changing secrets, migrations, external side-effects, or production deploy.

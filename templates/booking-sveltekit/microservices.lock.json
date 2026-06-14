@@ -15,20 +15,45 @@
     "source": "registry:booking-sveltekit@0.1.0",
     "checksum": "sha256:scaffold-booking-sveltekit-0.1.0"
   },
+  "deploy": { "mode": "embedded" },
   "modules": [
+    {
+      "id": "gateway",
+      "version": "0.1.0",
+      "source": "registry:gateway@0.1.0",
+      "checksum": "sha256:preview-gateway-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/gateway",
+        "bindings": ["DB", "RATE_LIMIT_KV"],
+        "resources": ["D1", "KV"],
+        "permissions": ["gateway.admin"],
+        "rpc": [],
+        "hooks": ["beforeIssueToken", "afterTokenIssued"],
+        "events": ["gateway.token_issued", "gateway.access_denied"],
+        "requires": ["auth"]
+      }
+    },
     {
       "id": "auth",
       "version": "0.1.0",
       "source": "registry:auth@0.1.0",
       "checksum": "sha256:preview-auth-0.1.0",
       "customizationMode": "config-hooks",
+      "mode": "embedded",
       "contract": {
         "mount": "/auth",
-        "bindings": ["DB", "CACHE_KV"],
-        "resources": ["D1", "KV"],
-        "permissions": ["auth.read", "auth.write", "auth.admin"],
-        "hooks": ["beforeSignup", "afterSignup"],
-        "events": ["auth.user_created", "auth.session_created"],
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["auth.mint", "auth.verify", "auth.admin"],
+        "rpc": [
+          { "method": "mintToken", "scope": "auth.mint", "public": false },
+          { "method": "verifyToken", "scope": "auth.verify", "public": false },
+          { "method": "getJwks", "scope": null, "public": true }
+        ],
+        "hooks": ["beforeMintToken", "afterTokenMinted"],
+        "events": ["auth.token_minted", "auth.key_rotated"],
         "requires": []
       }
     },
@@ -38,14 +63,16 @@
       "source": "registry:customer@0.1.0",
       "checksum": "sha256:preview-customer-0.1.0",
       "customizationMode": "config-hooks",
+      "mode": "embedded",
       "contract": {
         "mount": "/customers",
         "bindings": ["DB"],
         "resources": ["D1"],
         "permissions": ["customer.read", "customer.write", "customer.admin"],
+        "rpc": [],
         "hooks": ["beforeCustomerCreate", "afterCustomerUpdated"],
-        "events": ["customer.created", "customer.updated", "auth.user_created"],
-        "requires": []
+        "events": ["customer.created", "customer.updated"],
+        "requires": ["auth"]
       }
     },
     {
@@ -54,11 +81,13 @@
       "source": "registry:booking@0.1.0",
       "checksum": "sha256:preview-booking-0.1.0",
       "customizationMode": "config-hooks",
+      "mode": "embedded",
       "contract": {
         "mount": "/bookings",
         "bindings": ["DB", "CACHE_KV"],
         "resources": ["D1", "KV"],
         "permissions": ["booking.read", "booking.write", "booking.admin"],
+        "rpc": [],
         "hooks": ["calculateAvailability", "beforeBookingCreate", "afterBookingConfirmed", "beforeBookingCancel"],
         "events": ["booking.hold_created", "booking.created", "booking.confirmed", "booking.cancelled"],
         "requires": ["auth", "customer"]
@@ -70,11 +99,13 @@
       "source": "registry:audit-log@0.1.0",
       "checksum": "sha256:preview-audit-log-0.1.0",
       "customizationMode": "config-hooks",
+      "mode": "embedded",
       "contract": {
         "mount": "/audit",
         "bindings": ["DB"],
         "resources": ["D1"],
         "permissions": ["audit.read", "audit.export", "audit.admin"],
+        "rpc": [],
         "hooks": ["redactAuditPayload", "beforeAuditExport"],
         "events": ["audit.recorded", "audit.exported"],
         "requires": []
@@ -83,7 +114,7 @@
   ],
   "customizations": {
     "config": true,
-    "hooks": ["beforeSignup", "afterSignup", "beforeCustomerCreate", "afterCustomerUpdated", "calculateAvailability", "beforeBookingCreate", "afterBookingConfirmed", "beforeBookingCancel"],
+    "hooks": ["beforeMintToken", "afterTokenMinted", "beforeCustomerCreate", "afterCustomerUpdated", "calculateAvailability", "beforeBookingCreate", "afterBookingConfirmed", "beforeBookingCancel"],
     "overlays": [],
     "forks": []
   }

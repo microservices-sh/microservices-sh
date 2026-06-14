@@ -6,34 +6,82 @@ const MODULES = Object.freeze([
     name: "Auth",
     version: "0.1.0",
     status: "available",
-    category: "core",
-    summary: "Passwordless account identity, session boundaries, roles, and auth audit events.",
+    category: "platform",
+    summary: "EdDSA service-token mint/verify, scope checks, and JWKS for auth-gated inter-service communication.",
     requires: [],
-    optional: ["email", "audit-log"],
-    storage: ["d1", "kv"],
+    optional: ["audit-log"],
+    storage: ["d1"],
     runtime: {
       framework: "hono",
       mount: "/auth",
-      bindings: ["DB", "CACHE_KV"],
+      bindings: ["DB"],
     },
-    eventsEmitted: ["auth.user_created", "auth.session_created"],
+    eventsEmitted: ["auth.token_minted", "auth.key_rotated"],
     eventsConsumed: [],
-    permissions: ["auth.read", "auth.write", "auth.admin"],
+    permissions: ["auth.mint", "auth.verify", "auth.admin"],
+    rpc: [
+      { method: "mintToken", scope: "auth.mint", public: false },
+      { method: "verifyToken", scope: "auth.verify", public: false },
+      { method: "getJwks", scope: null, public: true },
+    ],
     hooks: [
       {
-        name: "beforeSignup",
+        name: "beforeMintToken",
         timing: "pre",
-        purpose: "Validate or enrich a signup request before persistence.",
+        purpose: "Clamp or narrow requested scopes and ttl before signing.",
       },
       {
-        name: "afterSignup",
+        name: "afterTokenMinted",
         timing: "post",
-        purpose: "Trigger welcome flows, analytics, or CRM sync after account creation.",
+        purpose: "Observe or augment a minted token result.",
       },
     ],
     customization: {
-      config: ["allowedEmailDomains", "defaultRole", "sessionTtlSeconds"],
-      hooks: ["beforeSignup", "afterSignup"],
+      config: ["defaultTtlSeconds", "issuer", "jwksCacheSeconds"],
+      hooks: ["beforeMintToken", "afterTokenMinted"],
+      forkable: true,
+    },
+    quality: {
+      tests: { unit: true, integration: true, fixtures: true },
+      agentDocs: true,
+      migrations: true,
+      upgradeNotes: true,
+    },
+  },
+  {
+    id: "gateway",
+    name: "Gateway",
+    version: "0.1.0",
+    status: "available",
+    category: "platform",
+    summary: "Public trust boundary: API-key authentication, rate limiting, scope narrowing, and token exchange via auth.",
+    requires: ["auth"],
+    optional: ["audit-log"],
+    storage: ["d1", "kv"],
+    runtime: {
+      framework: "hono",
+      mount: "/gateway",
+      bindings: ["DB", "RATE_LIMIT_KV"],
+    },
+    eventsEmitted: ["gateway.token_issued", "gateway.access_denied"],
+    eventsConsumed: [],
+    permissions: ["gateway.admin"],
+    rpc: [],
+    hooks: [
+      {
+        name: "beforeIssueToken",
+        timing: "pre",
+        purpose: "Narrow scopes, attach claims, or reject issuance before minting.",
+      },
+      {
+        name: "afterTokenIssued",
+        timing: "post",
+        purpose: "Observe issued tokens for analytics or audit.",
+      },
+    ],
+    customization: {
+      config: ["tokenTtlSeconds", "rateLimit", "rateWindowSeconds"],
+      hooks: ["beforeIssueToken", "afterTokenIssued"],
       forkable: true,
     },
     quality: {
@@ -59,8 +107,13 @@ const MODULES = Object.freeze([
       bindings: ["DB"],
     },
     eventsEmitted: ["customer.created", "customer.updated"],
-    eventsConsumed: ["auth.user_created"],
+    eventsConsumed: [],
     permissions: ["customer.read", "customer.write", "customer.admin"],
+    rpc: [
+      { method: "getCustomer", scope: "customer.read", public: false },
+      { method: "listCustomers", scope: "customer.read", public: false },
+      { method: "upsertCustomer", scope: "customer.write", public: false },
+    ],
     hooks: [
       {
         name: "beforeCustomerCreate",
@@ -103,6 +156,11 @@ const MODULES = Object.freeze([
     eventsEmitted: ["booking.created", "booking.confirmed", "booking.cancelled"],
     eventsConsumed: ["customer.created", "payment.succeeded"],
     permissions: ["booking.read", "booking.write", "booking.admin"],
+    rpc: [
+      { method: "listBookings", scope: "booking.read", public: false },
+      { method: "getBooking", scope: "booking.read", public: false },
+      { method: "getAvailability", scope: "booking.read", public: false },
+    ],
     hooks: [
       {
         name: "beforeBookingCreate",
@@ -139,6 +197,142 @@ const MODULES = Object.freeze([
       upgradeNotes: true,
     },
   },
+  {
+    id: "audit-log",
+    name: "Audit Log",
+    version: "0.1.0",
+    status: "available",
+    category: "sink",
+    summary: "Append-only audit trail. Pure event sink: records domain events from a signed queue or direct calls.",
+    requires: [],
+    optional: [],
+    storage: ["d1"],
+    runtime: {
+      framework: "hono",
+      mount: "/audit",
+      bindings: ["DB"],
+    },
+    eventsEmitted: ["audit.recorded", "audit.exported"],
+    eventsConsumed: [],
+    permissions: ["audit.read", "audit.export", "audit.admin"],
+    rpc: [],
+    hooks: [
+      {
+        name: "redactAuditPayload",
+        timing: "pre",
+        purpose: "Redact or drop sensitive fields before an audit record is persisted.",
+      },
+      {
+        name: "beforeAuditExport",
+        timing: "pre",
+        purpose: "Filter or guard an audit export request.",
+      },
+    ],
+    customization: {
+      config: ["requireSignedEnvelope", "defaultListLimit"],
+      hooks: ["redactAuditPayload", "beforeAuditExport"],
+      forkable: true,
+    },
+    quality: {
+      tests: { unit: true, integration: true, fixtures: true },
+      agentDocs: true,
+      migrations: true,
+      upgradeNotes: true,
+    },
+  },
+  {
+    id: "payment",
+    name: "Payment",
+    version: "0.1.0",
+    status: "available",
+    category: "provider",
+    summary: "Stripe-backed payment provider: create payment intents, record payments, and verify signed Stripe webhooks. Emits payment lifecycle events.",
+    requires: ["auth", "customer"],
+    optional: ["audit-log"],
+    storage: ["d1"],
+    runtime: {
+      framework: "hono",
+      mount: "/payments",
+      bindings: ["DB"],
+    },
+    secrets: ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"],
+    eventsEmitted: ["payment.checkout_created", "payment.succeeded", "payment.refunded", "payment.failed"],
+    eventsConsumed: [],
+    permissions: ["payment.read", "payment.write", "payment.admin"],
+    rpc: [
+      { method: "createPaymentIntent", scope: "payment.write", public: false },
+    ],
+    hooks: [
+      {
+        name: "beforeCreatePaymentIntent",
+        timing: "pre",
+        purpose: "Adjust or validate intent input before the gateway call.",
+      },
+      {
+        name: "afterPaymentSucceeded",
+        timing: "post",
+        purpose: "Run side-effects after a payment is marked succeeded.",
+      },
+    ],
+    customization: {
+      config: ["defaultCurrency", "requireWebhookSecret", "defaultListLimit"],
+      hooks: ["beforeCreatePaymentIntent", "afterPaymentSucceeded"],
+      forkable: true,
+    },
+    quality: {
+      tests: { unit: true, integration: true, fixtures: true },
+      agentDocs: true,
+      migrations: true,
+      upgradeNotes: true,
+    },
+  },
+  {
+    id: "webhook-delivery",
+    name: "Webhook Delivery",
+    version: "0.1.0",
+    status: "available",
+    category: "sink",
+    summary: "Outbound mirror of the event bus: registers external endpoints (per-endpoint signing secret), delivers HMAC-signed domain events, and logs delivery attempts.",
+    requires: [],
+    optional: ["audit-log"],
+    storage: ["d1"],
+    runtime: {
+      framework: "hono",
+      mount: "/webhooks",
+      bindings: ["DB"],
+    },
+    // External outbound HTTP side-effects make this approval-gated despite being
+    // a sink (audit-log, also a sink, stays medium — it never leaves the account).
+    approvalRisk: "high",
+    secrets: [],
+    eventsEmitted: ["webhook.delivered", "webhook.failed"],
+    eventsConsumed: [],
+    permissions: ["webhook.read", "webhook.write", "webhook.admin"],
+    rpc: [],
+    hooks: [
+      {
+        name: "beforeWebhookDeliver",
+        timing: "pre",
+        purpose: "Adjust or drop an outbound event before delivery.",
+      },
+      {
+        name: "afterWebhookDelivered",
+        timing: "post",
+        purpose: "Observe a delivery attempt result.",
+      },
+    ],
+    customization: {
+      config: ["defaultListLimit", "maxRetries"],
+      hooks: ["beforeWebhookDeliver", "afterWebhookDelivered"],
+      forkable: true,
+    },
+    quality: {
+      tests: { unit: true, integration: true, fixtures: true },
+      agentDocs: true,
+      migrations: true,
+      upgradeNotes: true,
+    },
+  },
 ]);
 
 const TEMPLATES = Object.freeze([
@@ -149,8 +343,8 @@ const TEMPLATES = Object.freeze([
     status: "available",
     summary: "A bookable service business foundation for studios, clinics, consultants, and local operators.",
     targetCustomer: "AI-heavy agencies, consultants, and technical founders building custom booking systems.",
-    defaultModules: ["auth", "customer", "booking"],
-    optionalModules: ["email", "payment", "admin", "audit-log"],
+    defaultModules: ["gateway", "auth", "customer", "booking"],
+    optionalModules: ["email", "payment", "admin", "audit-log", "webhook-delivery"],
     targetRuntime: {
       language: "typescript",
       framework: "hono",
@@ -324,17 +518,23 @@ export function createModuleLock(modules, template = null) {
           checksum: `sha256:preview-${template.id}-${template.version}`,
         }
       : null,
+    // App-level deploy topology (plans/24). Default is embedded; service mode is
+    // opt-in and recorded per-module below.
+    deploy: { mode: "embedded" },
     modules: modules.map((module) => ({
       id: module.id,
       version: module.version,
       source: `registry:${module.id}@${module.version}`,
       checksum: `sha256:preview-${module.id}-${module.version}`,
       customizationMode: "config-hooks",
+      // Per-module topology. In service mode this also carries worker + d1 names.
+      mode: "embedded",
       contract: {
         mount: module.runtime.mount,
         bindings: clone(module.runtime.bindings),
         resources: module.storage.map((item) => item.toUpperCase()),
         permissions: clone(module.permissions),
+        rpc: clone(module.rpc ?? []),
         hooks: module.hooks.map((hook) => hook.name),
         events: unique([...module.eventsEmitted, ...module.eventsConsumed]),
         requires: clone(module.requires),

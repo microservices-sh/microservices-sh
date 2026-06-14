@@ -1,0 +1,13 @@
+export { moduleDefinition, manifest } from "./manifest";
+export { defaultConfig, configSchema } from "./config";
+export { events } from "./events";
+export { permissions } from "./permissions";
+export { resources } from "./resources";
+export { recordEvent } from "./use-cases/record-event";
+export { consumeEvent } from "./use-cases/consume-event";
+export { listEvents } from "./use-cases/list-events";
+export { signEnvelope, verifyEnvelope } from "./envelope";
+export { createD1AuditEventStore } from "./adapters/d1-audit-store";
+export { createMemoryAuditEventStore } from "./adapters/memory-audit-store";
+export type { AuditEventStore } from "./ports";
+export type { AuditEvent, AuditEventFilter, EventEnvelope } from "./types";

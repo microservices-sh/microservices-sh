@@ -6,6 +6,15 @@ import {
   listTemplates as listContractTemplates,
 } from "@microservices-sh/module-contract";
 
+import {
+  generateRpcEntrypoint as buildRpcEntrypoint,
+  generateRpcClient as buildRpcClient,
+  serviceClassName as rpcServiceClassName,
+  rpcMethods as rpcContractMethods,
+} from "./rpc-codegen.js";
+
+export { generateRpcEntrypoint, generateRpcClient, serviceClassName } from "./rpc-codegen.js";
+
 function requestId() {
   return `local_${Date.now().toString(36)}`;
 }
@@ -54,24 +63,6 @@ function json(value) {
 
 const PLANNED_MODULE_DOCS = Object.freeze([
   {
-    id: "payment-stripe",
-    name: "Stripe Payment",
-    version: "0.1.0",
-    status: "planned",
-    class: "provider",
-    mount: "/payments",
-    summary:
-      "Full Stripe payment workflow: products, prices, checkout, payment links, webhooks, refunds, and payment events.",
-    requires: ["auth", "customer"],
-    permissions: ["payment.read", "payment.write", "payment.admin"],
-    approvalRisk: "high",
-    secrets: ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"],
-    resources: ["D1 payment tables", "Stripe webhook endpoint", "outbound fetch to api.stripe.com"],
-    hooks: ["beforeCheckoutCreate", "afterPaymentSucceeded", "beforeRefundCreate"],
-    events: ["payment.checkout_created", "payment.succeeded", "payment.refunded", "payment.failed"],
-    statusNote: "Planned provider module. MVP command should produce an install plan before code mutation.",
-  },
-  {
     id: "email",
     name: "Email",
     version: "0.1.0",
@@ -87,23 +78,6 @@ const PLANNED_MODULE_DOCS = Object.freeze([
     hooks: ["renderEmailTemplate", "beforeEmailSend", "afterEmailDelivered"],
     events: ["email.queued", "email.sent", "email.failed"],
     statusNote: "Planned provider-capable module. Start with test mode and approval-gated sends.",
-  },
-  {
-    id: "audit-log",
-    name: "Audit Log",
-    version: "0.1.0",
-    status: "planned",
-    class: "core",
-    mount: "/audit",
-    summary: "Mutation audit trail and domain event recording with actor, action, resource, request id, and metadata.",
-    requires: [],
-    permissions: ["audit.read", "audit.export", "audit.admin"],
-    approvalRisk: "medium",
-    secrets: [],
-    resources: ["D1 audit_events table", "optional R2 export bucket"],
-    hooks: ["redactAuditPayload", "beforeAuditExport"],
-    events: ["audit.recorded", "audit.exported"],
-    statusNote: "Partly present in generated apps as src/lib/audit.ts; full module packaging is planned.",
   },
 ]);
 
@@ -125,8 +99,9 @@ function availableModuleDocs() {
       summary: module.summary,
       requires: module.requires,
       permissions: module.permissions,
-      approvalRisk: module.id === "auth" ? "high" : "medium",
-      secrets: module.id === "auth" ? ["SESSION_SECRET"] : [],
+      rpc: module.rpc ?? [],
+      approvalRisk: module.approvalRisk ?? (module.category === "platform" || module.category === "provider" ? "high" : "medium"),
+      secrets: module.secrets ?? (module.id === "auth" ? ["AUTH_SIGNING_KEY"] : []),
       resources: module.storage.map((item) => item.toUpperCase()),
       hooks: module.hooks.map((hook) => hook.name),
       events: [...module.eventsEmitted, ...module.eventsConsumed],
@@ -147,6 +122,7 @@ function moduleCatalog() {
     summary: module.summary,
     requires: module.requires,
     permissions: module.permissions,
+    rpc: module.rpc ?? [],
     approvalRisk: module.approvalRisk,
     secrets: module.secrets,
     resources: module.resources,
@@ -315,29 +291,54 @@ function buildWranglerJson(composition) {
         binding: "CACHE_KV",
         id: "REPLACE_WITH_KV_ID",
       },
+      {
+        binding: "RATE_LIMIT_KV",
+        id: "REPLACE_WITH_RATE_LIMIT_KV_ID",
+      },
     ],
+    // Event bus (plans/24 layer 3): this Worker is both producer and consumer of
+    // the domain-event queue. The consumer routes events to the audit sink.
+    queues: {
+      producers: [{ binding: "EVENTS", queue: `${appSlug}-events` }],
+      consumers: [{ queue: `${appSlug}-events`, max_batch_size: 10, max_batch_timeout: 5 }],
+    },
   });
 }
 
 function buildSchemaSql() {
-  return `CREATE TABLE IF NOT EXISTS users (
+  return `-- Auth owns signing keys for inter-service tokens (EdDSA). The private key is
+-- stored here for local/preview; production must wrap it with a secret/KMS binding.
+CREATE TABLE IF NOT EXISTS signing_keys (
+  kid TEXT PRIMARY KEY,
+  algorithm TEXT NOT NULL,
+  public_jwk TEXT NOT NULL,
+  private_jwk TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  retired_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS api_keys (
   id TEXT PRIMARY KEY,
-  email TEXT NOT NULL UNIQUE,
-  role TEXT NOT NULL DEFAULT 'member',
+  hash TEXT NOT NULL UNIQUE,
+  workspace TEXT NOT NULL,
+  project TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  scopes TEXT NOT NULL,
+  status TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS customers (
   id TEXT PRIMARY KEY,
-  user_id TEXT,
+  external_id TEXT,
   name TEXT NOT NULL,
   email TEXT NOT NULL,
   phone TEXT,
   notes TEXT,
   tags TEXT NOT NULL DEFAULT '[]',
   created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES users(id)
+  updated_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS bookings (
@@ -372,6 +373,8 @@ CREATE TABLE IF NOT EXISTS audit_events (
   created_at TEXT NOT NULL
 );
 
+CREATE INDEX IF NOT EXISTS idx_signing_keys_status ON signing_keys(status);
+CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(hash);
 CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
 CREATE INDEX IF NOT EXISTS idx_bookings_customer_id ON bookings(customer_id);
 CREATE INDEX IF NOT EXISTS idx_bookings_starts_at ON bookings(starts_at);
@@ -400,7 +403,13 @@ function buildEnvTs() {
   return `export interface Env {
   DB: D1Database;
   CACHE_KV: KVNamespace;
+  RATE_LIMIT_KV: KVNamespace;
   NOTIFICATIONS?: Queue;
+  // Event bus producer binding (plans/24 layer 3). Optional: when unset, domain
+  // events are still written to D1 and the queue publish is skipped.
+  EVENTS?: Queue;
+  // HMAC secret used to sign queue event envelopes. Set as a Wrangler secret.
+  EVENT_BUS_SECRET?: string;
 }
 `;
 }
@@ -457,6 +466,98 @@ export async function emitDomainEvent(
 `;
 }
 
+function buildEventsTs() {
+  // Generated event-bus client (plans/24 layer 3). Publishes signed envelopes to
+  // the EVENTS queue when bound; the queue consumer verifies the signature and
+  // routes the event to the audit sink. HMAC-SHA256 mirrors the audit-log
+  // envelope contract so producers and consumers agree on the wire format.
+  return `import type { Env } from "./env";
+import { writeAudit } from "./audit";
+
+export interface EventEnvelope {
+  eventName: string;
+  entityType: string;
+  entityId: string;
+  source: string;
+  actorId?: string | null;
+  payload: Record<string, unknown>;
+  signature?: string;
+}
+
+function canonical(envelope: EventEnvelope): string {
+  return JSON.stringify({
+    eventName: envelope.eventName,
+    entityType: envelope.entityType,
+    entityId: envelope.entityId,
+    source: envelope.source,
+    actorId: envelope.actorId ?? null,
+    payload: envelope.payload,
+  });
+}
+
+async function hmac(secret: string, message: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export async function signEnvelope(envelope: EventEnvelope, secret: string): Promise<EventEnvelope> {
+  return { ...envelope, signature: await hmac(secret, canonical(envelope)) };
+}
+
+export async function verifyEnvelope(envelope: EventEnvelope, secret: string): Promise<boolean> {
+  if (!envelope.signature) return false;
+  const expected = await hmac(secret, canonical(envelope));
+  if (expected.length !== envelope.signature.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i += 1) diff |= expected.charCodeAt(i) ^ envelope.signature.charCodeAt(i);
+  return diff === 0;
+}
+
+// Producer: publish a domain event to the queue. When EVENTS is unbound (local
+// dev without queues) this is a no-op — domain events are still written to D1 by
+// emitDomainEvent. When EVENT_BUS_SECRET is set the envelope is signed.
+export async function publishEvent(
+  env: Env,
+  input: { eventName: string; entityType: string; entityId: string; payload?: Record<string, unknown>; actorId?: string | null }
+): Promise<void> {
+  if (!env.EVENTS) return;
+  let envelope: EventEnvelope = {
+    eventName: input.eventName,
+    entityType: input.entityType,
+    entityId: input.entityId,
+    source: "app",
+    actorId: input.actorId ?? null,
+    payload: input.payload ?? {},
+  };
+  if (env.EVENT_BUS_SECRET) envelope = await signEnvelope(envelope, env.EVENT_BUS_SECRET);
+  await env.EVENTS.send(envelope);
+}
+
+// Consumer: route one queue message to the audit sink. Verifies the signature
+// first when a secret is configured; drops unverifiable messages.
+export async function consumeEvent(env: Env, envelope: EventEnvelope): Promise<{ recorded: boolean }> {
+  if (env.EVENT_BUS_SECRET) {
+    const valid = await verifyEnvelope(envelope, env.EVENT_BUS_SECRET);
+    if (!valid) return { recorded: false };
+  }
+  await writeAudit(env, envelope.eventName, {
+    actorId: envelope.actorId ?? undefined,
+    entityType: envelope.entityType,
+    entityId: envelope.entityId,
+    payload: envelope.payload,
+  });
+  return { recorded: true };
+}
+`;
+}
+
 function buildHooksTs(composition) {
   return `export interface HookResult<T = unknown> {
   ok: boolean;
@@ -474,7 +575,13 @@ export interface BookingDraft {
 
 export const hookConfig = ${JSON.stringify(composition.config, null, 2)} as const;
 
-export async function beforeSignup(input: { email: string; role: string }): Promise<HookResult<typeof input>> {
+export interface MintTokenDraft {
+  subject: string;
+  scopes: string[];
+  ttlSeconds: number;
+}
+
+export async function beforeMintToken(input: MintTokenDraft): Promise<HookResult<MintTokenDraft>> {
   return { ok: true, value: input };
 }
 
@@ -506,18 +613,41 @@ export async function afterBookingConfirmed(input: { bookingId: string; customer
 }
 
 function buildIndexTs(composition) {
+  // Platform modules are public: auth issues/serves keys, gateway exchanges API
+  // keys for tokens. Every other module is a business route gated by a valid
+  // token (the gateway front door, plans/24).
+  const PUBLIC_MODULES = new Set(["auth", "gateway"]);
+  const camel = (id) => id.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
+
   const routeImports = composition.modules
-    .map((module) => `import { ${module.id.replace(/-([a-z])/g, (_, char) => char.toUpperCase())}Routes } from "./modules/${module.id}";`)
+    .map((module) => `import { ${camel(module.id)}Routes } from "./modules/${module.id}";`)
     .join("\n");
-  const routeMounts = composition.modules
-    .map((module) => `app.route("${module.runtime.mount}", ${module.id.replace(/-([a-z])/g, (_, char) => char.toUpperCase())}Routes);`)
+
+  const publicMounts = composition.modules
+    .filter((module) => PUBLIC_MODULES.has(module.id))
+    .map((module) => `app.route("${module.runtime.mount}", ${camel(module.id)}Routes);`)
+    .join("\n");
+
+  const businessModules = composition.modules.filter((module) => !PUBLIC_MODULES.has(module.id));
+  const businessGuards = businessModules
+    .map((module) => `app.use("${module.runtime.mount}/*", requireToken);`)
+    .join("\n");
+  const businessMounts = businessModules
+    .map((module) => `app.route("${module.runtime.mount}", ${camel(module.id)}Routes);`)
     .join("\n");
 
   return `import { Hono } from "hono";
+import type { Context, Next } from "hono";
 import type { Env } from "./lib/env";
+import { verifyToken } from "./lib/jwt";
+import type { TokenClaims } from "./lib/jwt";
+import { consumeEvent } from "./lib/events";
+import type { EventEnvelope } from "./lib/events";
 ${routeImports}
 
-const app = new Hono<{ Bindings: Env }>();
+type AppEnv = { Bindings: Env; Variables: { claims: TokenClaims } };
+
+const app = new Hono<AppEnv>();
 
 app.get("/health", (c) =>
   c.json({
@@ -528,53 +658,407 @@ app.get("/health", (c) =>
   })
 );
 
-${routeMounts}
+// Front-door guard: business routes require a token minted via /gateway/tokens.
+const requireToken = async (c: Context<AppEnv>, next: Next) => {
+  const authz = c.req.header("Authorization") ?? "";
+  const token = authz.startsWith("Bearer ") ? authz.slice(7) : "";
+  const result = await verifyToken(c.env, token);
+  if (!result.ok) {
+    return c.json({ ok: false, error: "Unauthorized", code: result.error }, 401);
+  }
+  c.set("claims", result.claims);
+  await next();
+};
 
-export default app;
+// Public platform routes (auth, gateway).
+${publicMounts}
+
+// Token-gated business routes.
+${businessGuards}
+${businessMounts}
+
+// Worker entry: HTTP fetch (the Hono app) + the event-bus queue consumer
+// (plans/24 layer 3). The consumer verifies each signed envelope and routes it
+// to the audit sink. Messages that fail verification are acked (dropped) rather
+// than retried.
+export default {
+  fetch: app.fetch,
+  async queue(batch: MessageBatch<EventEnvelope>, env: Env): Promise<void> {
+    for (const message of batch.messages) {
+      await consumeEvent(env, message.body);
+      message.ack();
+    }
+  },
+};
+`;
+}
+
+function buildJwtTs() {
+  return `import type { Env } from "./env";
+import { emitDomainEvent } from "./audit";
+
+// EdDSA (Ed25519) service tokens for auth-gated inter-service communication.
+// Self-contained WebCrypto implementation; no external JWT dependency.
+// The auth service signs with its private key; other services verify with the
+// public key published via JWKS. See plans/24.
+
+const ALG = { name: "Ed25519" } as const;
+
+function utf8(value: string): Uint8Array {
+  return new TextEncoder().encode(value);
+}
+
+export function base64UrlEncode(input: Uint8Array | string): string {
+  const data = typeof input === "string" ? utf8(input) : input;
+  let binary = "";
+  for (const byte of data) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\\+/g, "-").replace(/\\//g, "_").replace(/=+$/, "");
+}
+
+export function base64UrlDecode(input: string): Uint8Array {
+  const padded = input.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(input.length / 4) * 4, "=");
+  const binary = atob(padded);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) out[i] = binary.charCodeAt(i);
+  return out;
+}
+
+export interface TokenClaims {
+  sub: string;
+  workspace: string;
+  project: string;
+  scopes: string[];
+  iss: string;
+  iat: number;
+  exp: number;
+  jti: string;
+}
+
+interface SigningKeyRow {
+  kid: string;
+  public_jwk: string;
+  private_jwk: string;
+  status: string;
+}
+
+async function importSigningKey(privateJwk: JsonWebKey): Promise<CryptoKey> {
+  return crypto.subtle.importKey("jwk", privateJwk, ALG, false, ["sign"]);
+}
+
+async function importVerifyKey(publicJwk: JsonWebKey): Promise<CryptoKey> {
+  return crypto.subtle.importKey("jwk", publicJwk, ALG, false, ["verify"]);
+}
+
+async function getActiveKey(env: Env): Promise<SigningKeyRow | null> {
+  return env.DB.prepare(
+    "SELECT kid, public_jwk, private_jwk, status FROM signing_keys WHERE status = 'active' ORDER BY created_at DESC LIMIT 1"
+  ).first<SigningKeyRow>();
+}
+
+async function getKeyByKid(env: Env, kid: string): Promise<SigningKeyRow | null> {
+  return env.DB.prepare("SELECT kid, public_jwk, private_jwk, status FROM signing_keys WHERE kid = ?")
+    .bind(kid)
+    .first<SigningKeyRow>();
+}
+
+// Generates a new keypair, retires the previous active key, and promotes it.
+export async function rotateSigningKey(env: Env): Promise<{ kid: string; publicJwk: JsonWebKey }> {
+  const pair = (await crypto.subtle.generateKey(ALG, true, ["sign", "verify"])) as CryptoKeyPair;
+  const publicJwk = (await crypto.subtle.exportKey("jwk", pair.publicKey)) as JsonWebKey;
+  const privateJwk = (await crypto.subtle.exportKey("jwk", pair.privateKey)) as JsonWebKey;
+  const now = new Date().toISOString();
+  const kid = "key_" + crypto.randomUUID().slice(0, 12);
+
+  await env.DB.prepare("UPDATE signing_keys SET status = 'retired', retired_at = ? WHERE status = 'active'").bind(now).run();
+  await env.DB.prepare(
+    "INSERT INTO signing_keys (kid, algorithm, public_jwk, private_jwk, status, created_at, retired_at) VALUES (?, ?, ?, ?, 'active', ?, NULL)"
+  )
+    .bind(kid, "EdDSA", JSON.stringify(publicJwk), JSON.stringify(privateJwk), now)
+    .run();
+  await emitDomainEvent(env, "auth.key_rotated", "auth", kid, { kid });
+  return { kid, publicJwk };
+}
+
+export interface MintInput {
+  subject: string;
+  scopes: string[];
+  ttlSeconds?: number;
+  workspace?: string;
+  project?: string;
+  issuer?: string;
+}
+
+export type MintResult =
+  | { ok: true; status: 200; token: string; claims: TokenClaims; kid: string }
+  | { ok: false; status: number; error: string };
+
+export async function mintToken(env: Env, input: MintInput): Promise<MintResult> {
+  const key = await getActiveKey(env);
+  if (!key) {
+    return { ok: false, status: 500, error: "No active signing key. POST /auth/keys/rotate first." };
+  }
+  const ttl = Math.min(Math.max(Math.floor(input.ttlSeconds ?? 60), 1), 3600);
+  const iat = Math.floor(Date.now() / 1000);
+  const claims: TokenClaims = {
+    sub: input.subject,
+    workspace: input.workspace ?? "default",
+    project: input.project ?? "default",
+    scopes: input.scopes,
+    iss: input.issuer ?? "auth",
+    iat,
+    exp: iat + ttl,
+    jti: "jti_" + crypto.randomUUID().slice(0, 16),
+  };
+  const header = { alg: "EdDSA", typ: "JWT", kid: key.kid };
+  const signingInput = base64UrlEncode(JSON.stringify(header)) + "." + base64UrlEncode(JSON.stringify(claims));
+  const signingKey = await importSigningKey(JSON.parse(key.private_jwk) as JsonWebKey);
+  const signature = await crypto.subtle.sign(ALG, signingKey, utf8(signingInput));
+  const token = signingInput + "." + base64UrlEncode(new Uint8Array(signature));
+  await emitDomainEvent(env, "auth.token_minted", "auth", claims.jti, {
+    sub: claims.sub,
+    scopes: claims.scopes,
+  });
+  return { ok: true, status: 200, token, claims, kid: key.kid };
+}
+
+export type VerifyResult =
+  | { ok: true; status: 200; claims: TokenClaims }
+  | { ok: false; status: 401; error: string };
+
+export async function verifyToken(env: Env, token: string): Promise<VerifyResult> {
+  const parts = token.split(".");
+  if (parts.length !== 3) return { ok: false, status: 401, error: "MALFORMED_TOKEN" };
+  let header: { kid?: string };
+  let claims: TokenClaims;
+  try {
+    header = JSON.parse(new TextDecoder().decode(base64UrlDecode(parts[0])));
+    claims = JSON.parse(new TextDecoder().decode(base64UrlDecode(parts[1])));
+  } catch {
+    return { ok: false, status: 401, error: "MALFORMED_TOKEN" };
+  }
+  if (!header.kid) return { ok: false, status: 401, error: "MALFORMED_TOKEN" };
+  const key = await getKeyByKid(env, header.kid);
+  if (!key) return { ok: false, status: 401, error: "UNKNOWN_KEY" };
+  const verifyKey = await importVerifyKey(JSON.parse(key.public_jwk) as JsonWebKey);
+  const valid = await crypto.subtle.verify(ALG, verifyKey, base64UrlDecode(parts[2]), utf8(parts[0] + "." + parts[1]));
+  if (!valid) return { ok: false, status: 401, error: "INVALID_SIGNATURE" };
+  if (claims.exp <= Math.floor(Date.now() / 1000)) return { ok: false, status: 401, error: "TOKEN_EXPIRED" };
+  return { ok: true, status: 200, claims };
+}
+
+export async function getJwks(env: Env): Promise<{ keys: Array<JsonWebKey & { kid: string; use: string; alg: string }> }> {
+  const rows = await env.DB.prepare(
+    "SELECT kid, public_jwk FROM signing_keys ORDER BY created_at DESC LIMIT 10"
+  ).all<{ kid: string; public_jwk: string }>();
+  return {
+    keys: (rows.results ?? []).map((row) => ({
+      ...(JSON.parse(row.public_jwk) as JsonWebKey),
+      kid: row.kid,
+      use: "sig",
+      alg: "EdDSA",
+    })),
+  };
+}
+
+// Callee-side scope guard: a service checks verified claims against the scope
+// its operation requires before executing.
+export function requireScope(claims: TokenClaims, scope: string): boolean {
+  return claims.scopes.includes(scope);
+}
 `;
 }
 
 function buildAuthModuleTs() {
   return `import { Hono } from "hono";
 import type { Env } from "../lib/env";
-import { emitDomainEvent, writeAudit } from "../lib/audit";
-import { beforeSignup } from "../lib/hooks";
+import { beforeMintToken } from "../lib/hooks";
+import { mintToken, verifyToken, getJwks, rotateSigningKey } from "../lib/jwt";
 
+// Token authority for auth-gated inter-service communication (plans/24).
+// Replaces the previous passwordless-identity runtime: this service issues and
+// verifies short-lived EdDSA tokens and publishes JWKS. Identity/users live
+// elsewhere (gateway sessions + customer.external_id mapping).
 export const authRoutes = new Hono<{ Bindings: Env }>();
 
-authRoutes.post("/signup", async (c) => {
-  const body = (await c.req.json<{ email?: string; role?: string }>().catch(() => ({}))) as {
-    email?: string;
-    role?: string;
-  };
-  const email = String(body.email ?? "").trim().toLowerCase();
-  const role = String(body.role ?? "member").trim() || "member";
+authRoutes.get("/.well-known/jwks.json", async (c) => {
+  return c.json(await getJwks(c.env));
+});
 
-  if (!email.includes("@")) {
-    return c.json({ ok: false, error: "A valid email is required." }, 400);
+authRoutes.post("/keys/rotate", async (c) => {
+  const result = await rotateSigningKey(c.env);
+  return c.json({ ok: true, ...result }, 201);
+});
+
+authRoutes.post("/tokens", async (c) => {
+  const body = (await c.req.json<Record<string, unknown>>().catch(() => ({}))) as Record<string, unknown>;
+  const subject = String(body.subject ?? "").trim();
+  if (!subject) {
+    return c.json({ ok: false, error: "A token subject is required." }, 400);
   }
-
-  const hook = await beforeSignup({ email, role });
-  if (!hook.ok || !hook.value) {
-    return c.json({ ok: false, error: "Signup rejected by beforeSignup hook.", warnings: hook.warnings ?? [] }, 422);
-  }
-
-  const now = new Date().toISOString();
-  const id = crypto.randomUUID();
-
-  await c.env.DB.prepare("INSERT INTO users (id, email, role, created_at) VALUES (?, ?, ?, ?)")
-    .bind(id, hook.value.email, hook.value.role, now)
-    .run();
-
-  await emitDomainEvent(c.env, "auth.user_created", "user", id, { email: hook.value.email, role: hook.value.role });
-  await writeAudit(c.env, "auth.user_created", {
-    actorId: id,
-    entityType: "user",
-    entityId: id,
-    payload: { email: hook.value.email, role: hook.value.role },
+  const draft = await beforeMintToken({
+    subject,
+    scopes: Array.isArray(body.scopes) ? body.scopes.map((scope) => String(scope)) : [],
+    ttlSeconds: typeof body.ttlSeconds === "number" ? body.ttlSeconds : 60,
   });
+  if (!draft.ok || !draft.value) {
+    return c.json({ ok: false, error: "Mint rejected by beforeMintToken hook.", warnings: draft.warnings ?? [] }, 422);
+  }
+  const result = await mintToken(c.env, {
+    subject: draft.value.subject,
+    scopes: draft.value.scopes,
+    ttlSeconds: draft.value.ttlSeconds,
+    workspace: typeof body.workspace === "string" ? body.workspace : undefined,
+    project: typeof body.project === "string" ? body.project : undefined,
+  });
+  return c.json(result, result.status as 200 | 400 | 500);
+});
 
-  return c.json({ ok: true, user: { id, email: hook.value.email, role: hook.value.role } }, 201);
+authRoutes.post("/tokens/verify", async (c) => {
+  const body = (await c.req.json<{ token?: string }>().catch(() => ({}))) as { token?: string };
+  const result = await verifyToken(c.env, String(body.token ?? ""));
+  return c.json(result, result.status as 200 | 401);
+});
+`;
+}
+
+function buildGatewayLibTs() {
+  return `import type { Env } from "./env";
+import { mintToken } from "./jwt";
+
+// Gateway helpers (plans/24): API-key auth, rate limiting, scope narrowing, and
+// token exchange. The gateway never signs — it mints via the auth token lib.
+
+async function hashApiKey(raw: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export function generateApiKey(): string {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return "msk_" + [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export interface ApiKeyRecord {
+  id: string;
+  workspace: string;
+  project: string;
+  subject: string;
+  scopes: string[];
+  status: string;
+}
+
+export async function createApiKey(
+  env: Env,
+  input: { workspace: string; project: string; subject: string; scopes: string[] }
+) {
+  const raw = generateApiKey();
+  const id = "key_" + crypto.randomUUID().slice(0, 12);
+  await env.DB.prepare(
+    "INSERT INTO api_keys (id, hash, workspace, project, subject, scopes, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'active', ?)"
+  )
+    .bind(id, await hashApiKey(raw), input.workspace, input.project, input.subject, JSON.stringify(input.scopes), new Date().toISOString())
+    .run();
+  return { id, apiKey: raw, scopes: input.scopes };
+}
+
+async function getByHash(env: Env, hash: string): Promise<ApiKeyRecord | null> {
+  const row = await env.DB.prepare(
+    "SELECT id, workspace, project, subject, scopes, status FROM api_keys WHERE hash = ?"
+  )
+    .bind(hash)
+    .first<Record<string, unknown>>();
+  if (!row) return null;
+  return {
+    id: String(row.id),
+    workspace: String(row.workspace),
+    project: String(row.project),
+    subject: String(row.subject),
+    scopes: JSON.parse(String(row.scopes)) as string[],
+    status: String(row.status),
+  };
+}
+
+async function rateLimit(env: Env, identifier: string, limit: number, windowSeconds: number) {
+  const bucket = Math.floor(Math.floor(Date.now() / 1000) / windowSeconds);
+  const key = "rl:" + identifier + ":" + bucket;
+  const count = Number((await env.RATE_LIMIT_KV.get(key)) ?? "0") + 1;
+  await env.RATE_LIMIT_KV.put(key, String(count), { expirationTtl: Math.max(windowSeconds, 60) });
+  return { allowed: count <= limit, resetAt: new Date((bucket + 1) * windowSeconds * 1000).toISOString() };
+}
+
+export type IssueResult =
+  | { ok: true; status: 200; token: string; scopes: string[]; claims: unknown }
+  | { ok: false; status: 400 | 401 | 403 | 429 | 500; error: string };
+
+export async function issueToken(
+  env: Env,
+  input: { apiKey?: string; scopes?: string[] },
+  config?: { tokenTtlSeconds?: number; rateLimit?: number; rateWindowSeconds?: number }
+): Promise<IssueResult> {
+  const raw = String(input.apiKey ?? "");
+  if (raw.length < 8) return { ok: false, status: 401, error: "INVALID_API_KEY" };
+  const record = await getByHash(env, await hashApiKey(raw));
+  if (!record || record.status !== "active") return { ok: false, status: 401, error: "UNKNOWN_API_KEY" };
+
+  const rate = await rateLimit(env, "apikey:" + record.id, config?.rateLimit ?? 60, config?.rateWindowSeconds ?? 60);
+  if (!rate.allowed) return { ok: false, status: 429, error: "RATE_LIMITED" };
+
+  const granted = new Set(record.scopes);
+  const requested = input.scopes ?? record.scopes;
+  if (requested.some((scope) => !granted.has(scope))) return { ok: false, status: 403, error: "SCOPE_NOT_GRANTED" };
+
+  const minted = await mintToken(env, {
+    subject: record.subject,
+    scopes: requested,
+    ttlSeconds: config?.tokenTtlSeconds ?? 60,
+    workspace: record.workspace,
+    project: record.project,
+  });
+  if (!minted.ok) return { ok: false, status: 500, error: minted.error };
+  return { ok: true, status: 200, token: minted.token, scopes: requested, claims: minted.claims };
+}
+`;
+}
+
+function buildGatewayModuleTs() {
+  return `import { Hono } from "hono";
+import type { Env } from "../lib/env";
+import { createApiKey, issueToken } from "../lib/gateway";
+import { verifyToken, requireScope } from "../lib/jwt";
+
+// Public trust boundary (plans/24). Issues short-lived tokens from API keys and
+// manages keys (admin-gated). Business routes elsewhere require the issued token.
+export const gatewayRoutes = new Hono<{ Bindings: Env }>();
+
+gatewayRoutes.post("/tokens", async (c) => {
+  const body = (await c.req.json<{ apiKey?: string; scopes?: string[] }>().catch(() => ({}))) as {
+    apiKey?: string;
+    scopes?: string[];
+  };
+  const result = await issueToken(c.env, body);
+  return c.json(result, result.status);
+});
+
+gatewayRoutes.post("/keys", async (c) => {
+  const authz = c.req.header("Authorization") ?? "";
+  const token = authz.startsWith("Bearer ") ? authz.slice(7) : "";
+  const verified = await verifyToken(c.env, token);
+  if (!verified.ok) return c.json({ ok: false, error: "Unauthorized" }, 401);
+  if (!requireScope(verified.claims, "gateway.admin")) {
+    return c.json({ ok: false, error: "Forbidden: gateway.admin scope required." }, 403);
+  }
+  const body = (await c.req.json<Record<string, unknown>>().catch(() => ({}))) as Record<string, unknown>;
+  if (typeof body.workspace !== "string" || typeof body.project !== "string" || typeof body.subject !== "string") {
+    return c.json({ ok: false, error: "workspace, project, and subject are required." }, 400);
+  }
+  const created = await createApiKey(c.env, {
+    workspace: body.workspace,
+    project: body.project,
+    subject: body.subject,
+    scopes: Array.isArray(body.scopes) ? body.scopes.map((scope) => String(scope)) : [],
+  });
+  return c.json({ ok: true, ...created }, 201);
 });
 `;
 }
@@ -589,7 +1073,7 @@ export const customerRoutes = new Hono<{ Bindings: Env }>();
 
 customerRoutes.get("/", async (c) => {
   const rows = await c.env.DB.prepare(
-    "SELECT id, user_id, name, email, phone, notes, tags, created_at, updated_at FROM customers ORDER BY created_at DESC LIMIT 50"
+    "SELECT id, external_id, name, email, phone, notes, tags, created_at, updated_at FROM customers ORDER BY created_at DESC LIMIT 50"
   ).all();
   return c.json({ ok: true, customers: rows.results ?? [] });
 });
@@ -597,7 +1081,7 @@ customerRoutes.get("/", async (c) => {
 customerRoutes.post("/", async (c) => {
   const body = (await c.req.json<Record<string, unknown>>().catch(() => ({}))) as Record<string, unknown>;
   const draft = await beforeCustomerCreate({
-    userId: typeof body.userId === "string" ? body.userId : null,
+    externalId: typeof body.externalId === "string" ? body.externalId : null,
     name: String(body.name ?? "").trim(),
     email: String(body.email ?? "").trim().toLowerCase(),
     phone: typeof body.phone === "string" ? body.phone : null,
@@ -613,11 +1097,11 @@ customerRoutes.post("/", async (c) => {
   const id = crypto.randomUUID();
 
   await c.env.DB.prepare(
-    "INSERT INTO customers (id, user_id, name, email, phone, notes, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    "INSERT INTO customers (id, external_id, name, email, phone, notes, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
   )
     .bind(
       id,
-      draft.value.userId,
+      draft.value.externalId,
       draft.value.name,
       draft.value.email,
       draft.value.phone,
@@ -1145,8 +1629,12 @@ function buildProjectFiles(composition) {
     { path: "src/index.ts", contents: buildIndexTs(composition) },
     { path: "src/lib/env.ts", contents: buildEnvTs() },
     { path: "src/lib/audit.ts", contents: buildAuditTs() },
+    { path: "src/lib/events.ts", contents: buildEventsTs() },
+    { path: "src/lib/jwt.ts", contents: buildJwtTs() },
+    { path: "src/lib/gateway.ts", contents: buildGatewayLibTs() },
     { path: "src/lib/hooks.ts", contents: buildHooksTs(composition) },
     { path: "src/modules/auth.ts", contents: buildAuthModuleTs() },
+    { path: "src/modules/gateway.ts", contents: buildGatewayModuleTs() },
     { path: "src/modules/customer.ts", contents: buildCustomerModuleTs() },
     { path: "src/modules/booking.ts", contents: buildBookingModuleTs() },
   ];
@@ -1281,35 +1769,170 @@ export function planAddModule(input = {}) {
       throw error;
     }
 
+    const requestedMode = options.mode ?? "embedded";
+    if (requestedMode !== "embedded" && requestedMode !== "service") {
+      const error = new Error(`Unknown deploy mode: ${requestedMode}.`);
+      error.code = "INVALID_DEPLOY_MODE";
+      error.remediation = "Use --mode embedded (default) or --mode service.";
+      throw error;
+    }
+
     const module = findCatalogModule(moduleId);
     const installed = new Set(lockedModuleIds(options));
     const alreadyInstalled = installed.has(module.id);
     const missingDependencies = module.requires.filter((id) => !installed.has(id));
 
+    // In service mode each module is its own Worker with its own D1; callers
+    // reach it via a service binding (plans/24). Worker/D1 names use deploy-time
+    // tokens resolved by the control plane from project + environment.
+    const serviceWorker = `app_<project>_${module.id}_<env>`;
+    const serviceD1Binding = `${module.id.replace(/-/g, "_").toUpperCase()}_DB`;
+    const serviceBindingCallers = [
+      "gateway",
+      ...moduleCatalog().modules.filter((candidate) => (candidate.requires ?? []).includes(module.id)).map((candidate) => candidate.id),
+    ].filter((id, index, all) => all.indexOf(id) === index && id !== module.id);
+
+    const filesLikelyTouched =
+      requestedMode === "service"
+        ? [
+            "microservices.lock.json",
+            "microservices.config.json",
+            `services/${module.id}/wrangler.jsonc`,
+            `services/${module.id}/migrations/0001_${module.id}.sql`,
+            `services/${module.id}/src/index.ts`,
+            `services/${module.id}/src/rpc.ts`,
+            "packages/contracts/index.ts",
+            ...serviceBindingCallers.map((caller) => `services/${caller}/wrangler.jsonc`),
+            `docs/modules/${module.id}.md`,
+          ]
+        : [
+            "microservices.lock.json",
+            "microservices.config.json",
+            "wrangler.jsonc",
+            "schema.sql",
+            "src/index.ts",
+            `src/modules/${module.id}.ts`,
+            `docs/modules/${module.id}.md`,
+          ];
+
+    const deploy =
+      requestedMode === "service"
+        ? {
+            mode: "service",
+            ownDatabase: true,
+            worker: serviceWorker,
+            d1Binding: serviceD1Binding,
+            serviceBindingCallers,
+            rpc: module.rpc ?? [],
+          }
+        : {
+            mode: "embedded",
+            ownDatabase: false,
+            sharedDatabaseBinding: "DB",
+            rpc: module.rpc ?? [],
+          };
+
     return {
       module,
+      mode: requestedMode,
       action: alreadyInstalled ? "already-installed" : module.status === "available" ? "install" : "planned-install",
       alreadyInstalled,
       missingDependencies,
-      approvalRequired: module.approvalRisk === "high" || module.secrets.length > 0 || module.status !== "available",
+      // Service mode provisions a new D1, so it is approval-gated even for
+      // low-risk modules.
+      approvalRequired:
+        module.approvalRisk === "high" ||
+        module.secrets.length > 0 ||
+        module.status !== "available" ||
+        requestedMode === "service",
       requiredSecrets: module.secrets,
       requiredResources: module.resources,
       requiredPermissions: module.permissions,
-      filesLikelyTouched: [
-        "microservices.lock.json",
-        "microservices.config.json",
-        "wrangler.jsonc",
-        "schema.sql",
-        "src/index.ts",
-        `src/modules/${module.id}.ts`,
-        `docs/modules/${module.id}.md`,
-      ],
+      deploy,
+      lockEntry: {
+        id: module.id,
+        version: module.version,
+        mode: requestedMode,
+        ...(requestedMode === "service" ? { worker: serviceWorker, d1: serviceD1Binding } : {}),
+      },
+      filesLikelyTouched,
       nextSteps: [
         "Review the plan with the user.",
         "Request approval for gated side effects.",
-        "Apply a branch or patch after approval.",
+        requestedMode === "service"
+          ? "Provision the per-service D1 and service bindings after approval."
+          : "Apply a branch or patch after approval.",
         "Run checks before preview deployment.",
       ],
+    };
+  });
+}
+
+// Mode-aware deployment resource plan (plans/24, step 4). Computes the D1/KV
+// resources to provision and the per-worker binding map. Embedded mode shares a
+// single D1; service mode gives each service its own D1 (service-scoped data) and
+// records the service bindings each caller needs. The control plane provisions
+// from `resources`; `deploy bind` rewrites bindings per worker.
+export function planDeploymentResources(input = {}) {
+  return capture(() => {
+    const options = typeof input === "string" ? { templateId: input } : input;
+    const composition = composeContractApp({
+      templateId: options.templateId,
+      modules: options.modules,
+      config: options.config,
+    });
+    const mode = options.mode ?? composition.lock?.deploy?.mode ?? "embedded";
+    if (mode !== "embedded" && mode !== "service") {
+      const error = new Error(`Unknown deploy mode: ${mode}.`);
+      error.code = "INVALID_DEPLOY_MODE";
+      error.remediation = "Use mode embedded (default) or service.";
+      throw error;
+    }
+
+    const uniq = (values) => [...new Set(values)];
+    const slug = slugify(composition.config.appSlug ?? composition.config.appName ?? composition.template.id);
+    const project = options.project ?? "<project>";
+    const env = options.env ?? "<env>";
+    const classify = (binding) => (binding === "DB" ? "d1" : binding.endsWith("_KV") ? "kv" : "other");
+    const modules = composition.modules;
+
+    if (mode === "embedded") {
+      const kvBindings = uniq(modules.flatMap((module) => module.runtime.bindings).filter((b) => classify(b) === "kv"));
+      return {
+        mode,
+        workers: [{ name: slug, modules: modules.map((m) => m.id), d1: ["DB"], kv: kvBindings }],
+        resources: {
+          d1: [{ binding: "DB", databaseName: `${slug}_db`, scope: "shared", modules: modules.map((m) => m.id) }],
+          kv: kvBindings.map((binding) => ({ binding, namespaceName: `${slug}_${binding.toLowerCase()}`, scope: "shared" })),
+        },
+      };
+    }
+
+    // service mode: one Worker + one D1 per service module.
+    const workers = modules.map((module) => {
+      const d1Binding = `${module.id.replace(/-/g, "_").toUpperCase()}_DB`;
+      const hasD1 = module.runtime.bindings.includes("DB") || (module.storage ?? []).includes("d1");
+      const kv = module.runtime.bindings.filter((b) => classify(b) === "kv");
+      return {
+        name: `app_${project}_${module.id}_${env}`,
+        module: module.id,
+        d1: hasD1 ? [d1Binding] : [],
+        kv,
+        serviceBindings: (module.requires ?? []).map((dep) => ({ binding: dep.toUpperCase().replace(/-/g, "_"), worker: `app_${project}_${dep}_${env}` })),
+      };
+    });
+
+    return {
+      mode,
+      workers,
+      resources: {
+        d1: workers.flatMap((worker) =>
+          worker.d1.map((binding) => ({ binding, databaseName: `${slug}_${worker.module}_db`, scope: "service", service: worker.module }))
+        ),
+        kv: workers.flatMap((worker) =>
+          worker.kv.map((binding) => ({ binding, namespaceName: `${slug}_${worker.module}_${binding.toLowerCase()}`, scope: "service", service: worker.module }))
+        ),
+      },
     };
   });
 }
@@ -1509,6 +2132,226 @@ export function validateConfig(input = {}) {
   });
 }
 
+// Service-mode binding name for a module's own D1 (plans/24).
+function serviceD1Binding(moduleId) {
+  return `${moduleId.replace(/-/g, "_").toUpperCase()}_DB`;
+}
+
+// Service-mode binding name a caller uses to reach a callee service.
+function serviceCallBinding(moduleId) {
+  return moduleId.replace(/-/g, "_").toUpperCase();
+}
+
+function serviceMigrationSql(moduleId) {
+  // Each service owns its own D1. The per-module migration tables are the
+  // service-scoped schema (plans/24 service-scoped DB rule). We mirror the
+  // module's documented tables; the canonical migrations live in modules/<id>.
+  const TABLES = {
+    auth: "signing_keys",
+    gateway: "api_keys",
+    customer: "customers",
+    booking: "bookings",
+    payment: "payments",
+    "audit-log": "audit_events",
+    "webhook-delivery": "webhook_endpoints",
+  };
+  const table = TABLES[moduleId] ?? `${moduleId.replace(/-/g, "_")}_records`;
+  return `-- Service-scoped D1 for the ${moduleId} service (plans/24). The authoritative
+-- migration is modules/${moduleId}/migrations; copy it here when vendoring source.
+-- This placeholder ensures the service has its own database and one owned table.
+CREATE TABLE IF NOT EXISTS ${table} (
+  id TEXT PRIMARY KEY,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+`;
+}
+
+function buildServiceEnvTs(module, callees) {
+  const lines = ["export interface Env {"];
+  const hasD1 = module.runtime.bindings.includes("DB") || (module.storage ?? []).includes("d1");
+  if (hasD1) lines.push(`  ${serviceD1Binding(module.id)}: D1Database;`);
+  // every non-auth service needs the AUTH binding to verify caller tokens.
+  if (module.id !== "auth") lines.push("  AUTH: Fetcher;");
+  for (const callee of callees) {
+    if (callee === "auth") continue;
+    lines.push(`  ${serviceCallBinding(callee)}: Fetcher;`);
+  }
+  for (const binding of module.runtime.bindings) {
+    if (binding === "DB") continue;
+    if (binding.endsWith("_KV")) lines.push(`  ${binding}: KVNamespace;`);
+  }
+  if (module.id === "payment") lines.push("  STRIPE_SECRET_KEY: string;");
+  lines.push("}");
+  return `${lines.join("\n")}\n`;
+}
+
+// The rpc-codegen entrypoint references this.env.DB, this.env.AUTH, and (for
+// payment) this.env.STRIPE_SECRET_KEY. Service env uses a per-service D1 binding
+// name, so we re-export DB as an alias the generated entrypoint can use.
+function buildServiceEnvForEntrypoint(module, callees) {
+  const hasD1 = module.runtime.bindings.includes("DB") || (module.storage ?? []).includes("d1");
+  const lines = ["export interface Env {"];
+  if (hasD1) lines.push("  DB: D1Database;");
+  if (module.id !== "auth") lines.push("  AUTH: { verifyToken(token: string): Promise<unknown> };");
+  for (const callee of callees) {
+    if (callee === "auth") continue;
+    lines.push(`  ${serviceCallBinding(callee)}: Fetcher;`);
+  }
+  for (const binding of module.runtime.bindings) {
+    if (binding === "DB" || !binding.endsWith("_KV")) continue;
+    lines.push(`  ${binding}: KVNamespace;`);
+  }
+  if (module.id === "payment") lines.push("  STRIPE_SECRET_KEY: string;");
+  lines.push("}");
+  return `${lines.join("\n")}\n`;
+}
+
+function buildServiceWranglerJson(module, project, env, slug) {
+  const hasD1 = module.runtime.bindings.includes("DB") || (module.storage ?? []).includes("d1");
+  const config = {
+    $schema: "node_modules/wrangler/config-schema.json",
+    name: `app_${project}_${module.id}_${env}`,
+    main: "src/index.ts",
+    compatibility_date: "2026-06-01",
+    compatibility_flags: ["nodejs_compat"],
+    observability: { enabled: true },
+    dispatch_namespaces: [{ binding: "DISPATCHER", namespace: "microservices-sh" }],
+  };
+  if (hasD1) {
+    config.d1_databases = [
+      { binding: "DB", database_name: `${slug}_${module.id}_db`, database_id: "REPLACE_WITH_D1_ID", migrations_dir: "migrations" },
+    ];
+  }
+  const kv = module.runtime.bindings.filter((binding) => binding.endsWith("_KV"));
+  if (kv.length) {
+    config.kv_namespaces = kv.map((binding) => ({ binding, id: `REPLACE_WITH_${binding}_ID` }));
+  }
+  // Service bindings: AUTH for verification (every non-auth service) + each
+  // declared dependency (plans/24 layer 1 network gate).
+  const services = [];
+  if (module.id !== "auth") services.push({ binding: "AUTH", service: `app_${project}_auth_${env}` });
+  for (const dep of module.requires ?? []) {
+    if (dep === "auth") continue;
+    services.push({ binding: serviceCallBinding(dep), service: `app_${project}_${dep}_${env}` });
+  }
+  if (services.length) config.services = services;
+  return json(config);
+}
+
+// Build the per-service tree (plans/24 service mode). Modules with an rpc
+// contract become RPC-callee WorkerEntrypoint services; gateway (and any other
+// rpc-less module) become HTTP fetch Workers. A shared packages/contracts holds
+// the generated RPC clients. Reuses planDeploymentResources for the resource map.
+export function generateServiceProject(input = {}) {
+  return capture(() => {
+    const options = typeof input === "string" ? { templateId: input } : input;
+    const composition = composeContractApp({
+      templateId: options.templateId,
+      modules: options.modules,
+      config: options.config,
+    });
+    const project = options.project ?? "<project>";
+    const env = options.env ?? "<env>";
+    const slug = slugify(composition.config.appSlug ?? composition.config.appName ?? composition.template.id);
+
+    const resourcePlan = planDeploymentResources({
+      templateId: options.templateId,
+      modules: options.modules,
+      config: options.config,
+      mode: "service",
+      project,
+      env,
+    });
+
+    const files = [];
+    const contractsIndexParts = [];
+    const services = [];
+
+    for (const module of composition.modules) {
+      const methods = rpcContractMethods(module);
+      const callees = (module.requires ?? []).filter((dep) => dep !== "auth");
+      const isRpcCallee = methods.length > 0;
+      const base = `services/${module.id}`;
+      const hasD1 = module.runtime.bindings.includes("DB") || (module.storage ?? []).includes("d1");
+
+      // Per-service wrangler + migrations.
+      files.push({ path: `${base}/wrangler.jsonc`, contents: buildServiceWranglerJson(module, project, env, slug) });
+      if (hasD1) {
+        files.push({ path: `${base}/migrations/0001_${module.id}.sql`, contents: serviceMigrationSql(module.id) });
+      }
+
+      if (isRpcCallee) {
+        const entrypoint = buildRpcEntrypoint(module);
+        const client = buildRpcClient(module);
+        if (!entrypoint) {
+          // rpc declared but no SERVICE_SPEC: skip codegen, emit a stub fetch
+          // worker so the service still deploys. (Should not happen for the
+          // wired modules: auth, customer, booking, payment.)
+          files.push({ path: `${base}/src/env.ts`, contents: buildServiceEnvTs(module, callees) });
+          files.push({
+            path: `${base}/src/index.ts`,
+            contents: `import type { Env } from "./env";\n\nexport default {\n  async fetch(_request: Request, _env: Env): Promise<Response> {\n    return new Response("${module.id} service (no rpc spec)", { status: 200 });\n  },\n};\n`,
+          });
+        } else {
+          files.push({ path: `${base}/src/env.ts`, contents: buildServiceEnvForEntrypoint(module, callees) });
+          files.push({ path: `${base}/src/index.ts`, contents: entrypoint });
+        }
+        if (client) {
+          files.push({ path: `packages/contracts/${module.id}.ts`, contents: client });
+          contractsIndexParts.push(`export * from "./${module.id}";`);
+        }
+        services.push({ id: module.id, kind: "rpc", worker: `app_${project}_${module.id}_${env}` });
+      } else {
+        // HTTP edge / fetch worker (gateway is the public trust boundary).
+        files.push({ path: `${base}/src/env.ts`, contents: buildServiceEnvTs(module, callees) });
+        const isGateway = module.id === "gateway";
+        files.push({
+          path: `${base}/src/index.ts`,
+          contents: `import type { Env } from "./env";\n\n// Generated by microservices.sh — ${
+            isGateway ? "public HTTP edge (trust boundary, plans/24)" : `${module.id} HTTP/consumer worker`
+          }. Service mode: business logic calls callee services via their bindings.\nexport default {\n  async fetch(request: Request, _env: Env): Promise<Response> {\n    const url = new URL(request.url);\n    if (url.pathname === "/health") {\n      return Response.json({ ok: true, service: "${module.id}" });\n    }\n    return new Response("${module.id} service", { status: 200 });\n  },\n};\n`,
+        });
+        services.push({ id: module.id, kind: "http", worker: `app_${project}_${module.id}_${env}` });
+      }
+    }
+
+    if (contractsIndexParts.length) {
+      files.push({ path: "packages/contracts/index.ts", contents: `${contractsIndexParts.join("\n")}\n` });
+    }
+
+    // Root lock with service-mode deploy descriptor.
+    const lock = {
+      ...composition.lock,
+      deploy: {
+        mode: "service",
+        services: services.map((service) => ({
+          id: service.id,
+          kind: service.kind,
+          worker: service.worker,
+          d1: (composition.modules.find((module) => module.id === service.id)?.runtime.bindings.includes("DB"))
+            ? serviceD1Binding(service.id)
+            : null,
+        })),
+      },
+    };
+    files.push({ path: "microservices.lock.json", contents: json(lock) });
+
+    return {
+      mode: "service",
+      composition,
+      services,
+      resources: resourcePlan.ok ? resourcePlan.data : null,
+      files,
+      nextSteps: [
+        "Write files to a target directory.",
+        "Provision one D1 per service and the dispatch namespace.",
+        "Replace REPLACE_WITH_* ids in each services/<id>/wrangler.jsonc.",
+        "Deploy each service Worker; gateway is the only public route.",
+      ],
+    };
+  });
+}
+
 export function generateProject(input = {}) {
   return capture(() => {
     const composition = composeContractApp(input);
@@ -1583,6 +2426,7 @@ export function createMicroservicesClient() {
     composeApp,
     validateConfig,
     generateProject,
+    generateServiceProject,
     runChecks,
   };
 }

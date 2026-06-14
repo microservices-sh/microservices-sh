@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "auth",
+  "name": "Auth",
+  "version": "0.1.0",
+  "status": "available",
+  "class": "platform",
+  "summary": "EdDSA service-token mint/verify, scope checks, and JWKS for auth-gated inter-service communication.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    { "type": "d1", "binding": "DB", "tables": ["signing_keys", "domain_events"] }
+  ],
+  "permissions": ["auth.mint", "auth.verify", "auth.admin"],
+  "requires": [],
+  "optional": ["audit-log"],
+  "hooks": ["beforeMintToken", "afterTokenMinted"],
+  "events": ["auth.token_minted", "auth.key_rotated"],
+  "rpc": [
+    { "method": "mintToken", "scope": "auth.mint", "public": false },
+    { "method": "verifyToken", "scope": "auth.verify", "public": false },
+    { "method": "getJwks", "scope": null, "public": true }
+  ],
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "approval": {
+    "risk": "high",
+    "requiresApprovalFor": ["migrations", "secrets", "signing-key-rotation", "production-deploy"]
+  }
+}

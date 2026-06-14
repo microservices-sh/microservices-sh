@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Audit Log Hooks",
+  "type": "object",
+  "properties": {
+    "redactAuditPayload": { "type": "string" },
+    "beforeAuditExport": { "type": "string" }
+  },
+  "additionalProperties": false
+}

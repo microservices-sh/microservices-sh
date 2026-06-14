@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "gateway",
+  "name": "Gateway",
+  "version": "0.1.0",
+  "status": "available",
+  "class": "platform",
+  "summary": "Public trust boundary: API-key authentication, rate limiting, scope narrowing, and token exchange via auth.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    { "type": "d1", "binding": "DB", "tables": ["api_keys", "domain_events"] },
+    { "type": "kv", "binding": "RATE_LIMIT_KV" }
+  ],
+  "permissions": ["gateway.admin"],
+  "requires": ["auth"],
+  "optional": ["audit-log"],
+  "hooks": ["beforeIssueToken", "afterTokenIssued"],
+  "events": ["gateway.token_issued", "gateway.access_denied"],
+  "rpc": [],
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "approval": {
+    "risk": "high",
+    "requiresApprovalFor": ["migrations", "api-key-management", "public-exposure", "production-deploy"]
+  }
+}

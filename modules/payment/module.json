@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "payment",
+  "name": "Payment",
+  "version": "0.1.0",
+  "status": "available",
+  "class": "provider",
+  "summary": "Stripe-backed payment provider: create payment intents, record payments, and verify signed Stripe webhooks. Emits payment lifecycle events.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    { "type": "d1", "binding": "DB", "tables": ["payments"] }
+  ],
+  "permissions": ["payment.read", "payment.write", "payment.admin"],
+  "requires": ["auth", "customer"],
+  "optional": ["audit-log"],
+  "secrets": ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"],
+  "hooks": ["beforeCreatePaymentIntent", "afterPaymentSucceeded"],
+  "events": ["payment.checkout_created", "payment.succeeded", "payment.refunded", "payment.failed"],
+  "rpc": [
+    { "method": "createPaymentIntent", "scope": "payment.write", "public": false }
+  ],
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "approval": {
+    "risk": "high",
+    "requiresApprovalFor": ["migrations", "secrets", "external-side-effects", "production-deploy"]
+  }
+}

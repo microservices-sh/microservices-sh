@@ -1,0 +1,24 @@
+# Audit Log Module LLM Guide
+
+Purpose: append-only audit trail and universal event sink for microservices.sh
+apps. Records domain events from a signed queue or direct calls.
+
+Entry points:
+- `src/index.ts` exports the safe public surface.
+- `src/use-cases/` contains framework-neutral behavior (recordEvent, consumeEvent, listEvents).
+- `src/envelope.ts` signs/verifies queue event envelopes (HMAC-SHA256).
+- `src/ports/` defines the `AuditEventStore` interface.
+- `src/adapters/` contains Cloudflare D1 and memory implementations.
+- `schemas/` and `openapi.json` describe API-facing contracts.
+- `module.json` is the machine-readable module manifest.
+
+Model:
+- Pure sink: never on the synchronous business path. Consumes events via queue.
+- Append-only: records are never updated or deleted.
+- Signed envelopes (HMAC) verify event origin before recording.
+
+Agent rules:
+- Keep audit logic in this module; keep app routes and UI in templates.
+- Use `AuditEventStore` for persistence.
+- Redact PII via `redactAuditPayload`; never print raw payloads or secrets.
+- Ask before changing migrations, redaction, or production deploy behavior.

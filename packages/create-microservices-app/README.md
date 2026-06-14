@@ -39,12 +39,19 @@ For the SvelteKit template local baseline:
 ```bash
 pnpm create microservices-app booking-ui --template booking-sveltekit
 cd booking-ui
-pnpm microservices local migrate
-pnpm microservices local dev
+pnpm microservices local setup
+pnpm dev
 pnpm microservices local smoke
 ```
 
-Run `microservices local smoke` in a second terminal after `microservices local dev` starts. `microservices local migrate` applies checked-in migrations to Wrangler's local D1 database only.
+Run `microservices local smoke` in a second terminal after `pnpm dev` starts. `pnpm dev` applies checked-in migrations to Wrangler's local D1 database before starting Vite.
+
+If port 5174 is busy:
+
+```bash
+pnpm dev -- --port 5175
+pnpm microservices local smoke --url http://127.0.0.1:5175
+```
 
 The generated SvelteKit app also includes approval-gated preview deployment commands:
 

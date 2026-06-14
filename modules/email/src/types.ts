@@ -1,4 +1,4 @@
-export type EmailProviderId = "resend" | (string & {});
+export type EmailProviderId = "resend" | "stacksuite" | (string & {});
 
 export type EmailDeliveryStatus = "queued" | "sent" | "failed";
 
@@ -10,7 +10,7 @@ export interface Actor {
 
 export interface EmailConfig {
   enabled: boolean;
-  provider: "resend";
+  provider: "resend" | "stacksuite";
   defaultFrom: string | null;
   apiBaseUrl: string;
   userAgent: string;

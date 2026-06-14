@@ -1,0 +1,34 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "microservices.sh Payment Module",
+    "version": "0.1.0",
+    "description": "Create payment intents (payment.write), read payments (payment.read), and receive signed Stripe webhooks."
+  },
+  "paths": {
+    "/payments": {
+      "post": {
+        "summary": "Create a payment intent (requires payment.write)",
+        "responses": {
+          "201": { "description": "Payment intent created; returns clientSecret" },
+          "400": { "description": "Invalid input" }
+        }
+      },
+      "get": {
+        "summary": "List payments (requires payment.read)",
+        "responses": {
+          "200": { "description": "Payments" }
+        }
+      }
+    },
+    "/payments/webhook": {
+      "post": {
+        "summary": "Stripe webhook receiver (verified by Stripe signature, not scope)",
+        "responses": {
+          "200": { "description": "Event processed or ignored" },
+          "401": { "description": "Invalid signature" }
+        }
+      }
+    }
+  }
+}

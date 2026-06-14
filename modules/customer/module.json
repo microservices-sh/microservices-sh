@@ -21,6 +21,11 @@
   "optional": ["auth", "audit-log", "email"],
   "hooks": ["beforeCustomerCreate", "afterCustomerUpdated"],
   "events": ["customer.created", "customer.updated"],
+  "rpc": [
+    { "method": "getCustomer", "scope": "customer.read", "public": false },
+    { "method": "listCustomers", "scope": "customer.read", "public": false },
+    { "method": "upsertCustomer", "scope": "customer.write", "public": false }
+  ],
   "customization": {
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]

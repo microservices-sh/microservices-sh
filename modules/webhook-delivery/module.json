@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "webhook-delivery",
+  "name": "Webhook Delivery",
+  "version": "0.1.0",
+  "status": "available",
+  "class": "sink",
+  "summary": "Outbound mirror of the event bus: registers external endpoints (per-endpoint signing secret), delivers HMAC-signed domain events, and logs delivery attempts.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    { "type": "d1", "binding": "DB", "tables": ["webhook_endpoints", "webhook_deliveries"] }
+  ],
+  "permissions": ["webhook.read", "webhook.write", "webhook.admin"],
+  "requires": [],
+  "optional": ["audit-log"],
+  "hooks": ["beforeWebhookDeliver", "afterWebhookDelivered"],
+  "events": ["webhook.delivered", "webhook.failed"],
+  "rpc": [],
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "approval": {
+    "risk": "high",
+    "requiresApprovalFor": ["migrations", "external-side-effects", "production-deploy"]
+  }
+}

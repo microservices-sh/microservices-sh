@@ -1,0 +1,26 @@
+# Gateway Module LLM Guide
+
+Purpose: public trust boundary for microservices.sh apps — authenticate inbound
+callers, rate-limit, narrow scopes, and exchange API keys for short-lived tokens
+via the auth module.
+
+Entry points:
+- `src/index.ts` exports the safe public surface.
+- `src/use-cases/` contains framework-neutral behavior (createApiKey, verifyApiKey, issueToken).
+- `src/crypto.ts` hashes API keys (SHA-256) and generates new keys.
+- `src/ports/` defines ApiKeyStore, RateLimitStore, TokenMinter.
+- `src/adapters/` contains D1, KV, memory, and auth-backed TokenMinter implementations.
+- `schemas/` and `openapi.json` describe API-facing contracts.
+- `module.json` is the machine-readable module manifest.
+
+Model:
+- The gateway is the only public Worker; other services are private behind it.
+- It never signs tokens; it delegates to auth via the TokenMinter port.
+- Issued token scopes are always a subset of the API key's granted scopes.
+- requires: auth.
+
+Agent rules:
+- Keep gateway logic in this module; keep app routes and UI in templates.
+- Use the ports for persistence and minting.
+- Never print API keys or token values.
+- Ask before changing migrations, API-key management, public exposure, or production deploy.

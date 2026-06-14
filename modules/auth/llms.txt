@@ -1,0 +1,27 @@
+# Auth Module LLM Guide
+
+Purpose: issue and verify short-lived EdDSA tokens for auth-gated inter-service
+communication in microservices.sh apps.
+
+Entry points:
+- `src/index.ts` exports the safe public surface.
+- `src/use-cases/` contains framework-neutral behavior (mint, verify, jwks, rotate).
+- `src/jwt.ts` holds EdDSA (Ed25519) WebCrypto primitives — no external JWT dep.
+- `src/scope.ts` exports `requireScope` for callee-side enforcement.
+- `src/ports/` defines the `SigningKeyStore` interface.
+- `src/adapters/` contains Cloudflare D1 and memory implementations.
+- `src/rpc.ts` is the RPC contract descriptor for service-mode codegen.
+- `schemas/` and `openapi.json` describe API-facing contracts.
+- `module.json` is the machine-readable module manifest.
+
+Token model:
+- Asymmetric EdDSA. auth signs with the private key; other services verify with
+  the public key from JWKS. Never distribute the private key.
+- Claims: sub, workspace, project, scopes[], iss, iat, exp, jti. Default TTL 60s.
+- Callee checks scopes against its own module permissions before executing.
+
+Agent rules:
+- Keep token logic in this module; keep app routes and UI in templates.
+- Use `SigningKeyStore` for persistence.
+- Do not print secret values or private keys.
+- Ask before changing migrations, secrets, key rotation, or production deploy behavior.

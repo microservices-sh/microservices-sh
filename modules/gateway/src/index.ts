@@ -1,0 +1,16 @@
+export { moduleDefinition, manifest } from "./manifest";
+export { defaultConfig, configSchema } from "./config";
+export { events } from "./events";
+export { permissions } from "./permissions";
+export { resources } from "./resources";
+export { createApiKey } from "./use-cases/create-api-key";
+export { verifyApiKey } from "./use-cases/verify-api-key";
+export { issueToken } from "./use-cases/issue-token";
+export { hashApiKey, generateApiKey } from "./crypto";
+export { createD1ApiKeyStore } from "./adapters/d1-api-key-store";
+export { createMemoryApiKeyStore } from "./adapters/memory-api-key-store";
+export { createKvRateLimitStore } from "./adapters/kv-rate-limit-store";
+export { createMemoryRateLimitStore } from "./adapters/memory-rate-limit-store";
+export { createLocalTokenMinter, createBindingTokenMinter } from "./adapters/auth-token-minter";
+export type { ApiKeyStore, RateLimitStore, RateLimitResult, TokenMinter } from "./ports";
+export type { ApiKeyRecord, Principal, MintRequest, MintOutcome, DomainEvent } from "./types";

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Gateway Module Config",
+  "type": "object",
+  "properties": {
+    "tokenTtlSeconds": { "type": "integer", "minimum": 1, "maximum": 3600, "default": 60 },
+    "rateLimit": { "type": "integer", "minimum": 1, "default": 60 },
+    "rateWindowSeconds": { "type": "integer", "minimum": 1, "default": 60 }
+  },
+  "additionalProperties": false
+}

@@ -5,12 +5,14 @@
   "type": "module",
   "description": "Official microservices.sh Cloudflare SvelteKit booking app template shell.",
   "scripts": {
-    "dev": "vite dev",
+    "dev": "node scripts/microservices.js local dev",
     "dev:local": "node scripts/microservices.js local dev",
+    "dev:raw": "vite dev",
     "build": "vite build",
     "build:app": "vite build",
     "preview": "vite preview",
     "check:spec": "node ../../packages/workspace-tools/src/index.js check template --path .",
+    "setup:local": "node scripts/microservices.js local setup",
     "db:migrate:local": "node scripts/microservices.js local migrate",
     "db:migrate:preview": "node scripts/microservices.js preview migrate --confirm migrate",
     "deploy:preview:dry-run": "node scripts/microservices.js preview deploy --dry-run",
@@ -20,8 +22,11 @@
     "microservices": "node scripts/microservices.js"
   },
   "dependencies": {
+    "@microservices-sh/audit-log": "workspace:*",
+    "@microservices-sh/auth": "workspace:*",
     "@microservices-sh/booking": "workspace:*",
     "@microservices-sh/customer": "workspace:*",
+    "@microservices-sh/gateway": "workspace:*",
     "@sveltejs/adapter-cloudflare": "^7.2.4",
     "@sveltejs/kit": "^2.9.0",
     "svelte": "^5.0.0",

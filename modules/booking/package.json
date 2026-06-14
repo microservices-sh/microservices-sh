@@ -17,12 +17,15 @@
     "./resources": "./src/resources/index.ts",
     "./service": "./src/service/index.ts",
     "./ports": "./src/ports/index.ts",
+    "./rpc": "./src/rpc.ts",
     "./adapters/d1": "./src/adapters/d1-booking-repository.ts",
     "./adapters/memory": "./src/adapters/memory-booking-repository.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",
-    "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path ."
+    "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path .",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@microservices-sh/customer": "workspace:*",
@@ -30,6 +33,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.9"
   }
 }

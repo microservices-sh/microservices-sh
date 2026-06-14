@@ -21,6 +21,22 @@ const REPO_TEMPLATES = {
     summary: "Full Cloudflare SvelteKit booking app — public booking flow, admin, D1, typed hooks.",
   },
 };
+const BUNDLED_MODULES = ["audit-log", "auth", "booking", "customer", "gateway"];
+
+function modulePackageName(moduleId) {
+  return `@microservices-sh/${moduleId}`;
+}
+
+function rewriteBundledModuleDeps(dependencies, prefix = "./modules") {
+  if (!dependencies || typeof dependencies !== "object") return;
+
+  for (const moduleId of BUNDLED_MODULES) {
+    const name = modulePackageName(moduleId);
+    if (dependencies[name]) {
+      dependencies[name] = `file:${prefix}/${moduleId}`;
+    }
+  }
+}
 
 async function readRepoTemplateFiles(templateId) {
   const base = resolve(TEMPLATES_DIR, templateId);
@@ -44,18 +60,24 @@ async function readRepoTemplateFiles(templateId) {
   return files;
 }
 
+// wrangler.jsonc allows // line comments; strip them before JSON.parse. The
+// rewrite re-serializes to plain JSON, so comments are not preserved (they are
+// template guidance, not config). Only whole-line comments are emitted.
+function parseJsonc(text) {
+  const stripped = text
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("//"))
+    .join("\n");
+  return JSON.parse(stripped);
+}
+
 function applyRepoTemplateConfig(files, appName, configOverride) {
   return files.map((file) => {
     if (file.path === "package.json") {
       try {
         const pkg = JSON.parse(file.contents);
         pkg.name = appName;
-        if (pkg.dependencies?.["@microservices-sh/booking"]) {
-          pkg.dependencies["@microservices-sh/booking"] = "file:./modules/booking";
-        }
-        if (pkg.dependencies?.["@microservices-sh/customer"]) {
-          pkg.dependencies["@microservices-sh/customer"] = "file:./modules/customer";
-        }
+        rewriteBundledModuleDeps(pkg.dependencies);
         if (pkg.scripts?.["check:spec"]) {
           pkg.scripts["check:spec"] = "node scripts/microservices.js check --json";
         }
@@ -64,12 +86,10 @@ function applyRepoTemplateConfig(files, appName, configOverride) {
         return file;
       }
     }
-    if (file.path === "modules/booking/package.json") {
+    if (file.path.startsWith("modules/") && file.path.endsWith("/package.json")) {
       try {
         const pkg = JSON.parse(file.contents);
-        if (pkg.dependencies?.["@microservices-sh/customer"]) {
-          pkg.dependencies["@microservices-sh/customer"] = "file:../customer";
-        }
+        rewriteBundledModuleDeps(pkg.dependencies, "..");
         return { ...file, contents: `${JSON.stringify(pkg, null, 2)}\n` };
       } catch {
         return file;
@@ -88,7 +108,7 @@ function applyRepoTemplateConfig(files, appName, configOverride) {
     }
     if (file.path === "wrangler.jsonc") {
       try {
-        const cfg = JSON.parse(file.contents);
+        const cfg = parseJsonc(file.contents);
         cfg.name = appName;
         cfg.vars = {
           ...(cfg.vars || {}),
@@ -492,8 +512,8 @@ function nextCommands(packageManager, appName, installed, planOnlyModules = [], 
   const installLine = installed ? null : `${packageManager} install`;
   const isSvelteKitTemplate = templateId === "booking-sveltekit";
   const microservices = (args) => packageScriptCommand(packageManager, "microservices", args);
-  const localSetup = isSvelteKitTemplate ? [microservices(["local", "migrate"])] : [];
-  const devCommand = isSvelteKitTemplate ? microservices(["local", "dev"]) : packageScriptCommand(packageManager, "dev");
+  const localSetup = isSvelteKitTemplate ? [microservices(["local", "setup"])] : [];
+  const devCommand = packageScriptCommand(packageManager, "dev");
   return [
     `cd ${appName}`,
     installLine,

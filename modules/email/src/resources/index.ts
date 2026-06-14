@@ -11,5 +11,13 @@ export const emailResources = [
   {
     type: "outbound-fetch",
     host: "api.resend.com"
+  },
+  {
+    type: "secret",
+    binding: "EMAIL_SERVICE_API_KEY"
+  },
+  {
+    type: "outbound-fetch",
+    host: "*.execute-api.amazonaws.com"
   }
 ] as const;

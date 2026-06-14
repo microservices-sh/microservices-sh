@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Webhook Delivery Events",
+  "type": "object",
+  "properties": {
+    "eventName": { "type": "string", "enum": ["webhook.delivered", "webhook.failed"] },
+    "entityType": { "type": "string", "const": "webhook" }
+  },
+  "required": ["eventName", "entityType"]
+}

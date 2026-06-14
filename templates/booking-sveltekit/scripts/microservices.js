@@ -23,6 +23,15 @@ function readJson(path, fallback = null) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
+function readJsonc(path, fallback = null) {
+  if (!existsSync(path)) return fallback;
+  const stripped = readFileSync(path, "utf8")
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("//"))
+    .join("\n");
+  return JSON.parse(stripped);
+}
+
 function writeJson(path, value) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
@@ -121,7 +130,10 @@ function parseArgs(argv) {
     d1Id: null,
     d1Name: null,
     kvId: null,
-    workerName: null
+    rateLimitKvId: null,
+    workerName: null,
+    host: "127.0.0.1",
+    port: "5174"
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -149,8 +161,17 @@ function parseArgs(argv) {
     } else if (value === "--kv-id") {
       flags.kvId = argv[index + 1] ?? "";
       index += 1;
+    } else if (value === "--rate-limit-kv-id") {
+      flags.rateLimitKvId = argv[index + 1] ?? "";
+      index += 1;
     } else if (value === "--worker-name") {
       flags.workerName = argv[index + 1] ?? "";
+      index += 1;
+    } else if (value === "--host") {
+      flags.host = argv[index + 1] ?? flags.host;
+      index += 1;
+    } else if (value === "--port") {
+      flags.port = argv[index + 1] ?? flags.port;
       index += 1;
     } else {
       args.push(value);
@@ -263,9 +284,9 @@ function hasPlaceholder(value) {
 
 function loadWranglerConfig() {
   try {
-    return { ok: true, config: readJson("wrangler.jsonc", null) };
+    return { ok: true, config: readJsonc("wrangler.jsonc", null) };
   } catch (error) {
-    return fail("WRANGLER_CONFIG_INVALID", "wrangler.jsonc is not valid JSON.", error.message);
+    return fail("WRANGLER_CONFIG_INVALID", "wrangler.jsonc is not valid JSONC.", error.message);
   }
 }
 
@@ -275,6 +296,18 @@ function d1Target(config) {
 
 function kvTarget(config) {
   return (config?.kv_namespaces ?? []).find((namespace) => namespace?.binding === "CACHE_KV") ?? null;
+}
+
+function kvTargets(config) {
+  return (config?.kv_namespaces ?? []).filter((namespace) => namespace && typeof namespace.binding === "string");
+}
+
+// Map a binding name to the id provided via flags (extend as more KV bindings
+// are added by modules; gateway adds RATE_LIMIT_KV).
+function kvIdForBinding(binding, flags) {
+  if (binding === "CACHE_KV") return flags.kvId;
+  if (binding === "RATE_LIMIT_KV") return flags.rateLimitKvId;
+  return null;
 }
 
 function checkResponse() {
@@ -316,6 +349,7 @@ function previewReadinessResponse() {
 
   const d1 = d1Target(config);
   const kv = kvTarget(config);
+  const allKv = kvTargets(config);
   const checks = [
     {
       id: "worker-name",
@@ -333,15 +367,18 @@ function previewReadinessResponse() {
       message: d1 && !hasPlaceholder(d1.database_id) ? "D1 database id is set." : "D1 database id is still a placeholder."
     },
     {
-      id: "kv-binding",
-      status: kv ? "pass" : "fail",
-      message: kv ? "KV binding CACHE_KV exists." : "KV binding CACHE_KV is missing."
+      id: "kv-bindings",
+      status: allKv.length ? "pass" : "fail",
+      message: allKv.length ? `KV bindings present: ${allKv.map((namespace) => namespace.binding).join(", ")}.` : "No KV bindings found."
     },
-    {
-      id: "kv-id",
-      status: kv && !hasPlaceholder(kv.id) ? "pass" : "fail",
-      message: kv && !hasPlaceholder(kv.id) ? "KV namespace id is set." : "KV namespace id is still a placeholder."
-    },
+    // One id check per KV namespace so every binding (e.g. RATE_LIMIT_KV) is verified.
+    ...allKv.map((namespace) => ({
+      id: `kv-id:${namespace.binding}`,
+      status: !hasPlaceholder(namespace.id) ? "pass" : "fail",
+      message: !hasPlaceholder(namespace.id)
+        ? `KV namespace id for ${namespace.binding} is set.`
+        : `KV namespace id for ${namespace.binding} is still a placeholder.`
+    })),
     {
       id: "build-output",
       status: existsSync(".svelte-kit/cloudflare/_worker.js") ? "pass" : "warn",
@@ -363,15 +400,10 @@ function previewReadinessResponse() {
             databaseId: d1.database_id ?? null
           }
         : null,
-      kv: kv
-        ? {
-            binding: kv.binding,
-            namespaceId: kv.id ?? null
-          }
-        : null,
+      kv: allKv.map((namespace) => ({ binding: namespace.binding, namespaceId: namespace.id ?? null })),
       checks,
       nextSteps: failed.length
-        ? ["Run preview bind with real Cloudflare D1 and KV ids."]
+        ? ["Run preview bind with real Cloudflare D1 and KV ids (include --rate-limit-kv-id for the gateway)."]
         : ["Run preview migrate --confirm migrate, then preview deploy --dry-run."]
     },
     ...(failed.length
@@ -379,7 +411,7 @@ function previewReadinessResponse() {
           error: {
             code: "PREVIEW_NOT_READY",
             message: "Preview bindings are not ready.",
-            remediation: "Run microservices preview bind --d1-id <id> --kv-id <id> before remote migration or deploy.",
+            remediation: "Run microservices preview bind --d1-id <id> --kv-id <id> --rate-limit-kv-id <id> before remote migration or deploy.",
             details: { failed }
           }
         }
@@ -403,29 +435,38 @@ function bindPreview(flags) {
   }
 
   const d1 = d1Target(config);
-  const kv = kvTarget(config);
-  if (!d1 || !kv) {
-    return fail("BINDINGS_MISSING", "DB or CACHE_KV binding is missing from wrangler.jsonc.", "Restore the template wrangler.jsonc bindings.");
+  const allKv = kvTargets(config);
+  if (!d1 || allKv.length === 0) {
+    return fail("BINDINGS_MISSING", "DB or KV bindings are missing from wrangler.jsonc.", "Restore the template wrangler.jsonc bindings.");
   }
 
-  const before = {
+  const snapshot = () => ({
     workerName: config.name ?? null,
     d1DatabaseName: d1.database_name ?? null,
     d1DatabaseId: d1.database_id ?? null,
-    kvNamespaceId: kv.id ?? null
-  };
+    kv: allKv.map((namespace) => ({ binding: namespace.binding, id: namespace.id ?? null }))
+  });
+  const before = snapshot();
 
   if (flags.workerName) config.name = flags.workerName;
   if (flags.d1Name) d1.database_name = flags.d1Name;
   d1.database_id = flags.d1Id;
-  kv.id = flags.kvId;
 
-  const after = {
-    workerName: config.name ?? null,
-    d1DatabaseName: d1.database_name ?? null,
-    d1DatabaseId: d1.database_id ?? null,
-    kvNamespaceId: kv.id ?? null
-  };
+  // Rewrite every KV namespace whose id is supplied; leave unresolved ones as
+  // placeholders so doctor flags them.
+  const appliedKv = [];
+  const unresolvedKv = [];
+  for (const namespace of allKv) {
+    const id = kvIdForBinding(namespace.binding, flags);
+    if (id) {
+      namespace.id = id;
+      appliedKv.push(namespace.binding);
+    } else if (hasPlaceholder(namespace.id)) {
+      unresolvedKv.push(namespace.binding);
+    }
+  }
+
+  const after = snapshot();
 
   if (!flags.dryRun) {
     writeJson("wrangler.jsonc", config);
@@ -438,7 +479,11 @@ function bindPreview(flags) {
       file: "wrangler.jsonc",
       before,
       after,
-      nextSteps: ["Run microservices preview doctor, then microservices preview migrate --confirm migrate."]
+      appliedKv,
+      unresolvedKv,
+      nextSteps: unresolvedKv.length
+        ? [`Provide ids for remaining KV bindings: ${unresolvedKv.join(", ")} (e.g. --rate-limit-kv-id <id>).`]
+        : ["Run microservices preview doctor, then microservices preview migrate --confirm migrate."]
     }
   };
 }
@@ -514,6 +559,30 @@ function previewSmoke(flags, value) {
   return runCommand("preview:smoke", "node", ["scripts/smoke-http.mjs", url], flags);
 }
 
+function localSetup(flags) {
+  const checks = checkResponse();
+  if (!checks.ok) return checks;
+
+  return runSteps(
+    [
+      { id: "local:build", command: "vite", args: ["build"] },
+      { id: "local:migrate", command: "wrangler", args: ["d1", "migrations", "apply", "DB", "--local"] }
+    ],
+    flags,
+    ["Run microservices local dev, then microservices local smoke in another terminal."]
+  );
+}
+
+function localDev(flags) {
+  const checks = checkResponse();
+  if (!checks.ok) return checks;
+
+  const migrated = runCommand("local:migrate", "wrangler", ["d1", "migrations", "apply", "DB", "--local"], flags);
+  if (!migrated.ok) return migrated;
+
+  return runCommand("local:dev", "vite", ["dev", "--host", flags.host, "--port", flags.port, "--strictPort"], flags);
+}
+
 function previewCleanupPlan() {
   const loaded = loadWranglerConfig();
   if (!loaded.ok) return loaded;
@@ -551,12 +620,13 @@ function usage() {
   microservices docs <id> [--json]
   microservices upgrade <id> [--plan] [--json]
   microservices check [--json]
+  microservices local setup [--json]
   microservices local verify [--json]
   microservices local migrate [--json]
-  microservices local dev
+  microservices local dev [--host 127.0.0.1] [--port 5174]
   microservices local smoke [--url http://127.0.0.1:5174] [--json]
   microservices preview doctor [--json]
-  microservices preview bind --d1-id <id> --kv-id <id> [--d1-name <name>] [--worker-name <name>] [--json]
+  microservices preview bind --d1-id <id> --kv-id <id> [--rate-limit-kv-id <id>] [--d1-name <name>] [--worker-name <name>] [--json]
   microservices preview migrate [--plan] --confirm migrate [--json]
   microservices preview deploy --dry-run [--json]
   microservices preview deploy --confirm deploy [--json]
@@ -631,28 +701,14 @@ if (!resource || resource === "help" || resource === "--help" || resource === "-
   );
 } else if (resource === "check") {
   emit(checkResponse(), (data) => `Template checks: ${data.checks.every((check) => check.status === "pass") ? "pass" : "fail"}\n`, flags);
+} else if (resource === "local" && action === "setup") {
+  emit(localSetup(flags), (data) => `Local setup ${data.status}.\n`, flags);
 } else if (resource === "local" && action === "verify") {
-  const checks = checkResponse();
-  if (!checks.ok) {
-    emit(checks, null, flags);
-  } else {
-    emit(
-      runSteps(
-        [
-          { id: "local:build", command: "vite", args: ["build"] },
-          { id: "local:migrate", command: "wrangler", args: ["d1", "migrations", "apply", "DB", "--local"] }
-        ],
-        flags,
-        ["Run microservices local dev, then microservices local smoke in another terminal."]
-      ),
-      (data) => `Local verification ${data.status}.\n`,
-      flags
-    );
-  }
+  emit(localSetup(flags), (data) => `Local verification ${data.status}.\n`, flags);
 } else if (resource === "local" && action === "migrate") {
   emit(runCommand("local:migrate", "wrangler", ["d1", "migrations", "apply", "DB", "--local"], flags), (data) => `Local migration exited ${data.exitCode}.\n`, flags);
 } else if (resource === "local" && action === "dev") {
-  emit(runCommand("local:dev", "vite", ["dev", "--host", "127.0.0.1", "--port", "5174", "--strictPort"], flags), (data) => `Local dev exited ${data.exitCode}.\n`, flags);
+  emit(localDev(flags), (data) => `Local dev exited ${data.exitCode}.\n`, flags);
 } else if (resource === "local" && action === "smoke") {
   const url = flags.url || value || "http://127.0.0.1:5174";
   emit(runCommand("local:smoke", "node", ["scripts/smoke-http.mjs", url], flags), (data) => `Local smoke exited ${data.exitCode}.\n`, flags);

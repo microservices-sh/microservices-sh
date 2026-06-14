@@ -1,91 +1,347 @@
 {
   "schemaVersion": "2026-06-13",
-  "description": "Compact LLM-readable catalog for microservices.sh modules. Read the referenced Markdown docs for full payload, response, event, hook, secret, and permission details.",
-  "structureDocPath": "docs/modules/module-package-structure.md",
+  "description": "Compact LLM-readable catalog for generated microservices.sh projects. Read the referenced Markdown docs before modifying modules.",
   "agentGuidance": {
     "preferDocsBeforeCodeChanges": true,
     "neverExposeSecretValues": true,
-    "defaultCustomizationOrder": ["config", "hooks", "overlays", "fork"],
-    "approvalGatedCategories": ["auth", "payment", "email", "pii", "webhook", "migration", "production_deploy", "delete"],
+    "defaultCustomizationOrder": [
+      "config",
+      "hooks",
+      "overlays",
+      "fork"
+    ],
+    "approvalGatedCategories": [
+      "auth",
+      "payment",
+      "email",
+      "pii",
+      "webhook",
+      "migration",
+      "production_deploy",
+      "delete"
+    ],
     "sourceOwnershipDefault": "user-owned repository with branch/PR or patch workflow"
-  },
-  "moduleClasses": {
-    "core": "First-party application capability maintained by microservices.sh.",
-    "provider": "Full third-party service implementation, including API logic, webhooks, schemas, tests, and deployment configuration.",
-    "connector": "Low-level internal client used by provider modules. Users should normally install provider modules instead."
   },
   "modules": [
     {
       "id": "auth",
       "name": "Auth",
+      "version": "0.1.0",
       "status": "available",
-      "class": "core",
+      "class": "platform",
       "mount": "/auth",
       "docPath": "docs/modules/auth.md",
-      "summary": "Passwordless identity, sessions, roles, route protection, and auth audit events.",
+      "summary": "EdDSA service-token mint/verify, scope checks, and JWKS for auth-gated inter-service communication.",
       "requires": [],
-      "permissions": ["auth.read", "auth.write", "auth.admin"],
-      "approvalRisk": "high"
+      "permissions": [
+        "auth.mint",
+        "auth.verify",
+        "auth.admin"
+      ],
+      "rpc": [
+        {
+          "method": "mintToken",
+          "scope": "auth.mint",
+          "public": false
+        },
+        {
+          "method": "verifyToken",
+          "scope": "auth.verify",
+          "public": false
+        },
+        {
+          "method": "getJwks",
+          "scope": null,
+          "public": true
+        }
+      ],
+      "approvalRisk": "high",
+      "secrets": [
+        "AUTH_SIGNING_KEY"
+      ],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeMintToken",
+        "afterTokenMinted"
+      ],
+      "events": [
+        "auth.token_minted",
+        "auth.key_rotated"
+      ]
+    },
+    {
+      "id": "gateway",
+      "name": "Gateway",
+      "version": "0.1.0",
+      "status": "available",
+      "class": "platform",
+      "mount": "/gateway",
+      "docPath": "docs/modules/gateway.md",
+      "summary": "Public trust boundary: API-key authentication, rate limiting, scope narrowing, and token exchange via auth.",
+      "requires": [
+        "auth"
+      ],
+      "permissions": [
+        "gateway.admin"
+      ],
+      "rpc": [],
+      "approvalRisk": "high",
+      "secrets": [],
+      "resources": [
+        "D1",
+        "KV"
+      ],
+      "hooks": [
+        "beforeIssueToken",
+        "afterTokenIssued"
+      ],
+      "events": [
+        "gateway.token_issued",
+        "gateway.access_denied"
+      ]
     },
     {
       "id": "customer",
       "name": "Customer",
+      "version": "0.1.0",
       "status": "available",
       "class": "core",
       "mount": "/customers",
       "docPath": "docs/modules/customer.md",
-      "summary": "Customer profiles, contact fields, tags, consent fields, notes, and customer lifecycle events.",
-      "requires": ["auth"],
-      "permissions": ["customer.read", "customer.write", "customer.admin"],
-      "approvalRisk": "medium"
+      "summary": "Customer profiles, tags, lifecycle state, consent fields, and customer events.",
+      "requires": [
+        "auth"
+      ],
+      "permissions": [
+        "customer.read",
+        "customer.write",
+        "customer.admin"
+      ],
+      "rpc": [
+        {
+          "method": "getCustomer",
+          "scope": "customer.read",
+          "public": false
+        },
+        {
+          "method": "listCustomers",
+          "scope": "customer.read",
+          "public": false
+        },
+        {
+          "method": "upsertCustomer",
+          "scope": "customer.write",
+          "public": false
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeCustomerCreate",
+        "afterCustomerUpdated"
+      ],
+      "events": [
+        "customer.created",
+        "customer.updated"
+      ]
     },
     {
       "id": "booking",
       "name": "Booking",
+      "version": "0.1.0",
       "status": "available",
-      "class": "core",
+      "class": "vertical",
       "mount": "/bookings",
       "docPath": "docs/modules/booking.md",
-      "summary": "Bookable services, availability, booking creation, confirmation, cancellation, and booking lifecycle events.",
-      "requires": ["auth", "customer"],
-      "permissions": ["booking.read", "booking.write", "booking.admin"],
-      "approvalRisk": "medium"
+      "summary": "Service booking, availability, cancellation windows, confirmation, and booking events.",
+      "requires": [
+        "auth",
+        "customer"
+      ],
+      "permissions": [
+        "booking.read",
+        "booking.write",
+        "booking.admin"
+      ],
+      "rpc": [
+        {
+          "method": "listBookings",
+          "scope": "booking.read",
+          "public": false
+        },
+        {
+          "method": "getBooking",
+          "scope": "booking.read",
+          "public": false
+        },
+        {
+          "method": "getAvailability",
+          "scope": "booking.read",
+          "public": false
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1",
+        "KV"
+      ],
+      "hooks": [
+        "beforeBookingCreate",
+        "calculateAvailability",
+        "afterBookingConfirmed"
+      ],
+      "events": [
+        "booking.created",
+        "booking.confirmed",
+        "booking.cancelled",
+        "customer.created",
+        "payment.succeeded"
+      ]
     },
     {
-      "id": "payment-stripe",
-      "name": "Stripe Payment",
-      "status": "planned",
+      "id": "audit-log",
+      "name": "Audit Log",
+      "version": "0.1.0",
+      "status": "available",
+      "class": "sink",
+      "mount": "/audit",
+      "docPath": "docs/modules/audit-log.md",
+      "summary": "Append-only audit trail. Pure event sink: records domain events from a signed queue or direct calls.",
+      "requires": [],
+      "permissions": [
+        "audit.read",
+        "audit.export",
+        "audit.admin"
+      ],
+      "rpc": [],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "redactAuditPayload",
+        "beforeAuditExport"
+      ],
+      "events": [
+        "audit.recorded",
+        "audit.exported"
+      ]
+    },
+    {
+      "id": "payment",
+      "name": "Payment",
+      "version": "0.1.0",
+      "status": "available",
       "class": "provider",
       "mount": "/payments",
-      "docPath": "docs/modules/payment-stripe.md",
-      "summary": "Full Stripe payment workflow: products, prices, checkout, payment links, webhooks, refunds, and payment events.",
-      "requires": ["auth", "customer"],
-      "permissions": ["payment.read", "payment.write", "payment.admin"],
-      "approvalRisk": "high"
+      "docPath": "docs/modules/payment.md",
+      "summary": "Stripe-backed payment provider: create payment intents, record payments, and verify signed Stripe webhooks. Emits payment lifecycle events.",
+      "requires": [
+        "auth",
+        "customer"
+      ],
+      "permissions": [
+        "payment.read",
+        "payment.write",
+        "payment.admin"
+      ],
+      "rpc": [
+        {
+          "method": "createPaymentIntent",
+          "scope": "payment.write",
+          "public": false
+        }
+      ],
+      "approvalRisk": "high",
+      "secrets": [
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET"
+      ],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeCreatePaymentIntent",
+        "afterPaymentSucceeded"
+      ],
+      "events": [
+        "payment.checkout_created",
+        "payment.succeeded",
+        "payment.refunded",
+        "payment.failed"
+      ]
+    },
+    {
+      "id": "webhook-delivery",
+      "name": "Webhook Delivery",
+      "version": "0.1.0",
+      "status": "available",
+      "class": "sink",
+      "mount": "/webhooks",
+      "docPath": "docs/modules/webhook-delivery.md",
+      "summary": "Outbound mirror of the event bus: registers external endpoints (per-endpoint signing secret), delivers HMAC-signed domain events, and logs delivery attempts.",
+      "requires": [],
+      "permissions": [
+        "webhook.read",
+        "webhook.write",
+        "webhook.admin"
+      ],
+      "rpc": [],
+      "approvalRisk": "high",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeWebhookDeliver",
+        "afterWebhookDelivered"
+      ],
+      "events": [
+        "webhook.delivered",
+        "webhook.failed"
+      ]
     },
     {
       "id": "email",
       "name": "Email",
+      "version": "0.1.0",
       "status": "planned",
       "class": "provider-capable core",
       "mount": "/emails",
       "docPath": "docs/modules/email.md",
       "summary": "Transactional email templates, provider adapters, delivery jobs, and delivery events.",
       "requires": [],
-      "permissions": ["email.read", "email.write", "email.admin"],
-      "approvalRisk": "high"
-    },
-    {
-      "id": "audit-log",
-      "name": "Audit Log",
-      "status": "planned",
-      "class": "core",
-      "mount": "/audit",
-      "docPath": "docs/modules/audit-log.md",
-      "summary": "Mutation audit trail and domain event recording with actor, action, resource, request id, and metadata.",
-      "requires": [],
-      "permissions": ["audit.read", "audit.export", "audit.admin"],
-      "approvalRisk": "medium"
+      "permissions": [
+        "email.read",
+        "email.write",
+        "email.admin"
+      ],
+      "rpc": [],
+      "approvalRisk": "high",
+      "secrets": [
+        "EMAIL_PROVIDER_API_KEY"
+      ],
+      "resources": [
+        "Queue for delivery jobs",
+        "outbound fetch to provider API"
+      ],
+      "hooks": [
+        "renderEmailTemplate",
+        "beforeEmailSend",
+        "afterEmailDelivered"
+      ],
+      "events": [
+        "email.queued",
+        "email.sent",
+        "email.failed"
+      ]
     }
   ]
 }

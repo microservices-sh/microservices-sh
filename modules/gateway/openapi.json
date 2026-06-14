@@ -1,0 +1,31 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "microservices.sh Gateway Module",
+    "version": "0.1.0",
+    "description": "Public edge: exchange an API key for a short-lived scoped token, and manage API keys (admin)."
+  },
+  "paths": {
+    "/gateway/tokens": {
+      "post": {
+        "summary": "Exchange an API key for a short-lived scoped token",
+        "responses": {
+          "200": { "description": "Token issued" },
+          "400": { "description": "Invalid input" },
+          "401": { "description": "Invalid or unknown API key" },
+          "403": { "description": "Requested scopes exceed the API key grant" },
+          "429": { "description": "Rate limit exceeded" }
+        }
+      }
+    },
+    "/gateway/keys": {
+      "post": {
+        "summary": "Create an API key (requires gateway.admin)",
+        "responses": {
+          "201": { "description": "API key created; raw key returned once" },
+          "400": { "description": "Invalid input" }
+        }
+      }
+    }
+  }
+}

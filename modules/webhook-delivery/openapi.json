@@ -1,0 +1,25 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "microservices.sh Webhook Delivery Module",
+    "version": "0.1.0",
+    "description": "Register external endpoints (webhook.write), deliver signed events, and read the delivery log (webhook.read)."
+  },
+  "paths": {
+    "/webhooks/endpoints": {
+      "post": {
+        "summary": "Register an external endpoint (requires webhook.write); returns the signing secret once",
+        "responses": {
+          "201": { "description": "Endpoint registered; secret returned once" },
+          "400": { "description": "Invalid input" }
+        }
+      }
+    },
+    "/webhooks/deliveries": {
+      "get": {
+        "summary": "List delivery attempts (requires webhook.read)",
+        "responses": { "200": { "description": "Delivery attempts" } }
+      }
+    }
+  }
+}

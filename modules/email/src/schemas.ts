@@ -46,7 +46,7 @@ const templateSchema = z.object({
 
 export const emailConfigSchema = z.object({
   enabled: z.boolean().default(true),
-  provider: z.literal("resend").default("resend"),
+  provider: z.enum(["resend", "stacksuite"]).default("resend"),
   defaultFrom: senderAddressSchema.nullable().default(null),
   apiBaseUrl: z.string().url().default("https://api.resend.com"),
   userAgent: z.string().min(1).max(256).default("microservices-sh-email/0.1.0"),

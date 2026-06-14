@@ -11,8 +11,8 @@ pnpm microservices modules list --json
 pnpm microservices docs booking
 pnpm microservices upgrade booking --plan --json
 pnpm microservices check --json
-pnpm microservices local migrate
-pnpm microservices local dev
+pnpm microservices local setup
+pnpm dev
 pnpm microservices local smoke
 pnpm microservices preview deploy --dry-run
 ```
@@ -31,11 +31,11 @@ pnpm microservices preview deploy --dry-run
 
 ## Current Status
 
-The template now has a minimal runnable SvelteKit app shell, prebuilt booking and customer module dependencies, D1 and memory repository adapters from the modules, public booking routes, admin booking/customer routes, API routes, migrations, and local template checks.
+The template now has a minimal runnable SvelteKit app shell, prebuilt booking/customer/auth/gateway/audit module dependencies, D1 and memory repository adapters from the modules, public booking routes, admin booking/customer routes, API routes, migrations, and local template checks.
 
 Still pending before this is a full beta template:
 
 - browser screenshot checks for desktop and mobile
 - real Cloudflare preview deploy against provisioned D1/KV resources
-- real auth/audit modules
+- hardened auth/gateway/audit onboarding docs
 - Stripe and email provider modules behind approval gates

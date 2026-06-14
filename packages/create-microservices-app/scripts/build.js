@@ -12,7 +12,7 @@ const internalAliases = new Map([
 
 const REPO_TEMPLATES = ["booking-sveltekit"];
 const REPO_TEMPLATE_MODULES = {
-  "booking-sveltekit": ["customer", "booking"],
+  "booking-sveltekit": ["gateway", "auth", "customer", "booking", "audit-log"],
 };
 const TEMPLATE_IGNORE = new Set(["node_modules", ".svelte-kit", ".wrangler", "dist", ".DS_Store", ".git"]);
 

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Audit Log Module Config",
+  "type": "object",
+  "properties": {
+    "requireSignedEnvelope": { "type": "boolean", "default": false },
+    "defaultListLimit": { "type": "integer", "minimum": 1, "maximum": 500, "default": 100 }
+  },
+  "additionalProperties": false
+}

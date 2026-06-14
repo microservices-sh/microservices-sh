@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "audit-log",
+  "name": "Audit Log",
+  "version": "0.1.0",
+  "status": "available",
+  "class": "sink",
+  "summary": "Append-only audit trail. Pure event sink: records domain events from a signed queue or direct calls.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    { "type": "d1", "binding": "DB", "tables": ["audit_events"] }
+  ],
+  "permissions": ["audit.read", "audit.export", "audit.admin"],
+  "requires": [],
+  "optional": [],
+  "hooks": ["redactAuditPayload", "beforeAuditExport"],
+  "events": ["audit.recorded", "audit.exported"],
+  "rpc": [],
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": ["migrations", "pii-redaction", "production-deploy"]
+  }
+}

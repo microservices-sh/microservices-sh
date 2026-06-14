@@ -2,12 +2,14 @@
 
 Module ID: email
 Status: available
-Purpose: Transactional email module with provider-neutral ports and a Resend HTTP adapter.
+Purpose: Transactional email module with provider-neutral ports and Resend and StackSuite (AWS SES) HTTP adapters.
 Entrypoint: src/index.ts
 Check: pnpm check:spec
 Build: pnpm build
 Provider: Resend over fetch, POST https://api.resend.com/emails
+Provider: StackSuite email service over fetch, POST {EMAIL_SERVICE_URL}/send with X-Api-Key (AWS Lambda + SES, verified domain stacksuite.dev)
 Secret: RESEND_API_KEY
+Secret: EMAIL_SERVICE_API_KEY (StackSuite); var EMAIL_SERVICE_URL
 Primary use case: sendEmail(input, deps)
-Adapters: adapters/resend, adapters/d1, adapters/memory
+Adapters: adapters/resend, adapters/stacksuite, adapters/d1, adapters/memory
 Safety: production sends are external side effects; require approval and idempotency for retries.

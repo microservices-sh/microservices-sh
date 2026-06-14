@@ -6,5 +6,6 @@ export { resources } from "./resources";
 export { getCustomer } from "./use-cases/get-customer";
 export { listCustomers } from "./use-cases/list-customers";
 export { upsertCustomer } from "./use-cases/upsert-customer";
+export { rpcContract } from "./rpc";
 export type { CustomerRepository } from "./ports";
 export type { Actor, Customer, DomainEvent } from "./types";

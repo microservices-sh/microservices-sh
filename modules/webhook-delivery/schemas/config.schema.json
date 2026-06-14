@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Webhook Delivery Module Config",
+  "type": "object",
+  "properties": {
+    "defaultListLimit": { "type": "integer", "minimum": 1, "maximum": 500, "default": 100 },
+    "maxRetries": { "type": "integer", "minimum": 0, "maximum": 10, "default": 3 }
+  },
+  "additionalProperties": false
+}

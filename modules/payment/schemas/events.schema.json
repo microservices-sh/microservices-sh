@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Payment Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": ["payment.checkout_created", "payment.succeeded", "payment.refunded", "payment.failed"]
+    },
+    "entityType": { "type": "string", "const": "payment" }
+  },
+  "required": ["eventName", "entityType"]
+}

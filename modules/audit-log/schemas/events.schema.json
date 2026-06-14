@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Audit Log Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": ["audit.recorded", "audit.exported"]
+    },
+    "entityType": {
+      "type": "string",
+      "const": "audit"
+    }
+  },
+  "required": ["eventName", "entityType"]
+}

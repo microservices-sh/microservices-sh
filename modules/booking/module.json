@@ -19,9 +19,14 @@
   ],
   "permissions": ["booking.read", "booking.write", "booking.admin"],
   "requires": ["customer"],
-  "optional": ["auth", "audit-log", "payment-stripe", "email"],
+  "optional": ["auth", "audit-log", "payment", "email"],
   "hooks": ["calculateAvailability", "beforeBookingCreate", "afterBookingConfirmed", "beforeBookingCancel"],
   "events": ["booking.created", "booking.confirmed", "booking.cancelled"],
+  "rpc": [
+    { "method": "listBookings", "scope": "booking.read", "public": false },
+    { "method": "getBooking", "scope": "booking.read", "public": false },
+    { "method": "getAvailability", "scope": "booking.read", "public": false }
+  ],
   "customization": {
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]

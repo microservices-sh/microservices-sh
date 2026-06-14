@@ -124,7 +124,6 @@ Response:
 | `booking.confirmed` | Send confirmation email. |
 | `booking.cancelled` | Send cancellation email. |
 | `payment.succeeded` | Send receipt email. |
-| `auth.user_created` | Send welcome or verification email if enabled. |
 
 ## Hooks
 

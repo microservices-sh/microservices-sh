@@ -819,7 +819,7 @@ function templateScaffoldFiles({ id, name, summary, category, framework, moduleI
     },
     modules: {
       required: moduleIds,
-      optional: ["auth", "audit-log", "payment-stripe", "email"]
+      optional: ["auth", "audit-log", "payment", "email"]
     },
     slots: {},
     sourcePolicy: {
