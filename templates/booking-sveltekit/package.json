@@ -14,9 +14,9 @@
     "check:spec": "node ../../packages/workspace-tools/src/index.js check template --path .",
     "setup:local": "node scripts/microservices.js local setup",
     "db:migrate:local": "node scripts/microservices.js local migrate",
-    "db:migrate:preview": "node scripts/microservices.js preview migrate --confirm migrate",
-    "deploy:preview:dry-run": "node scripts/microservices.js preview deploy --dry-run",
-    "deploy:preview": "node scripts/microservices.js preview deploy --confirm deploy",
+    "deploy:preview:plan": "node scripts/microservices.js deploy preview --plan",
+    "deploy:preview:dry-run": "node scripts/microservices.js deploy preview --plan",
+    "deploy:preview": "node scripts/microservices.js deploy preview --confirm deploy",
     "smoke:http": "node scripts/microservices.js preview smoke",
     "smoke:local": "node scripts/microservices.js local smoke",
     "microservices": "node scripts/microservices.js"

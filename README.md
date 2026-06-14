@@ -86,7 +86,7 @@ pnpm microservices deploy provision <deployment-id> --plan
 pnpm microservices deploy provision <deployment-id> --confirm provision
 pnpm microservices deploy upload-plan <deployment-id>
 pnpm microservices deploy status <deployment-id>
-pnpm microservices preview smoke --url https://<worker-url>
+pnpm microservices preview smoke --url <preview-url>
 ```
 
 The generated app is ready for local testing now. End-to-end managed preview remains gated by the hosted control-plane upload adapter; `deploy upload-plan <deployment-id>` reports the current readiness/blockers.

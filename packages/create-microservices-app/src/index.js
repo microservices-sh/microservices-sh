@@ -513,6 +513,7 @@ function nextCommands(packageManager, appName, installed, planOnlyModules = [], 
   const isSvelteKitTemplate = templateId === "booking-sveltekit";
   const microservices = (args) => packageScriptCommand(packageManager, "microservices", args);
   const localSetup = isSvelteKitTemplate ? [microservices(["local", "setup"])] : [];
+  const deployPlan = isSvelteKitTemplate ? [microservices(["deploy", "preview", "--plan"])] : [];
   const devCommand = packageScriptCommand(packageManager, "dev");
   return [
     `cd ${appName}`,
@@ -523,6 +524,7 @@ function nextCommands(packageManager, appName, installed, planOnlyModules = [], 
     microservices(["upgrade", "booking", "--plan", "--json"]),
     microservices(["check", "--json"]),
     ...localSetup,
+    ...deployPlan,
     devCommand,
   ].filter(Boolean);
 }

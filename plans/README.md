@@ -26,6 +26,10 @@ This directory contains the actionable plan for starting the microservices.sh MV
 21. `20-cli-first-create-app-strategy.md` - updated activation strategy: create package first, project CLI second, MCP parity after the CLI/create flow is credible.
 22. `../docs/templates/template-spec-standard.md` - standard for predefined repo-style templates.
 23. `../docs/templates/booking-sveltekit.md` - full Cloudflare SvelteKit booking app template spec and current shell.
+24. `21-auth-first-account-and-cli-plan.md` - auth-first implementation plan for user/workspace identity, portal sessions, scoped CLI/API keys, and device login.
+25. `22-product-billing-cli-admin-portal.md` - product billing implementation plan for Stripe Checkout, webhooks, admin billing, CLI billing commands, and entitlements.
+26. `23-auth-billing-plan-review.md` - consolidated review of auth and billing plans, including blocking issues and remediation order.
+27. `24-service-topology-and-auth-comms.md` - service-scoped D1, embedded/service deploy modes, and auth-gated inter-service communication (service bindings + short-lived JWT + signed queue events).
 
 ## Core Decision
 The MVP is good enough to start if it remains narrow:
@@ -46,6 +50,7 @@ The MVP is good enough to start if it remains narrow:
 - Trust model: users own source code by default; microservices.sh proposes changes, runs checks, manages previews, and gates production side effects.
 - Template model: predefined repo-style templates are allowed after the core module/update flow is stable, but each template must remain module-backed, source-visible, LLM-documented, and upgrade-plan aware.
 - Template repo model: official templates live under `templates/*` in this repo for now; each template is self-contained so it can be split or published later.
+- Auth-first prerequisite: before billing, implement real user/workspace identity, D1-backed API keys, and secure portal sessions. Static bearer-token auth is only an internal bootstrap.
 
 ## Immediate Next Actions
 1. Finish the fake-door landing page funnel and waitlist analytics.
@@ -65,3 +70,6 @@ The MVP is good enough to start if it remains narrow:
 15. Add CLI/MCP doc tools before publishing to MCP directories.
 16. Do not treat MCP directories as the first activation path; use them as discovery after the create flow works.
 17. Use `docs/templates/template-spec-standard.md`, `docs/templates/booking-sveltekit.md`, and `templates/booking-sveltekit` before extending the first full SvelteKit booking template.
+18. Continue Phase 24 in `../task_plan.md`: add the remote D1 migration/backfill, first-owner API-key bootstrap, CLI profiles, portal sessions, and isolation tests.
+19. Keep `21-auth-first-account-and-cli-plan.md` as the auth source of truth before product billing, so Stripe subscriptions can attach to trusted workspaces and deploy entitlements.
+20. Do not start `22-product-billing-cli-admin-portal.md` implementation until the remaining auth migration, bootstrap, CLI, portal, and cross-workspace test gates are complete.

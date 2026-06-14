@@ -35,6 +35,10 @@
 - The source-code ownership default should be user-owned repos with branch/PR or patch workflows. microservices.sh can manage previews and approval gates without hiding source.
 - The managed Cloudflare MVP namespace for generated app Workers is `microservices-sh`, used as the Workers for Platforms dispatch namespace.
 - The create-app path is now scaffolded locally with `packages/create-microservices-app`, generated module docs, a project CLI, and update status checks. The create package now bundles the internal generator into `dist/index.js`, so the packed tarball has no runtime dependency on workspace-only `@microservices-sh/sdk-internal`.
+- Current CLI auth is only a static bearer-token bootstrap: `auth login --api-key` stores a local key and the API validates it against Worker env vars.
+- Real product billing should not be added before auth. Stripe customers, subscriptions, and deploy entitlements need reliable `workspaceId`, `ownerUserId`, `ownerEmail`, and scoped CLI/API identity.
+- For this use case, opaque D1-backed portal sessions plus workspace-scoped D1 API keys fit better than long-lived JWT-first auth. JWTs can be added later only as short-lived access tokens if stateless API calls become necessary.
+- The first API auth slice now establishes D1 auth tables, workspace-scoped API-key identity, internal static-key compatibility under `ws_internal`, workspace-scoped control-plane queries, and MCP identity propagation. Billing is still blocked until remote D1 migration/backfill, first-owner key bootstrap, CLI profiles, portal sessions, and cross-workspace tests are complete.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -56,6 +60,9 @@
 | Use folder-level barrel exports | Keeps module import paths stable for agents while allowing implementation files to grow. |
 | Use full provider modules for third-party SaaS | Makes integrations valuable because they include business workflow logic, not just credentials. |
 | Use `microservices-sh` as the managed dispatch namespace | Gives the Cloudflare preview adapter a concrete Workers for Platforms target. |
+| Implement auth before billing | Payment state must attach to a trusted workspace and owner before it can unlock deploy/provision/domain entitlements. |
+| Use D1-backed API keys for CLI/MCP | Agents, CI, and terminal workflows need stable revocable credentials with scopes, prefixes, and workspace context. |
+| Use opaque server-side sessions for the admin portal | Sessions stored as D1 hashes can be revoked and rotated; secure HttpOnly cookies avoid browser token storage. |
 
 ## Issues Encountered
 | Issue | Resolution |
@@ -89,6 +96,9 @@
 - Hono Cloudflare Workers guide: https://hono.dev/docs/getting-started/cloudflare-workers
 - MCP transports: https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
 - MCP debugging and local stdio setup guidance: https://modelcontextprotocol.io/docs/tools/debugging
+- OWASP Authentication Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
+- OWASP Session Management Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
+- OAuth 2.0 Device Authorization Grant, RFC 8628: https://www.rfc-editor.org/rfc/rfc8628
 
 ## Visual/Browser Findings
 - Cloudflare Workers for Platforms docs state that it is for multi-tenant platforms running untrusted customer or AI-generated code in secure isolated sandboxes.

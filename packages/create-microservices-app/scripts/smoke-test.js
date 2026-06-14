@@ -148,15 +148,24 @@ try {
     throw new Error("SvelteKit generated app should route local setup, migration, dev, and smoke scripts through the project CLI.");
   }
   if (
-    sveltePackage.scripts?.["deploy:preview:dry-run"] !== "node scripts/microservices.js preview deploy --dry-run" ||
-    sveltePackage.scripts?.["deploy:preview"] !== "node scripts/microservices.js preview deploy --confirm deploy" ||
-    sveltePackage.scripts?.["db:migrate:preview"] !== "node scripts/microservices.js preview migrate --confirm migrate"
+    sveltePackage.scripts?.["deploy:preview:plan"] !== "node scripts/microservices.js deploy preview --plan" ||
+    sveltePackage.scripts?.["deploy:preview:dry-run"] !== "node scripts/microservices.js deploy preview --plan" ||
+    sveltePackage.scripts?.["deploy:preview"] !== "node scripts/microservices.js deploy preview --confirm deploy" ||
+    "provision:preview" in sveltePackage.scripts ||
+    "db:migrate:preview" in sveltePackage.scripts
   ) {
-    throw new Error("SvelteKit generated app should route preview deploy and remote migration scripts through the project CLI.");
+    throw new Error("SvelteKit generated app should route managed preview deploy scripts through the project CLI without local remote migration/provision scripts.");
   }
   const svelteCli = readFileSync(join(svelteRoot, "scripts", "microservices.js"), "utf8");
-  if (!svelteCli.includes("\"DB\", \"--local\"") || !svelteCli.includes("microservices local setup") || !svelteCli.includes("preview bind --d1-id <id> --kv-id <id>")) {
-    throw new Error("SvelteKit generated app CLI should own D1 migration and preview binding commands.");
+  if (
+    !svelteCli.includes("\"DB\", \"--local\"") ||
+    !svelteCli.includes("microservices local setup") ||
+    !svelteCli.includes("deploy preview --confirm deploy") ||
+    !svelteCli.includes("/deployments/preview") ||
+    svelteCli.includes("wrangler whoami") ||
+    svelteCli.includes("preview bind --d1-id <id> --kv-id <id>")
+  ) {
+    throw new Error("SvelteKit generated app CLI should keep local D1 setup but proxy preview deployment to the control-plane API.");
   }
   if (svelteBookingPackage.dependencies?.["@microservices-sh/customer"] !== "file:../customer") {
     throw new Error("Embedded booking module should depend on local customer module source.");

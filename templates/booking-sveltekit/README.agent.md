@@ -14,7 +14,9 @@ pnpm microservices check --json
 pnpm microservices local setup
 pnpm dev
 pnpm microservices local smoke
-pnpm microservices preview deploy --dry-run
+pnpm microservices auth status
+pnpm microservices deploy doctor
+pnpm microservices deploy preview --plan
 ```
 
 ## Rules
@@ -26,8 +28,9 @@ pnpm microservices preview deploy --dry-run
 5. Put Cloudflare/D1/provider details behind module adapters.
 6. Prefer config, then hooks, then overlays, then forks.
 7. Do not request or print secret values.
-8. Ask for approval before provider modules, remote migrations, webhooks, remote resources, preview deploy, or production deploy.
-9. Before preview deploy, run `pnpm microservices preview doctor` and verify `wrangler.jsonc` has real D1 and KV ids instead of `REPLACE_WITH_*` placeholders.
+8. Ask for approval before provider modules, webhooks, managed remote resources, preview deploy, or production deploy.
+9. Do not ask template users to run `wrangler login`, create D1/KV resources, or paste Cloudflare resource ids for managed preview.
+10. Before managed preview, run `pnpm microservices auth login`, `pnpm microservices deploy doctor`, and `pnpm microservices deploy preview --plan`; use `--confirm deploy` and `--confirm provision` only after approval.
 
 ## Current Status
 
@@ -36,6 +39,6 @@ The template now has a minimal runnable SvelteKit app shell, prebuilt booking/cu
 Still pending before this is a full beta template:
 
 - browser screenshot checks for desktop and mobile
-- real Cloudflare preview deploy against provisioned D1/KV resources
+- hosted Worker upload in the control-plane API; D1/KV provisioning can be driven by API once a deployment id exists
 - hardened auth/gateway/audit onboarding docs
 - Stripe and email provider modules behind approval gates

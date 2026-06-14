@@ -55,18 +55,21 @@ pnpm dev -- --port 5175
 pnpm microservices local smoke --url http://127.0.0.1:5175
 ```
 
-The generated SvelteKit app also includes approval-gated preview deployment commands:
+The generated SvelteKit app also includes approval-gated managed preview commands. These proxy to the microservices.sh API; they do not require users to run `wrangler login`, create D1/KV resources, or paste Cloudflare ids.
 
 ```bash
-pnpm microservices preview bind --d1-id <database-id> --kv-id <namespace-id>
-pnpm microservices preview doctor
-pnpm microservices preview deploy --dry-run
-pnpm microservices preview migrate --confirm migrate
-pnpm microservices preview deploy --confirm deploy
-pnpm microservices preview smoke --url https://<worker-url>
+pnpm microservices auth login
+pnpm microservices deploy doctor
+pnpm microservices deploy preview --plan
+pnpm microservices deploy preview --confirm deploy
+pnpm microservices deploy provision <deployment-id> --plan
+pnpm microservices deploy provision <deployment-id> --confirm provision
+pnpm microservices deploy upload-plan <deployment-id>
+pnpm microservices deploy status <deployment-id>
+pnpm microservices preview smoke --url <preview-url>
 ```
 
-Remote D1 migrations and preview deploys require explicit approval and real Cloudflare resource IDs in `wrangler.jsonc`. Use `microservices preview bind` to update those ids. The create CLI patches the generated Worker name to the app slug so multiple generated apps do not deploy under the fixed template name.
+Remote deployment preparation and resource provisioning require explicit approval. The control-plane API owns remote state and resource ids; the generated `wrangler.jsonc` remains a local-dev config. Hosted Worker upload is still an API-side blocker surfaced by `microservices deploy upload-plan <deployment-id>`, so the template is ready for local testing before it is ready for full managed preview testing.
 
 Interactive setup asks for project name, template, extra modules, an optional Git remote, and package manager. Template, module, and package-manager prompts show numbered choices and accept either numbers or ids; enter nothing or `none` for template defaults. Available modules are generated immediately; planned modules are returned as follow-up `add --plan` commands. Local generation still works without login.
 
