@@ -9,7 +9,8 @@ layer; it does **not** replace the token/JWKS/scope substrate. See
 | Part | State |
 |---|---|
 | **Token bridge** (`rolesToScopes` → `mintSessionToken` → `verifyToken`) | ✅ **Proven** — `tests/bridge.test.ts`, 4/4 against the real `@microservices-sh/auth` (admin→`gateway.admin`, non-admin fails closed, cross-tenant token rejected) |
-| Better Auth config / session / schema | 📝 Code-complete, **not yet installed/booted** — needs `pnpm install` (adds `better-auth`, `drizzle-orm`) + the D1 migration |
+| Better Auth runtime (signup → session → `IdentityUser`) | ✅ **Runtime-validated in isolation** (2026-06-15) — real `better-auth` + drizzle on sqlite: signup → session cookie → `getSession` resolves `isAdmin`, no-cookie → null (fails closed), resolved shape == the `IdentityUser` the bridge consumes. Harness mirrors `better-auth.ts`/`session.ts`/`schema.ts` 1:1. Not run in-repo (avoids dragging `better-auth`'s zod 4 peer into this zod 3 monorepo). |
+| Workspace install / template boot | 📝 Gated — needs a `better-auth` version pinned for the consuming app + dev-DB strategy (see plans/26 §9–10) |
 | Canonical credential model (email/password vs passwordless email-code) | ⛔ **Blocked on Plan 26 §10.1 decision** — prototype defaults to email/password |
 | Template wiring (booking) | 📝 Ready-to-apply below — intentionally NOT applied to the live template (importing an uninstalled module would break the published build) |
 
