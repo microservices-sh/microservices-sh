@@ -9,7 +9,8 @@
     "./bridge": "./src/bridge.ts",
     "./session": "./src/session.ts",
     "./ports": "./src/ports.ts",
-    "./adapters/memory": "./src/adapters/memory.ts"
+    "./adapters/memory": "./src/adapters/memory.ts",
+    "./adapters/d1": "./src/adapters/d1.ts"
   },
   "scripts": {
     "test": "vitest run",

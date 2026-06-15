@@ -17,7 +17,7 @@ short-lived scoped JWT minted via the auth module. See
 | Sessions (`readSession` / `destroySession` + cookie helpers) | ✅ Implemented + tested — opaque 256-bit id, 30-day rolling, fail-closed |
 | Token bridge (`mintSessionToken`) | ✅ Proven — admin → `gateway.admin` JWT, non-admin none, cross-tenant rejected |
 | In-memory adapters | ✅ For tests/dev |
-| **D1 adapters** | 📝 To do — mirror the memory adapters against `accounts` / `login_codes` / `sessions` tables (+ a migration) |
+| **D1 adapters + migration** | ✅ Implemented (`src/adapters/d1.ts`, `migrations/0001_identity.sql`) — typecheck-clean vs `D1Database`, mirror the memory semantics. Runtime-on-D1 validated at template-wiring boot (codebase convention — `auth` validates its D1 adapter the same way). |
 | **Template wiring** (booking `/login`, hooks, guard) | 📝 To do — see the guide below |
 
 Validate: `npx vitest run modules/identity/tests/` (**15/15**) · `npm run build` (typecheck, clean)

@@ -24,6 +24,11 @@ export {
   createMemoryLoginCodeStore,
   createMemorySessionStore,
 } from "./adapters/memory";
+export {
+  createD1AccountStore,
+  createD1LoginCodeStore,
+  createD1SessionStore,
+} from "./adapters/d1";
 
 export type { IdentityUser, Account, LoginCodeRecord, SessionRecord } from "./types";
 export * as config from "./config";
