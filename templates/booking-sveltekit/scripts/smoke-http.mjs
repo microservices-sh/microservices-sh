@@ -156,6 +156,41 @@ async function main() {
   assertIncludes("admin customer detail", customerDetail.text, booking.customerId);
   checks.push({ id: "route:/admin/customers/[id]", status: "pass" });
 
+  // Passwordless login (@microservices-sh/identity): the live HTTP flow through the
+  // route + hooks + D1 (request a code, reject a wrong one, verify the real one, get a
+  // session cookie). Exercises the identity adapters end-to-end against the local D1.
+  const loginEmail = `smoke-login-${Date.now()}@example.com`;
+  const loginPost = (body) =>
+    fetchText("/api/login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+  const requested = await loginPost({ action: "request", email: loginEmail });
+  const requestedJson = JSON.parse(requested.text);
+  if (requested.response.status !== 200 || !requestedJson.ok || !requestedJson.devCode) {
+    throw new Error(`login request failed: ${requested.response.status} ${requested.text.slice(0, 200)}`);
+  }
+  checks.push({ id: "api:/api/login:request", status: "pass" });
+
+  const wrongCode = await loginPost({ action: "verify", email: loginEmail, code: "000000" });
+  if (wrongCode.response.status !== 401) {
+    throw new Error(`login wrong code expected 401, got ${wrongCode.response.status}`);
+  }
+  checks.push({ id: "api:/api/login:wrong-code-401", status: "pass" });
+
+  const verified = await loginPost({ action: "verify", email: loginEmail, code: requestedJson.devCode });
+  const verifiedJson = JSON.parse(verified.text);
+  if (verified.response.status !== 200 || !verifiedJson.ok || verifiedJson.user?.email !== loginEmail) {
+    throw new Error(`login verify failed: ${verified.response.status} ${verified.text.slice(0, 200)}`);
+  }
+  const setCookie = verified.response.headers.get("set-cookie") ?? "";
+  if (!setCookie.includes("msh_session=") || !/httponly/i.test(setCookie)) {
+    throw new Error(`login verify did not set an httpOnly msh_session cookie: ${setCookie.slice(0, 120)}`);
+  }
+  checks.push({ id: "api:/api/login:verify-session-cookie", status: "pass" });
+
   printResult(booking, checks);
 }
 
