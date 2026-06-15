@@ -10,14 +10,18 @@ const internalAliases = new Map([
   ["@microservices-sh/module-contract", resolve(repoRoot, "packages/module-contract/src/index.js")],
 ]);
 
-const REPO_TEMPLATES = ["booking-sveltekit", "company-landing-astro"];
+const REPO_TEMPLATES = ["booking-sveltekit", "company-landing-astro", "saas-starter-sveltekit", "client-portal-sveltekit"];
 const REPO_TEMPLATE_MODULES = {
   "booking-sveltekit": ["gateway", "auth", "customer", "booking", "audit-log", "email", "payment"],
   "company-landing-astro": [],
+  "saas-starter-sveltekit": ["auth", "org-team-rbac", "billing-subscriptions", "admin-shell", "audit-log"],
+  "client-portal-sveltekit": ["auth", "customer", "invoice", "file-media", "audit-log"],
 };
 const REPO_TEMPLATE_PACKAGES = {
   "booking-sveltekit": ["connection-contract"],
   "company-landing-astro": [],
+  "saas-starter-sveltekit": ["connection-contract"],
+  "client-portal-sveltekit": ["connection-contract"],
 };
 const TEMPLATE_IGNORE = new Set(["node_modules", ".svelte-kit", ".astro", ".wrangler", "dist", ".DS_Store", ".git"]);
 

@@ -9,7 +9,7 @@ import { generateProject, listModuleDocs, listModules, listTemplates } from "@mi
 import { loadFrameworks, resolveFramework, buildC3Command, applyFrameworkHook, frameworkNextSteps } from "./framework-starter.js";
 import { track, telemetryNotice } from "./telemetry.js";
 
-const PACKAGE_VERSION = "0.2.5";
+const PACKAGE_VERSION = "0.2.6";
 const USER_CWD = process.env.INIT_CWD || process.cwd();
 
 // Repo-style templates bundled into the package (see scripts/build.js). These
@@ -28,8 +28,20 @@ const REPO_TEMPLATES = {
     status: "ready",
     summary: "Static editorial company landing page on Astro — refined light design, content-driven, no backend modules.",
   },
+  "saas-starter-sveltekit": {
+    id: "saas-starter-sveltekit",
+    name: "SaaS Starter SvelteKit",
+    status: "ready",
+    summary: "Multi-tenant B2B SaaS starter on Cloudflare SvelteKit — org sign-up, team RBAC, subscriptions, admin, audit log.",
+  },
+  "client-portal-sveltekit": {
+    id: "client-portal-sveltekit",
+    name: "Client Portal SvelteKit",
+    status: "ready",
+    summary: "Cloudflare SvelteKit client portal — customers see their own invoices and files, with auth, customer, and audit-log.",
+  },
 };
-const BUNDLED_MODULES = ["audit-log", "auth", "booking", "customer", "email", "gateway", "payment"];
+const BUNDLED_MODULES = ["admin-shell", "audit-log", "auth", "billing-subscriptions", "booking", "customer", "email", "file-media", "gateway", "invoice", "org-team-rbac", "payment"];
 const BUNDLED_PACKAGES = new Map([
   ["@microservices-sh/connection-contract", "connection-contract"],
 ]);
