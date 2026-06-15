@@ -30,7 +30,6 @@
       "payment",
       "email",
       "admin-shell",
-      "analytics",
       "webhook-delivery"
     ]
   },
@@ -81,13 +80,6 @@
       "activeModule": null,
       "allowedModules": [
         "admin-shell"
-      ],
-      "approvalRisk": "medium"
-    },
-    "analytics": {
-      "activeModule": null,
-      "allowedModules": [
-        "analytics"
       ],
       "approvalRisk": "medium"
     }
