@@ -153,11 +153,22 @@ Sequence **after** Plan 25's auth+payment reference migration to avoid contract 
   - **Clean fix (verified):** bump the templates'/modules' drizzle to **`drizzle-orm ^0.45.2 +
     drizzle-kit ^0.31.4`** → `npm i better-auth` installs with **no ERESOLVE, no `--legacy-peer-deps`**,
     and the existing Drizzle code **still builds** (booking template, vite build green on 0.45).
-  - So: **do NOT** rely on `--legacy-peer-deps` (it leaves better-auth on drizzle 0.41, an
-    unverified runtime mismatch) and **do NOT** migrate zod. Just align drizzle to 0.45/0.31.
-  - `@microservices-sh/identity` still does not declare `better-auth`/`drizzle-orm` — the app
-    installs them — but the app's drizzle pin must be ≥0.45. Caveat: build ≠ full runtime; smoke
-    the booking template's Drizzle queries on 0.45 (low risk — minor bump, typecheck passed).
+  - So for drizzle: align to `drizzle-orm ^0.45.2 + drizzle-kit ^0.31.4`; don't use `--legacy-peer-deps`.
+  - ⚠️ **CORRECTION (spike #3, same day) — zod coexistence does NOT hold at runtime.** The "zod 3+4
+    coexist, builds fine" note above is true for *install/build only*. When better-auth's code
+    actually **runs**, npm hoists the app's **zod 3** (pulled in by the vendored modules) and
+    better-auth's deduped subdeps resolve to it → build crashes with
+    **`z.coerce.boolean(...).meta is not a function`** (`.meta()` is a zod-4 API). The reference app
+    avoids this by being **entirely on `zod ^4.2.1`**. Forcing the app to zod 4 (npm `overrides`)
+    makes it **build clean** — better-auth *and* the vendored zod-3 modules both compile on zod 4
+    (verified) — but runtime parity was **not** confirmed (dev servers wouldn't boot in the spike
+    sandbox after many runs).
+  - **Real conclusion:** adopting Better Auth **requires migrating the microservices modules to
+    zod 4** (not just a drizzle bump). zod 3→4 has breaking changes and the modules are zod-heavy
+    (and mid Plan-25 contract migration), so this is a **significant, breaking, monorepo-wide
+    decision** — materially larger than first assessed. It also re-opens build-vs-buy: the original
+    "dogfood `@microservices-sh/auth` (zod 3, no Better Auth)" option avoids the zod-4 migration
+    entirely. Weigh Better Auth's completeness against a forced zod-4 migration before committing.
 - **Third auth flavor risk.** Must *settle* the credential model, not add a third. Tie to the
   api/web-portal reconciliation.
 - **Plan 25 timing.** Identity declares a `connections` manifest; land it after the contract
