@@ -19,7 +19,13 @@ function stableWiring(graph) {
   );
   const hooks = {};
   for (const key of Object.keys(graph.hookChains).sort()) {
-    hooks[key] = [...graph.hookChains[key]].sort((a, b) => a.order - b.order);
+    hooks[key] = [...graph.hookChains[key]]
+      .sort((a, b) => a.order - b.order)
+      // attach the hook point's kind so downstream codegen needs only `wiring`.
+      .map((link) => ({
+        ...link,
+        kind: graph.hookPointsByModule[link.targetModule]?.[link.point]?.kind ?? null,
+      }));
   }
   return {
     modules: [...graph.moduleIds].sort(),

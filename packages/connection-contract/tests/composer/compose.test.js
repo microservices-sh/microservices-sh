@@ -32,6 +32,7 @@ describe("compose", () => {
       expect.objectContaining({ event: "payment.succeeded", from: "payment", to: "booking" })
     );
     expect(r.wiring.hooks["auth.beforeMint"][0].registrant).toBe("payment");
+    expect(r.wiring.hooks["auth.beforeMint"][0].kind).toBe("filter");
   });
 
   it("returns issues + no wiring when a rule fails", () => {
