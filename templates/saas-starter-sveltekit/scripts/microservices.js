@@ -22,6 +22,53 @@ const DEFAULT_CONFIG_PATH = process.env.MICROSERVICES_CONFIG_PATH
   : join(process.env.MICROSERVICES_CONFIG_DIR || join(homedir(), ".microservices"), "config.json");
 const IGNORE = new Set(["node_modules", "dist", ".svelte-kit", ".wrangler", ".git"]);
 
+// Runs the app's static contract spec (microservices.check.mjs) in a child process.
+// Keeps `check` fast (no server, no build) while verifying that generated routes stay
+// thin adapters over the verified modules instead of local reimplementations.
+const CONTRACT_RUNNER = `import { pathToFileURL } from "node:url";
+import { existsSync, readFileSync } from "node:fs";
+const specPath = process.argv[2];
+const results = [];
+let n = 0;
+const readSafe = (p) => { try { return readFileSync(p, "utf8"); } catch { return null; } };
+const record = (ok, message, id) => results.push(ok
+  ? { id: id || ("spec:" + (++n)), status: "pass" }
+  : { id: id || ("spec:" + (++n)), status: "fail", message });
+const exists = (p) => existsSync(p);
+const assert = (cond, message, id) => record(Boolean(cond), message, id);
+const assertFileIncludes = (p, expected, message) => record(((t) => t !== null && t.includes(expected))(readSafe(p)), message, "spec:" + p);
+const assertFileIncludesAll = (p, items, message) => record(((t) => t !== null && items.every((s) => t.includes(s)))(readSafe(p)), message, "spec:" + p);
+try {
+  const mod = await import(pathToFileURL(specPath).href);
+  if (typeof mod.default === "function") {
+    await mod.default({ assert, assertFileIncludes, assertFileIncludesAll, exists });
+  }
+} catch (error) {
+  results.push({ id: "spec:contract", status: "fail", message: "contract check threw: " + (error && error.message ? error.message : String(error)) });
+}
+process.stdout.write(JSON.stringify(results));
+`;
+
+function runContractChecks() {
+  const specPath = resolve(process.cwd(), "microservices.check.mjs");
+  if (!existsSync(specPath)) return [];
+  const tmp = mkdtempSync(join(tmpdir(), "msh-spec-"));
+  const runnerPath = join(tmp, "run.mjs");
+  try {
+    writeFileSync(runnerPath, CONTRACT_RUNNER, "utf8");
+    const run = spawnSync(process.execPath, [runnerPath, specPath], { encoding: "utf8" });
+    if (run.status !== 0 || !run.stdout) {
+      const detail = ((run.stderr || "").trim() || "contract check runner failed").slice(0, 240);
+      return [{ id: "spec:contract", status: "fail", message: detail }];
+    }
+    return JSON.parse(run.stdout);
+  } catch (error) {
+    return [{ id: "spec:contract", status: "fail", message: String((error && error.message) || error).slice(0, 240) }];
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
 function readJson(path, fallback = null) {
   if (!existsSync(path)) return fallback;
   return JSON.parse(readFileSync(path, "utf8"));
@@ -336,7 +383,8 @@ function checkResponse() {
     { id: "api-boundary", status: existsSync("docs/api-boundary.md") ? "pass" : "fail" },
     { id: "wrangler-config", status: existsSync("wrangler.jsonc") ? "pass" : "fail" },
     { id: "migrations", status: existsSync("migrations/0001_core.sql") ? "pass" : "fail" },
-    { id: "http-smoke", status: existsSync("scripts/smoke-http.mjs") ? "pass" : "fail" }
+    { id: "http-smoke", status: existsSync("scripts/smoke-http.mjs") ? "pass" : "fail" },
+    ...runContractChecks()
   ];
   const failed = checks.filter((check) => check.status === "fail");
   return {
