@@ -17,8 +17,8 @@ short-lived scoped JWT minted via the auth module. See
 | Sessions (`readSession` / `destroySession` + cookie helpers) | ✅ Implemented + tested — opaque 256-bit id, 30-day rolling, fail-closed |
 | Token bridge (`mintSessionToken`) | ✅ Proven — admin → `gateway.admin` JWT, non-admin none, cross-tenant rejected |
 | In-memory adapters | ✅ For tests/dev |
-| **D1 adapters + migration** | ✅ Implemented (`src/adapters/d1.ts`, `migrations/0001_identity.sql`) — typecheck-clean vs `D1Database`, mirror the memory semantics. Runtime-on-D1 validated at template-wiring boot (codebase convention — `auth` validates its D1 adapter the same way). |
-| **Template wiring** (booking `/login`, hooks, guard) | 📝 To do — see the guide below |
+| **D1 adapters + migration** | ✅ Implemented + **runtime-validated against a real local D1** — 8/8 e2e via wranglers getPlatformProxy (request→verify→session→readSession, attempts/single-use/roles/fail-closed all on real D1). |
+| **Template wiring** (booking `/login`, hooks, guard) | ✅ Landed in `booking-sveltekit` — `/login` page + `/api/login` (emails the code), hooks `readSession`, migration, create-app vendoring. Generated app builds clean; live HTTP login e2e runs in CI (sandbox dev server unbootable). |
 
 Validate: `npx vitest run modules/identity/tests/` (**15/15**) · `npm run build` (typecheck, clean)
 
