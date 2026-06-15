@@ -137,6 +137,13 @@ Sequence **after** Plan 25's auth+payment reference migration to avoid contract 
   positive (depth > NIH).
 - **Workers/D1 compatibility.** Better Auth runs on Workers (reference proves it), but pin a
   known-good version and smoke it under Miniflare + real dispatch.
+- **Dev DB is a non-issue (spiked 2026-06-15).** Earlier worry was "template `local dev` (vite)
+  has no D1, so Better Auth can't run in the dev loop." **Wrong** — `vite dev` already exposes a
+  working local D1 via `@sveltejs/adapter-cloudflare`: a generated booking app reports
+  `platform.env.DB present: true` in vanilla `vite dev` and does real D1 **read + write** (verified:
+  queried availability, created a booking). So no `getPlatformProxy` wiring and no dev-sqlite are
+  needed — Better Auth uses the same local D1 as the modules; just apply its migrations with
+  `wrangler d1 migrations apply DB --local`. Dev == prod for the auth DB already.
 - **Dependency conflict (found 2026-06-15, spiked in a generated app).** `better-auth@1.6.18`
   peers on **drizzle-orm ^0.45 / drizzle-kit ^0.31 / zod ^4**. Spike findings:
   - The **hard blocker is drizzle, not zod.** A generated booking app ships drizzle-orm 0.41 /
