@@ -12,12 +12,28 @@ export interface RuntimeContract {
   bindings: string[];
 }
 
+// Nested connection surface (Plan 25 §6). Forward-compat: the canonical shape
+// modules move to. TODO(phase3): make this the source and derive the flat
+// eventsEmitted/eventsConsumed/hooks fields below from it, then remove them.
+export interface ModuleConnections {
+  requires: string[];
+  optional: string[];
+  rpc: {
+    exposes: Array<{ method: string; scope?: string | null; public: boolean; input?: string; output?: string }>;
+    calls: Array<{ target: string; scope?: string | null; input?: string }>;
+  };
+  events: { emits: string[]; consumes: string[] };
+  hookPoints: Record<string, { kind: "filter" | "guard" | "observer"; input?: string; output?: string; scope?: string | null }>;
+  provides: { hooks: Array<{ target: string; handler: string; order: number }> };
+}
+
 export interface ModuleContract {
   id: string;
   name: string;
   version: string;
   status: ModuleStatus;
-  category: "core" | "vertical" | "connector";
+  // "platform"/"sink"/"provider" appear in data today; reconcile to one enum in phase 3.
+  category: "core" | "vertical" | "connector" | "platform" | "sink" | "provider";
   summary: string;
   requires: string[];
   optional: string[];
@@ -27,6 +43,8 @@ export interface ModuleContract {
   eventsConsumed: string[];
   permissions: string[];
   hooks: ModuleHook[];
+  /** Nested connection surface; optional during the phase 2→3 migration window. */
+  connections?: ModuleConnections;
   customization: {
     config: string[];
     hooks: string[];
