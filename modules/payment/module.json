@@ -16,15 +16,29 @@
   "resources": [
     { "type": "d1", "binding": "DB", "tables": ["payments"] }
   ],
-  "permissions": ["payment.read", "payment.write", "payment.admin"],
-  "requires": ["auth", "customer"],
-  "optional": ["audit-log"],
+  "permissions": ["payment.read", "payment.write", "payment.admin", "payment.extend", "payment.observe"],
   "secrets": ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"],
-  "hooks": ["beforeCreatePaymentIntent", "afterPaymentSucceeded"],
-  "events": ["payment.checkout_created", "payment.succeeded", "payment.refunded", "payment.failed"],
-  "rpc": [
-    { "method": "createPaymentIntent", "scope": "payment.write", "public": false }
-  ],
+  "connections": {
+    "requires": ["auth", "customer"],
+    "optional": ["audit-log"],
+    "rpc": {
+      "exposes": [
+        { "method": "createPaymentIntent", "scope": "payment.write", "public": false }
+      ],
+      "calls": [
+        { "target": "auth.verifyToken", "scope": "auth.verify" }
+      ]
+    },
+    "events": {
+      "emits": ["payment.checkout_created", "payment.succeeded", "payment.refunded", "payment.failed"],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeCreatePaymentIntent": { "kind": "filter", "scope": "payment.extend" },
+      "afterPaymentSucceeded": { "kind": "observer", "scope": "payment.observe" }
+    },
+    "provides": { "hooks": [] }
+  },
   "customization": {
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]

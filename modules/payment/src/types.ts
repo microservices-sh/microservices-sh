@@ -35,5 +35,6 @@ export interface WebhookEvent {
 // A domain event the module emits.
 export interface DomainEvent {
   name: string;
+  correlationId?: string | null;
   payload: Record<string, unknown>;
 }
