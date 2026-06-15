@@ -9,7 +9,7 @@ import { generateProject, listModuleDocs, listModules, listTemplates } from "@mi
 import { loadFrameworks, resolveFramework, buildC3Command, applyFrameworkHook, frameworkNextSteps } from "./framework-starter.js";
 import { track, telemetryNotice } from "./telemetry.js";
 
-const PACKAGE_VERSION = "0.2.3";
+const PACKAGE_VERSION = "0.2.4";
 const USER_CWD = process.env.INIT_CWD || process.cwd();
 
 // Repo-style templates bundled into the package (see scripts/build.js). These

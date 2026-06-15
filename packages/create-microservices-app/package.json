@@ -1,6 +1,6 @@
 {
   "name": "create-microservices-app",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Create a microservices.sh Cloudflare-native app from verified modules.",
   "type": "module",
   "homepage": "https://microservices.sh",
