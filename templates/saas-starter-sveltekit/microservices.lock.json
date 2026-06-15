@@ -110,6 +110,30 @@
         "events": ["audit.recorded", "audit.exported"],
         "requires": []
       }
+    },
+    {
+      "id": "image-generation",
+      "version": "0.1.0",
+      "source": "registry:image-generation@0.1.0",
+      "checksum": "sha256:preview-image-generation-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/images",
+        "bindings": ["DB", "IMAGE_BUCKET"],
+        "resources": ["D1", "R2"],
+        "permissions": ["image.generate", "image.read", "image.admin", "image.extend", "image.observe"],
+        "rpc": [
+          { "method": "generateImage", "scope": "image.generate", "public": false },
+          { "method": "editImage", "scope": "image.generate", "public": false },
+          { "method": "listImages", "scope": "image.read", "public": false },
+          { "method": "getImage", "scope": "image.read", "public": false },
+          { "method": "deleteImage", "scope": "image.admin", "public": false }
+        ],
+        "hooks": ["beforeGenerate", "onImageGenerated"],
+        "events": ["image.generated", "image.edited", "image.deleted"],
+        "requires": []
+      }
     }
   ],
   "customizations": {

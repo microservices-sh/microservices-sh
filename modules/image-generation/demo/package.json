@@ -1,0 +1,16 @@
+{
+  "name": "@microservices-sh/image-generation-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone playground Worker for the image-generation module: enter an API key + prompt (+ optional reference image) and get a result.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.0.0"
+  }
+}

@@ -1,0 +1,20 @@
+# Image Generation Module
+
+Module ID: image-generation
+Status: available
+Class: provider
+Purpose: Text-to-image generation + editing across pluggable providers (kie.ai nano-banana, Gemini, GPT-image), R2-backed bytes with tenant-scoped keys, D1 gallery, configurable default provider + fallback.
+Entrypoint: src/index.ts
+
+RPC exposed: generateImage, editImage, listImages, getImage, deleteImage
+Events emitted: image.generated, image.edited, image.deleted
+Hook points: beforeGenerate (filter), onImageGenerated (observer)
+Resources: D1 DB (image_generations), R2 IMAGE_BUCKET
+Permissions: image.generate, image.read, image.admin, image.extend, image.observe
+
+Providers are wired by the host from API keys; only configured providers run.
+Selection: override -> defaultProvider -> fallbackOrder, advancing only on 429/5xx.
+
+Check: pnpm check:spec
+Build: pnpm build
+Test: pnpm test

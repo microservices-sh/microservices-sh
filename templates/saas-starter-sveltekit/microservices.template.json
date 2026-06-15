@@ -30,7 +30,8 @@
       "payment",
       "email",
       "webhook-delivery",
-      "notifications-inapp"
+      "notifications-inapp",
+      "image-generation"
     ]
   },
   "slots": {
@@ -82,6 +83,13 @@
         "email"
       ],
       "approvalRisk": "high"
+    },
+    "media": {
+      "activeModule": "image-generation",
+      "allowedModules": [
+        "image-generation"
+      ],
+      "approvalRisk": "medium"
     }
   },
   "sourcePolicy": {

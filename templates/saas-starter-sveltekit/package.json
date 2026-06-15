@@ -27,6 +27,7 @@
     "@microservices-sh/audit-log": "workspace:*",
     "@microservices-sh/auth": "workspace:*",
     "@microservices-sh/billing-subscriptions": "workspace:*",
+    "@microservices-sh/image-generation": "workspace:*",
     "@microservices-sh/org-team-rbac": "workspace:*",
     "@sveltejs/adapter-cloudflare": "^7.2.4",
     "@sveltejs/kit": "^2.9.0",

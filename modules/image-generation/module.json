@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "image-generation",
+  "name": "Image Generation",
+  "version": "0.1.0",
+  "status": "available",
+  "class": "provider",
+  "summary": "Text-to-image generation and editing across pluggable providers (kie.ai nano-banana, Gemini, GPT-image). R2-backed image bytes with tenant-scoped keys, D1 gallery metadata, configurable default provider + fallback.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    { "type": "d1", "binding": "DB", "tables": ["image_generations"] },
+    { "type": "r2", "binding": "IMAGE_BUCKET" }
+  ],
+  "permissions": ["image.generate", "image.read", "image.admin", "image.extend", "image.observe"],
+  "connections": {
+    "requires": [],
+    "optional": ["auth", "audit-log"],
+    "rpc": {
+      "exposes": [
+        { "method": "generateImage", "scope": "image.generate", "public": false },
+        { "method": "editImage", "scope": "image.generate", "public": false },
+        { "method": "listImages", "scope": "image.read", "public": false },
+        { "method": "getImage", "scope": "image.read", "public": false },
+        { "method": "deleteImage", "scope": "image.admin", "public": false }
+      ],
+      "calls": []
+    },
+    "events": {
+      "emits": ["image.generated", "image.edited", "image.deleted"],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeGenerate": { "kind": "filter", "scope": "image.extend" },
+      "onImageGenerated": { "kind": "observer", "scope": "image.observe" }
+    },
+    "provides": { "hooks": [] }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": ["migrations", "production-deploy", "external-side-effects"]
+  }
+}

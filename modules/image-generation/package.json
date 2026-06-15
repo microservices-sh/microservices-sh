@@ -1,0 +1,42 @@
+{
+  "name": "@microservices-sh/image-generation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Prebuilt microservices.sh image-generation module: text-to-image + edit across pluggable providers (kie.ai, Gemini, GPT-image), R2-backed bytes with tenant-scoped keys, D1 gallery, default provider + fallback.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./schemas": "./src/schemas.ts",
+    "./hooks": "./src/hooks.ts",
+    "./manifest": "./src/manifest/index.ts",
+    "./config": "./src/config/index.ts",
+    "./schema": "./src/schema/index.ts",
+    "./events": "./src/events/index.ts",
+    "./permissions": "./src/permissions/index.ts",
+    "./resources": "./src/resources/index.ts",
+    "./service": "./src/service/index.ts",
+    "./wiring": "./src/wiring.ts",
+    "./ports": "./src/ports/index.ts",
+    "./keys": "./src/keys.ts",
+    "./adapters/d1": "./src/adapters/d1-image-store.ts",
+    "./adapters/memory": "./src/adapters/memory-image-store.ts",
+    "./adapters/r2": "./src/adapters/r2-object-storage.ts",
+    "./adapters/kie-ai": "./src/adapters/kie-ai.ts",
+    "./adapters/gemini": "./src/adapters/gemini.ts",
+    "./adapters/gpt-image": "./src/adapters/gpt-image.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@microservices-sh/connection-contract": "workspace:*",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "typescript": "^5.9.3"
+  }
+}

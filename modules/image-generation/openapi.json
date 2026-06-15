@@ -1,0 +1,79 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Image Generation Module",
+    "version": "0.1.0",
+    "description": "Illustrative HTTP surface for the image-generation use-cases. Paths are mounted by the host template's route adapter; the module itself is framework-neutral. All responses use the { ok, data | error } Result envelope."
+  },
+  "paths": {
+    "/images": {
+      "get": {
+        "operationId": "listImages",
+        "summary": "List the tenant's images (newest first)",
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["active", "deleted"], "default": "active" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 500, "default": 100 } }
+        ],
+        "responses": { "200": { "description": "Image list" } }
+      },
+      "post": {
+        "operationId": "generateImage",
+        "summary": "Generate an image from a text prompt",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt"],
+                "properties": {
+                  "prompt": { "type": "string", "maxLength": 4000 },
+                  "aspectRatio": { "type": "string", "enum": ["1:1", "3:4", "4:3", "9:16", "16:9"], "default": "1:1" },
+                  "negativePrompt": { "type": "string", "maxLength": 2000 },
+                  "provider": { "type": "string", "enum": ["kie-ai", "gemini", "gpt-image"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Generated image record" }, "400": { "description": "Invalid input" }, "503": { "description": "No provider configured" } }
+      }
+    },
+    "/images/edit": {
+      "post": {
+        "operationId": "editImage",
+        "summary": "Edit an existing image into a new record",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["sourceImageId", "prompt"],
+                "properties": {
+                  "sourceImageId": { "type": "string" },
+                  "prompt": { "type": "string", "maxLength": 4000 },
+                  "provider": { "type": "string", "enum": ["kie-ai", "gemini", "gpt-image"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Edited image record" }, "404": { "description": "Source not found" } }
+      }
+    },
+    "/images/{imageId}": {
+      "parameters": [{ "name": "imageId", "in": "path", "required": true, "schema": { "type": "string" } }],
+      "get": {
+        "operationId": "getImage",
+        "summary": "Fetch a single image (owner only)",
+        "responses": { "200": { "description": "Image record" }, "404": { "description": "Not found" } }
+      },
+      "delete": {
+        "operationId": "deleteImage",
+        "summary": "Delete an image (owner only): removes R2 object + soft-deletes the record",
+        "responses": { "200": { "description": "Deleted" }, "404": { "description": "Not found" } }
+      }
+    }
+  }
+}

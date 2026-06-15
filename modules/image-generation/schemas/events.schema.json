@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Image Generation Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": ["image.generated", "image.edited", "image.deleted"]
+    },
+    "entityType": {
+      "type": "string",
+      "const": "image"
+    }
+  },
+  "required": ["eventName", "entityType"]
+}

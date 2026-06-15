@@ -19,6 +19,12 @@
       "migrations_dir": "migrations"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "IMAGE_BUCKET",
+      "bucket_name": "saas-starter-sveltekit-images"
+    }
+  ],
   "vars": {
     "MICROSERVICES_TEMPLATE_ID": "saas-starter-sveltekit"
   }

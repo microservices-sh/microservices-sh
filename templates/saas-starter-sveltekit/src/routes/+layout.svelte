@@ -17,6 +17,7 @@
     { href: "/app", label: "Dashboard" },
     { href: "/app/team", label: "Team" },
     { href: "/app/billing", label: "Billing" },
+    { href: "/app/images", label: "Image Studio" },
     { href: "/app/settings", label: "Settings" }
   ];
 

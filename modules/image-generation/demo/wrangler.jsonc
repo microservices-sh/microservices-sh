@@ -1,0 +1,6 @@
+{
+  "name": "image-generation-demo",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-05-28",
+  "compatibility_flags": ["nodejs_compat"]
+}
