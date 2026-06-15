@@ -55,3 +55,14 @@ export type JobResult = void | { ok: boolean; error?: string };
 
 // The work function an app supplies for a given job type. Framework-neutral.
 export type JobHandler = (payload: Record<string, unknown>, job: Job) => Promise<JobResult>;
+
+// A lifecycle event emitted by a use-case. Carries the correlationId from the
+// Result meta so downstream consumers can stitch the whole job trace together
+// (Plan 25 §4). `name` matches the manifest connections.events.emits set.
+export type JobEventName = "job.enqueued" | "job.succeeded" | "job.retried" | "job.dead" | "job.scheduled";
+
+export interface DomainEvent {
+  name: JobEventName;
+  correlationId: string;
+  payload: Record<string, unknown>;
+}

@@ -1,18 +1,24 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { listJobsFilterSchema } from "../schemas";
+import { jobsWorkflowsMeta } from "../meta";
 import type { JobStore } from "../ports";
 
 // Observability: list jobs by status/type, including the dead-letter view
 // (status: "dead"). Read-only.
-export async function listJobs(input: unknown, deps: { jobStore: JobStore }) {
+export async function listJobs(
+  input: unknown,
+  deps: { jobStore: JobStore; correlationId?: string }
+) {
+  const meta = jobsWorkflowsMeta(deps);
+
   const parsed = listJobsFilterSchema.safeParse(input ?? {});
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      data: null,
-      error: { code: "INVALID_FILTER", message: "List filter is invalid.", issues: parsed.error.issues }
-    };
+    return err(
+      400,
+      { code: "jobs-workflows.INVALID_FILTER", message: "List filter is invalid.", issues: parsed.error.issues },
+      meta
+    );
   }
   const jobs = await deps.jobStore.list(parsed.data);
-  return { ok: true as const, status: 200 as const, data: { jobs, count: jobs.length } };
+  return ok(200, { jobs, count: jobs.length }, meta);
 }

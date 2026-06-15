@@ -23,15 +23,17 @@ describe("jobs-workflows: enqueue idempotency", () => {
     const first = await enqueueJob({ type: "email", payload: { to: "a@b.c" }, idempotencyKey: "k1" }, deps);
     expect(first.ok).toBe(true);
     expect(first.status).toBe(201);
-    expect(first.data?.deduped).toBe(false);
-    const firstId = first.data?.id;
+    if (!first.ok) throw new Error("expected ok");
+    expect(first.data.deduped).toBe(false);
+    const firstId = first.data.id;
     expect(firstId).toBeTruthy();
 
     const second = await enqueueJob({ type: "email", payload: { to: "a@b.c" }, idempotencyKey: "k1" }, deps);
     expect(second.ok).toBe(true);
     expect(second.status).toBe(200);
-    expect(second.data?.deduped).toBe(true);
-    expect(second.data?.id).toBe(firstId);
+    if (!second.ok) throw new Error("expected ok");
+    expect(second.data.deduped).toBe(true);
+    expect(second.data.id).toBe(firstId);
   });
 });
 
@@ -44,7 +46,8 @@ describe("jobs-workflows: runJob retry + dead-letter", () => {
       { type: "flaky", payload: {}, maxAttempts: 3 },
       { jobStore, now: fixedNow(T0) }
     );
-    const jobId = enq.data!.id as string;
+    if (!enq.ok) throw new Error("expected ok");
+    const jobId = enq.data.id as string;
 
     const alwaysFails: JobHandler = async () => {
       throw new Error("boom");
@@ -53,22 +56,27 @@ describe("jobs-workflows: runJob retry + dead-letter", () => {
     // Attempt 1: fails -> pending with backoff for attempt 1.
     const r1 = await runJob(jobId, alwaysFails, { jobStore, runStore, now: fixedNow(T0) });
     expect(r1.ok).toBe(true);
-    expect(r1.data?.status).toBe("pending");
-    expect(r1.data?.attempt).toBe(1);
-    expect(r1.data?.retryInMs).toBe(computeBackoffMs(1));
+    if (!r1.ok) throw new Error("expected ok");
+    expect(r1.data.status).toBe("pending");
+    if (r1.data.status === "pending") {
+      expect(r1.data.attempt).toBe(1);
+      expect(r1.data.retryInMs).toBe(computeBackoffMs(1));
+    }
 
     // Attempt 2: still fails -> pending again.
     const r2 = await runJob(jobId, alwaysFails, { jobStore, runStore, now: fixedNow(T0 + 1) });
-    expect(r2.data?.status).toBe("pending");
-    expect(r2.data?.attempt).toBe(2);
-    expect(r2.data?.retryInMs).toBe(computeBackoffMs(2));
+    if (!r2.ok) throw new Error("expected ok");
+    expect(r2.data.status).toBe("pending");
+    if (r2.data.status === "pending") {
+      expect(r2.data.attempt).toBe(2);
+      expect(r2.data.retryInMs).toBe(computeBackoffMs(2));
+    }
 
-    // Attempt 3 == maxAttempts: dead-lettered.
+    // Attempt 3 == maxAttempts: dead-lettered. Dead-lettering is a failure result,
+    // so it returns an err envelope (no data) with a namespaced code.
     const r3 = await runJob(jobId, alwaysFails, { jobStore, runStore, now: fixedNow(T0 + 2) });
     expect(r3.ok).toBe(false);
-    expect(r3.data?.status).toBe("dead");
-    expect(r3.data?.attempt).toBe(3);
-    expect(r3.error?.code).toBe("JOB_DEAD");
+    if (!r3.ok) expect(r3.error.code).toBe("jobs-workflows.JOB_DEAD");
 
     const job = await jobStore.get(jobId);
     expect(job?.status).toBe("dead");
@@ -84,7 +92,8 @@ describe("jobs-workflows: runJob retry + dead-letter", () => {
     const runStore = createMemoryJobRunStore();
 
     const enq = await enqueueJob({ type: "once", payload: {} }, { jobStore, now: fixedNow(T0) });
-    const jobId = enq.data!.id as string;
+    if (!enq.ok) throw new Error("expected ok");
+    const jobId = enq.data.id as string;
 
     let calls = 0;
     const ok: JobHandler = async () => {
@@ -92,12 +101,14 @@ describe("jobs-workflows: runJob retry + dead-letter", () => {
     };
 
     const first = await runJob(jobId, ok, { jobStore, runStore, now: fixedNow(T0) });
-    expect(first.data?.status).toBe("succeeded");
+    if (!first.ok) throw new Error("expected ok");
+    expect(first.data.status).toBe("succeeded");
     expect(calls).toBe(1);
 
     const second = await runJob(jobId, ok, { jobStore, runStore, now: fixedNow(T0 + 5) });
     expect(second.ok).toBe(true);
-    expect(second.data?.skipped).toBe(true);
+    if (!second.ok) throw new Error("expected ok");
+    if ("skipped" in second.data) expect(second.data.skipped).toBe(true);
     expect(calls).toBe(1); // handler not invoked again
   });
 });
@@ -119,14 +130,16 @@ describe("jobs-workflows: scheduled catch-up", () => {
       { scheduleStore, now: fixedNow(T0 - intervalMs) }
     );
     expect(created.ok).toBe(true);
-    const scheduleId = created.data!.id;
+    if (!created.ok) throw new Error("expected ok");
+    const scheduleId = created.data.id;
 
     // "now" is 3.5 intervals after the first run: several windows were missed.
     const now = T0 + Math.floor(3.5 * intervalMs);
     const res = await dueScheduledJobs({ scheduleStore, jobStore, now: fixedNow(now) });
     expect(res.ok).toBe(true);
-    expect(res.data?.enqueued).toBe(1); // exactly one enqueue, not one per missed window
-    const jobId = res.data!.items[0].jobId;
+    if (!res.ok) throw new Error("expected ok");
+    expect(res.data.enqueued).toBe(1); // exactly one enqueue, not one per missed window
+    const jobId = res.data.items[0].jobId;
     expect(jobId).toBeTruthy();
 
     // nextRunAt advanced strictly into the future.
@@ -135,6 +148,7 @@ describe("jobs-workflows: scheduled catch-up", () => {
 
     // Re-running the catch-up at the same now is a no-op (schedule no longer due).
     const again = await dueScheduledJobs({ scheduleStore, jobStore, now: fixedNow(now) });
-    expect(again.data?.enqueued).toBe(0);
+    if (!again.ok) throw new Error("expected ok");
+    expect(again.data.enqueued).toBe(0);
   });
 });

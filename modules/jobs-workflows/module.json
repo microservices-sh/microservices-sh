@@ -17,12 +17,22 @@
     { "type": "d1", "binding": "DB", "tables": ["jobs", "job_runs", "job_schedules"] },
     { "type": "queue", "binding": "JOBS_QUEUE", "optional": true }
   ],
-  "permissions": ["jobs.enqueue", "jobs.read", "jobs.admin"],
-  "requires": [],
-  "optional": ["audit-log"],
-  "hooks": ["beforeJobEnqueue", "computeBackoffMs", "onJobDead"],
-  "events": ["job.enqueued", "job.succeeded", "job.retried", "job.dead", "job.scheduled"],
-  "rpc": [],
+  "permissions": ["jobs.enqueue", "jobs.read", "jobs.admin", "jobs-workflows.extend"],
+  "connections": {
+    "requires": [],
+    "optional": ["audit-log"],
+    "rpc": { "exposes": [], "calls": [] },
+    "events": {
+      "emits": ["job.enqueued", "job.succeeded", "job.retried", "job.dead", "job.scheduled"],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeJobEnqueue": { "kind": "filter", "scope": "jobs-workflows.extend" },
+      "computeBackoffMs": { "kind": "filter", "scope": "jobs-workflows.extend" },
+      "onJobDead": { "kind": "observer", "scope": "jobs-workflows.extend" }
+    },
+    "provides": { "hooks": [] }
+  },
   "customization": {
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]

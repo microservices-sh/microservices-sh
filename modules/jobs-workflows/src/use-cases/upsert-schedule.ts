@@ -1,4 +1,6 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { upsertScheduleInputSchema } from "../schemas";
+import { jobsWorkflowsMeta } from "../meta";
 import type { ScheduleStore } from "../ports";
 import type { JobSchedule } from "../types";
 
@@ -6,16 +8,17 @@ import type { JobSchedule } from "../types";
 // (nextRunAt/lastRunAt) is preserved so editing the payload does not reset timing.
 export async function upsertSchedule(
   input: unknown,
-  deps: { scheduleStore: ScheduleStore; now?: () => number }
+  deps: { scheduleStore: ScheduleStore; now?: () => number; correlationId?: string }
 ) {
+  const meta = jobsWorkflowsMeta(deps);
+
   const parsed = upsertScheduleInputSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      data: null,
-      error: { code: "INVALID_SCHEDULE_INPUT", message: "Schedule input is invalid.", issues: parsed.error.issues }
-    };
+    return err(
+      400,
+      { code: "jobs-workflows.INVALID_SCHEDULE_INPUT", message: "Schedule input is invalid.", issues: parsed.error.issues },
+      meta
+    );
   }
 
   const nowMs = deps.now?.() ?? Date.now();
@@ -37,9 +40,9 @@ export async function upsertSchedule(
   };
   await deps.scheduleStore.upsert(schedule);
 
-  return {
-    ok: true as const,
-    status: existing ? (200 as const) : (201 as const),
-    data: { id: schedule.id, nextRunAt: schedule.nextRunAt }
-  };
+  return ok(
+    existing ? 200 : 201,
+    { id: schedule.id, nextRunAt: schedule.nextRunAt },
+    meta
+  );
 }

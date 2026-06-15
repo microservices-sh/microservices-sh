@@ -1,24 +1,36 @@
+import { ok, err, runHooks } from "@microservices-sh/connection-contract";
+import type { ResolvedHook } from "@microservices-sh/connection-contract";
 import { computeBackoffMs, onJobDead } from "../hooks";
+import { jobsWorkflowsMeta } from "../meta";
 import type { JobRunStore, JobStore } from "../ports";
-import type { Job, JobHandler, JobRun } from "../types";
+import type { DomainEvent, Job, JobHandler, JobRun } from "../types";
 
 // Execute one job exactly once per success. Handles the three things agents get
 // wrong: idempotent re-runs (finished jobs are skipped, not re-executed under
 // at-least-once redelivery), bounded backoff retries, and dead-lettering instead
-// of infinite retry storms.
+// of infinite retry storms. correlationId threads from the caller (the pull loop
+// passes the job's own id-derived trace) into meta and every emitted event.
 export async function runJob(
   jobId: string,
   handler: JobHandler,
-  deps: { jobStore: JobStore; runStore: JobRunStore; now?: () => number }
+  deps: {
+    jobStore: JobStore;
+    runStore: JobRunStore;
+    now?: () => number;
+    correlationId?: string;
+    onJobDeadHooks?: ResolvedHook[];
+  }
 ) {
+  const meta = jobsWorkflowsMeta(deps);
+
   const job = await deps.jobStore.get(jobId);
   if (!job) {
-    return { ok: false as const, status: 404 as const, data: null, error: { code: "JOB_NOT_FOUND", message: `No job ${jobId}.` } };
+    return err(404, { code: "jobs-workflows.JOB_NOT_FOUND", message: `No job ${jobId}.` }, meta);
   }
 
   // At-least-once guard: never re-run a terminal job.
   if (job.status === "succeeded" || job.status === "dead") {
-    return { ok: true as const, status: 200 as const, data: { id: job.id, status: job.status, skipped: true } };
+    return ok(200, { id: job.id, status: job.status, skipped: true }, meta);
   }
 
   const startedMs = deps.now?.() ?? Date.now();
@@ -36,8 +48,8 @@ export async function runJob(
   try {
     const result = await handler(job.payload, job);
     if (result && result.ok === false) error = result.error ?? "Handler reported failure.";
-  } catch (err) {
-    error = err instanceof Error ? err.message : String(err);
+  } catch (e) {
+    error = e instanceof Error ? e.message : String(e);
   }
 
   const finishedMs = deps.now?.() ?? Date.now();
@@ -59,7 +71,12 @@ export async function runJob(
     job.lastError = null;
     job.updatedAt = finishedAt;
     await deps.jobStore.update(job);
-    return { ok: true as const, status: 200 as const, data: { id: job.id, status: "succeeded" as const, attempt } };
+    const event: DomainEvent = {
+      name: "job.succeeded",
+      correlationId: meta.correlationId,
+      payload: { id: job.id, type: job.type, attempt }
+    };
+    return ok(200, { id: job.id, status: "succeeded" as const, attempt, event }, meta);
   }
 
   job.lastError = error;
@@ -68,13 +85,20 @@ export async function runJob(
     job.status = "dead";
     job.updatedAt = finishedAt;
     await deps.jobStore.update(job);
+    // Local config seam first, then the cross-module observer chain (Plan 25 §5):
+    // operators page / fan out a dead-letter notification. Observers never veto.
     await onJobDead(job);
-    return {
-      ok: false as const,
-      status: 200 as const,
-      data: { id: job.id, status: "dead" as const, attempt },
-      error: { code: "JOB_DEAD", message: error }
+    await runHooks("onJobDead", job, { correlationId: meta.correlationId }, deps.onJobDeadHooks ?? []);
+    const event: DomainEvent = {
+      name: "job.dead",
+      correlationId: meta.correlationId,
+      payload: { id: job.id, type: job.type, attempt, lastError: error }
     };
+    return err(
+      200,
+      { code: "jobs-workflows.JOB_DEAD", message: error },
+      meta
+    );
   }
 
   const retryInMs = computeBackoffMs(attempt);
@@ -82,9 +106,10 @@ export async function runJob(
   job.runAt = new Date(finishedMs + retryInMs).toISOString();
   job.updatedAt = finishedAt;
   await deps.jobStore.update(job);
-  return {
-    ok: true as const,
-    status: 200 as const,
-    data: { id: job.id, status: "pending" as const, attempt, retryInMs, lastError: error }
+  const event: DomainEvent = {
+    name: "job.retried",
+    correlationId: meta.correlationId,
+    payload: { id: job.id, type: job.type, attempt, retryInMs }
   };
+  return ok(200, { id: job.id, status: "pending" as const, attempt, retryInMs, lastError: error, event }, meta);
 }
