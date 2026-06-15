@@ -48,6 +48,10 @@ function pascalCase(id) {
 }
 
 export function rpcMethods(module) {
+  // Prefer the nested connections.rpc.exposes (Plan 25); fall back to the legacy
+  // flat `rpc` array during the phase-3 migration window.
+  const exposes = module?.connections?.rpc?.exposes;
+  if (Array.isArray(exposes)) return exposes;
   return Array.isArray(module?.rpc) ? module.rpc : [];
 }
 
