@@ -20,6 +20,18 @@ function fmt(iso: string, timezone: string): string {
   return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short", timeZone: timezone }).format(new Date(iso));
 }
 
+// Escape user-controlled values before embedding in HTML email bodies. Customer
+// name (and to a lesser degree service name) are user/operator input — raw
+// interpolation is an HTML-injection / phishing vector.
+function esc(value: string): string {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export async function sendBookingConfirmation(opts: {
   d1: D1Database | undefined;
   env: EmailEnv | undefined;
@@ -35,7 +47,7 @@ export async function sendBookingConfirmation(opts: {
       from,
       to: [b.customerEmail],
       subject: `Booking confirmed — ${b.serviceName}`,
-      html: `<p>Hi ${b.customerName},</p><p>Your booking for <strong>${b.serviceName}</strong> on <strong>${when}</strong> is confirmed.</p><p>Reference: ${b.id}</p>`,
+      html: `<p>Hi ${esc(b.customerName)},</p><p>Your booking for <strong>${esc(b.serviceName)}</strong> on <strong>${when}</strong> is confirmed.</p><p>Reference: ${esc(b.id)}</p>`,
       text: `Hi ${b.customerName}, your ${b.serviceName} booking on ${when} is confirmed. Reference: ${b.id}`,
       idempotencyKey: `confirm:${b.id}`,
     },
@@ -74,7 +86,7 @@ export async function sendDueReminders(opts: {
         from,
         to: [b.customerEmail],
         subject: `Reminder — ${b.serviceName} on ${when}`,
-        html: `<p>Hi ${b.customerName},</p><p>A reminder for your <strong>${b.serviceName}</strong> booking on <strong>${when}</strong>.</p>`,
+        html: `<p>Hi ${esc(b.customerName)},</p><p>A reminder for your <strong>${esc(b.serviceName)}</strong> booking on <strong>${when}</strong>.</p>`,
         text: `Reminder: your ${b.serviceName} booking is on ${when}.`,
         idempotencyKey: `remind:${b.id}`,
       },
