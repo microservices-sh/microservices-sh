@@ -8,6 +8,7 @@
   const links = [
     { href: "/book", label: "Book" },
     { href: "/admin", label: "Admin" },
+    { href: "/admin/calendar", label: "Calendar" },
     { href: "/admin/bookings", label: "Bookings" },
     { href: "/admin/customers", label: "Customers" }
   ];
