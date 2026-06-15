@@ -2195,6 +2195,9 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
         : printHuman(response, () => "");
     }
     response = planAddModule({ moduleId: action, mode: flags.mode, ...templateInput("booking-business", flags) });
+    // Intent signal: which modules users want to add after scaffolding.
+    // Plan-only in the MVP, so this is "planned", not "installed".
+    if (response?.ok !== false) await track("module_add_planned", { moduleId: action, mode: flags.mode ?? null });
     return flags.json
       ? writeJson(response)
       : printHuman(
