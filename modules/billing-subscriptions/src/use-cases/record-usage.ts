@@ -1,24 +1,37 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { recordUsageInputSchema } from "../schemas";
+import { billingSubscriptionsMeta } from "../meta";
 import type { BillingStore } from "../ports";
 import type { UsageRecord } from "../types";
 
+// Result shape for recordUsage(): both the "created" and idempotent "deduped"
+// paths return the same object so the use-case has a single ok branch. `id` is
+// only present when a new usage row was actually inserted.
+export interface RecordUsageResult {
+  deduped: boolean;
+  id?: string;
+}
+
 // Record metered usage against a subscription. Idempotent when an idempotencyKey
 // is supplied, so a retried meter event is counted once (over-billing guard).
-export async function recordUsage(input: unknown, deps: { store: BillingStore; now?: () => number }) {
+export async function recordUsage(input: unknown, deps: { store: BillingStore; now?: () => number; correlationId?: string }) {
+  const meta = billingSubscriptionsMeta(deps);
+
   const parsed = recordUsageInputSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false as const, status: 400 as const, data: null, error: { code: "INVALID_USAGE_INPUT", message: "Usage input is invalid.", issues: parsed.error.issues } };
+    return err(400, { code: "billing-subscriptions.INVALID_USAGE_INPUT", message: "Usage input is invalid.", issues: parsed.error.issues }, meta);
   }
 
   const sub = await deps.store.getSubscription(parsed.data.subscriptionId);
   if (!sub) {
-    return { ok: false as const, status: 404 as const, data: null, error: { code: "SUBSCRIPTION_NOT_FOUND", message: "Subscription not found." } };
+    return err(404, { code: "billing-subscriptions.SUBSCRIPTION_NOT_FOUND", message: "Subscription not found." }, meta);
   }
 
   if (parsed.data.idempotencyKey) {
     const fresh = await deps.store.recordUsageKey(parsed.data.idempotencyKey);
     if (!fresh) {
-      return { ok: true as const, status: 200 as const, data: { deduped: true } };
+      const replayed: RecordUsageResult = { deduped: true };
+      return ok(200, replayed, meta);
     }
   }
 
@@ -31,5 +44,6 @@ export async function recordUsage(input: unknown, deps: { store: BillingStore; n
   };
   await deps.store.insertUsage(record);
 
-  return { ok: true as const, status: 201 as const, data: { id: record.id } };
+  const created: RecordUsageResult = { deduped: false, id: record.id };
+  return ok(201, created, meta);
 }

@@ -16,12 +16,28 @@
   "resources": [
     { "type": "d1", "binding": "DB", "tables": ["plans", "subscriptions", "billing_events", "usage_records"] }
   ],
-  "permissions": ["billing.read", "billing.write", "billing.admin"],
-  "requires": [],
-  "optional": ["payment", "org-team-rbac", "jobs-workflows", "audit-log"],
-  "hooks": ["beforeSubscriptionChange", "onSubscriptionActivated", "onSubscriptionPastDue"],
-  "events": ["subscription.started", "subscription.activated", "subscription.past_due", "subscription.canceled", "subscription.plan_changed"],
-  "rpc": [],
+  "permissions": ["billing.read", "billing.write", "billing.admin", "billing-subscriptions.extend", "billing-subscriptions.observe"],
+  "connections": {
+    "requires": [],
+    "optional": ["payment", "org-team-rbac", "jobs-workflows", "audit-log"],
+    "rpc": {
+      "exposes": [
+        { "method": "startSubscription", "scope": "billing.write", "public": false },
+        { "method": "applyStripeEvent", "scope": "billing.write", "public": false }
+      ],
+      "calls": []
+    },
+    "events": {
+      "emits": ["subscription.started", "subscription.activated", "subscription.past_due", "subscription.canceled", "subscription.plan_changed"],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeSubscriptionChange": { "kind": "guard", "scope": "billing-subscriptions.extend" },
+      "onSubscriptionActivated": { "kind": "observer", "scope": "billing-subscriptions.observe" },
+      "onSubscriptionPastDue": { "kind": "observer", "scope": "billing-subscriptions.observe" }
+    },
+    "provides": { "hooks": [] }
+  },
   "customization": {
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]

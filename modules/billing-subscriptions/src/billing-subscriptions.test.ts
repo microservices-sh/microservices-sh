@@ -18,11 +18,13 @@ async function seedActiveSub(stripeSubscriptionId: string) {
     { name: "Pro", priceCents: 2999, currency: "USD", interval: "month" },
     { store, now: fixedNow(T0) }
   );
+  if (!plan.ok) throw new Error("plan creation failed");
   const sub = await startSubscription(
-    { subscriberId: "org-1", planId: plan.data!.id, trialDays: 0, stripeSubscriptionId },
+    { subscriberId: "org-1", planId: plan.data.id, trialDays: 0, stripeSubscriptionId },
     { store, now: fixedNow(T0) }
   );
-  return { store, subId: sub.data!.id as string };
+  if (!sub.ok) throw new Error("subscription start failed");
+  return { store, subId: sub.data.id };
 }
 
 describe("billing-subscriptions: applyStripeEvent idempotency", () => {
@@ -37,12 +39,14 @@ describe("billing-subscriptions: applyStripeEvent idempotency", () => {
 
     const first = await applyStripeEvent(event, { store, now: fixedNow(T0 + 1) });
     expect(first.ok).toBe(true);
-    expect(first.data?.status).toBe("past_due");
-    expect(first.data?.previous).toBe("active");
+    if (first.ok) {
+      expect(first.data.status).toBe("past_due");
+      expect(first.data.previous).toBe("active");
+    }
 
     const replay = await applyStripeEvent(event, { store, now: fixedNow(T0 + 2) });
     expect(replay.ok).toBe(true);
-    expect(replay.data?.deduped).toBe(true);
+    if (replay.ok) expect(replay.data.deduped).toBe(true);
   });
 });
 
@@ -66,11 +70,14 @@ describe("billing-subscriptions: failed payment -> past_due and dunning", () => 
       stripeSubscriptionId: "sub_stripe_2"
     };
     const applied = await applyStripeEvent(event, { store, now: fixedNow(T0 + 1) });
-    expect(applied.data?.status).toBe("past_due");
+    expect(applied.ok).toBe(true);
+    if (applied.ok) expect(applied.data.status).toBe("past_due");
 
     const dunning = await dueForDunning({ store });
     expect(dunning.ok).toBe(true);
-    expect(dunning.data?.count).toBe(1);
-    expect(dunning.data?.subscriptions[0].id).toBe(subId);
+    if (dunning.ok) {
+      expect(dunning.data.count).toBe(1);
+      expect(dunning.data.subscriptions[0].id).toBe(subId);
+    }
   });
 });

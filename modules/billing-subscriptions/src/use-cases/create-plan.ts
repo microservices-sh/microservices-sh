@@ -1,11 +1,18 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { createPlanInputSchema } from "../schemas";
+import { billingSubscriptionsMeta } from "../meta";
 import type { BillingStore } from "../ports";
 import type { Plan } from "../types";
 
-export async function createPlan(input: unknown, deps: { store: BillingStore; now?: () => number }) {
+export async function createPlan(
+  input: unknown,
+  deps: { store: BillingStore; now?: () => number; correlationId?: string }
+) {
+  const meta = billingSubscriptionsMeta(deps);
+
   const parsed = createPlanInputSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false as const, status: 400 as const, data: null, error: { code: "INVALID_PLAN_INPUT", message: "Plan input is invalid.", issues: parsed.error.issues } };
+    return err(400, { code: "billing-subscriptions.INVALID_PLAN_INPUT", message: "Plan input is invalid.", issues: parsed.error.issues }, meta);
   }
   const nowIso = new Date(deps.now?.() ?? Date.now()).toISOString();
   const plan: Plan = {
@@ -21,5 +28,5 @@ export async function createPlan(input: unknown, deps: { store: BillingStore; no
     updatedAt: nowIso
   };
   await deps.store.insertPlan(plan);
-  return { ok: true as const, status: 201 as const, data: { id: plan.id } };
+  return ok(201, { id: plan.id }, meta);
 }

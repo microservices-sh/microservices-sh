@@ -47,6 +47,20 @@ export interface SubscriptionFilter {
   limit?: number;
 }
 
+// A subscription lifecycle event emitted by this module. Carries the
+// correlationId from the originating request so downstream consumers can trace
+// the chain (Plan 25 §4).
+export interface DomainEvent {
+  name:
+    | "subscription.started"
+    | "subscription.activated"
+    | "subscription.past_due"
+    | "subscription.canceled"
+    | "subscription.plan_changed";
+  correlationId: string;
+  payload: Record<string, unknown>;
+}
+
 // A Stripe webhook normalized by the host (or the payment module) into the fields
 // this module needs. Keeps the module free of the Stripe SDK.
 export interface NormalizedBillingEvent {
