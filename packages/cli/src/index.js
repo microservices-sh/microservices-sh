@@ -5,6 +5,7 @@ import { homedir } from "node:os";
 import { dirname, join, normalize, resolve } from "node:path";
 import { stdin as nodeStdin, stdout as nodeStdout } from "node:process";
 import { createInterface } from "node:readline/promises";
+import { track, telemetryNotice } from "./telemetry.js";
 import {
   composeApp,
   checkUpdates,
@@ -1868,6 +1869,8 @@ async function main() {
     return;
   }
 
+  telemetryNotice(flags.json);
+
   if (resource === "auth" && action === "login") {
     const settings = await resolvedApiSettings(flags);
 
@@ -2261,6 +2264,8 @@ Files: ${plan.filesLikelyTouched.join(", ") || "none"}
 
   if (resource === "check") {
     response = runChecks(templateInput(action, flags));
+    const checkData = response?.data ?? response;
+    await track(checkData?.status === "pass" ? "check_passed" : "check_failed", { status: checkData?.status ?? "unknown" });
     return flags.json ? writeJson(response) : printHuman(response, (result) => `${result.status}\n${result.checks.map((check) => `- ${check.id}: ${check.status} - ${check.message}`).join("\n")}\n`);
   }
 

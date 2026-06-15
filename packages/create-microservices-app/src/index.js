@@ -7,6 +7,7 @@ import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { generateProject, listModuleDocs, listModules, listTemplates } from "@microservices-sh/sdk-internal";
 import { loadFrameworks, resolveFramework, buildC3Command, applyFrameworkHook, frameworkNextSteps } from "./framework-starter.js";
+import { track, telemetryNotice } from "./telemetry.js";
 
 const PACKAGE_VERSION = "0.2.3";
 const USER_CWD = process.env.INIT_CWD || process.cwd();
@@ -549,6 +550,8 @@ async function main() {
   const guided = await askGuidedSetup(parsed.targetName, parsed.flags);
   const { targetName, flags } = guided;
 
+  telemetryNotice(flags.json);
+
   if (!targetName) {
     process.stdout.write(usage());
     return;
@@ -581,6 +584,7 @@ async function main() {
     const appDir = resolve(USER_CWD, appName);
     applyFrameworkHook(appDir, frameworkRow, flags.packageManager);
     process.stdout.write("\nNext steps:\n" + frameworkNextSteps(flags.packageManager, appName, frameworkRow).map((l) => `  ${l}`).join("\n") + "\n");
+    await track("create_app_completed", { template: flags.template, framework: true, packageManager: flags.packageManager, version: PACKAGE_VERSION });
     return;
   }
 
@@ -662,6 +666,15 @@ async function main() {
     ],
   };
 
+  await track("create_app_completed", {
+    template: flags.template,
+    modules: generatedModules,
+    moduleCount: generatedModules.length,
+    packageManager: flags.packageManager,
+    installed: flags.install,
+    version: PACKAGE_VERSION,
+  });
+
   if (flags.json) {
     writeJson(output);
     return;
@@ -676,8 +689,9 @@ async function main() {
   process.stdout.write("\n");
 }
 
-main().catch((error) => {
+main().catch(async (error) => {
   const response = fail("CREATE_APP_FAILED", error.message, "Fix the input or choose an empty target directory.");
+  await track("create_app_failed", { code: "CREATE_APP_FAILED", version: PACKAGE_VERSION });
   writeJson(response);
   process.exitCode = 1;
 });
