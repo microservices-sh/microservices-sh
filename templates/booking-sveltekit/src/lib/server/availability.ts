@@ -8,6 +8,7 @@ import { and, eq, isNull, or } from "drizzle-orm";
 import { fromZonedTime } from "date-fns-tz";
 import { getDb } from "./db";
 import { availabilityRules, availabilityExceptions, type AvailabilityRule, type AvailabilityException } from "./db/schema";
+import { activeHolds } from "./lifecycle";
 
 export interface Slot {
   startsAt: string; // ISO UTC
@@ -130,6 +131,15 @@ export async function getAvailability(opts: {
 }): Promise<Slot[]> {
   const { d1, serviceId, date, durationMinutes, timezone, bookings } = opts;
   const { rules, exceptions } = await loadConfig(d1, serviceId, date);
-  const sameService = bookings.filter((b) => b.serviceId === serviceId);
-  return generateSlots({ date, timezone, durationMinutes, rules, exceptions, bookings: sameService });
+  const blocking = bookings.filter((b) => b.serviceId === serviceId);
+
+  // Unexpired holds block slots too (a slot mid-checkout shouldn't be offered).
+  if (d1) {
+    const heldRows = await activeHolds(d1, serviceId, new Date().toISOString());
+    for (const h of heldRows) {
+      blocking.push({ serviceId: h.serviceId, startsAt: h.startsAt, endsAt: h.endsAt, status: "hold" });
+    }
+  }
+
+  return generateSlots({ date, timezone, durationMinutes, rules, exceptions, bookings: blocking });
 }

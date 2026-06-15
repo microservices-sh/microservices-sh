@@ -14,6 +14,8 @@ declare global {
         MICROSERVICES_TEMPLATE_ID?: string;
         /** Shared secret gating the one-time /api/auth/bootstrap route. */
         BOOTSTRAP_TOKEN?: string;
+        /** Optional bearer token gating scheduled endpoints (e.g. /api/holds/expire). */
+        CRON_TOKEN?: string;
       };
     }
 

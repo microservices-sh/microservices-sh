@@ -169,3 +169,23 @@ export const availabilityExceptions = sqliteTable(
 
 export type AvailabilityRule = typeof availabilityRules.$inferSelect;
 export type AvailabilityException = typeof availabilityExceptions.$inferSelect;
+
+// NEW (revamp P2): short-lived slot holds reserved during checkout. The
+// availability engine treats unexpired holds as blocking; a cron expires them.
+export const holds = sqliteTable(
+  "holds",
+  {
+    id: text("id").primaryKey(),
+    serviceId: text("service_id").notNull(),
+    startsAt: text("starts_at").notNull(), // ISO UTC
+    endsAt: text("ends_at").notNull(),
+    expiresAt: text("expires_at").notNull(), // ISO UTC
+    createdAt: text("created_at").notNull(),
+  },
+  (t) => ({
+    service: index("idx_holds_service_starts").on(t.serviceId, t.startsAt),
+    expires: index("idx_holds_expires").on(t.expiresAt),
+  }),
+);
+
+export type Hold = typeof holds.$inferSelect;
