@@ -1,1 +1,1 @@
-export const permissions = ["invoice.read", "invoice.write", "invoice.admin"] as const;
+export const permissions = ["invoice.read", "invoice.write", "invoice.admin", "invoice.extend", "invoice.observe"] as const;

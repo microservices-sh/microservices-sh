@@ -16,12 +16,25 @@
   "resources": [
     { "type": "d1", "binding": "DB", "tables": ["invoices", "invoice_line_items", "invoice_sequences", "invoice_payments"] }
   ],
-  "permissions": ["invoice.read", "invoice.write", "invoice.admin"],
-  "requires": ["customer"],
-  "optional": ["payment", "email", "audit-log", "jobs-workflows"],
-  "hooks": ["beforeInvoiceIssue", "onInvoiceIssued", "onInvoicePaid"],
-  "events": ["invoice.created", "invoice.issued", "invoice.paid", "invoice.voided", "invoice.overdue"],
-  "rpc": [],
+  "permissions": ["invoice.read", "invoice.write", "invoice.admin", "invoice.extend", "invoice.observe"],
+  "connections": {
+    "requires": ["customer"],
+    "optional": ["payment", "email", "audit-log", "jobs-workflows"],
+    "rpc": {
+      "exposes": [],
+      "calls": []
+    },
+    "events": {
+      "emits": ["invoice.created", "invoice.issued", "invoice.paid", "invoice.voided", "invoice.overdue"],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeInvoiceIssue": { "kind": "filter", "scope": "invoice.extend" },
+      "onInvoiceIssued": { "kind": "observer", "scope": "invoice.observe" },
+      "onInvoicePaid": { "kind": "observer", "scope": "invoice.observe" }
+    },
+    "provides": { "hooks": [] }
+  },
   "customization": {
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]

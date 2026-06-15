@@ -1,17 +1,23 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { listInvoicesFilterSchema } from "../schemas";
+import { invoiceMeta } from "../meta";
 import type { InvoiceStore } from "../ports";
 
 // Tenant-scoped listing, optionally by customer and status.
-export async function listInvoices(input: unknown, deps: { invoiceStore: InvoiceStore }) {
+export async function listInvoices(
+  input: unknown,
+  deps: { invoiceStore: InvoiceStore; correlationId?: string; now?: () => number }
+) {
+  const meta = invoiceMeta(deps);
+
   const parsed = listInvoicesFilterSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      data: null,
-      error: { code: "INVALID_FILTER", message: "List filter is invalid.", issues: parsed.error.issues }
-    };
+    return err(
+      400,
+      { code: "invoice.INVALID_FILTER", message: "List filter is invalid.", issues: parsed.error.issues },
+      meta
+    );
   }
   const invoices = await deps.invoiceStore.list(parsed.data);
-  return { ok: true as const, status: 200 as const, data: { invoices, count: invoices.length } };
+  return ok(200, { invoices, count: invoices.length }, meta);
 }

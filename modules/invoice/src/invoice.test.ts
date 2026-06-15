@@ -21,7 +21,8 @@ async function makeDraftWithLine(invoiceStore: ReturnType<typeof createMemoryInv
     },
     { invoiceStore, now: fixedNow(T0) }
   );
-  return created.data!.id as string;
+  if (!created.ok) throw new Error("createInvoice failed in fixture");
+  return created.data.id as string;
 }
 
 describe("invoice: sequential numbering via atomic allocator", () => {
@@ -35,8 +36,8 @@ describe("invoice: sequential numbering via atomic allocator", () => {
     const issued1 = await issueInvoice({ invoiceId: id1 }, { invoiceStore, allocator, now: fixedNow(T0) });
     const issued2 = await issueInvoice({ invoiceId: id2 }, { invoiceStore, allocator, now: fixedNow(T0) });
 
-    expect(issued1.data?.number).toBe("INV-00001");
-    expect(issued2.data?.number).toBe("INV-00002");
+    if (issued1.ok) expect(issued1.data.number).toBe("INV-00001");
+    if (issued2.ok) expect(issued2.data.number).toBe("INV-00002");
   });
 });
 
@@ -47,7 +48,7 @@ describe("invoice: draft edit after issue is rejected", () => {
 
     const id = await makeDraftWithLine(invoiceStore);
     const issued = await issueInvoice({ invoiceId: id }, { invoiceStore, allocator, now: fixedNow(T0) });
-    expect(issued.data?.status).toBe("open");
+    if (issued.ok) expect(issued.data.status).toBe("open");
 
     const edit = await addLineItem(
       id,
@@ -56,7 +57,7 @@ describe("invoice: draft edit after issue is rejected", () => {
     );
     expect(edit.ok).toBe(false);
     expect(edit.status).toBe(409);
-    expect(edit.error?.code).toBe("INVOICE_NOT_EDITABLE");
+    if (!edit.ok) expect(edit.error.code).toBe("invoice.INVOICE_NOT_EDITABLE");
   });
 });
 
@@ -72,15 +73,19 @@ describe("invoice: recordPayment idempotency", () => {
       { invoiceId: id, amountCents: 4_000, idempotencyKey: "evt_1" },
       { invoiceStore, now: fixedNow(T0 + 1) }
     );
-    expect(first.data?.deduped).toBe(false);
-    expect(first.data?.amountPaidCents).toBe(4_000);
+    if (first.ok) {
+      expect(first.data.deduped).toBe(false);
+      expect(first.data.amountPaidCents).toBe(4_000);
+    }
 
     const replay = await recordPayment(
       { invoiceId: id, amountCents: 4_000, idempotencyKey: "evt_1" },
       { invoiceStore, now: fixedNow(T0 + 2) }
     );
-    expect(replay.data?.deduped).toBe(true);
-    expect(replay.data?.amountPaidCents).toBe(4_000); // not double-credited
+    if (replay.ok) {
+      expect(replay.data.deduped).toBe(true);
+      expect(replay.data.amountPaidCents).toBe(4_000); // not double-credited
+    }
   });
 });
 
@@ -96,11 +101,11 @@ describe("invoice: paid invoice cannot be voided", () => {
       { invoiceId: id, amountCents: 10_000, idempotencyKey: "evt_full" },
       { invoiceStore, now: fixedNow(T0 + 1) }
     );
-    expect(paid.data?.status).toBe("paid");
+    if (paid.ok) expect(paid.data.status).toBe("paid");
 
     const voided = await voidInvoice(id, { invoiceStore, now: fixedNow(T0 + 2) });
     expect(voided.ok).toBe(false);
     expect(voided.status).toBe(409);
-    expect(voided.error?.code).toBe("CANNOT_VOID_PAID");
+    if (!voided.ok) expect(voided.error.code).toBe("invoice.CANNOT_VOID_PAID");
   });
 });

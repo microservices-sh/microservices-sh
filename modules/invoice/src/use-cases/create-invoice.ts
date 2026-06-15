@@ -1,24 +1,32 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { defaultConfig } from "../config";
 import { createInvoiceInputSchema } from "../schemas";
+import { invoiceMeta } from "../meta";
 import { computeTotals, lineAmountCents } from "../totals";
 import type { InvoiceStore } from "../ports";
-import type { Invoice, InvoiceLineItem } from "../types";
+import type { DomainEvent, Invoice, InvoiceLineItem } from "../types";
 
 // Create a draft invoice with its line items. No number is assigned yet — numbers
 // are allocated atomically at issue time so drafts that are deleted never burn a
-// number (gapless sequence).
+// number (gapless sequence). Emits invoice.created.
 export async function createInvoice(
   input: unknown,
-  deps: { invoiceStore: InvoiceStore; now?: () => number; config?: Partial<typeof defaultConfig> }
+  deps: {
+    invoiceStore: InvoiceStore;
+    now?: () => number;
+    correlationId?: string;
+    config?: Partial<typeof defaultConfig>;
+  }
 ) {
+  const meta = invoiceMeta(deps);
+
   const parsed = createInvoiceInputSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      data: null,
-      error: { code: "INVALID_INVOICE_INPUT", message: "Invoice input is invalid.", issues: parsed.error.issues }
-    };
+    return err(
+      400,
+      { code: "invoice.INVALID_INVOICE_INPUT", message: "Invoice input is invalid.", issues: parsed.error.issues },
+      meta
+    );
   }
 
   const nowIso = new Date(deps.now?.() ?? Date.now()).toISOString();
@@ -61,5 +69,11 @@ export async function createInvoice(
     await deps.invoiceStore.insertLineItem(item);
   }
 
-  return { ok: true as const, status: 201 as const, data: { id, status: invoice.status, totalCents: invoice.totalCents } };
+  const event: DomainEvent = {
+    name: "invoice.created",
+    correlationId: meta.correlationId,
+    payload: { id, customerId: invoice.customerId, totalCents: invoice.totalCents }
+  };
+
+  return ok(201, { id, status: invoice.status, totalCents: invoice.totalCents, event }, meta);
 }

@@ -1,4 +1,6 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { lineItemInputSchema } from "../schemas";
+import { invoiceMeta } from "../meta";
 import { computeTotals, lineAmountCents } from "../totals";
 import type { InvoiceStore } from "../ports";
 import type { InvoiceLineItem } from "../types";
@@ -9,29 +11,29 @@ import type { InvoiceLineItem } from "../types";
 export async function addLineItem(
   invoiceId: string,
   input: unknown,
-  deps: { invoiceStore: InvoiceStore; now?: () => number }
+  deps: { invoiceStore: InvoiceStore; now?: () => number; correlationId?: string }
 ) {
+  const meta = invoiceMeta(deps);
+
   const parsed = lineItemInputSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      data: null,
-      error: { code: "INVALID_LINE_ITEM", message: "Line item is invalid.", issues: parsed.error.issues }
-    };
+    return err(
+      400,
+      { code: "invoice.INVALID_LINE_ITEM", message: "Line item is invalid.", issues: parsed.error.issues },
+      meta
+    );
   }
 
   const invoice = await deps.invoiceStore.get(invoiceId);
   if (!invoice) {
-    return { ok: false as const, status: 404 as const, data: null, error: { code: "INVOICE_NOT_FOUND", message: "Invoice not found." } };
+    return err(404, { code: "invoice.INVOICE_NOT_FOUND", message: "Invoice not found." }, meta);
   }
   if (invoice.status !== "draft") {
-    return {
-      ok: false as const,
-      status: 409 as const,
-      data: null,
-      error: { code: "INVOICE_NOT_EDITABLE", message: `Invoice is ${invoice.status}; only draft invoices can be edited.` }
-    };
+    return err(
+      409,
+      { code: "invoice.INVOICE_NOT_EDITABLE", message: `Invoice is ${invoice.status}; only draft invoices can be edited.` },
+      meta
+    );
   }
 
   const item: InvoiceLineItem = {
@@ -53,5 +55,5 @@ export async function addLineItem(
   invoice.updatedAt = new Date(deps.now?.() ?? Date.now()).toISOString();
   await deps.invoiceStore.update(invoice);
 
-  return { ok: true as const, status: 200 as const, data: { id: item.id, totalCents: invoice.totalCents } };
+  return ok(200, { id: item.id, totalCents: invoice.totalCents }, meta);
 }

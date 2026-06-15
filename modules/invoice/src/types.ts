@@ -54,3 +54,11 @@ export interface InvoiceTotals {
   taxCents: number;
   totalCents: number;
 }
+
+// A domain event the module emits. correlationId is threaded from the use-case
+// meta so downstream consumers can stitch the causal chain. See Plan 25 §4.
+export interface DomainEvent {
+  name: string;
+  correlationId?: string | null;
+  payload: Record<string, unknown>;
+}
