@@ -25,8 +25,8 @@
         "eyebrow": { "type": "string", "maxLength": 40, "x-hint": "Small label above the headline." },
         "headline": { "type": "string", "maxLength": 60, "x-hint": "Main hero headline; punchy, ~6 words." },
         "lead": { "type": "string", "maxLength": 240, "x-hint": "Sub-headline paragraph, 1–2 sentences." },
-        "primaryCta": { "$ref": "#/$defs/cta", "x-hint": "Main action. href is usually /book." },
-        "secondaryCta": { "$ref": "#/$defs/cta", "x-hint": "Secondary action. href is usually /admin." }
+        "primaryCta": { "$ref": "#/$defs/cta" },
+        "secondaryCta": { "$ref": "#/$defs/cta" }
       }
     },
     "panel": {
@@ -50,6 +50,7 @@
 
   "$defs": {
     "cta": {
+      "description": "A call-to-action button. By convention hero.primaryCta links to /book and hero.secondaryCta to /admin.",
       "type": "object",
       "additionalProperties": false,
       "required": ["label", "href"],

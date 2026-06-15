@@ -7,7 +7,7 @@ export interface SiteContent {
     headline: string;
     lead: string;
     primaryCta: Cta;
-    secondaryCta: Cta1;
+    secondaryCta: Cta;
   };
   panel: {
     eyebrow: string;
@@ -16,11 +16,10 @@ export interface SiteContent {
     features: string[];
   };
 }
+/**
+ * A call-to-action button. By convention hero.primaryCta links to /book and hero.secondaryCta to /admin.
+ */
 export interface Cta {
-  label: string;
-  href: string;
-}
-export interface Cta1 {
   label: string;
   href: string;
 }

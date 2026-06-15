@@ -76,6 +76,22 @@ invokes the CLI is the one that collects and refines content.
    `SiteContent` type.
 6. Add a `CLAUDE.md` playbook.
 
+## Authoring gotcha: keep `$ref` bare
+
+Do not put sibling keywords (`x-hint`, `description`, …) next to a `$ref`:
+
+```jsonc
+// ✗ defeats type generation — emits duplicate interfaces (Cta, Cta1, …)
+"primaryCta": { "$ref": "#/$defs/cta", "x-hint": "..." }
+
+// ✓ bare ref aliases cleanly to one interface
+"primaryCta": { "$ref": "#/$defs/cta" }
+```
+
+A `$ref` with siblings is technically valid in draft 2020-12, but `json-schema-to-typescript`
+(and many other tools) can't alias it, so it clones the target per use site. Put any
+shared guidance in the `$defs` target's own `description`/`x-hint` instead.
+
 ## Single sources of truth
 
 - **Shape** lives in `content.schema.json`. The TypeScript type is generated from
