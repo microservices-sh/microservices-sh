@@ -8,6 +8,15 @@ importers:
 
   .:
     devDependencies:
+      '@microservices-sh/auth':
+        specifier: workspace:*
+        version: link:modules/auth
+      '@microservices-sh/connection-contract':
+        specifier: workspace:*
+        version: link:packages/connection-contract
+      '@microservices-sh/payment':
+        specifier: workspace:*
+        version: link:modules/payment
       vitest:
         specifier: ^3.2.4
         version: 3.2.6(@types/debug@4.1.13)(lightningcss@1.32.0)
