@@ -16,12 +16,33 @@
   "resources": [
     { "type": "d1", "binding": "DB", "tables": ["webhook_endpoints", "webhook_deliveries"] }
   ],
-  "permissions": ["webhook.read", "webhook.write", "webhook.admin"],
-  "requires": [],
-  "optional": ["audit-log"],
-  "hooks": ["beforeWebhookDeliver", "afterWebhookDelivered"],
-  "events": ["webhook.delivered", "webhook.failed"],
-  "rpc": [],
+  "permissions": ["webhook.read", "webhook.write", "webhook.admin", "webhook-delivery.extend"],
+  "connections": {
+    "requires": [],
+    "optional": ["auth", "customer", "booking", "payment", "audit-log"],
+    "rpc": { "exposes": [], "calls": [] },
+    "events": {
+      "emits": ["webhook.delivered", "webhook.failed"],
+      "consumes": [
+        "auth.token_minted",
+        "auth.key_rotated",
+        "customer.created",
+        "customer.updated",
+        "booking.created",
+        "booking.confirmed",
+        "booking.cancelled",
+        "payment.checkout_created",
+        "payment.succeeded",
+        "payment.refunded",
+        "payment.failed"
+      ]
+    },
+    "hookPoints": {
+      "beforeWebhookDeliver": { "kind": "filter", "scope": "webhook-delivery.extend" },
+      "afterWebhookDelivered": { "kind": "observer", "scope": "webhook-delivery.extend" }
+    },
+    "provides": { "hooks": [] }
+  },
   "customization": {
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]

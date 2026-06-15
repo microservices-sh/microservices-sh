@@ -39,8 +39,10 @@ export interface HttpResponse {
   ok: boolean;
 }
 
-// A domain event this module emits.
+// A domain event this module emits. correlationId is threaded from the
+// triggering request/source event so downstream consumers can stitch the trace.
 export interface DomainEvent {
   name: string;
+  correlationId: string;
   payload: Record<string, unknown>;
 }

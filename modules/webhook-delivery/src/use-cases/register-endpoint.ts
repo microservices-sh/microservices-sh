@@ -1,4 +1,6 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { registerEndpointInputSchema } from "../schemas";
+import { webhookDeliveryMeta } from "../meta";
 import { generateEndpointSecret } from "../signing";
 import type { WebhookEndpointStore } from "../ports";
 import type { WebhookEndpoint } from "../types";
@@ -8,15 +10,21 @@ import type { WebhookEndpoint } from "../types";
 // again. Requires webhook.write at the route layer.
 export async function registerEndpoint(
   input: unknown,
-  deps: { endpointStore: WebhookEndpointStore; now?: () => number }
+  deps: { endpointStore: WebhookEndpointStore; now?: () => number; correlationId?: string }
 ) {
+  const meta = webhookDeliveryMeta(deps);
+
   const parsed = registerEndpointInputSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      error: { code: "INVALID_ENDPOINT_INPUT", message: "Endpoint input is invalid.", issues: parsed.error.issues }
-    };
+    return err(
+      400,
+      {
+        code: "webhook-delivery.INVALID_ENDPOINT_INPUT",
+        message: "Endpoint input is invalid.",
+        issues: parsed.error.issues
+      },
+      meta
+    );
   }
 
   const secret = generateEndpointSecret();
@@ -31,9 +39,5 @@ export async function registerEndpoint(
   await deps.endpointStore.insert(endpoint);
 
   // Return the raw secret exactly once.
-  return {
-    ok: true as const,
-    status: 201 as const,
-    data: { id: endpoint.id, url: endpoint.url, eventNames: endpoint.eventNames, secret }
-  };
+  return ok(201, { id: endpoint.id, url: endpoint.url, eventNames: endpoint.eventNames, secret }, meta);
 }
