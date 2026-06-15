@@ -1,6 +1,6 @@
 # Booking SvelteKit Template
 
-Status: ready local baseline; managed preview onboarding proxies artifact upload, resources, migration, and cleanup through the API; hosted Worker upload still needs the deploy-ready bundle/assets adapter
+Status: ready for local and managed preview testing; artifact upload, resource provisioning, remote migration, hosted Worker/assets upload, preview routing, status, and cleanup are proxied through the microservices.sh API.
 Template ID: `booking-sveltekit`
 
 This is the official full-app booking template shell. It is intentionally separate from the current Hono API generator and should evolve into the default visual proof template.

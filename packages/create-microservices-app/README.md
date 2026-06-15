@@ -68,12 +68,14 @@ pnpm microservices deploy migrate --input deployment.json --plan
 pnpm microservices deploy migrate --input deployment.json --confirm migrate
 pnpm microservices deploy upload-plan --input deployment.json
 pnpm microservices deploy upload --input deployment.json --plan
+pnpm microservices deploy upload --input deployment.json --confirm upload
+pnpm microservices deploy follow --input deployment.json
 pnpm microservices deploy status --input deployment.json
 pnpm microservices deploy cleanup --input deployment.json --plan
 pnpm microservices preview smoke --url <preview-url>
 ```
 
-Remote deployment preparation, resource provisioning, remote migration, hosted upload attempts, and cleanup require explicit approval. The control-plane API owns remote state and resource ids; the generated `wrangler.jsonc` remains a local-dev config. Hosted Worker upload is still blocked until the API has a deploy-ready Worker/assets bundle, surfaced by `microservices deploy upload-plan --input deployment.json`, so the template is ready for local testing before it is ready for full live preview testing.
+Remote deployment preparation, resource provisioning, remote migration, hosted Worker/assets upload, and cleanup require explicit approval. The control-plane API owns remote state and resource ids; the generated `wrangler.jsonc` remains a local-dev config. `microservices deploy upload-plan --input deployment.json` verifies the uploaded artifact, D1/KV bindings, Cloudflare credentials, and managed preview route before `microservices deploy upload --confirm upload` publishes the generated Worker/assets artifact.
 
 `microservices deploy preview --confirm deploy` builds locally, packages the Cloudflare SvelteKit output, and uploads that artifact to the microservices.sh API. In CI, use:
 
@@ -82,6 +84,7 @@ MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy preview --co
 MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy provision --input deployment.json --confirm provision --ci --json --output provision.json
 MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy migrate --input deployment.json --confirm migrate --ci --json --output migrate.json
 MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy upload-plan --input deployment.json --ci --json --output upload-plan.json
+MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy upload --input deployment.json --confirm upload --ci --json --output upload.json
 MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy cleanup --input deployment.json --confirm cleanup --ci --json --output cleanup.json
 ```
 
