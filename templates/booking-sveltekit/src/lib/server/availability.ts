@@ -43,6 +43,13 @@ function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string): b
   return aStart < bEnd && aEnd > bStart;
 }
 
+// Only the "table doesn't exist yet" case is safe to swallow (fresh/unmigrated
+// DB). Any other DB error must propagate so the page fails closed rather than
+// offering slots / ignoring holds on a real fault.
+function isMissingTable(error: unknown): boolean {
+  return error instanceof Error && /no such table/i.test(error.message);
+}
+
 /**
  * Pure slot generator — no I/O, easy to unit test.
  */
@@ -117,10 +124,11 @@ async function loadConfig(
     const rules: Window[] = ruleRows.map((r) => ({ startTime: r.startTime, endTime: r.endTime, bufferMinutes: r.bufferMinutes }));
     return { rules, exceptions: exceptionRows };
   } catch (error) {
-    // Tables not migrated yet / DB hiccup — fall back to defaults rather than
-    // failing the public booking page.
-    console.error("availability rules query failed; using defaults:", error);
-    return { rules: DEFAULT_RULES, exceptions: [] };
+    // Fresh/unmigrated DB: the seeded defaults match migration 0006's seed, so
+    // serving them is correct. Any other DB fault must fail closed (propagate)
+    // rather than silently offering unapproved slots.
+    if (isMissingTable(error)) return { rules: DEFAULT_RULES, exceptions: [] };
+    throw error;
   }
 }
 
@@ -148,8 +156,10 @@ export async function getAvailability(opts: {
         blocking.push({ serviceId: h.serviceId, startsAt: h.startsAt, endsAt: h.endsAt, status: "hold" });
       }
     } catch (error) {
-      // holds table not migrated / DB hiccup — proceed without holds.
-      console.error("active holds query failed; ignoring holds:", error);
+      // Only ignore holds when the table genuinely doesn't exist yet (no holds
+      // can exist then). A real DB fault fails closed. (Confirmed double-booking
+      // is independently prevented by the partial-unique index on bookings.)
+      if (!isMissingTable(error)) throw error;
     }
   }
 
