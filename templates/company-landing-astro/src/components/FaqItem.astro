@@ -1,0 +1,70 @@
+---
+interface Props {
+  q: string;
+  a: string;
+}
+const { q, a } = Astro.props;
+---
+
+<details class="faq">
+  <summary>
+    <span>{q}</span>
+    <span class="faq__mark" aria-hidden="true"></span>
+  </summary>
+  <p>{a}</p>
+</details>
+
+<style>
+  .faq {
+    border-top: 1px solid var(--rule);
+  }
+  .faq summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 0;
+    font-family: var(--font-display);
+    font-size: var(--t-h3);
+    letter-spacing: -0.01em;
+  }
+  .faq summary::-webkit-details-marker {
+    display: none;
+  }
+  .faq__mark {
+    position: relative;
+    flex: none;
+    width: 16px;
+    height: 16px;
+  }
+  .faq__mark::before,
+  .faq__mark::after {
+    content: "";
+    position: absolute;
+    background: var(--accent);
+    transition: transform 0.3s var(--ease), opacity 0.3s var(--ease);
+  }
+  .faq__mark::before {
+    top: 7px;
+    left: 0;
+    width: 16px;
+    height: 2px;
+  }
+  .faq__mark::after {
+    top: 0;
+    left: 7px;
+    width: 2px;
+    height: 16px;
+  }
+  .faq[open] .faq__mark::after {
+    transform: rotate(90deg);
+    opacity: 0;
+  }
+  .faq p {
+    color: var(--muted);
+    max-width: 60ch;
+    padding-bottom: 1.4rem;
+  }
+</style>

@@ -1,0 +1,157 @@
+---
+import { site } from "../site.config";
+import Button from "./Button.astro";
+---
+
+<header class="nav">
+  <div class="container nav__inner">
+    <a href="#top" class="brand" aria-label={`${site.company} home`}>
+      <span class="brand__mark" aria-hidden="true"></span>
+      <span class="brand__name">{site.company}</span>
+    </a>
+
+    <details class="nav__menu">
+      <summary aria-label="Menu"><span></span></summary>
+      <nav class="nav__links">
+        {site.nav.links.map((l) => <a href={l.href}>{l.label}</a>)}
+        <Button href={site.nav.cta.href} variant="primary" class="nav__cta-mobile">{site.nav.cta.label}</Button>
+      </nav>
+    </details>
+
+    <nav class="nav__links nav__links--desktop">
+      {site.nav.links.map((l) => <a href={l.href}>{l.label}</a>)}
+    </nav>
+    <div class="nav__cta">
+      <Button href={site.nav.cta.href} variant="primary">{site.nav.cta.label}</Button>
+    </div>
+  </div>
+</header>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: saturate(140%) blur(10px);
+    border-bottom: 1px solid var(--rule);
+  }
+  .nav__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    height: 68px;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
+  }
+  .brand__mark {
+    width: 13px;
+    height: 13px;
+    border-radius: 3px;
+    background: var(--accent);
+    transform: rotate(45deg);
+    transition: transform 0.4s var(--ease);
+  }
+  .brand:hover .brand__mark {
+    transform: rotate(135deg);
+  }
+
+  .nav__links {
+    display: flex;
+    align-items: center;
+    gap: clamp(1.25rem, 2.5vw, 2.25rem);
+  }
+  .nav__links a {
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+    transition: color 0.2s var(--ease);
+    position: relative;
+  }
+  .nav__links a:hover {
+    color: var(--ink);
+  }
+  .nav__links--desktop a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -4px;
+    width: 0;
+    height: 1px;
+    background: var(--accent);
+    transition: width 0.3s var(--ease);
+  }
+  .nav__links--desktop a:hover::after {
+    width: 100%;
+  }
+
+  /* Desktop: inline links + CTA. Mobile: collapse into the details menu. */
+  .nav__menu {
+    display: none;
+  }
+  @media (max-width: 760px) {
+    .nav__links--desktop,
+    .nav__cta {
+      display: none;
+    }
+    .nav__menu {
+      display: block;
+      position: relative;
+    }
+    .nav__menu summary {
+      list-style: none;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--rule-strong);
+      border-radius: 10px;
+    }
+    .nav__menu summary::-webkit-details-marker {
+      display: none;
+    }
+    .nav__menu summary span,
+    .nav__menu summary span::before,
+    .nav__menu summary span::after {
+      content: "";
+      display: block;
+      width: 18px;
+      height: 2px;
+      background: var(--ink);
+      position: relative;
+    }
+    .nav__menu summary span::before {
+      position: absolute;
+      top: -6px;
+    }
+    .nav__menu summary span::after {
+      position: absolute;
+      top: 6px;
+    }
+    .nav__menu[open] .nav__links {
+      position: absolute;
+      right: 0;
+      top: 52px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1rem;
+      padding: 1.25rem;
+      min-width: 220px;
+      background: var(--surface);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius);
+      box-shadow: 0 24px 50px -24px rgba(26, 23, 20, 0.3);
+    }
+    .nav__cta-mobile {
+      margin-top: 0.25rem;
+    }
+  }
+</style>

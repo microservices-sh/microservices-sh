@@ -1,0 +1,52 @@
+---
+interface Props {
+  n: string;
+  title: string;
+  body: string;
+  delay?: number;
+}
+const { n, title, body, delay = 0 } = Astro.props;
+---
+
+<article class="card" data-reveal style={`--reveal-delay:${delay}ms`}>
+  <span class="card__n">{n}</span>
+  <h3>{title}</h3>
+  <p>{body}</p>
+  <span class="card__rule" aria-hidden="true"></span>
+</article>
+
+<style>
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.75rem 0 0;
+    border-top: 1px solid var(--rule-strong);
+  }
+  .card__n {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+  }
+  .card h3 {
+    margin-top: 0.25rem;
+  }
+  .card p {
+    color: var(--muted);
+  }
+  /* Accent rule grows on hover — restrained editorial flourish. */
+  .card__rule {
+    position: absolute;
+    top: -1px;
+    left: 0;
+    height: 2px;
+    width: 0;
+    background: var(--accent);
+    transition: width 0.5s var(--ease);
+  }
+  .card:hover .card__rule {
+    width: 3rem;
+  }
+</style>

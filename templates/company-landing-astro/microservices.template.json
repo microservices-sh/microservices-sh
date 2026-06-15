@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "company-landing-astro",
+  "version": "0.1.0",
+  "status": "ready",
+  "displayName": "Company Landing (Astro)",
+  "category": "marketing-site",
+  "summary": "Static, editorial company landing page on Astro — refined light design, content-driven (src/site.config.ts), zero backend modules.",
+  "runtime": {
+    "language": "typescript",
+    "framework": "astro",
+    "adapter": "static",
+    "platform": "static",
+    "entrypoint": "dist/index.html"
+  },
+  "deployment": {
+    "defaultMode": "static",
+    "byoCloudflare": "preferred"
+  },
+  "modules": {
+    "required": [],
+    "optional": []
+  },
+  "slots": {},
+  "sourcePolicy": {
+    "templateOwns": [
+      "app shell",
+      "routes",
+      "layout",
+      "design system (tokens + components)",
+      "all content (src/site.config.ts)"
+    ],
+    "modulesOwn": [],
+    "apiLogic": "none-static-site"
+  }
+}

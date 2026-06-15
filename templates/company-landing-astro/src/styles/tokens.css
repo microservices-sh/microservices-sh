@@ -1,0 +1,47 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Design tokens — Editorial / refined light.
+   Re-theme the whole site by editing these variables. Paper & ink with a
+   single sharp accent; serif display + grotesk body. No generic defaults.
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Surfaces — warm paper */
+  --bg: #faf8f4;
+  --surface: #fffdf9;
+  --surface-2: #f2ede4;
+  --ink: #1a1714;
+  --ink-soft: #423b34;
+  --muted: #6f655a;
+  --faint: #a89e91;
+
+  /* Hairlines — editorial rules */
+  --rule: rgba(26, 23, 20, 0.12);
+  --rule-strong: rgba(26, 23, 20, 0.26);
+
+  /* Accent — one sharp signal (terracotta). Swap for your brand. */
+  --accent: #c14b27;
+  --accent-ink: #97371a;
+  --accent-wash: rgba(193, 75, 39, 0.09);
+
+  /* Type families */
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  /* Fluid type scale */
+  --t-eyebrow: 0.76rem;
+  --t-body: clamp(1rem, 0.96rem + 0.2vw, 1.125rem);
+  --t-lead: clamp(1.18rem, 1.04rem + 0.62vw, 1.5rem);
+  --t-h3: clamp(1.3rem, 1.08rem + 0.95vw, 1.75rem);
+  --t-h2: clamp(2rem, 1.45rem + 2.3vw, 3.25rem);
+  --t-h1: clamp(2.85rem, 1.85rem + 4.6vw, 5.6rem);
+
+  /* Layout */
+  --maxw: 1140px;
+  --gutter: clamp(1.25rem, 4vw, 3.5rem);
+  --radius: 14px;
+  --radius-sm: 9px;
+
+  /* Motion */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur: 0.7s;
+}

@@ -1,0 +1,441 @@
+---
+import Base from "../layouts/Base.astro";
+import Nav from "../components/Nav.astro";
+import Footer from "../components/Footer.astro";
+import Section from "../components/Section.astro";
+import Button from "../components/Button.astro";
+import FeatureCard from "../components/FeatureCard.astro";
+import FaqItem from "../components/FaqItem.astro";
+import { site } from "../site.config";
+
+const pad = (i: number) => String(i + 1).padStart(2, "0");
+---
+
+<Base>
+  <span id="top"></span>
+  <Nav />
+
+  <main>
+    <!-- HERO -->
+    <section class="hero">
+      <div class="container">
+        <p class="eyebrow" data-reveal>{site.hero.eyebrow}</p>
+        <h1 data-reveal style="--reveal-delay:80ms">
+          {site.hero.titleLead} <em>{site.hero.titleEmphasis}</em> {site.hero.titleTail}
+        </h1>
+        <div class="hero__grid">
+          <p class="lead hero__lead" data-reveal style="--reveal-delay:160ms">{site.hero.lead}</p>
+          <div class="hero__actions" data-reveal style="--reveal-delay:220ms">
+            <Button href={site.hero.primary.href}>{site.hero.primary.label}</Button>
+            <Button href={site.hero.secondary.href} variant="ghost">{site.hero.secondary.label}</Button>
+            <p class="hero__note">{site.hero.note}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="container logos" data-reveal style="--reveal-delay:300ms">
+        <span class="logos__label">{site.logos.label}</span>
+        <ul class="logos__list">
+          {site.logos.items.map((n) => <li>{n}</li>)}
+        </ul>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <Section id="features" n="01" eyebrow={site.features.eyebrow} title={site.features.title} ruled={false}>
+      <div class="features">
+        {site.features.items.map((f, i) => <FeatureCard n={pad(i)} title={f.title} body={f.body} delay={i * 80} />)}
+      </div>
+    </Section>
+
+    <!-- PROCESS -->
+    <Section id="process" n="02" eyebrow={site.process.eyebrow} title={site.process.title}>
+      <p class="process__intro" data-reveal>{site.process.intro}</p>
+      <ol class="process__steps">
+        {
+          site.process.steps.map((s, i) => (
+            <li data-reveal style={`--reveal-delay:${i * 90}ms`}>
+              <span class="process__n">{pad(i)}</span>
+              <h3>{s.title}</h3>
+              <p>{s.body}</p>
+            </li>
+          ))
+        }
+      </ol>
+    </Section>
+
+    <!-- TESTIMONIAL -->
+    <section class="quote">
+      <div class="container">
+        <blockquote data-reveal>
+          <p>{`“${site.testimonial.quote}”`}</p>
+          <footer>
+            <span>{site.testimonial.author}</span>
+            <span class="quote__role">{site.testimonial.role}</span>
+          </footer>
+        </blockquote>
+      </div>
+    </section>
+
+    <!-- PRICING -->
+    <Section id="pricing" n="03" eyebrow={site.pricing.eyebrow} title={site.pricing.title}>
+      <p class="lead pricing__intro" data-reveal>{site.pricing.intro}</p>
+      <div class="pricing">
+        {
+          site.pricing.plans.map((p, i) => (
+            <article class={`plan ${p.featured ? "plan--featured" : ""}`} data-reveal style={`--reveal-delay:${i * 90}ms`}>
+              <div class="plan__head">
+                <h3>{p.name}</h3>
+                <p class="plan__price">
+                  {p.price}
+                  {p.unit && <span>{p.unit}</span>}
+                </p>
+                <p class="plan__best">{p.bestFor}</p>
+              </div>
+              <ul class="plan__feats">
+                {p.features.map((f) => (
+                  <li>{f}</li>
+                ))}
+              </ul>
+              <Button href={p.cta.href} variant={p.featured ? "primary" : "ghost"} class="plan__cta">
+                {p.cta.label}
+              </Button>
+            </article>
+          ))
+        }
+      </div>
+    </Section>
+
+    <!-- CTA -->
+    <section class="cta">
+      <div class="container">
+        <div class="cta__panel" data-reveal>
+          <h2>{site.cta.title}</h2>
+          <p class="lead">{site.cta.body}</p>
+          <div class="cta__actions">
+            <Button href={site.cta.primary.href}>{site.cta.primary.label}</Button>
+            <Button href={site.cta.secondary.href} variant="ghost">{site.cta.secondary.label}</Button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <Section id="faq" n="04" eyebrow={site.faq.eyebrow} title={site.faq.title}>
+      <div class="faqs">
+        {site.faq.items.map((f) => <FaqItem q={f.q} a={f.a} />)}
+      </div>
+    </Section>
+  </main>
+
+  <Footer />
+</Base>
+
+<style>
+  /* HERO */
+  .hero {
+    padding-top: clamp(3.5rem, 9vw, 7rem);
+    padding-bottom: clamp(2.5rem, 6vw, 4rem);
+  }
+  .hero h1 {
+    max-width: 17ch;
+    margin-top: 1.5rem;
+  }
+  .hero__grid {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: clamp(1.5rem, 4vw, 3.5rem);
+    margin-top: clamp(2rem, 4vw, 3.25rem);
+    align-items: end;
+  }
+  .hero__lead {
+    max-width: 46ch;
+  }
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+    align-items: center;
+  }
+  .hero__note {
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--faint);
+    letter-spacing: 0.04em;
+    margin-top: 0.25rem;
+  }
+  @media (max-width: 760px) {
+    .hero__grid {
+      grid-template-columns: 1fr;
+      align-items: start;
+    }
+  }
+
+  /* LOGOS */
+  .logos {
+    display: flex;
+    align-items: center;
+    gap: clamp(1rem, 4vw, 2.5rem);
+    flex-wrap: wrap;
+    margin-top: clamp(2.5rem, 6vw, 4rem);
+    padding-top: 1.75rem;
+    border-top: 1px solid var(--rule);
+  }
+  .logos__label {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--faint);
+  }
+  .logos__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(1.25rem, 3.5vw, 2.75rem);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .logos__list li {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+    opacity: 0.72;
+    letter-spacing: -0.01em;
+  }
+
+  /* FEATURES */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(1.5rem, 4vw, 3rem);
+  }
+
+  /* PROCESS */
+  .process__intro {
+    font-family: var(--font-display);
+    font-size: var(--t-lead);
+    line-height: 1.42;
+    max-width: 30ch;
+    color: var(--ink);
+    margin-bottom: clamp(2rem, 4vw, 3.25rem);
+  }
+  .process__intro::first-letter {
+    font-size: 3.3em;
+    line-height: 0.72;
+    float: left;
+    padding: 0.05em 0.12em 0 0;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .process__steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(1.5rem, 4vw, 3rem);
+  }
+  .process__steps li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule-strong);
+  }
+  .process__n {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+  }
+  .process__steps p {
+    color: var(--muted);
+  }
+
+  /* TESTIMONIAL */
+  .quote {
+    padding-block: clamp(3.5rem, 8vw, 6.5rem);
+  }
+  .quote blockquote {
+    margin: 0;
+    max-width: min(100%, 820px);
+  }
+  .quote p {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(1.6rem, 1rem + 2.8vw, 2.9rem);
+    line-height: 1.16;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .quote footer {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.75rem;
+    font-size: 0.95rem;
+    align-items: baseline;
+  }
+  .quote footer span:first-child {
+    font-weight: 600;
+  }
+  .quote__role {
+    color: var(--muted);
+  }
+
+  /* PRICING */
+  .pricing__intro {
+    max-width: 40ch;
+    color: var(--muted);
+    margin-bottom: clamp(2rem, 4vw, 3rem);
+  }
+  .pricing {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(1rem, 2.5vw, 1.5rem);
+  }
+  .plan {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: clamp(1.5rem, 3vw, 2rem);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--surface);
+    transition:
+      transform 0.3s var(--ease),
+      box-shadow 0.3s var(--ease),
+      border-color 0.3s var(--ease);
+  }
+  .plan:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 24px 48px -28px rgba(26, 23, 20, 0.35);
+  }
+  .plan--featured {
+    border-color: var(--accent);
+  }
+  .plan--featured::before {
+    content: "Most popular";
+    position: absolute;
+    top: -0.7rem;
+    left: clamp(1.5rem, 3vw, 2rem);
+    background: var(--accent);
+    color: var(--surface);
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+  }
+  .plan__head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .plan__price {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(2rem, 1.4rem + 1.6vw, 2.6rem);
+    line-height: 1;
+  }
+  .plan__price span {
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 0.95rem;
+    color: var(--muted);
+    margin-left: 0.35rem;
+  }
+  .plan__best {
+    color: var(--muted);
+    font-size: 0.92rem;
+  }
+  .plan__feats {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    flex: 1;
+  }
+  .plan__feats li {
+    display: flex;
+    gap: 0.65rem;
+    align-items: flex-start;
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+  }
+  .plan__feats li::before {
+    content: "";
+    flex: none;
+    width: 7px;
+    height: 7px;
+    margin-top: 0.5em;
+    background: var(--accent);
+    border-radius: 2px;
+    transform: rotate(45deg);
+  }
+  .plan__cta {
+    width: 100%;
+  }
+
+  /* CTA */
+  .cta {
+    padding-block: clamp(3rem, 7vw, 5.5rem);
+  }
+  .cta__panel {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.1rem;
+    padding: clamp(2rem, 5vw, 4rem);
+    background: var(--surface);
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--radius);
+  }
+  .cta__panel::after {
+    content: "";
+    position: absolute;
+    right: -120px;
+    top: -120px;
+    width: 320px;
+    height: 320px;
+    background: radial-gradient(circle at center, var(--accent-wash), transparent 70%);
+    pointer-events: none;
+  }
+  .cta__panel h2 {
+    max-width: 16ch;
+  }
+  .cta__panel .lead {
+    max-width: 44ch;
+    color: var(--muted);
+  }
+  .cta__actions {
+    display: flex;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+
+  /* FAQ */
+  .faqs {
+    max-width: 760px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  @media (max-width: 760px) {
+    .features,
+    .process__steps,
+    .pricing {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

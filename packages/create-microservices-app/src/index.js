@@ -22,6 +22,12 @@ const REPO_TEMPLATES = {
     status: "ready",
     summary: "Full Cloudflare SvelteKit booking app — public booking flow, admin, D1, typed hooks.",
   },
+  "company-landing-astro": {
+    id: "company-landing-astro",
+    name: "Company Landing (Astro)",
+    status: "ready",
+    summary: "Static editorial company landing page on Astro — refined light design, content-driven, no backend modules.",
+  },
 };
 const BUNDLED_MODULES = ["audit-log", "auth", "booking", "customer", "gateway"];
 

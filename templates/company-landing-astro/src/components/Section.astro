@@ -1,0 +1,64 @@
+---
+interface Props {
+  id?: string;
+  n?: string;
+  eyebrow?: string;
+  title?: string;
+  ruled?: boolean;
+  class?: string;
+}
+const { id, n, eyebrow, title, ruled = true, class: cls = "" } = Astro.props;
+---
+
+<section id={id} class={`section ${ruled ? "section--ruled" : ""} ${cls}`}>
+  <div class="container">
+    {
+      (eyebrow || title) && (
+        <header class="section__head" data-reveal>
+          {n && <span class="section__n">{n}</span>}
+          <div class="section__heading">
+            {eyebrow && <p class="eyebrow">{eyebrow}</p>}
+            {title && <h2>{title}</h2>}
+          </div>
+        </header>
+      )
+    }
+    <slot />
+  </div>
+</section>
+
+<style>
+  .section {
+    padding-block: clamp(3.5rem, 8vw, 7rem);
+  }
+  .section--ruled .container {
+    border-top: 1px solid var(--rule);
+    padding-top: clamp(3rem, 6vw, 5rem);
+  }
+  .section__head {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: clamp(1rem, 4vw, 3rem);
+    align-items: start;
+    margin-bottom: clamp(2rem, 4vw, 3.25rem);
+  }
+  .section__n {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--accent);
+    padding-top: 0.4rem;
+    letter-spacing: 0.05em;
+  }
+  .section__heading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    max-width: 22ch;
+  }
+  @media (max-width: 640px) {
+    .section__head {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+  }
+</style>

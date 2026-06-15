@@ -1,0 +1,69 @@
+---
+interface Props {
+  href: string;
+  variant?: "primary" | "ghost";
+  class?: string;
+}
+const { href, variant = "primary", class: cls = "" } = Astro.props;
+const external = href.startsWith("http") || href.startsWith("mailto:");
+---
+
+<a
+  href={href}
+  class={`btn btn--${variant} ${cls}`}
+  {...external ? { rel: "noopener", target: href.startsWith("http") ? "_blank" : undefined } : {}}
+>
+  <span><slot /></span>
+</a>
+
+<style>
+  .btn {
+    --pad-y: 0.85rem;
+    --pad-x: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5em;
+    padding: var(--pad-y) var(--pad-x);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition:
+      transform 0.25s var(--ease),
+      box-shadow 0.25s var(--ease),
+      background 0.25s var(--ease),
+      color 0.25s var(--ease),
+      border-color 0.25s var(--ease);
+    will-change: transform;
+  }
+  .btn:hover {
+    transform: translateY(-2px);
+  }
+  .btn:active {
+    transform: translateY(0);
+  }
+
+  .btn--primary {
+    background: var(--accent);
+    color: var(--surface);
+    box-shadow: 0 1px 0 var(--accent-ink) inset, 0 8px 22px -12px var(--accent);
+  }
+  .btn--primary:hover {
+    background: var(--accent-ink);
+    box-shadow: 0 1px 0 var(--accent-ink) inset, 0 14px 30px -12px var(--accent);
+  }
+
+  .btn--ghost {
+    background: transparent;
+    color: var(--ink);
+    border-color: var(--rule-strong);
+  }
+  .btn--ghost:hover {
+    border-color: var(--ink);
+    background: var(--surface);
+  }
+</style>
