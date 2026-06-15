@@ -9,6 +9,7 @@
         "nextjs cloudflare",
         "next.js cloudflare workers starter"
       ],
+      "pitch": "Next.js on Workers is powered by the OpenNext adapter (@opennextjs/cloudflare), which converts the Next.js output into a format that runs natively on the Cloudflare edge — no Node.js runtime required.",
       "hookEntry": "app/layout.tsx",
       "devCommand": "dev",
       "status": "ready"
@@ -22,6 +23,7 @@
         "astro cloudflare",
         "astro cloudflare workers starter"
       ],
+      "pitch": "Astro supports both SSR and hybrid (partial prerender) output modes on Cloudflare Workers via @astrojs/cloudflare, letting you mix static islands with server-rendered routes in a single deploy.",
       "hookEntry": "src/layouts/Layout.astro",
       "devCommand": "dev",
       "status": "ready"
@@ -35,6 +37,7 @@
         "react router cloudflare",
         "react router 7 cloudflare workers"
       ],
+      "pitch": "React Router 7 ships a first-class framework mode that pairs with @cloudflare/vite-plugin, giving you file-based routing, loaders, and actions all running at the Cloudflare edge.",
       "hookEntry": "app/root.tsx",
       "devCommand": "dev",
       "status": "ready"
@@ -48,6 +51,7 @@
         "nuxt cloudflare",
         "nuxt cloudflare workers starter"
       ],
+      "pitch": "Nuxt uses its built-in Nitro engine with the cloudflare-module preset, so you get Nuxt's full-stack DX — server routes, composables, auto-imports — compiled directly to a Cloudflare Worker.",
       "hookEntry": "app.vue",
       "devCommand": "dev",
       "status": "ready"
@@ -61,6 +65,7 @@
         "hono cloudflare",
         "hono cloudflare workers starter"
       ],
+      "pitch": "Hono is designed from the ground up for the WinterCG runtime and runs natively on Cloudflare Workers without any adapter layer, giving you the smallest possible cold-start overhead.",
       "hookEntry": "src/index.ts",
       "devCommand": "dev",
       "status": "ready"
@@ -74,6 +79,7 @@
         "sveltekit cloudflare",
         "sveltekit cloudflare workers starter"
       ],
+      "pitch": "SvelteKit integrates with Cloudflare Workers through @sveltejs/adapter-cloudflare, which compiles your server routes and load functions to a Worker that binds directly to D1, KV, R2, and Queues.",
       "hookEntry": "src/routes/+layout.svelte",
       "devCommand": "dev",
       "status": "ready"
