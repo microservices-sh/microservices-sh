@@ -20,6 +20,10 @@ declare global {
         RESEND_API_KEY?: string;
         /** From-address for outbound email. */
         EMAIL_FROM?: string;
+        /** Payments: set to charge via Stripe; unset uses a memory gateway (dev). */
+        STRIPE_SECRET_KEY?: string;
+        /** Stripe webhook signing secret for /api/payments/webhook. */
+        STRIPE_WEBHOOK_SECRET?: string;
       };
     }
 

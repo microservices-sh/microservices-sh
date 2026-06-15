@@ -31,7 +31,9 @@ const PUBLIC_API = new Set([
   "/api/auth/bootstrap",
   // Scheduled endpoints — self-gated by CRON_TOKEN, not the gateway token.
   "/api/cron/run",
-  "/api/holds/expire"
+  "/api/holds/expire",
+  // Stripe webhook — self-gated by signature verification, not the gateway token.
+  "/api/payments/webhook"
 ]);
 
 export const handle: Handle = async ({ event, resolve }) => {

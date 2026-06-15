@@ -12,7 +12,7 @@ const internalAliases = new Map([
 
 const REPO_TEMPLATES = ["booking-sveltekit", "company-landing-astro"];
 const REPO_TEMPLATE_MODULES = {
-  "booking-sveltekit": ["gateway", "auth", "customer", "booking", "audit-log", "email"],
+  "booking-sveltekit": ["gateway", "auth", "customer", "booking", "audit-log", "email", "payment"],
   "company-landing-astro": [],
 };
 const REPO_TEMPLATE_PACKAGES = {

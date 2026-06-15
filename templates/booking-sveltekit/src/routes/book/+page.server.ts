@@ -1,9 +1,11 @@
 import type { PageServerLoad, Actions } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { createBooking, getBooking } from "@microservices-sh/booking";
+import { createPaymentIntent } from "@microservices-sh/payment";
 import { getCompanySettings } from "$lib/server/settings";
 import { getAvailability } from "$lib/server/availability";
 import { sendBookingConfirmation } from "$lib/server/notifications";
+import { getPaymentDeps, depositCents, bookingRef } from "$lib/server/payment-deps";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -76,6 +78,28 @@ export const actions: Actions = {
       }
     } catch (error) {
       console.error("Booking confirmation email failed:", error);
+    }
+
+    // Deposit payment intent — best-effort; never block the booking.
+    try {
+      const settings = await getCompanySettings(platform?.env?.DB);
+      if (settings.depositPercent > 0) {
+        const service = await locals.bookingRepository.getService(result.data.booking.serviceId);
+        const amount = depositCents(service?.priceCents ?? 0, settings.depositPercent);
+        if (amount > 0) {
+          await createPaymentIntent(
+            {
+              customerId: result.data.booking.customerId,
+              amount,
+              currency: (service?.currency ?? "usd").toLowerCase(),
+              description: bookingRef(result.data.booking.id),
+            },
+            getPaymentDeps(platform?.env?.DB, platform?.env),
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Deposit payment intent failed:", error);
     }
 
     throw redirect(303, `/booking/${result.data.booking.id}`);
