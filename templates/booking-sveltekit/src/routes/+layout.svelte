@@ -2,7 +2,8 @@
   import "../app.css";
   import { page } from "$app/stores";
 
-  let { children } = $props();
+  let { children, data } = $props();
+  const brand = $derived(data?.settings?.name ?? "Booking");
 
   const links = [
     { href: "/book", label: "Book" },
@@ -19,7 +20,7 @@
   <header class="topbar">
     <a class="brand" href="/">
       <span class="brand-mark">ms</span>
-      <span>Booking</span>
+      <span>{brand}</span>
     </a>
     <nav class="nav" aria-label="Primary">
       {#each links as link}
@@ -36,7 +37,7 @@
   {@render children()}
 
   <footer class="site-footer">
-    <span>Booking · SvelteKit on Cloudflare</span>
+    <span>{brand} · SvelteKit on Cloudflare</span>
     <span>Detached booking module · D1 persistence</span>
   </footer>
 </div>

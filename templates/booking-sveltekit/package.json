@@ -29,6 +29,7 @@
     "@microservices-sh/gateway": "workspace:*",
     "@sveltejs/adapter-cloudflare": "^7.2.4",
     "@sveltejs/kit": "^2.9.0",
+    "drizzle-orm": "^0.41.0",
     "svelte": "^5.0.0",
     "vite": "^5.0.0",
     "zod": "^3.25.76"
@@ -37,6 +38,7 @@
     "@cloudflare/workers-types": "^4.20250109.0",
     "@sveltejs/vite-plugin-svelte": "^4.0.4",
     "@tailwindcss/vite": "^4.1.13",
+    "drizzle-kit": "^0.30.6",
     "tailwindcss": "^4.1.13",
     "typescript": "^5.9.3",
     "wrangler": "^4.58.0"
