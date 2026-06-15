@@ -30,6 +30,9 @@ const REPO_TEMPLATES = {
   },
 };
 const BUNDLED_MODULES = ["audit-log", "auth", "booking", "customer", "email", "gateway"];
+const BUNDLED_PACKAGES = new Map([
+  ["@microservices-sh/connection-contract", "connection-contract"],
+]);
 
 function modulePackageName(moduleId) {
   return `@microservices-sh/${moduleId}`;
@@ -42,6 +45,16 @@ function rewriteBundledModuleDeps(dependencies, prefix = "./modules") {
     const name = modulePackageName(moduleId);
     if (dependencies[name]) {
       dependencies[name] = `file:${prefix}/${moduleId}`;
+    }
+  }
+}
+
+function rewriteBundledPackageDeps(dependencies, prefix = "./packages") {
+  if (!dependencies || typeof dependencies !== "object") return;
+
+  for (const [name, packagePath] of BUNDLED_PACKAGES) {
+    if (dependencies[name]) {
+      dependencies[name] = `file:${prefix}/${packagePath}`;
     }
   }
 }
@@ -86,6 +99,7 @@ function applyRepoTemplateConfig(files, appName, configOverride) {
         const pkg = JSON.parse(file.contents);
         pkg.name = appName;
         rewriteBundledModuleDeps(pkg.dependencies);
+        rewriteBundledPackageDeps(pkg.dependencies);
         if (pkg.scripts?.["check:spec"]) {
           pkg.scripts["check:spec"] = "node scripts/microservices.js check --json";
         }
@@ -98,6 +112,7 @@ function applyRepoTemplateConfig(files, appName, configOverride) {
       try {
         const pkg = JSON.parse(file.contents);
         rewriteBundledModuleDeps(pkg.dependencies, "..");
+        rewriteBundledPackageDeps(pkg.dependencies, "../../packages");
         return { ...file, contents: `${JSON.stringify(pkg, null, 2)}\n` };
       } catch {
         return file;

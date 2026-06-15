@@ -15,6 +15,10 @@ const REPO_TEMPLATE_MODULES = {
   "booking-sveltekit": ["gateway", "auth", "customer", "booking", "audit-log", "email"],
   "company-landing-astro": [],
 };
+const REPO_TEMPLATE_PACKAGES = {
+  "booking-sveltekit": ["connection-contract"],
+  "company-landing-astro": [],
+};
 const TEMPLATE_IGNORE = new Set(["node_modules", ".svelte-kit", ".astro", ".wrangler", "dist", ".DS_Store", ".git"]);
 
 function includeTemplateFile(src) {
@@ -69,6 +73,13 @@ for (const id of REPO_TEMPLATES) {
       filter: includeTemplateFile,
     });
     process.stdout.write(`  module ${moduleId} <- modules/${moduleId}\n`);
+  }
+  for (const packageId of REPO_TEMPLATE_PACKAGES[id] ?? []) {
+    await cp(resolve(repoRoot, "packages", packageId), resolve(templatesOut, id, "packages", packageId), {
+      recursive: true,
+      filter: includeTemplateFile,
+    });
+    process.stdout.write(`  package ${packageId} <- packages/${packageId}\n`);
   }
   process.stdout.write(`bundled template: ${id}\n`);
 }
