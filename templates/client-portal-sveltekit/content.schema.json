@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://microservices.sh/schemas/client-portal-sveltekit/content.schema.json",
+  "title": "Client Portal (SvelteKit) — public home content",
+  "description": "The contract for the customer-facing home page (src/routes/+page.svelte). An agent fills src/content.json to match this schema, validates, then runs the verify command. This phase covers the home page only — see CLAUDE.md for where brand, auth pages, and theme live.",
+
+  "x-microservices": {
+    "template": "client-portal-sveltekit",
+    "appliesTo": "src/content.json",
+    "verify": "npm run validate && npm run build",
+    "doNotEdit": ["src/routes/**", "src/lib/**", "src/app.css", "src/app.html"],
+    "scope": "home-page-only",
+    "notes": "Only the public home page is content-driven here. Login, portal, and admin screens, plus brand colors/fonts (src/app.css, THEMING.md), are not externalized."
+  },
+
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["hero", "panel"],
+  "properties": {
+    "hero": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eyebrow", "headline", "lead", "primaryCta", "secondaryCta"],
+      "properties": {
+        "eyebrow": { "type": "string", "maxLength": 40, "x-hint": "Small label above the headline." },
+        "headline": { "type": "string", "maxLength": 60, "x-hint": "Main hero headline; punchy, ~6 words." },
+        "lead": { "type": "string", "maxLength": 240, "x-hint": "Sub-headline paragraph, 1–2 sentences." },
+        "primaryCta": { "$ref": "#/$defs/cta" },
+        "secondaryCta": { "$ref": "#/$defs/cta" }
+      }
+    },
+    "panel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eyebrow", "title", "body", "features"],
+      "properties": {
+        "eyebrow": { "type": "string", "maxLength": 30 },
+        "title": { "type": "string", "maxLength": 40 },
+        "body": { "type": "string", "maxLength": 200 },
+        "features": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 6,
+          "x-hint": "Short benefit bullets rendered as a list.",
+          "items": { "type": "string", "maxLength": 40 }
+        }
+      }
+    }
+  },
+
+  "$defs": {
+    "cta": {
+      "description": "A call-to-action button (label + href). href is an in-page path (/login, /portal) or absolute URL.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "href"],
+      "properties": {
+        "label": { "type": "string", "minLength": 1, "maxLength": 30 },
+        "href": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

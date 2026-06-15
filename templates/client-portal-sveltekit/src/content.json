@@ -1,0 +1,15 @@
+{
+  "hero": {
+    "eyebrow": "Client portal",
+    "headline": "A secure portal for your clients.",
+    "lead": "Each client signs in to see their own invoices and documents, while your team manages everything from an admin view.",
+    "primaryCta": { "label": "Sign in", "href": "/login" },
+    "secondaryCta": { "label": "Open the portal", "href": "/portal" }
+  },
+  "panel": {
+    "eyebrow": "Why a portal",
+    "title": "Built for trust",
+    "body": "Per-customer scoped access, secure document sharing, and clean invoicing — so clients only ever see what's theirs.",
+    "features": ["Per-customer scoped data", "Secure document sharing", "Clean invoicing", "Audit trail"]
+  }
+}
