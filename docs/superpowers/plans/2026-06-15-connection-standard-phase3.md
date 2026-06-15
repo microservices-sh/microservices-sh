@@ -205,6 +205,23 @@ Mirror the auth/payment reference migrations (see Phase 2 commits `e002823`, `dc
 
 ## Sub-phase 3D — Remove shims + finish
 
+> **STATUS (2026-06-15): mostly done (271 tests green).**
+> - **3D-a DONE** — flat-field fallbacks removed from `normalizeManifestConnections`; the
+>   `scaffold module` generator now emits a `connections` block + connection-contract dep +
+>   connections-derived events/hooks codegen (verified by scaffolding a throwaway module → check passed).
+> - **3D-c DONE** — `microservices graph` command renders the composed honeycomb (modules / rpc
+>   edges / event edges / hook chains; `--json`). grantedScopes = a module's own `permissions`
+>   PLUS its `connections.rpc.calls[].scope` (callers need the callee's scope).
+> - **3D-d DONE (diagnosis)** — the `spec:check:all` red is the concurrent worker's INCOMPLETE
+>   `templates/company-landing-astro` (missing microservices.lock.json, README.agent.md,
+>   docs/llms.txt, docs/api-boundary.md, tsconfig.json, wrangler.jsonc). Unrelated to the
+>   connection standard; not ours to complete.
+> - **3D-b DEFERRED** — module-contract internal MODULES reshape to connections-as-source. It's
+>   a standalone hand-maintained catalog feeding composeApp/CLI generate; the honeycomb runs off
+>   module.json (fully migrated), not module-contract. High blast radius on the generated-app
+>   path, low marginal value (data is hand-duplicated either way). Better future work: GENERATE
+>   module-contract from module.json to eliminate the duplication, rather than rename fields.
+
 ### Task 11: remove workspace-tools flat fallbacks
 
 **Files:** `packages/workspace-tools/src/index.js` (the `normalizeManifestConnections` + scaffolder), `packages/workspace-tools/tests/connections.test.js`
