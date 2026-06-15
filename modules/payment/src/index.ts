@@ -7,6 +7,7 @@ export { createPaymentIntent } from "./use-cases/create-payment-intent";
 export { handleWebhook } from "./use-cases/handle-webhook";
 export { getPayment } from "./use-cases/get-payment";
 export { listPayments } from "./use-cases/list-payments";
+export { refundPayment } from "./use-cases/refund-payment";
 export { signWebhook, verifyWebhookSignature } from "./webhook";
 export { rpcContract } from "./rpc";
 export { createD1PaymentRepository } from "./adapters/d1-payment-repository";

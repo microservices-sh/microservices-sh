@@ -34,6 +34,27 @@ export function createStripePaymentGateway(secretKey: string): PaymentGateway {
         status: data.status
       };
       return intent;
+    },
+    async refund(intentId) {
+      const body = new URLSearchParams();
+      body.set("payment_intent", intentId);
+
+      const response = await fetch("https://api.stripe.com/v1/refunds", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: body.toString()
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Stripe refunds failed (${response.status}): ${text}`);
+      }
+
+      const data = (await response.json()) as { status: string };
+      return { status: data.status };
     }
   };
 }

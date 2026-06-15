@@ -18,4 +18,6 @@ export interface PaymentGateway {
     customerId: string;
     description?: string | null;
   }): Promise<GatewayIntent>;
+  // Refund a previously-created intent. Returns the provider's resulting status.
+  refund(intentId: string): Promise<{ status: string }>;
 }

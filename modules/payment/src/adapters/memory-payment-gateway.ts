@@ -9,6 +9,9 @@ export function createMemoryPaymentGateway(): PaymentGateway {
       counter += 1;
       const intentId = `pi_test_${counter}`;
       return { intentId, clientSecret: `${intentId}_secret_test`, status: "requires_payment_method" };
+    },
+    async refund() {
+      return { status: "refunded" };
     }
   };
 }
