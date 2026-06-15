@@ -91,7 +91,17 @@ export async function createBooking(
   );
 
   if (!customerResult.ok || !customerResult.data) {
-    return customerResult;
+    // Re-shape into a booking error rather than returning the customer result
+    // verbatim, so createBooking's return type stays a clean booking result
+    // (the caller narrows on "error" in result without seeing customer shapes).
+    return {
+      ok: false,
+      status: customerResult.status,
+      error:
+        "error" in customerResult
+          ? customerResult.error
+          : { code: "CUSTOMER_UPSERT_FAILED", message: "Could not save the customer for this booking." }
+    };
   }
 
   const { customer } = customerResult.data;

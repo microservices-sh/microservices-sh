@@ -6,6 +6,7 @@ Read first:
 
 - `module.json`
 - `README.md`
+- `examples/use-booking.ts` — runnable, end-to-end worked example (wire deps → query availability → create → list → cancel). Start here.
 - `src/index.ts`
 - `src/ports/index.ts`
 - `src/use-cases/create-booking.ts`
@@ -14,8 +15,16 @@ Read first:
 Stable imports:
 
 - `@microservices-sh/booking`
+- `@microservices-sh/booking/deps` — `createBookingDeps({ DB? })` wires the booking + customer repositories (D1 when `DB` is present, in-memory otherwise)
 - `@microservices-sh/booking/ports`
 - `@microservices-sh/booking/adapters/d1`
 - `@microservices-sh/booking/adapters/memory`
 
-Route adapters should parse framework input, call exported use cases, and map framework-neutral results to framework responses.
+Reference usage (in a real framework):
+
+- `templates/booking-sveltekit/src/routes/book/+page.server.ts` — calls the use cases from a SvelteKit route (load + form action)
+- `templates/booking-sveltekit/src/routes/book/+page.svelte` — renders the returned availability/booking data
+
+Use cases return `{ ok, status, data }` on success or `{ ok, status, error }` on
+failure; narrow with `"error" in result`. Route adapters should parse framework
+input, call exported use cases, and map the neutral result to a framework response.
