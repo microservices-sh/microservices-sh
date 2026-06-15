@@ -1666,17 +1666,21 @@ async function main() {
       flags
     );
   } else if (resource === "docs") {
-    emit(
-      {
-        ok: true,
-        data: {
-          id: action,
-          message: "Read docs/llms.txt and root docs/templates/saas-starter-sveltekit.md for template/module guidance."
-        }
-      },
-      (data) => `${data.message}\n`,
-      flags
-    );
+    const moduleDocs = [];
+    if (action) {
+      for (const source of [`modules/${action}/README.agent.md`, `modules/${action}/README.md`]) {
+        if (existsSync(source)) moduleDocs.push(readFileSync(source, "utf8").trim());
+      }
+      if (existsSync(`modules/${action}/module.json`)) {
+        moduleDocs.push(`See modules/${action}/module.json for the full connection contract (requires, events, exposes).`);
+      }
+    }
+    const content = action
+      ? (moduleDocs.length
+          ? moduleDocs.join("\n\n")
+          : `No docs found for module "${action}". Run "microservices modules list" to see installed modules.`)
+      : `Usage: microservices docs <module-id>. Run "microservices modules list" to list installed modules.`;
+    emit({ ok: true, data: { id: action ?? null, content } }, (data) => `${data.content}\n`, flags);
   } else if (resource === "upgrade") {
     const moduleId = action;
     const module = (lock.modules ?? []).find((item) => item.id === moduleId);
