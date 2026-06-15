@@ -121,7 +121,7 @@ try {
   if (!existsSync(join(svelteRoot, "modules", "booking", "package.json"))) {
     throw new Error("SvelteKit create command did not include the booking module source.");
   }
-  for (const moduleId of ["audit-log", "auth", "email", "gateway"]) {
+  for (const moduleId of ["audit-log", "auth", "email", "gateway", "payment"]) {
     if (!existsSync(join(svelteRoot, "modules", moduleId, "package.json"))) {
       throw new Error(`SvelteKit create command did not include the ${moduleId} module source.`);
     }
@@ -139,13 +139,17 @@ try {
   const svelteBookingPackage = JSON.parse(readFileSync(join(svelteRoot, "modules", "booking", "package.json"), "utf8"));
   const svelteGatewayPackage = JSON.parse(readFileSync(join(svelteRoot, "modules", "gateway", "package.json"), "utf8"));
   const svelteAuthPackage = JSON.parse(readFileSync(join(svelteRoot, "modules", "auth", "package.json"), "utf8"));
-  for (const moduleId of ["audit-log", "auth", "booking", "customer", "email", "gateway"]) {
+  const sveltePaymentPackage = JSON.parse(readFileSync(join(svelteRoot, "modules", "payment", "package.json"), "utf8"));
+  for (const moduleId of ["audit-log", "auth", "booking", "customer", "email", "gateway", "payment"]) {
     if (sveltePackage.dependencies?.[`@microservices-sh/${moduleId}`] !== `file:./modules/${moduleId}`) {
       throw new Error(`SvelteKit generated app should depend on local ${moduleId} module source.`);
     }
   }
   if (svelteAuthPackage.dependencies?.["@microservices-sh/connection-contract"] !== "file:../../packages/connection-contract") {
     throw new Error("SvelteKit generated auth module should depend on local connection-contract package source.");
+  }
+  if (sveltePaymentPackage.dependencies?.["@microservices-sh/connection-contract"] !== "file:../../packages/connection-contract") {
+    throw new Error("SvelteKit generated payment module should depend on local connection-contract package source.");
   }
   if (
     sveltePackage.scripts?.dev !== "node scripts/microservices.js local dev" ||

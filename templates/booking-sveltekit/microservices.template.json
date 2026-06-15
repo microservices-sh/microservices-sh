@@ -24,10 +24,10 @@
       "auth",
       "customer",
       "booking",
-      "audit-log"
+      "audit-log",
+      "payment"
     ],
     "optional": [
-      "payment",
       "email",
       "admin-shell",
       "webhook-delivery"
@@ -63,7 +63,7 @@
       "approvalRisk": "medium"
     },
     "payment": {
-      "activeModule": null,
+      "activeModule": "payment",
       "allowedModules": [
         "payment"
       ],

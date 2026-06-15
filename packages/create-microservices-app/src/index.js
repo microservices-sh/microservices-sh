@@ -29,7 +29,7 @@ const REPO_TEMPLATES = {
     summary: "Static editorial company landing page on Astro — refined light design, content-driven, no backend modules.",
   },
 };
-const BUNDLED_MODULES = ["audit-log", "auth", "booking", "customer", "email", "gateway"];
+const BUNDLED_MODULES = ["audit-log", "auth", "booking", "customer", "email", "gateway", "payment"];
 const BUNDLED_PACKAGES = new Map([
   ["@microservices-sh/connection-contract", "connection-contract"],
 ]);
