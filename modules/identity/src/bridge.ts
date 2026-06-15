@@ -1,14 +1,7 @@
 import { mintToken, hasScope } from "@microservices-sh/auth";
 import type { TokenClaims } from "@microservices-sh/auth/types";
 import type { SigningKeyStore } from "@microservices-sh/auth/ports";
-
-// The authenticated human, as resolved from a Better Auth session.
-export interface IdentityUser {
-  id: string;
-  email: string;
-  isAdmin: boolean;
-  role?: string;
-}
+import type { IdentityUser } from "./types";
 
 // Maps an authenticated identity user to the service scopes its session token
 // should carry. Admins get the `gateway.admin` scope the SSR /admin guard checks.
@@ -29,7 +22,7 @@ export interface MintSessionTokenDeps {
   correlationId?: string;
 }
 
-// The bridge (Plan 26 §6): once Better Auth has established an identity session,
+// The bridge (Plan 26 §6): once the login flow has established an identity session,
 // mint a short-lived scoped service JWT via @microservices-sh/auth so SSR -> /api/*
 // calls carry the Plan 24 gateway token. Identity authenticates the human; this
 // token authorizes the downstream service hop. Returns the auth module's Result

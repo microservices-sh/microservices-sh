@@ -1,10 +1,18 @@
-# Plan 26 — Identity Layer on Better Auth (user accounts, login, sessions)
+# Plan 26 — Identity Layer (user accounts, login, sessions)
 
-**Status:** Draft / proposal — not approved
+**Status:** Direction chosen — **dogfood `@microservices-sh/auth`** (NOT Better Auth). Core implemented + tested.
 **Date:** 2026-06-15
 **Depends on:** Plan 24 (service topology & auth comms), Plan 25 (connection standard)
 **Relates to:** `claudedocs/security-finding-admin-auth.md` (unauthenticated admin PII), auth-contract mismatch (api passwordless email-code vs web-portal password+code)
 **Owner:** core
+
+> **Decision (2026-06-15):** after the §9 spike showed Better Auth forces a monorepo zod 3→4
+> migration, the identity layer is built **on the product's own `@microservices-sh/auth`** —
+> passwordless email-code + server-side sessions + the proven token bridge. Implemented in
+> `modules/identity` (15/15 tests, typecheck clean). The Better Auth sections below are retained
+> as the evaluated alternative + the reason it was rejected. Remaining: D1 adapters + template
+> wiring (see `modules/identity/README.md`). The §10.1 credential question is **settled:
+> passwordless email-code** (matches the api; reconciles the web-portal split).
 
 ## 1. Problem
 

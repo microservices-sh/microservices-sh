@@ -1,81 +1,57 @@
-# @microservices-sh/identity (Plan 26 prototype — draft)
+# @microservices-sh/identity
 
-User identity (accounts, login, sessions) on **Better Auth**, bridging to
-**`@microservices-sh/auth`** for service tokens. This is the missing human-facing auth
-layer; it does **not** replace the token/JWKS/scope substrate. See
+Passwordless **email-code** identity + server-side **sessions**, built on
+**`@microservices-sh/auth`** — no third-party auth dependency, no zod migration. The human
+logs in with an emailed code; a server-side session is opened; SSR → `/api/*` hops carry a
+short-lived scoped JWT minted via the auth module. See
 [`plans/26-identity-better-auth.md`](../../plans/26-identity-better-auth.md).
+
+> **Why not Better Auth?** A runtime spike (Plan 26 §9) showed Better Auth requires migrating
+> the whole module layer from zod 3 → 4 (breaking, mid-Plan-25). This module dogfoods the
+> product's own verified auth primitive instead — on-positioning and migration-free.
 
 ## Status
 | Part | State |
 |---|---|
-| **Token bridge** (`rolesToScopes` → `mintSessionToken` → `verifyToken`) | ✅ **Proven** — `tests/bridge.test.ts`, 4/4 against the real `@microservices-sh/auth` (admin→`gateway.admin`, non-admin fails closed, cross-tenant token rejected) |
-| Better Auth runtime (signup → session → `IdentityUser`) | ✅ **Runtime-validated in isolation** (2026-06-15) — real `better-auth` + drizzle on sqlite: signup → session cookie → `getSession` resolves `isAdmin`, no-cookie → null (fails closed), resolved shape == the `IdentityUser` the bridge consumes. Harness mirrors `better-auth.ts`/`session.ts`/`schema.ts` 1:1. Not run in-repo (avoids dragging `better-auth`'s zod 4 peer into this zod 3 monorepo). |
-| Workspace install / template boot | 📝 Gated — needs a `better-auth` version pinned for the consuming app + dev-DB strategy (see plans/26 §9–10) |
-| Canonical credential model (email/password vs passwordless email-code) | ⛔ **Blocked on Plan 26 §10.1 decision** — prototype defaults to email/password |
-| Template wiring (booking) | 📝 Ready-to-apply below — intentionally NOT applied to the live template (importing an uninstalled module would break the published build) |
+| Login codes (`requestLoginCode` / `verifyLoginCode`) | ✅ Implemented + tested — hashed storage, 10-min expiry, single-use, 5-attempt cap, constant-time check |
+| Sessions (`readSession` / `destroySession` + cookie helpers) | ✅ Implemented + tested — opaque 256-bit id, 30-day rolling, fail-closed |
+| Token bridge (`mintSessionToken`) | ✅ Proven — admin → `gateway.admin` JWT, non-admin none, cross-tenant rejected |
+| In-memory adapters | ✅ For tests/dev |
+| **D1 adapters** | 📝 To do — mirror the memory adapters against `accounts` / `login_codes` / `sessions` tables (+ a migration) |
+| **Template wiring** (booking `/login`, hooks, guard) | 📝 To do — see the guide below |
 
-Run the proven part: `npx vitest run modules/identity/tests/bridge.test.ts`
+Validate: `npx vitest run modules/identity/tests/` (**15/15**) · `npm run build` (typecheck, clean)
+
+## Flow
+```
+POST /login {email}        → requestLoginCode → email module sends the 6-digit code
+POST /login {email, code}  → verifyLoginCode  → opens a session → Set-Cookie msh_session=<id>
+SSR request                → parseSessionCookie → readSession → locals.user (or null)
+/admin/+layout.server.ts   → require locals.user.isAdmin (fail closed)   [already in template]
+SSR → /api/*               → mintSessionToken(user) → Bearer <scoped JWT>  [Plan 24 gateway]
+```
 
 ## Surface
-- `createIdentity(db, { secret, baseUrl, trustedOrigins })` → per-request Better Auth instance
-- `getSession(auth, request)` → `{ user: IdentityUser, sessionId } | null`
-- `rolesToScopes(user)` → service scopes (`gateway.admin` for admins)
-- `mintSessionToken(user, { signingKeyStore, workspace, project })` → scoped EdDSA JWT via `@microservices-sh/auth`
-- `schema` — Better Auth drizzle tables (`user/session/account/verification` + `isAdmin`)
+- `requestLoginCode({ email }, { accountStore, loginCodeStore, adminEmails?, now? })` → `{ email, code }` (caller emails `code`)
+- `verifyLoginCode({ email, code }, { accountStore, loginCodeStore, sessionStore, now? })` → `{ sessionId, user }`
+- `readSession({ sessionId }, { sessionStore, accountStore, now? })` → `{ user | null }` (rolling refresh)
+- `destroySession({ sessionId }, { sessionStore })`
+- `serializeSessionCookie / clearSessionCookie / parseSessionCookie` · `SESSION_COOKIE`
+- `mintSessionToken(user, { signingKeyStore, workspace, project })` → scoped EdDSA JWT
+- ports `AccountStore · LoginCodeStore · SessionStore` + `createMemory*Store`
 
-## Wiring guide — booking-sveltekit (apply after install)
+All use-cases return the connection-contract Result envelope (`{ ok, status, data | error, meta }`).
 
-> Prereq: `pnpm add @microservices-sh/identity better-auth drizzle-orm` in the app,
-> set `AUTH_SECRET`, and generate the D1 migration from `schema` (`@better-auth/cli generate`).
+## Template wiring (booking) — apply when D1 adapters land
+1. **D1 adapters** for the three stores + a migration (`accounts`, `login_codes`, `sessions`).
+2. **`/login`** route: `POST` email → `requestLoginCode` → send via `@microservices-sh/email`;
+   `POST` email+code → `verifyLoginCode` → `Set-Cookie` from `serializeSessionCookie`.
+3. **`hooks.server.ts`**: `parseSessionCookie(cookie)` → `readSession` → `locals.user`
+   (replaces the dev-only stub; the `dev` admin fallback can stay for local convenience).
+4. **`/admin/+layout.server.ts`** guard already enforces `locals.user.isAdmin` (fail closed).
+5. **SSR → `/api/*`**: `mintSessionToken(locals.user, …)` → `Authorization: Bearer`.
 
-**1. `src/hooks.server.ts`** — replace the dev-only fake session with a real one
-(keeps the `dev` fallback already added in commit `5eb40cd`):
-```ts
-import { dev } from "$app/environment";
-import { createIdentity, getSession } from "@microservices-sh/identity";
-
-// inside handle(), for non-/api/ SSR requests:
-const auth = createIdentity(db, {
-  secret: env.AUTH_SECRET,
-  baseUrl: event.url.origin,
-  trustedOrigins: [event.url.origin]
-});
-const session = await getSession(auth, event.request);
-event.locals.user = session?.user
-  ?? (dev ? { id: "local-admin", email: "admin@example.com", isAdmin: true } : null);
-```
-
-**2. `src/routes/api/auth/[...all]/+server.ts`** (new) — Better Auth handler:
-```ts
-import { createIdentity } from "@microservices-sh/identity";
-import type { RequestHandler } from "./$types";
-const handler: RequestHandler = ({ request, platform }) => {
-  const auth = createIdentity(platform!.env.DB, {
-    secret: platform!.env.AUTH_SECRET,
-    baseUrl: new URL(request.url).origin
-  });
-  return auth.handler(request);
-};
-export const GET = handler;
-export const POST = handler;
-```
-
-**3. `src/routes/login/+page.server.ts`** (new) — sign in via Better Auth, then redirect.
-**4. `src/routes/logout/+page.server.ts`** (new) — `auth.api.signOut(...)` + redirect.
-
-**5. The guard is already in place** — `src/routes/admin/+layout.server.ts` (commit `5eb40cd`)
-requires `locals.user.isAdmin` and fails closed. No change needed; it now enforces against a
-real session instead of the dev stub.
-
-**6. SSR → `/api/*`** — when an admin page calls a protected API, mint the gateway token:
-```ts
-const { data } = await mintSessionToken(locals.user, {
-  signingKeyStore: locals.signingKeyStore, workspace, project
-});
-// fetch('/api/...', { headers: { authorization: `Bearer ${data.token}` } })
-```
-
-## Next (gated)
-1. Decide Plan 26 §10.1 (credential model) — flips `emailAndPassword` vs the email-OTP plugin.
-2. `pnpm install` + D1 migration, then apply the wiring above and boot-verify booking
-   (anon `/admin` → 401; sign in → 200; SSR→`/api/*` carries a valid scope token).
+## Config / notes
+- `adminEmails` provisions bootstrap admins on first login; replace with an invite/role flow later.
+- Email deliverability becomes auth-critical (the code must arrive) — monitor it.
+- Session ttl (30d rolling) and code ttl (10m) are in `src/config.ts`.

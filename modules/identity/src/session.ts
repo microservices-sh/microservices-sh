@@ -1,27 +1,38 @@
-import type { Identity } from "./better-auth";
-import type { IdentityUser } from "./bridge";
+import { SESSION_TTL_SECONDS } from "./config";
 
-export interface ResolvedSession {
-  user: IdentityUser;
-  sessionId: string;
+// httpOnly session cookie carrying the opaque session id. Defaults are safe for
+// production (Secure + SameSite=Lax); pass { secure: false } only for plain-HTTP local dev.
+export const SESSION_COOKIE = "msh_session";
+
+export function serializeSessionCookie(
+  sessionId: string,
+  opts: { maxAgeSeconds?: number; secure?: boolean } = {}
+): string {
+  const parts = [
+    `${SESSION_COOKIE}=${sessionId}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    `Max-Age=${opts.maxAgeSeconds ?? SESSION_TTL_SECONDS}`,
+  ];
+  if (opts.secure ?? true) parts.push("Secure");
+  return parts.join("; ");
 }
 
-// Reads the Better Auth session for an incoming request and normalizes it to the
-// IdentityUser the templates + bridge expect. Returns null when signed out — the
-// SSR /admin and /portal layout guards fail closed on null. Hooks call this and
-// set `locals.user`.
-export async function getSession(auth: Identity, request: Request): Promise<ResolvedSession | null> {
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session?.user) return null;
+export function clearSessionCookie(opts: { secure?: boolean } = {}): string {
+  const parts = [`${SESSION_COOKIE}=`, "Path=/", "HttpOnly", "SameSite=Lax", "Max-Age=0"];
+  if (opts.secure ?? true) parts.push("Secure");
+  return parts.join("; ");
+}
 
-  const u = session.user as { id: string; email: string; isAdmin?: boolean; role?: string };
-  return {
-    user: {
-      id: u.id,
-      email: u.email,
-      isAdmin: Boolean(u.isAdmin),
-      role: u.role
-    },
-    sessionId: session.session.id
-  };
+export function parseSessionCookie(cookieHeader: string | null | undefined): string | null {
+  if (!cookieHeader) return null;
+  for (const part of cookieHeader.split(";")) {
+    const eq = part.indexOf("=");
+    if (eq === -1) continue;
+    if (part.slice(0, eq).trim() === SESSION_COOKIE) {
+      return part.slice(eq + 1).trim() || null;
+    }
+  }
+  return null;
 }
