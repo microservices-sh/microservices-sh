@@ -1,16 +1,26 @@
+import { ok, err } from "@microservices-sh/connection-contract";
+import type { Meta } from "@microservices-sh/connection-contract";
 import { hashApiKey } from "../crypto";
+import { gatewayMeta } from "../meta";
 import type { ApiKeyStore } from "../ports";
 import type { Principal } from "../types";
 
 // Hashes the presented key and resolves the active record to a principal.
-export async function verifyApiKey(rawKey: unknown, deps: { apiKeyStore: ApiKeyStore }) {
+// `meta` is threaded from the caller so the correlationId stays stable across
+// the verify → issue chain; when absent a fresh gateway meta is minted.
+export async function verifyApiKey(
+  rawKey: unknown,
+  deps: { apiKeyStore: ApiKeyStore; correlationId?: string; meta?: Meta }
+) {
+  const meta = deps.meta ?? gatewayMeta(deps);
+
   if (typeof rawKey !== "string" || rawKey.length < 8) {
-    return { ok: false as const, status: 401 as const, error: { code: "INVALID_API_KEY", message: "A valid API key is required." } };
+    return err(401, { code: "gateway.INVALID_API_KEY", message: "A valid API key is required." }, meta);
   }
 
   const record = await deps.apiKeyStore.getByHash(await hashApiKey(rawKey));
   if (!record || record.status !== "active") {
-    return { ok: false as const, status: 401 as const, error: { code: "UNKNOWN_API_KEY", message: "API key is not recognized or is revoked." } };
+    return err(401, { code: "gateway.UNKNOWN_API_KEY", message: "API key is not recognized or is revoked." }, meta);
   }
 
   const principal: Principal = {
@@ -20,5 +30,5 @@ export async function verifyApiKey(rawKey: unknown, deps: { apiKeyStore: ApiKeyS
     scopes: record.scopes,
     apiKeyId: record.id
   };
-  return { ok: true as const, status: 200 as const, data: { principal } };
+  return ok(200, { principal }, meta);
 }

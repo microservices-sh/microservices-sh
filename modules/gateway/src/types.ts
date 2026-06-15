@@ -36,5 +36,8 @@ export interface DomainEvent {
   eventName: "gateway.token_issued" | "gateway.access_denied";
   entityType: "gateway";
   entityId: string;
+  // Threaded from the use-case meta so emitted events stay correlatable across
+  // the inbound exchange. See Plan 25 §4.
+  correlationId: string;
   payload: Record<string, unknown>;
 }

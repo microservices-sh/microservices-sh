@@ -1,1 +1,1 @@
-export const permissions = ["gateway.admin"] as const;
+export const permissions = ["gateway.admin", "gateway.extend"] as const;

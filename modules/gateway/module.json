@@ -17,12 +17,26 @@
     { "type": "d1", "binding": "DB", "tables": ["api_keys", "domain_events"] },
     { "type": "kv", "binding": "RATE_LIMIT_KV" }
   ],
-  "permissions": ["gateway.admin"],
-  "requires": ["auth"],
-  "optional": ["audit-log"],
-  "hooks": ["beforeIssueToken", "afterTokenIssued"],
-  "events": ["gateway.token_issued", "gateway.access_denied"],
-  "rpc": [],
+  "permissions": ["gateway.admin", "gateway.extend"],
+  "connections": {
+    "requires": ["auth"],
+    "optional": ["audit-log"],
+    "rpc": {
+      "exposes": [],
+      "calls": [
+        { "target": "auth.mintToken", "scope": "auth.mint" }
+      ]
+    },
+    "events": {
+      "emits": ["gateway.token_issued", "gateway.access_denied"],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeIssueToken": { "kind": "filter", "scope": "gateway.extend" },
+      "afterTokenIssued": { "kind": "observer", "scope": "gateway.extend" }
+    },
+    "provides": { "hooks": [] }
+  },
   "customization": {
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
