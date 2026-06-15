@@ -719,3 +719,18 @@
 | HTTP auth gate | Unauthenticated / unknown bearer → 401 | Passed | Pass |
 | HTTP route tenancy | ws_b → 404 on ws_a deployment/project/artifact/resources; empty logs; ws_a → 200 | Passed | Pass |
 | MCP identity | ws_a tool call succeeds; ws_b call misses (NOT_FOUND/isError); no token → 401 | Passed | Pass |
+
+## Session: 2026-06-15 (agentic Cloudflare migration prompt orchestrator)
+### Phase 25 kickoff
+- **Status:** complete
+- Goal: add deterministic CLI support for existing-project Cloudflare migration analysis without embedding AI service calls.
+- Product decision: CLI generates checklist/prompt files, validates external `report.json`, renders doctor output, and generates staged next-agent prompts.
+- Initial target surface: global `packages/cli`, not generated booking template CLI.
+- Implemented `microservices analyze <project-dir> --target cloudflare --agent`, `microservices analyze checklist`, `microservices analyze report`, `microservices doctor --from-report`, and `microservices prompt next --from-report`.
+- Added package CLI tests for the complete handoff loop and schema rejection for warning findings without evidence.
+
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm --filter @microservices-sh/cli build` | CLI syntax passes | Passed | Pass |
+| `pnpm --filter @microservices-sh/cli test` | CLI tests pass | 5/5 tests passed | Pass |
+| `git diff --check` | No whitespace errors | Passed with no output | Pass |

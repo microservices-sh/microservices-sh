@@ -63,6 +63,8 @@
 | Implement auth before billing | Payment state must attach to a trusted workspace and owner before it can unlock deploy/provision/domain entitlements. |
 | Use D1-backed API keys for CLI/MCP | Agents, CI, and terminal workflows need stable revocable credentials with scopes, prefixes, and workspace context. |
 | Use opaque server-side sessions for the admin portal | Sessions stored as D1 hashes can be revoked and rotated; secure HttpOnly cookies avoid browser token storage. |
+| Make migration analysis agentic but CLI-deterministic | The CLI should generate versioned checklist/prompt files, validate an external agent's JSON report, render doctor output, and generate next prompts without bundling an AI service. |
+| Treat Cloudflare enablement as staged migration | Existing projects such as Vite React apps with Supabase should first become Cloudflare-hosted/hybrid, then migrate functions/storage/data only when evidence shows it is safe. |
 
 ## Issues Encountered
 | Issue | Resolution |

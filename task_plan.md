@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 22
+Phase 25
 
 ## Phases
 
@@ -218,6 +218,13 @@ Phase 22
 - [x] Add explicit remote D1 migration/backfill for existing deployed control-plane tables. (`migrations/0001_auth_workspace.sql` ALTERs all 6 control-plane tables `ADD COLUMN workspace_id DEFAULT 'ws_internal'`; `db:migrate:remote` script added.)
 - [x] Add first-owner bootstrap/API-key creation route or admin command. (`scripts/bootstrap-owner.js` + `pnpm bootstrap:owner[:remote]`; prints raw key once, stores hash only.)
 - [x] Add CLI profile/workspace/key-management behavior. (Already in `packages/cli`: `auth login` device-code flow with poll/slow_down handling, `auth login --api-key`, `auth status`/`whoami`/`logout`, token persisted to `~/.microservices/config.json`; plus `billing`/`usage`. Note: lives in `packages/cli`, not `apps/cli`.)
+
+### Phase 25: Agentic Cloudflare Migration Prompt Orchestrator
+- [x] Add CLI commands that generate a deterministic Cloudflare migration checklist and agent prompt for existing projects.
+- [x] Add report validation and doctor rendering from an external agent-produced `report.json`.
+- [x] Add next-prompt generation for staged migration goals such as static SPA enablement, Supabase function migration, R2 storage migration, and CI deploy.
+- [x] Add smoke coverage for prompt/checklist/report validation without calling an AI service.
+- **Status:** complete
 - [~] Add portal sessions, API-key management UI, and CSRF/cookie hardening. (API done: passwordless sessions in `auth-flow.ts`/`portal.ts`, `httpOnly+secure+SameSite=Lax` cookies, CORS origin allowlist. SvelteKit key-management UI still pending — the only open auth item.)
 - [x] Add cross-workspace route tests and MCP identity tests. (`api/test/isolation.test.mjs` function-level + `api/test/routes.test.mjs` HTTP/MCP-level via `app.fetch`; 22 tests total, node:sqlite D1. Covers 401 gates, per-route 404 isolation, and MCP identity scoping.)
 - **Status:** auth/tenancy, remote migration, bootstrap, portal API, CLI auth, and function+route+MCP isolation tests all complete; only the SvelteKit portal API-key UI remains before billing

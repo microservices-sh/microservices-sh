@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, normalize, resolve } from "node:path";
 import { stdin as nodeStdin, stdout as nodeStdout } from "node:process";
@@ -62,9 +62,13 @@ function parseArgs(argv) {
     cfHostnameStatus: null,
     cfSslStatus: null,
     dir: null,
+    fromReport: null,
+    target: "cloudflare",
+    goal: null,
     limit: null,
     d1: [],
     kv: [],
+    agent: false,
     dryRun: false,
     plan: false,
   };
@@ -160,6 +164,15 @@ function parseArgs(argv) {
     } else if (value === "--dir") {
       flags.dir = argv[index + 1];
       index += 1;
+    } else if (value === "--from-report") {
+      flags.fromReport = argv[index + 1];
+      index += 1;
+    } else if (value === "--target") {
+      flags.target = argv[index + 1];
+      index += 1;
+    } else if (value === "--goal") {
+      flags.goal = argv[index + 1];
+      index += 1;
     } else if (value === "--limit") {
       flags.limit = argv[index + 1];
       index += 1;
@@ -169,6 +182,8 @@ function parseArgs(argv) {
     } else if (value === "--kv") {
       flags.kv.push(argv[index + 1]);
       index += 1;
+    } else if (value === "--agent") {
+      flags.agent = true;
     } else if (value === "--dry-run") {
       flags.dryRun = true;
     } else if (value === "--plan") {
@@ -256,6 +271,11 @@ Usage:
   microservices usage [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices support ticket [--subject "..."] [--description "..."] [--category bug|feature_request|account|billing|general|other] [--priority critical|high|medium|low] [--email owner@example.com] [--project-id <id>] [--deployment-id <id>] [--url <page-url>] [--json]
   microservices support tickets [--limit 25] [--json]
+  microservices analyze <project-dir> --target cloudflare --agent [--json]
+  microservices analyze checklist --target cloudflare [--out checklist.json] [--json]
+  microservices analyze report <report.json> [--json]
+  microservices doctor --from-report <report.json> [--json]
+  microservices prompt next --from-report <report.json> [--goal cloudflare-enable|migrate-functions|migrate-storage-r2|ci-deploy|fix-blockers] [--out prompt.md] [--json]
   microservices doctor [--dir <artifact-dir>] [--api-url http://127.0.0.1:8787] [--json]
   microservices deploy dev [template-id] [--name "Studio Dev"] [--config '{"appName":"Demo"}'] [--api-url http://127.0.0.1:8787] [--api-key <key>] [--json]
   microservices deploy preview [template-id] [--name "Studio Demo"] [--config '{"appName":"Demo"}'] [--api-url http://127.0.0.1:8787] [--api-key <key>] [--json]
@@ -945,6 +965,790 @@ function parseJsonObjectStrict(text, label) {
     throw new Error(`${label} must contain a JSON object.`);
   }
   return parsed;
+}
+
+const MIGRATION_SCHEMA_VERSION = "2026-06-15";
+const MIGRATION_ANALYSIS_DIR = ".microservices/analysis";
+const MIGRATION_TARGETS = new Set(["cloudflare"]);
+const READINESS_STATUSES = new Set(["ready", "needs_changes", "blocked"]);
+const FINDING_STATUSES = new Set(["pass", "warn", "blocker", "unknown", "not_applicable"]);
+const REPORT_ARRAY_FIELDS = ["findings", "recommendedPlan", "requiredEnv", "suggestedBindings", "nextCommands"];
+const NEXT_PROMPT_GOALS = new Set([
+  "cloudflare-enable",
+  "migrate-functions",
+  "migrate-storage-r2",
+  "ci-deploy",
+  "fix-blockers",
+]);
+
+function normalizeMigrationTarget(value) {
+  return optionalString(value)?.toLowerCase() ?? "cloudflare";
+}
+
+function migrationChecklist(target = "cloudflare") {
+  return {
+    schemaVersion: MIGRATION_SCHEMA_VERSION,
+    id: "cloudflare-migration-checklist",
+    target,
+    outputReport: `${MIGRATION_ANALYSIS_DIR}/report.json`,
+    statusValues: Array.from(FINDING_STATUSES),
+    evidenceContract: {
+      requiredFor: ["warn", "blocker"],
+      shape: {
+        file: "project-relative file path",
+        line: "1-based line number when available",
+        summary: "short factual evidence summary",
+      },
+    },
+    sections: [
+      {
+        id: "project",
+        title: "Project Identity",
+        items: [
+          "Detect framework, package manager, runtime, build scripts, output directory, and existing hosting config.",
+          "Classify target mode as static-spa, worker-ssr, full-stack-worker, or hybrid.",
+        ],
+      },
+      {
+        id: "build",
+        title: "Build Readiness",
+        items: [
+          "Find the production build command and whether it succeeds locally.",
+          "Identify required adapters, SPA fallback behavior, headers, and asset cache rules.",
+        ],
+      },
+      {
+        id: "runtime",
+        title: "Worker Runtime Compatibility",
+        items: [
+          "Check runtime use of fs, net, tls, child_process, native modules, local disk writes, and long-running servers.",
+          "Separate browser-only or build-time Node imports from request-time server/runtime imports.",
+        ],
+      },
+      {
+        id: "environment",
+        title: "Environment And Secrets",
+        items: [
+          "List public build env vars separately from server-only secrets.",
+          "Flag any secret that appears in client code, docs, checked-in env files, or generated output.",
+        ],
+      },
+      {
+        id: "data",
+        title: "Data Layer",
+        items: [
+          "Map relational databases to D1 or Hyperdrive, and explain why a direct D1 rewrite is or is not safe.",
+          "Call out Supabase Auth/RLS, Prisma, Drizzle, Postgres functions, views, triggers, and migrations.",
+        ],
+      },
+      {
+        id: "auth",
+        title: "Auth And Sessions",
+        items: [
+          "Identify auth provider, session storage, cookie settings, OAuth callbacks, admin roles, and edge compatibility.",
+          "Preserve existing auth in phase 1 unless the report justifies a rewrite.",
+        ],
+      },
+      {
+        id: "storage",
+        title: "Assets, Uploads, And Object Storage",
+        items: [
+          "Map static assets to Workers assets and user/generated uploads to R2.",
+          "Identify signed URL, privacy, retention, and object-key migration requirements.",
+        ],
+      },
+      {
+        id: "functions",
+        title: "Server Functions And APIs",
+        items: [
+          "Find Netlify/Vercel/Supabase/serverless functions and recommend same-origin Worker routes.",
+          "Preserve authorization behavior and server-only secrets when moving functions.",
+        ],
+      },
+      {
+        id: "background",
+        title: "Background Work",
+        items: [
+          "Map cron jobs, scheduled jobs, queues, webhooks, and long-running tasks to Cloudflare Cron Triggers, Queues, or Workflows.",
+        ],
+      },
+      {
+        id: "observability",
+        title: "Observability And Smoke Tests",
+        items: [
+          "Identify health checks, error logging, deploy verification, and smoke tests needed before live traffic.",
+        ],
+      },
+      {
+        id: "ci",
+        title: "CI And Deploy",
+        items: [
+          "Describe non-interactive deploy requirements for managed microservices.sh and user-owned Cloudflare.",
+          "List required CI secrets without printing values.",
+        ],
+      },
+      {
+        id: "plan",
+        title: "Staged Migration Plan",
+        items: [
+          "Prefer a working Cloudflare-hosted phase before deeper backend migrations.",
+          "Return exact next commands and keep patch recommendations read-only unless explicitly asked to mutate.",
+        ],
+      },
+    ],
+  };
+}
+
+function migrationReportExample(project) {
+  return {
+    schemaVersion: MIGRATION_SCHEMA_VERSION,
+    project: {
+      name: project.name ?? "unknown",
+      path: project.path,
+      framework: project.framework ?? "unknown",
+      packageManager: project.packageManager ?? "unknown",
+    },
+    target: {
+      provider: "cloudflare",
+      mode: "static-spa|worker-ssr|full-stack-worker|hybrid",
+    },
+    readiness: {
+      status: "ready|needs_changes|blocked",
+      score: 0,
+    },
+    findings: [
+      {
+        id: "build.static-spa",
+        title: "Static SPA build",
+        status: "pass|warn|blocker|unknown|not_applicable",
+        confidence: "high|medium|low",
+        evidence: [
+          {
+            file: "package.json",
+            line: 1,
+            summary: "Build script produces dist output.",
+          },
+        ],
+        impact: "Why this matters for Cloudflare.",
+        recommendation: "What to do next.",
+        suggestedCloudflareService: "workers-assets",
+      },
+    ],
+    recommendedPlan: [
+      {
+        id: "phase-1",
+        title: "Cloudflare-enable hosting",
+        summary: "Deploy frontend on Cloudflare while preserving the current backend.",
+      },
+    ],
+    requiredEnv: [
+      { name: "VITE_SUPABASE_URL", scope: "public-build", required: true },
+      { name: "SUPABASE_SERVICE_ROLE_KEY", scope: "worker-secret", required: false },
+    ],
+    suggestedBindings: [
+      { type: "r2", binding: "UPLOADS_BUCKET", reason: "Private uploaded audio files." },
+    ],
+    nextCommands: [
+      "microservices doctor --from-report .microservices/analysis/report.json",
+      "microservices prompt next --from-report .microservices/analysis/report.json --goal cloudflare-enable",
+    ],
+  };
+}
+
+async function assertExistingDirectory(root) {
+  try {
+    const info = await stat(root);
+    if (!info.isDirectory()) {
+      return failResponse(
+        "PROJECT_PATH_NOT_DIRECTORY",
+        `Project path is not a directory: ${root}.`,
+        "Pass an existing project directory.",
+        { path: root }
+      );
+    }
+    return null;
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return failResponse(
+        "PROJECT_PATH_NOT_FOUND",
+        `Project path not found: ${root}.`,
+        "Pass an existing project directory.",
+        { path: root }
+      );
+    }
+    throw error;
+  }
+}
+
+async function projectMetadata(root) {
+  const packageText = await readOptionalText(resolve(root, "package.json"));
+  let packageJson = {};
+  if (packageText) {
+    try {
+      packageJson = parseJsonObjectStrict(packageText, "package.json");
+    } catch {
+      packageJson = {};
+    }
+  }
+
+  const scripts = isObject(packageJson.scripts) ? packageJson.scripts : {};
+  const dependencies = {
+    ...(isObject(packageJson.dependencies) ? packageJson.dependencies : {}),
+    ...(isObject(packageJson.devDependencies) ? packageJson.devDependencies : {}),
+  };
+  const has = (name) => Object.prototype.hasOwnProperty.call(dependencies, name);
+  const framework = has("@sveltejs/kit")
+    ? "sveltekit"
+    : has("next")
+      ? "next"
+      : has("astro")
+        ? "astro"
+        : has("react") && has("vite")
+          ? "vite-react"
+          : has("vite")
+            ? "vite"
+            : "unknown";
+  const packageManager = (await readOptionalText(resolve(root, "pnpm-lock.yaml")))
+    ? "pnpm"
+    : (await readOptionalText(resolve(root, "package-lock.json")))
+      ? "npm"
+      : (await readOptionalText(resolve(root, "yarn.lock")))
+        ? "yarn"
+        : "unknown";
+
+  return {
+    name: optionalString(packageJson.name) ?? "unknown",
+    path: root,
+    framework,
+    packageManager,
+    buildCommand: optionalString(scripts.build) ?? null,
+  };
+}
+
+function migrationAgentPrompt(project, target, checklistPath, reportPath) {
+  const example = migrationReportExample(project);
+  return `# Cloudflare Migration Analysis Agent Prompt
+
+You are analyzing this existing project for Cloudflare migration readiness.
+
+## Project
+- Path: ${project.path}
+- Detected name: ${project.name}
+- Detected framework: ${project.framework}
+- Detected package manager: ${project.packageManager}
+- Detected build command: ${project.buildCommand ?? "unknown"}
+- Target: ${target}
+
+## Rules
+- Do not mutate files unless the user explicitly asks for patches.
+- Do not print, copy, or expose secret values.
+- Use the checklist at \`${checklistPath}\`.
+- Inspect package scripts, framework config, env vars, runtime imports, database, storage, auth, server functions, CI, and hosting config.
+- Prefer staged migration. Do not recommend D1 for apps coupled to Supabase Auth/RLS or Postgres-specific behavior unless you explain the rewrite.
+- Every blocker or warning must include project-relative file/line evidence when possible.
+- Write only valid JSON to \`${reportPath}\`.
+
+## Required Report Schema
+\`\`\`json
+${JSON.stringify(example, null, 2)}
+\`\`\`
+`;
+}
+
+async function writeMigrationAnalysis(projectDir, flags) {
+  const target = normalizeMigrationTarget(flags.target);
+  if (!MIGRATION_TARGETS.has(target)) {
+    return failResponse(
+      "MIGRATION_TARGET_UNSUPPORTED",
+      `Unsupported migration target: ${target}.`,
+      "Use --target cloudflare.",
+      { target }
+    );
+  }
+
+  const projectRoot = resolve(USER_CWD, projectDir || ".");
+  const directoryError = await assertExistingDirectory(projectRoot);
+  if (directoryError) return directoryError;
+
+  const project = await projectMetadata(projectRoot);
+  const analysisDir = resolve(projectRoot, MIGRATION_ANALYSIS_DIR);
+  const checklistPath = resolve(analysisDir, "cloudflare-checklist.json");
+  const promptPath = resolve(analysisDir, "agent-prompt.md");
+  const reportPath = resolve(analysisDir, "report.json");
+  const checklist = migrationChecklist(target);
+  const prompt = migrationAgentPrompt(project, target, checklistPath, reportPath);
+
+  await mkdir(analysisDir, { recursive: true });
+  await writeFile(checklistPath, `${JSON.stringify(checklist, null, 2)}\n`, "utf8");
+  await writeFile(promptPath, prompt, "utf8");
+
+  return {
+    ok: true,
+    requestId: `local_${Date.now().toString(36)}`,
+    data: {
+      project,
+      target,
+      agent: Boolean(flags.agent),
+      analysisDir,
+      checklistPath,
+      promptPath,
+      reportPath,
+      nextSteps: [
+        `Ask your coding agent to use ${promptPath} and write ${reportPath}.`,
+        `Run microservices doctor --from-report ${shellArg(reportPath)}.`,
+        `Run microservices prompt next --from-report ${shellArg(reportPath)} --goal cloudflare-enable.`,
+      ],
+    },
+    warnings: flags.agent ? [] : ["No AI service was called; pass --agent to make the handoff explicit."],
+  };
+}
+
+async function writeChecklistOnly(flags) {
+  const target = normalizeMigrationTarget(flags.target);
+  if (!MIGRATION_TARGETS.has(target)) {
+    return failResponse(
+      "MIGRATION_TARGET_UNSUPPORTED",
+      `Unsupported migration target: ${target}.`,
+      "Use --target cloudflare.",
+      { target }
+    );
+  }
+
+  const checklist = migrationChecklist(target);
+  const outputPath = flags.out ? resolve(USER_CWD, flags.out) : null;
+  if (outputPath) {
+    await mkdir(dirname(outputPath), { recursive: true });
+    await writeFile(outputPath, `${JSON.stringify(checklist, null, 2)}\n`, "utf8");
+  }
+
+  return {
+    ok: true,
+    requestId: `local_${Date.now().toString(36)}`,
+    data: {
+      checklist,
+      outputPath,
+    },
+    warnings: [],
+  };
+}
+
+function validateMigrationReport(report) {
+  const errors = [];
+  const warnings = [];
+  const checks = [];
+
+  const check = (id, ok, message, level = "error") => {
+    checks.push({ id, status: ok ? "pass" : level === "warn" ? "warn" : "fail", message });
+    if (ok) return;
+    if (level === "warn") warnings.push(message);
+    else errors.push(message);
+  };
+
+  check("schema-version", typeof report.schemaVersion === "string", "schemaVersion is required.");
+  if (report.schemaVersion && report.schemaVersion !== MIGRATION_SCHEMA_VERSION) {
+    warnings.push(`Report schemaVersion ${report.schemaVersion} differs from CLI schema ${MIGRATION_SCHEMA_VERSION}.`);
+    checks.push({
+      id: "schema-version-current",
+      status: "warn",
+      message: `Expected ${MIGRATION_SCHEMA_VERSION}; got ${report.schemaVersion}.`,
+    });
+  }
+  check("project", isObject(report.project), "project must be an object.");
+  check("target", isObject(report.target), "target must be an object.");
+  check("readiness", isObject(report.readiness), "readiness must be an object.");
+  const readinessStatus = report.readiness?.status;
+  check(
+    "readiness-status",
+    READINESS_STATUSES.has(readinessStatus),
+    `readiness.status must be one of ${Array.from(READINESS_STATUSES).join(", ")}.`
+  );
+  check(
+    "readiness-score",
+    Number.isFinite(report.readiness?.score) && report.readiness.score >= 0 && report.readiness.score <= 100,
+    "readiness.score must be a number from 0 to 100."
+  );
+
+  for (const field of REPORT_ARRAY_FIELDS) {
+    check(field, Array.isArray(report[field]), `${field} must be an array.`);
+  }
+
+  const findings = Array.isArray(report.findings) ? report.findings : [];
+  findings.forEach((finding, index) => {
+    const label = `findings[${index}]`;
+    check(`${label}.object`, isObject(finding), `${label} must be an object.`);
+    if (!isObject(finding)) return;
+    check(`${label}.id`, typeof finding.id === "string" && Boolean(finding.id.trim()), `${label}.id is required.`);
+    check(
+      `${label}.status`,
+      FINDING_STATUSES.has(finding.status),
+      `${label}.status must be one of ${Array.from(FINDING_STATUSES).join(", ")}.`
+    );
+    if (finding.status === "warn" || finding.status === "blocker") {
+      const evidence = Array.isArray(finding.evidence) ? finding.evidence : [];
+      check(
+        `${label}.evidence`,
+        evidence.length > 0,
+        `${label} has status ${finding.status} and must include file/line evidence.`
+      );
+      evidence.forEach((item, evidenceIndex) => {
+        check(
+          `${label}.evidence[${evidenceIndex}].file`,
+          isObject(item) && typeof item.file === "string" && Boolean(item.file.trim()),
+          `${label}.evidence[${evidenceIndex}].file is required for warnings/blockers.`
+        );
+      });
+    }
+  });
+
+  return {
+    status: errors.length ? "fail" : warnings.length ? "warn" : "pass",
+    errors,
+    warnings,
+    checks,
+  };
+}
+
+async function loadMigrationReport(reportPath) {
+  if (!reportPath) {
+    return {
+      ok: false,
+      response: failResponse(
+        "MIGRATION_REPORT_REQUIRED",
+        "Missing migration report path.",
+        "Pass --from-report .microservices/analysis/report.json.",
+        {}
+      ),
+    };
+  }
+
+  const resolvedPath = resolve(USER_CWD, reportPath);
+  const reportText = await readOptionalText(resolvedPath);
+  if (reportText === null) {
+    return {
+      ok: false,
+      response: failResponse(
+        "MIGRATION_REPORT_NOT_FOUND",
+        `Migration report not found at ${resolvedPath}.`,
+        "Ask your agent to write the report, then retry.",
+        { reportPath: resolvedPath }
+      ),
+    };
+  }
+
+  try {
+    const report = parseJsonObjectStrict(reportText, "migration report");
+    return { ok: true, report, reportPath: resolvedPath };
+  } catch (error) {
+    return {
+      ok: false,
+      response: failResponse(
+        "MIGRATION_REPORT_INVALID_JSON",
+        `Migration report is invalid JSON: ${error.message}`,
+        "Ask your agent to write only valid JSON to the report path.",
+        { reportPath: resolvedPath }
+      ),
+    };
+  }
+}
+
+async function migrationReportValidation(reportPath) {
+  const loaded = await loadMigrationReport(reportPath);
+  if (!loaded.ok) return loaded.response;
+
+  const validation = validateMigrationReport(loaded.report);
+  return {
+    ok: validation.status !== "fail",
+    requestId: `local_${Date.now().toString(36)}`,
+    ...(validation.status === "fail"
+      ? {
+          error: {
+            code: "MIGRATION_REPORT_SCHEMA_INVALID",
+            message: "Migration report failed schema validation.",
+            remediation: "Fix report.json using the generated checklist and agent prompt.",
+            details: { errors: validation.errors },
+          },
+        }
+      : {}),
+    data: {
+      reportPath: loaded.reportPath,
+      status: validation.status,
+      checks: validation.checks,
+      warnings: validation.warnings,
+      report: loaded.report,
+    },
+    warnings: validation.warnings,
+  };
+}
+
+function migrationDoctorStatus(report, validation) {
+  if (validation.status === "fail") return "fail";
+  const findings = Array.isArray(report.findings) ? report.findings : [];
+  if (report.readiness?.status === "blocked" || findings.some((finding) => finding.status === "blocker")) {
+    return "fail";
+  }
+  if (report.readiness?.status === "needs_changes" || findings.some((finding) => finding.status === "warn")) {
+    return "warn";
+  }
+  return "pass";
+}
+
+async function migrationDoctorFromReport(reportPath) {
+  const loaded = await loadMigrationReport(reportPath);
+  if (!loaded.ok) return loaded.response;
+
+  const validation = validateMigrationReport(loaded.report);
+  const status = migrationDoctorStatus(loaded.report, validation);
+  const findings = Array.isArray(loaded.report.findings) ? loaded.report.findings : [];
+  const blockers = findings.filter((finding) => finding.status === "blocker");
+  const warningFindings = findings.filter((finding) => finding.status === "warn");
+  const nextSteps = Array.isArray(loaded.report.nextCommands) && loaded.report.nextCommands.length
+    ? loaded.report.nextCommands
+    : [
+        `microservices prompt next --from-report ${shellArg(loaded.reportPath)} --goal ${status === "fail" ? "fix-blockers" : "cloudflare-enable"}`,
+      ];
+
+  return {
+    ok: validation.status !== "fail" && status !== "fail",
+    requestId: `local_${Date.now().toString(36)}`,
+    ...(validation.status === "fail" || status === "fail"
+      ? {
+          error: {
+            code: validation.status === "fail" ? "MIGRATION_REPORT_SCHEMA_INVALID" : "MIGRATION_DOCTOR_BLOCKED",
+            message:
+              validation.status === "fail"
+                ? "Migration report failed schema validation."
+                : "Migration doctor found blockers.",
+            remediation:
+              validation.status === "fail"
+                ? "Fix report.json using the generated checklist and agent prompt."
+                : "Generate a fix-blockers prompt or resolve the listed blockers.",
+            details: {
+              validationErrors: validation.errors,
+              blockers: blockers.map((finding) => finding.id),
+            },
+          },
+        }
+      : {}),
+    data: {
+      reportPath: loaded.reportPath,
+      status,
+      validation,
+      project: loaded.report.project ?? {},
+      target: loaded.report.target ?? {},
+      readiness: loaded.report.readiness ?? {},
+      blockers,
+      warnings: warningFindings,
+      recommendedPlan: Array.isArray(loaded.report.recommendedPlan) ? loaded.report.recommendedPlan : [],
+      requiredEnv: Array.isArray(loaded.report.requiredEnv) ? loaded.report.requiredEnv : [],
+      suggestedBindings: Array.isArray(loaded.report.suggestedBindings) ? loaded.report.suggestedBindings : [],
+      nextSteps,
+    },
+    warnings: validation.warnings,
+  };
+}
+
+function evidenceLabel(finding) {
+  const evidence = Array.isArray(finding.evidence) ? finding.evidence : [];
+  const first = evidence.find(isObject);
+  if (!first?.file) return "no evidence";
+  return `${first.file}${Number.isInteger(first.line) ? `:${first.line}` : ""}`;
+}
+
+function formatMigrationDoctor(result) {
+  const blockers = result.blockers.length
+    ? result.blockers.map((finding) => `- ${finding.id}: ${finding.title ?? finding.recommendation ?? "blocker"} (${evidenceLabel(finding)})`).join("\n")
+    : "- none";
+  const warnings = result.warnings.length
+    ? result.warnings.map((finding) => `- ${finding.id}: ${finding.title ?? finding.recommendation ?? "warning"} (${evidenceLabel(finding)})`).join("\n")
+    : "- none";
+  const bindings = result.suggestedBindings.length
+    ? result.suggestedBindings
+        .map((binding) => `- ${binding.type ?? "binding"} ${binding.binding ?? binding.name ?? "unnamed"}: ${binding.reason ?? ""}`.trim())
+        .join("\n")
+    : "- none";
+  const env = result.requiredEnv.length
+    ? result.requiredEnv
+        .map((item) => `- ${item.name ?? "unnamed"} (${item.scope ?? "unknown"}${item.required === false ? ", optional" : ""})`)
+        .join("\n")
+    : "- none";
+
+  return `Migration doctor: ${result.status}
+Project: ${result.project.name ?? "unknown"}
+Path: ${result.project.path ?? "unknown"}
+Target: ${result.target.provider ?? "cloudflare"} / ${result.target.mode ?? "unknown"}
+Readiness: ${result.readiness.status ?? "unknown"} (${result.readiness.score ?? "?"}/100)
+
+Blockers:
+${blockers}
+
+Warnings:
+${warnings}
+
+Suggested bindings:
+${bindings}
+
+Required env:
+${env}
+
+Next:
+${result.nextSteps.map((step) => `- ${step}`).join("\n")}
+`;
+}
+
+function defaultNextPromptGoal(report) {
+  const findings = Array.isArray(report.findings) ? report.findings : [];
+  if (findings.some((finding) => finding.status === "blocker")) return "fix-blockers";
+  if (findings.some((finding) => String(finding.id ?? "").includes("function"))) return "migrate-functions";
+  if (findings.some((finding) => String(finding.id ?? "").includes("storage"))) return "migrate-storage-r2";
+  return "cloudflare-enable";
+}
+
+function reportSummaryForPrompt(report) {
+  const findings = Array.isArray(report.findings) ? report.findings : [];
+  const blockers = findings.filter((finding) => finding.status === "blocker").map((finding) => finding.id);
+  const warnings = findings.filter((finding) => finding.status === "warn").map((finding) => finding.id);
+  return {
+    project: report.project ?? {},
+    target: report.target ?? {},
+    readiness: report.readiness ?? {},
+    blockers,
+    warnings,
+  };
+}
+
+function nextAgentPrompt(report, goal) {
+  const summary = reportSummaryForPrompt(report);
+  const sharedRules = `## Rules
+- Do not expose secret values.
+- Keep changes scoped to this goal.
+- Preserve current behavior unless the report explicitly marks it unsafe.
+- Include file/line references in your final summary.
+- Run the smallest relevant build/check command and report the result.
+- Do not deploy or mutate Cloudflare resources unless the user explicitly approves side effects.
+`;
+
+  const goalBody = {
+    "fix-blockers": `Goal: resolve the migration blockers from the report before any deploy attempt.
+
+Use the report blockers as the source of truth. Apply the smallest safe patches, then update or ask the user to update the report findings that changed.`,
+    "cloudflare-enable": `Goal: Cloudflare-enable the app without a deep backend migration.
+
+Add or adjust Cloudflare deploy config for the detected app mode. Preserve existing backend providers such as Supabase, Neon, Firebase, or external APIs unless the report explicitly says they must move. Preserve SPA fallbacks, asset caching, security headers, and public build env vars.`,
+    "migrate-functions": `Goal: migrate existing serverless/edge functions to Cloudflare Worker routes.
+
+Preserve route behavior, auth checks, CORS behavior, and server-only secrets. Prefer same-origin /api routes for frontend calls. Keep the original backend database/auth provider unless a separate data migration has been approved.`,
+    "migrate-storage-r2": `Goal: plan and implement the next safe R2 migration slice.
+
+Separate public assets, private uploads, signed URLs, and metadata rows. Move object storage behind Worker routes when privacy or signed URL behavior is required. Do not delete existing storage objects in this pass.`,
+    "ci-deploy": `Goal: make the Cloudflare deploy workflow CI-ready.
+
+Document required non-interactive commands and secrets. Support managed microservices.sh deploy and user-owned Cloudflare deploy modes. Do not print token values.`,
+  }[goal];
+
+  return `# Next Agent Prompt: ${goal}
+
+${goalBody}
+
+## Report Summary
+\`\`\`json
+${JSON.stringify(summary, null, 2)}
+\`\`\`
+
+${sharedRules}
+`;
+}
+
+function nextPromptFileName(goal) {
+  const order = {
+    "fix-blockers": "000",
+    "cloudflare-enable": "001",
+    "migrate-functions": "002",
+    "migrate-storage-r2": "003",
+    "ci-deploy": "004",
+  }[goal] ?? "999";
+  return `${order}-${goal}.md`;
+}
+
+async function writeNextPromptFromReport(reportPath, flags) {
+  const loaded = await loadMigrationReport(reportPath);
+  if (!loaded.ok) return loaded.response;
+
+  const validation = validateMigrationReport(loaded.report);
+  if (validation.status === "fail") {
+    return failResponse(
+      "MIGRATION_REPORT_SCHEMA_INVALID",
+      "Migration report failed schema validation.",
+      "Fix report.json before generating next prompts.",
+      { errors: validation.errors }
+    );
+  }
+
+  const goal = optionalString(flags.goal) ?? defaultNextPromptGoal(loaded.report);
+  if (!NEXT_PROMPT_GOALS.has(goal)) {
+    return failResponse(
+      "MIGRATION_PROMPT_GOAL_INVALID",
+      `Unsupported prompt goal: ${goal}.`,
+      `Use one of: ${Array.from(NEXT_PROMPT_GOALS).join(", ")}.`,
+      { goal }
+    );
+  }
+
+  const prompt = nextAgentPrompt(loaded.report, goal);
+  const promptPath = flags.out
+    ? resolve(USER_CWD, flags.out)
+    : resolve(dirname(loaded.reportPath), "prompts", nextPromptFileName(goal));
+  await mkdir(dirname(promptPath), { recursive: true });
+  await writeFile(promptPath, prompt, "utf8");
+
+  return {
+    ok: true,
+    requestId: `local_${Date.now().toString(36)}`,
+    data: {
+      goal,
+      reportPath: loaded.reportPath,
+      promptPath,
+      nextSteps: [`Ask your coding agent to use ${promptPath}.`, "Re-run microservices doctor --from-report after the agent reports changes."],
+    },
+    warnings: validation.warnings,
+  };
+}
+
+function formatAnalyzeCreated(result) {
+  return `Agent analysis files created
+Project: ${result.project.path}
+Checklist: ${result.checklistPath}
+Prompt: ${result.promptPath}
+Report target: ${result.reportPath}
+
+Ask your coding agent:
+"Use ${result.promptPath} and write the report to ${result.reportPath}"
+
+Then:
+- microservices doctor --from-report ${shellArg(result.reportPath)}
+- microservices prompt next --from-report ${shellArg(result.reportPath)}
+`;
+}
+
+function formatChecklistResult(result) {
+  return result.outputPath
+    ? `Checklist written to ${result.outputPath}\n`
+    : `Checklist: ${result.checklist.id} (${result.checklist.schemaVersion})\nSections:\n${result.checklist.sections.map((section) => `- ${section.id}: ${section.title}`).join("\n")}\n`;
+}
+
+function formatReportValidation(result) {
+  return `Migration report validation: ${result.status}
+Report: ${result.reportPath}
+Checks:
+${result.checks.map((check) => `- ${check.id}: ${check.status} - ${check.message}`).join("\n")}
+`;
+}
+
+function formatNextPromptResult(result) {
+  return `Next agent prompt: ${result.goal}
+Prompt: ${result.promptPath}
+Next:
+${result.nextSteps.map((step) => `- ${step}`).join("\n")}
+`;
 }
 
 async function readMutableArtifactManifest(directory) {
@@ -2127,6 +2931,51 @@ API:       ${result.apiUrl}
     const params = new URLSearchParams({ limit: String(limit) });
     response = await apiRequest(flags, `/support/tickets?${params.toString()}`);
     return flags.json ? writeJson(response) : printApiHuman(response, formatSupportTicketList);
+  }
+
+  if (resource === "analyze" && action === "checklist") {
+    response = await writeChecklistOnly(flags);
+    if (!response.ok) {
+      process.exitCode = 1;
+    }
+    return flags.json ? writeJson(response) : printHuman(response, formatChecklistResult);
+  }
+
+  if (resource === "analyze" && action === "report") {
+    response = await migrationReportValidation(value);
+    if (!response.ok) {
+      process.exitCode = 1;
+    }
+    return flags.json ? writeJson(response) : printHuman(response, formatReportValidation);
+  }
+
+  if (resource === "analyze") {
+    response = await writeMigrationAnalysis(action || ".", flags);
+    if (!response.ok) {
+      process.exitCode = 1;
+    }
+    return flags.json ? writeJson(response) : printHuman(response, formatAnalyzeCreated);
+  }
+
+  if (resource === "prompt" && action === "next") {
+    response = await writeNextPromptFromReport(flags.fromReport ?? value, flags);
+    if (!response.ok) {
+      process.exitCode = 1;
+    }
+    return flags.json ? writeJson(response) : printHuman(response, formatNextPromptResult);
+  }
+
+  if ((resource === "doctor" || (resource === "deploy" && action === "doctor")) && flags.fromReport) {
+    response = await migrationDoctorFromReport(flags.fromReport);
+    if (!response.ok) {
+      process.exitCode = 1;
+    }
+    if (flags.json) return writeJson(response);
+    if (response.data) {
+      process.stdout.write(formatMigrationDoctor(response.data));
+      return;
+    }
+    return printHuman(response, () => "");
   }
 
   if (resource === "doctor" || (resource === "deploy" && action === "doctor")) {

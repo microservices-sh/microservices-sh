@@ -224,6 +224,19 @@ pnpm spec:check -- all
 
 Local registry and discovery commands are intentionally read-only. `pnpm registry:build -- --json` scans module and template manifests and writes derived catalogs under `.generated/registry`. `pnpm discover -- --path <app>` reports installed modules from `microservices.lock.json` and package dependencies without mutating source, secrets, resources, or deployments.
 
+## Existing Project Migration Handoff
+
+The CLI can prepare an agentic Cloudflare migration handoff for an existing app without calling an AI service. It writes a versioned checklist and prompt, validates the external agent's `report.json`, then generates the next implementation prompt.
+
+```bash
+pnpm cli -- analyze /path/to/app --target cloudflare --agent
+# Ask your coding agent to use .microservices/analysis/agent-prompt.md
+pnpm cli -- doctor --from-report /path/to/app/.microservices/analysis/report.json
+pnpm cli -- prompt next --from-report /path/to/app/.microservices/analysis/report.json --goal cloudflare-enable
+```
+
+This is intentionally staged. For apps with Supabase, Firebase, Postgres, or existing serverless functions, the first recommendation should usually be Cloudflare-enabled hosting while preserving the current backend, followed by targeted Worker/R2/D1 migrations only when the report has file/line evidence.
+
 ## Agent And Control-Plane Surfaces
 
 The local CLI and create package use the same internal SDK intended for hosted MCP, local stdio MCP, and deployment-control surfaces. That keeps agent behavior consistent across access paths.
