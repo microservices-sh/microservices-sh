@@ -25,7 +25,8 @@
       "customer",
       "booking",
       "audit-log",
-      "payment"
+      "payment",
+      "identity"
     ],
     "optional": [
       "email",

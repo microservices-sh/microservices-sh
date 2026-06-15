@@ -1,6 +1,12 @@
 import type { Handle } from "@sveltejs/kit";
 import { json } from "@sveltejs/kit";
 import { dev } from "$app/environment";
+import {
+  parseSessionCookie,
+  readSession,
+  createD1AccountStore,
+  createD1SessionStore
+} from "@microservices-sh/identity";
 import { createD1BookingRepository } from "@microservices-sh/booking/adapters/d1";
 import { createMemoryBookingRepository } from "@microservices-sh/booking/adapters/memory";
 import { createD1CustomerRepository } from "@microservices-sh/customer/adapters/d1";
@@ -30,6 +36,8 @@ const PUBLIC_API = new Set([
   "/api/gateway/tokens",
   "/api/auth/jwks",
   "/api/auth/bootstrap",
+  // Passwordless login (request + verify code); gated by the emailed code itself.
+  "/api/login",
   // Scheduled endpoints — self-gated by CRON_TOKEN, not the gateway token.
   "/api/cron/run",
   "/api/holds/expire",
@@ -68,20 +76,21 @@ export const handle: Handle = async ({ event, resolve }) => {
       email: "",
       isAdmin: verified.data.claims.scopes.includes("gateway.admin")
     };
-  } else if (dev) {
-    // Local dev ONLY: inject an admin session so the SSR admin UI is usable
-    // without a login flow. Guarded by `dev` so it can never run in production.
-    event.locals.user = {
-      id: "local-admin",
-      email: "admin@example.com",
-      isAdmin: true
-    };
   } else {
-    // Production SSR pages have no authenticated user until a real admin session
-    // is established. Routes under /admin enforce this and fail closed (see
-    // src/routes/admin/+layout.server.ts). Wire a prod admin session here (e.g.
-    // a cookie minted from a gateway.admin-scoped token) to light up /admin.
-    event.locals.user = null;
+    // SSR pages: resolve the human session from the @microservices-sh/identity cookie
+    // (set by /login → /api/login). No/invalid session => null, and the /admin layout
+    // guard fails closed.
+    const sessionId = parseSessionCookie(event.request.headers.get("cookie"));
+    const resolved = db
+      ? await readSession(
+          { sessionId },
+          { sessionStore: createD1SessionStore(db), accountStore: createD1AccountStore(db) }
+        )
+      : null;
+    const sessionUser = resolved && resolved.ok ? resolved.data.user : null;
+    // Local dev convenience: with no session, act as a local admin so the admin UI is
+    // usable without logging in. Guarded by `dev` — production has no fallback.
+    event.locals.user = sessionUser ?? (dev ? { id: "local-admin", email: "admin@example.com", isAdmin: true } : null);
   }
 
   return resolve(event);

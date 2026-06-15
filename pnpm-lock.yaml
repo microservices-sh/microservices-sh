@@ -219,6 +219,22 @@ importers:
         specifier: ^1.2.0
         version: 1.6.1(lightningcss@1.32.0)
 
+  modules/image-generation:
+    dependencies:
+      '@microservices-sh/connection-contract':
+        specifier: workspace:*
+        version: link:../../packages/connection-contract
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250109.0
+        version: 4.20260613.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   modules/invoice:
     dependencies:
       '@microservices-sh/connection-contract':
@@ -369,6 +385,9 @@ importers:
       '@microservices-sh/gateway':
         specifier: workspace:*
         version: link:../../modules/gateway
+      '@microservices-sh/identity':
+        specifier: workspace:*
+        version: link:../../modules/identity
       '@microservices-sh/payment':
         specifier: workspace:*
         version: link:../../modules/payment
@@ -491,6 +510,9 @@ importers:
       '@microservices-sh/billing-subscriptions':
         specifier: workspace:*
         version: link:../../modules/billing-subscriptions
+      '@microservices-sh/image-generation':
+        specifier: workspace:*
+        version: link:../../modules/image-generation
       '@microservices-sh/org-team-rbac':
         specifier: workspace:*
         version: link:../../modules/org-team-rbac
