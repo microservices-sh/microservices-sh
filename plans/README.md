@@ -30,6 +30,8 @@ This directory contains the actionable plan for starting the microservices.sh MV
 25. `22-product-billing-cli-admin-portal.md` - product billing implementation plan for Stripe Checkout, webhooks, admin billing, CLI billing commands, and entitlements.
 26. `23-auth-billing-plan-review.md` - consolidated review of auth and billing plans, including blocking issues and remediation order.
 27. `24-service-topology-and-auth-comms.md` - service-scoped D1, embedded/service deploy modes, and auth-gated inter-service communication (service bindings + short-lived JWT + signed queue events).
+28. `25-module-connection-standard.md` - honeycomb module-connection standard: three primitives (RPC/events/hooks), unified Result envelope, build-time composer, thin runtime dispatch.
+29. `26-identity-better-auth.md` - identity layer on Better Auth (user accounts, login, sessions) that bridges to `@microservices-sh/auth` token minting; does not replace the token module. (Draft)
 
 ## Core Decision
 The MVP is good enough to start if it remains narrow:
