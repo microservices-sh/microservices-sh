@@ -7,6 +7,36 @@ import { pathToFileURL } from "node:url";
 const IGNORED_DIRS = new Set([".git", ".svelte-kit", ".wrangler", "dist", "node_modules"]);
 const FORBIDDEN_FRAMEWORK_IMPORTS = ["@sveltejs/kit", "from \"hono\"", "from 'hono'", "OpenAPIHono"];
 
+// Normalize a module.json manifest to flat summary fields, reading the new nested
+// `connections` block (Plan 25 §6) first and falling back to the legacy flat fields.
+// TODO(phase3): drop the flat fallbacks once all 18 modules carry `connections`.
+export function normalizeManifestConnections(manifest) {
+  const c = manifest.connections;
+  if (c) {
+    const emits = c.events?.emits ?? [];
+    const consumes = c.events?.consumes ?? [];
+    return {
+      requires: c.requires ?? [],
+      optional: c.optional ?? [],
+      emits,
+      consumes,
+      events: [...emits, ...consumes],
+      hooks: Object.keys(c.hookPoints ?? {}),
+      rpc: { exposes: c.rpc?.exposes ?? [], calls: c.rpc?.calls ?? [] }
+    };
+  }
+  const emits = manifest.eventsEmitted ?? manifest.events ?? [];
+  return {
+    requires: manifest.requires ?? [],
+    optional: manifest.optional ?? [],
+    emits,
+    consumes: manifest.eventsConsumed ?? [],
+    events: manifest.events ?? manifest.eventsEmitted ?? [],
+    hooks: manifest.hooks ?? [],
+    rpc: { exposes: Array.isArray(manifest.rpc) ? manifest.rpc : [], calls: [] }
+  };
+}
+
 const MODULE_REQUIRED_FILES = [
   "module.json",
   "package.json",
@@ -750,6 +780,7 @@ function lockModuleSnapshot(rootPath, moduleId) {
   }
 
   const manifest = readJson(modulePath);
+  const connections = normalizeManifestConnections(manifest);
   return {
     id: moduleId,
     version: manifest.version || "0.1.0",
@@ -759,9 +790,9 @@ function lockModuleSnapshot(rootPath, moduleId) {
     contract: {
       resources: Array.isArray(manifest.resources) ? manifest.resources.map((resource) => resource.type?.toUpperCase()).filter(Boolean) : [],
       permissions: manifest.permissions || [],
-      hooks: manifest.hooks || [],
-      events: manifest.events || [],
-      requires: manifest.requires || []
+      hooks: connections.hooks,
+      events: connections.events,
+      requires: connections.requires
     }
   };
 }
@@ -1007,6 +1038,7 @@ function bindingSummary(resources) {
 async function moduleRegistryEntry(rootPath, modulePath) {
   const manifest = readJson(join(modulePath, "module.json"));
   const packageJson = readJsonOptional(join(modulePath, "package.json"), {});
+  const connections = normalizeManifestConnections(manifest);
   const moduleClass = manifest.class || manifest.category || "module";
   const docs = {
     readme: existsSync(join(modulePath, "README.md")) ? "README.md" : null,
@@ -1030,10 +1062,10 @@ async function moduleRegistryEntry(rootPath, modulePath) {
     resources: resourceSummary(manifest.resources),
     bindings: bindingSummary(manifest.resources),
     permissions: manifest.permissions || [],
-    requires: manifest.requires || [],
-    optional: manifest.optional || [],
-    hooks: manifest.hooks || [],
-    events: manifest.events || manifest.eventsEmitted || [],
+    requires: connections.requires,
+    optional: connections.optional,
+    hooks: connections.hooks,
+    events: connections.events,
     secrets: manifest.secrets || [],
     approval: manifest.approval || null,
     customization: manifest.customization || null,
