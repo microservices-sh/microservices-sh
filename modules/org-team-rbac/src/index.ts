@@ -23,5 +23,6 @@ export type {
   OrgStatus,
   MembershipStatus,
   InvitationStatus,
-  RbacActor
+  RbacActor,
+  DomainEvent
 } from "./types";

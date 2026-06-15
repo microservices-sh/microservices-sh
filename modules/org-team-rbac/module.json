@@ -16,12 +16,26 @@
   "resources": [
     { "type": "d1", "binding": "DB", "tables": ["organizations", "memberships", "roles", "invitations"] }
   ],
-  "permissions": ["org.read", "org.manage", "member.manage"],
-  "requires": [],
-  "optional": ["auth", "audit-log"],
-  "hooks": ["beforeInvite", "onMembershipChanged"],
-  "events": ["org.created", "member.invited", "member.joined", "member.removed", "role.updated"],
-  "rpc": [],
+  "permissions": ["org.read", "org.manage", "member.manage", "org-team-rbac.extend", "org-team-rbac.observe"],
+  "connections": {
+    "requires": [],
+    "optional": ["auth", "audit-log"],
+    "rpc": {
+      "exposes": [
+        { "method": "authorize", "scope": "org.read", "public": false }
+      ],
+      "calls": []
+    },
+    "events": {
+      "emits": ["org.created", "member.invited", "member.joined", "member.removed", "role.updated"],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeInvite": { "kind": "filter", "scope": "org-team-rbac.extend" },
+      "onMembershipChanged": { "kind": "observer", "scope": "org-team-rbac.observe" }
+    },
+    "provides": { "hooks": [] }
+  },
   "customization": {
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]

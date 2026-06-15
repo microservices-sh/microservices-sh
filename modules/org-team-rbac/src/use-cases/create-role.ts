@@ -1,17 +1,23 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { createRoleInputSchema } from "../schemas";
+import { orgTeamRbacMeta } from "../meta";
 import type { RbacStore } from "../ports";
 import type { Role } from "../types";
 
 // Create a custom role within an org.
-export async function createRole(input: unknown, deps: { store: RbacStore }) {
+//
+// This use case is framework-neutral: it never imports SvelteKit or Hono.
+export async function createRole(input: unknown, deps: { store: RbacStore; now?: () => number; correlationId?: string }) {
+  const meta = orgTeamRbacMeta(deps);
+
   const parsed = createRoleInputSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false as const, status: 400 as const, data: null, error: { code: "INVALID_ROLE_INPUT", message: "Role input is invalid.", issues: parsed.error.issues } };
+    return err(400, { code: "org-team-rbac.INVALID_ROLE_INPUT", message: "Role input is invalid.", issues: parsed.error.issues }, meta);
   }
 
   const org = await deps.store.getOrg(parsed.data.orgId);
   if (!org) {
-    return { ok: false as const, status: 404 as const, data: null, error: { code: "ORG_NOT_FOUND", message: "Organization not found." } };
+    return err(404, { code: "org-team-rbac.ORG_NOT_FOUND", message: "Organization not found." }, meta);
   }
 
   const role: Role = {
@@ -22,5 +28,5 @@ export async function createRole(input: unknown, deps: { store: RbacStore }) {
   };
   await deps.store.insertRole(role);
 
-  return { ok: true as const, status: 201 as const, data: { id: role.id, name: role.name } };
+  return ok(201, { id: role.id, name: role.name }, meta);
 }

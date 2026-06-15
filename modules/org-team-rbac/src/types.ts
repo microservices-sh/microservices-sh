@@ -44,3 +44,11 @@ export interface Invitation {
 export interface RbacActor {
   userId: string;
 }
+
+// A domain event the module emits (e.g. member.joined). correlationId is threaded
+// from the use-case Meta so downstream consumers can trace the chain. See Plan 25 §4.
+export interface DomainEvent {
+  name: string;
+  correlationId?: string | null;
+  payload: Record<string, unknown>;
+}

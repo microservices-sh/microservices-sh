@@ -1,34 +1,66 @@
+import { ok, err, runHooks } from "@microservices-sh/connection-contract";
+import type { ResolvedHook } from "@microservices-sh/connection-contract";
 import { defaultConfig } from "../config";
 import { beforeInvite } from "../hooks";
 import { inviteMemberInputSchema } from "../schemas";
+import type { InviteMemberInput } from "../schemas";
+import { orgTeamRbacMeta } from "../meta";
 import type { RbacStore } from "../ports";
-import type { Invitation } from "../types";
+import type { DomainEvent, Invitation } from "../types";
 
 // Create a single-use, expiring invitation. The role must belong to the org
 // (cross-tenant role ids are rejected). The returned token is what the invitee
-// presents to acceptInvitation.
+// presents to acceptInvitation. Emits member.invited.
+//
+// Two layers of customization run before the invitation is persisted:
+//   1. the local config seam `beforeInvite` (per-app override, may block)
+//   2. the cross-module `beforeInvite` hook chain (Plan 25 §5), injected by the
+//      composed app via deps.beforeInviteHooks — filters may mutate the input
+//      (e.g. domain allowlist), guards may veto.
+//
+// This use case is framework-neutral: it never imports SvelteKit or Hono.
 export async function inviteMember(
   input: unknown,
-  deps: { store: RbacStore; now?: () => number; config?: Partial<typeof defaultConfig>; token?: () => string }
+  deps: {
+    store: RbacStore;
+    now?: () => number;
+    config?: Partial<typeof defaultConfig>;
+    token?: () => string;
+    correlationId?: string;
+    beforeInviteHooks?: ResolvedHook[];
+  }
 ) {
+  const meta = orgTeamRbacMeta(deps);
+
   const parsed = inviteMemberInputSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false as const, status: 400 as const, data: null, error: { code: "INVALID_INVITE_INPUT", message: "Invite input is invalid.", issues: parsed.error.issues } };
+    return err(400, { code: "org-team-rbac.INVALID_INVITE_INPUT", message: "Invite input is invalid.", issues: parsed.error.issues }, meta);
   }
 
   const org = await deps.store.getOrg(parsed.data.orgId);
   if (!org) {
-    return { ok: false as const, status: 404 as const, data: null, error: { code: "ORG_NOT_FOUND", message: "Organization not found." } };
+    return err(404, { code: "org-team-rbac.ORG_NOT_FOUND", message: "Organization not found." }, meta);
   }
   const role = await deps.store.getRole(parsed.data.roleId);
   if (!role || role.orgId !== parsed.data.orgId) {
-    return { ok: false as const, status: 400 as const, data: null, error: { code: "INVALID_ROLE", message: "Role does not belong to this organization." } };
+    return err(400, { code: "org-team-rbac.INVALID_ROLE", message: "Role does not belong to this organization." }, meta);
   }
 
-  const hooked = await beforeInvite(parsed.data);
-  if (!hooked) {
-    return { ok: false as const, status: 409 as const, data: null, error: { code: "INVITE_BLOCKED", message: "Invite was blocked by beforeInvite." } };
+  const configData = await beforeInvite(parsed.data);
+  if (!configData) {
+    return err(409, { code: "org-team-rbac.INVITE_BLOCKED", message: "Invite was blocked by beforeInvite." }, meta);
   }
+
+  const hookRun = await runHooks(
+    "beforeInvite",
+    configData,
+    { correlationId: meta.correlationId },
+    deps.beforeInviteHooks ?? []
+  );
+  if (!hookRun.ok) {
+    return err(hookRun.status, hookRun.error, meta);
+  }
+  const hooked = hookRun.value as InviteMemberInput;
 
   const cfg = { ...defaultConfig, ...deps.config };
   const nowMs = deps.now?.() ?? Date.now();
@@ -46,5 +78,11 @@ export async function inviteMember(
   };
   await deps.store.insertInvitation(invitation);
 
-  return { ok: true as const, status: 201 as const, data: { id: invitation.id, token, expiresAt: invitation.expiresAt } };
+  const event: DomainEvent = {
+    name: "member.invited",
+    correlationId: meta.correlationId,
+    payload: { invitationId: invitation.id, orgId: invitation.orgId, email: invitation.email, roleId: invitation.roleId }
+  };
+
+  return ok(201, { id: invitation.id, token, expiresAt: invitation.expiresAt, event }, meta);
 }

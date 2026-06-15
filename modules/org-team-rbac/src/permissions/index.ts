@@ -1,1 +1,1 @@
-export const permissions = ["org.read", "org.manage", "member.manage"] as const;
+export const permissions = ["org.read", "org.manage", "member.manage", "org-team-rbac.extend", "org-team-rbac.observe"] as const;

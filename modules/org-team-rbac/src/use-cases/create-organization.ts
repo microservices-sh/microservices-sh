@@ -1,19 +1,28 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { DEFAULT_ROLES } from "../config";
 import { createOrganizationInputSchema } from "../schemas";
+import { orgTeamRbacMeta } from "../meta";
 import type { RbacStore } from "../ports";
-import type { Membership, Organization, Role } from "../types";
+import type { DomainEvent, Membership, Organization, Role } from "../types";
 
 // Create an org, seed its default roles (owner/admin/member), and make the
-// creator the owner. Slug is unique per install.
-export async function createOrganization(input: unknown, deps: { store: RbacStore; now?: () => number }) {
+// creator the owner. Slug is unique per install. Emits org.created.
+//
+// This use case is framework-neutral: it never imports SvelteKit or Hono.
+export async function createOrganization(
+  input: unknown,
+  deps: { store: RbacStore; now?: () => number; correlationId?: string }
+) {
+  const meta = orgTeamRbacMeta(deps);
+
   const parsed = createOrganizationInputSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false as const, status: 400 as const, data: null, error: { code: "INVALID_ORG_INPUT", message: "Organization input is invalid.", issues: parsed.error.issues } };
+    return err(400, { code: "org-team-rbac.INVALID_ORG_INPUT", message: "Organization input is invalid.", issues: parsed.error.issues }, meta);
   }
 
   const existing = await deps.store.getOrgBySlug(parsed.data.slug);
   if (existing) {
-    return { ok: false as const, status: 409 as const, data: null, error: { code: "SLUG_TAKEN", message: `Slug ${parsed.data.slug} is already in use.` } };
+    return err(409, { code: "org-team-rbac.SLUG_TAKEN", message: `Slug ${parsed.data.slug} is already in use.` }, meta);
   }
 
   const nowIso = new Date(deps.now?.() ?? Date.now()).toISOString();
@@ -39,5 +48,11 @@ export async function createOrganization(input: unknown, deps: { store: RbacStor
   };
   await deps.store.insertMembership(membership);
 
-  return { ok: true as const, status: 201 as const, data: { id: orgId, slug: org.slug, roles: roleIdByName, ownerMembershipId: membership.id } };
+  const event: DomainEvent = {
+    name: "org.created",
+    correlationId: meta.correlationId,
+    payload: { orgId, slug: org.slug, ownerUserId: parsed.data.ownerUserId }
+  };
+
+  return ok(201, { id: orgId, slug: org.slug, roles: roleIdByName, ownerMembershipId: membership.id, event }, meta);
 }

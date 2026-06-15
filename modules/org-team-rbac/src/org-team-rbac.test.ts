@@ -19,7 +19,8 @@ async function seedOrg() {
     { name: "Acme", slug: "acme", ownerUserId: "owner-1" },
     { store, now: fixedNow(T0) }
   );
-  return { store, orgId: org.data!.id as string, roles: org.data!.roles as Record<string, string> };
+  if (!org.ok) throw new Error("seed failed");
+  return { store, orgId: org.data.id, roles: org.data.roles };
 }
 
 describe("org-team-rbac: non-member authorization", () => {
@@ -32,7 +33,7 @@ describe("org-team-rbac: non-member authorization", () => {
     const res = await authorize(orgId, "stranger", "org.read", { store });
     expect(res.ok).toBe(false);
     expect(res.status).toBe(403);
-    expect(res.error?.code).toBe("FORBIDDEN");
+    if (!res.ok) expect(res.error.code).toBe("org-team-rbac.FORBIDDEN");
   });
 });
 
@@ -45,7 +46,8 @@ describe("org-team-rbac: single-use invitation", () => {
       { store, now: fixedNow(T0), token: () => "tok-1" }
     );
     expect(invite.ok).toBe(true);
-    const token = invite.data!.token as string;
+    if (!invite.ok) throw new Error("invite failed");
+    const token = invite.data.token;
 
     const first = await acceptInvitation({ token, userId: "user-2" }, { store, now: fixedNow(T0 + 1000) });
     expect(first.ok).toBe(true);
@@ -54,7 +56,7 @@ describe("org-team-rbac: single-use invitation", () => {
     const second = await acceptInvitation({ token, userId: "user-3" }, { store, now: fixedNow(T0 + 2000) });
     expect(second.ok).toBe(false);
     expect(second.status).toBe(409);
-    expect(second.error?.code).toBe("INVITATION_USED");
+    if (!second.ok) expect(second.error.code).toBe("org-team-rbac.INVITATION_USED");
   });
 });
 
@@ -65,7 +67,7 @@ describe("org-team-rbac: last owner protection", () => {
     const res = await removeMember(orgId, "owner-1", { store, now: fixedNow(T0 + 1) });
     expect(res.ok).toBe(false);
     expect(res.status).toBe(409);
-    expect(res.error?.code).toBe("LAST_OWNER");
+    if (!res.ok) expect(res.error.code).toBe("org-team-rbac.LAST_OWNER");
   });
 });
 

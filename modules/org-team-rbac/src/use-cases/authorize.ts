@@ -1,4 +1,6 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { hasPermission } from "../authz";
+import { orgTeamRbacMeta } from "../meta";
 import type { RbacStore } from "../ports";
 
 // Resolve a user's effective permissions WITHIN an org. A non-member (or removed
@@ -13,22 +15,21 @@ export async function resolvePermissions(orgId: string, userId: string, deps: { 
 
 // The gate every org-scoped route should call: is this user allowed to do this in
 // this org? Resolves membership -> role -> permissions, then matches (wildcards
-// supported). Returns 403 when not permitted.
+// supported). Returns 403 when not permitted. Exposed as the `authorize` RPC
+// (scope org.read) so other modules can scope against the org boundary.
+//
+// This use case is framework-neutral: it never imports SvelteKit or Hono.
 export async function authorize(
   orgId: string,
   userId: string,
   permission: string,
-  deps: { store: RbacStore }
+  deps: { store: RbacStore; now?: () => number; correlationId?: string }
 ) {
+  const meta = orgTeamRbacMeta(deps);
   const permissions = await resolvePermissions(orgId, userId, deps);
   const allowed = hasPermission(permissions, permission);
   if (!allowed) {
-    return {
-      ok: false as const,
-      status: 403 as const,
-      data: { allowed: false, orgId, userId, permission },
-      error: { code: "FORBIDDEN", message: `User lacks ${permission} in org ${orgId}.` }
-    };
+    return err(403, { code: "org-team-rbac.FORBIDDEN", message: `User lacks ${permission} in org ${orgId}.` }, meta);
   }
-  return { ok: true as const, status: 200 as const, data: { allowed: true, orgId, userId, permission } };
+  return ok(200, { allowed: true, orgId, userId, permission }, meta);
 }
