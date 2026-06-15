@@ -1,0 +1,15 @@
+{
+  "hero": {
+    "eyebrow": "Online booking",
+    "headline": "Book your next appointment.",
+    "lead": "Pick a service and a time that works for you — with instant confirmation and easy rescheduling.",
+    "primaryCta": { "label": "Create a booking", "href": "/book" },
+    "secondaryCta": { "label": "View admin", "href": "/admin" }
+  },
+  "panel": {
+    "eyebrow": "Why book online",
+    "title": "Simple and fast",
+    "body": "Real-time availability, instant confirmation, and reminders so you never miss an appointment.",
+    "features": ["Real-time availability", "Instant confirmation", "Email reminders"]
+  }
+}

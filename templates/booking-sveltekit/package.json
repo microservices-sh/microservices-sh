@@ -8,6 +8,8 @@
     "dev": "node scripts/microservices.js local dev",
     "dev:local": "node scripts/microservices.js local dev",
     "dev:raw": "vite dev",
+    "validate": "node scripts/validate-content.mjs",
+    "prebuild": "node scripts/validate-content.mjs",
     "build": "vite build",
     "build:app": "vite build",
     "preview": "vite preview",

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://microservices.sh/schemas/booking-sveltekit/content.schema.json",
+  "title": "Booking (SvelteKit) — public home content",
+  "description": "The contract for the customer-facing home page (src/routes/+page.svelte). An agent fills src/content.json to match this schema, validates, then runs the verify command. This phase covers the home page only — see CLAUDE.md for where brand name, services, and theme live.",
+
+  "x-microservices": {
+    "template": "booking-sveltekit",
+    "appliesTo": "src/content.json",
+    "verify": "npm run validate && npm run build",
+    "doNotEdit": ["src/routes/**", "src/lib/**", "src/app.css", "src/app.html"],
+    "scope": "home-page-only",
+    "notes": "Only the public home page is content-driven here. Business name, currency, timezone, and booking policy live in microservices.config.json. Brand colors/fonts live in src/app.css (see THEMING.md). Booking flow, admin, and email copy are not yet externalized."
+  },
+
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["hero", "panel"],
+  "properties": {
+    "hero": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eyebrow", "headline", "lead", "primaryCta", "secondaryCta"],
+      "properties": {
+        "eyebrow": { "type": "string", "maxLength": 40, "x-hint": "Small label above the headline." },
+        "headline": { "type": "string", "maxLength": 60, "x-hint": "Main hero headline; punchy, ~6 words." },
+        "lead": { "type": "string", "maxLength": 240, "x-hint": "Sub-headline paragraph, 1–2 sentences." },
+        "primaryCta": { "$ref": "#/$defs/cta", "x-hint": "Main action. href is usually /book." },
+        "secondaryCta": { "$ref": "#/$defs/cta", "x-hint": "Secondary action. href is usually /admin." }
+      }
+    },
+    "panel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eyebrow", "title", "body", "features"],
+      "properties": {
+        "eyebrow": { "type": "string", "maxLength": 30 },
+        "title": { "type": "string", "maxLength": 40 },
+        "body": { "type": "string", "maxLength": 200 },
+        "features": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "x-hint": "Exactly 3 short benefit bullets — the panel renders a fixed list.",
+          "items": { "type": "string", "maxLength": 40 }
+        }
+      }
+    }
+  },
+
+  "$defs": {
+    "cta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "href"],
+      "properties": {
+        "label": { "type": "string", "minLength": 1, "maxLength": 30 },
+        "href": { "type": "string", "minLength": 1, "x-hint": "In-page path (/book, /admin) or absolute URL." }
+      }
+    }
+  }
+}
