@@ -188,6 +188,9 @@ try {
     !svelteCli.includes("CI_API_KEY_REQUIRED") ||
     !svelteCli.includes("DEPLOYMENT_INPUT_INVALID") ||
     !svelteCli.includes("--input deployment.json") ||
+    !svelteCli.includes("--target managed|cloudflare") ||
+    !svelteCli.includes("--cloudflare-auth oauth|api-token") ||
+    !svelteCli.includes("CLOUDFLARE_API_TOKEN") ||
     svelteCli.includes("wrangler whoami") ||
     svelteCli.includes("preview bind --d1-id <id> --kv-id <id>")
   ) {
@@ -209,6 +212,112 @@ try {
 
   run("node", ["--check", "scripts/microservices.js"], { cwd: appRoot, stdio: "inherit" });
   run("node", ["scripts/microservices.js", "check", "--json"], { cwd: svelteRoot, stdio: "inherit" });
+  const byoPlanStdout = run(
+    "node",
+    [
+      "scripts/microservices.js",
+      "deploy",
+      "preview",
+      "--plan",
+      "--target",
+      "cloudflare",
+      "--cloudflare-auth",
+      "api-token",
+      "--cloudflare-account-id",
+      "acct_smoke",
+      "--cloudflare-zone-id",
+      "zone_smoke",
+      "--cloudflare-preview-base-domain",
+      "preview.example.com",
+      "--cloudflare-api-token",
+      "secret_smoke_token",
+      "--json",
+    ],
+    { cwd: svelteRoot }
+  ).stdout;
+  if (byoPlanStdout.includes("secret_smoke_token")) {
+    throw new Error("BYO Cloudflare deploy plan must not echo raw Cloudflare API tokens.");
+  }
+  const byoPlan = JSON.parse(byoPlanStdout);
+  assert.strictEqual(byoPlan.ok, true);
+  assert.strictEqual(byoPlan.data.target.provider, "cloudflare");
+  assert.strictEqual(byoPlan.data.target.auth, "api_token");
+  assert.strictEqual(byoPlan.data.target.accountId, "acct_smoke");
+  assert.strictEqual(byoPlan.data.target.zoneId, "zone_smoke");
+  assert.strictEqual(byoPlan.data.target.previewBaseDomain, "preview.example.com");
+  assert.strictEqual(byoPlan.data.target.tokenStored, false);
+  const ciGuard = spawnSync(
+    "node",
+    [
+      "scripts/microservices.js",
+      "deploy",
+      "provision",
+      "dep_smoke",
+      "--confirm",
+      "provision",
+      "--ci",
+      "--json",
+    ],
+    {
+      cwd: svelteRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        MICROSERVICES_API_KEY: "",
+        MICROSERVICES_TOKEN: "",
+        MICROSERVICES_CONFIG_PATH: join(tempRoot, "empty-cli-config.json"),
+      },
+    }
+  );
+  if ((ciGuard.status ?? 1) === 0) {
+    throw new Error("CI deploy actions should require MICROSERVICES_API_KEY before calling the API.");
+  }
+  const ciGuardPayload = JSON.parse(ciGuard.stdout);
+  assert.strictEqual(ciGuardPayload.ok, false);
+  assert.strictEqual(ciGuardPayload.error.code, "CI_API_KEY_REQUIRED");
+  const invalidTarget = spawnSync(
+    "node",
+    [
+      "scripts/microservices.js",
+      "deploy",
+      "preview",
+      "--plan",
+      "--target",
+      "cloudflrae",
+      "--json",
+    ],
+    {
+      cwd: svelteRoot,
+      encoding: "utf8",
+    }
+  );
+  if ((invalidTarget.status ?? 1) === 0) {
+    throw new Error("Invalid deploy targets should fail instead of falling back to managed deploys.");
+  }
+  const invalidTargetPayload = JSON.parse(invalidTarget.stdout);
+  assert.strictEqual(invalidTargetPayload.ok, false);
+  assert.strictEqual(invalidTargetPayload.error.code, "DEPLOY_TARGET_INVALID");
+  const missingFlagValue = spawnSync(
+    "node",
+    [
+      "scripts/microservices.js",
+      "deploy",
+      "preview",
+      "--plan",
+      "--target",
+      "--json",
+    ],
+    {
+      cwd: svelteRoot,
+      encoding: "utf8",
+    }
+  );
+  if ((missingFlagValue.status ?? 1) === 0) {
+    throw new Error("Flags requiring values should fail when followed by another option.");
+  }
+  const missingFlagValuePayload = JSON.parse(missingFlagValue.stdout);
+  assert.strictEqual(missingFlagValuePayload.ok, false);
+  assert.strictEqual(missingFlagValuePayload.error.code, "CLI_FLAG_VALUE_REQUIRED");
   const catalog = JSON.parse(readFileSync(join(appRoot, "docs", "modules", "catalog.json"), "utf8"));
   const lock = JSON.parse(readFileSync(join(appRoot, "microservices.lock.json"), "utf8"));
   if (!catalog.modules?.some((module) => module.id === "payment")) {

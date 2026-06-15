@@ -101,6 +101,33 @@ MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy cleanup --in
 
 Use `--wait --timeout 10m` when CI should wait for the API to report a live preview URL before continuing to smoke tests.
 
+## Own Cloudflare Account
+
+The default target is still `managed`, where microservices.sh owns Cloudflare provisioning. For a user's own Cloudflare account, keep the same API-proxied deploy flow and choose one of these auth paths.
+
+OAuth/portal path:
+
+```bash
+pnpm microservices deploy preview --target cloudflare --cloudflare-auth oauth --cloudflare-connection-id <connection-id> --cloudflare-account-id <account-id> --plan
+```
+
+Use this path for interactive portal-connected accounts once `GET /cloudflare/oauth/status` reports OAuth and token storage configured. Until the OAuth token resolver is enabled in the API, use the API-token path below for actual provision/migrate/upload actions.
+
+CI API-token path:
+
+```bash
+MICROSERVICES_API_KEY=<workspace-api-key> \
+CLOUDFLARE_API_TOKEN=<cloudflare-api-token> \
+CLOUDFLARE_ACCOUNT_ID=<cloudflare-account-id> \
+pnpm microservices deploy preview --target cloudflare --cloudflare-auth api-token --confirm deploy --ci --json --output deployment.json
+
+MICROSERVICES_API_KEY=<workspace-api-key> CLOUDFLARE_API_TOKEN=<cloudflare-api-token> pnpm microservices deploy provision --input deployment.json --confirm provision --ci --json
+MICROSERVICES_API_KEY=<workspace-api-key> CLOUDFLARE_API_TOKEN=<cloudflare-api-token> pnpm microservices deploy migrate --input deployment.json --confirm migrate --ci --json
+MICROSERVICES_API_KEY=<workspace-api-key> CLOUDFLARE_API_TOKEN=<cloudflare-api-token> pnpm microservices deploy upload --input deployment.json --confirm upload --ci --json
+```
+
+Add `--cloudflare-zone-id <zone-id> --cloudflare-preview-base-domain <preview.example.com>` when the user's account should receive a routed preview hostname. Without a target zone/base domain, the API can still provision and upload resources, but it will not attach a preview route.
+
 ## Pending Before Beta
 
 1. Run browser screenshot checks for desktop and mobile.
