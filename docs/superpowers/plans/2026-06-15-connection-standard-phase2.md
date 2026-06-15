@@ -516,7 +516,18 @@ This is the single most error-prone task — there are **two** sources of truth 
 
 ---
 
-## Task 15: E2E harness — EMBEDDED topology only (Phase 2 scope)
+## Task 15: E2E harness — DEFERRED to Phase 3
+
+> **Execution note (2026-06-15):** Deferred. The `@cloudflare/vitest-pool-workers`
+> harness must *boot a composed app* (a worker entry that mounts modules + a queue
+> consumer), but that worker-boot/runtime artifact is itself a Phase 3 connector
+> deliverable — there is no app to boot in Phase 2. Task 14's in-process integration
+> test already covers scenarios 1–5 behaviorally at the contract level (RPC gate +
+> 403/401, filter/guard hooks, signed event, correlationId thread). Building a
+> throwaway worker harness now would be scaffolding discarded in Phase 3. The
+> pool-workers e2e (all scenarios, both topologies) lands in Phase 3 with the runtime.
+
+### Original spec (carried to Phase 3): E2E harness — EMBEDDED topology only
 
 > **Why embedded-only:** spec §10's both-topology suite requires service-mode RPC client/entrypoint codegen + the generated event routing table, which are **Phase 3 (Connector)** deliverables. Phase 2 proves the contract in-process. Scenarios 6 (topology parity) and 7 (composer→service-runtime pipeline) are deferred to the Phase 3 exit gate. The e2e files are written now so the suite is *parameterizable over topology* later — Phase 3 just adds the `"service"` arm.
 
@@ -559,7 +570,9 @@ This is the single most error-prone task — there are **two** sources of truth 
 - Composer enforces all 7 rules; emits stable `wiring.json`.
 - `auth` + `payment` migrated to `connections`; `module-contract` + `workspace-tools` reconciled (with the temporary flat-field fallback keeping the other 16 modules green); `pnpm spec:check:all` green.
 - Root `vitest.config.ts` globs cover the new package + module tests; `pnpm test` runs unit + integration green.
-- Integration test + **embedded** e2e scenarios 1–5 green.
+- Integration test (`tests/integration/compose-auth-payment.test.ts`) green — covers
+  scenarios 1–5 behaviorally in-process. (Pool-workers e2e deferred to Phase 3 — see Task 15.)
+- `pnpm test` wired into CI (`.github/workflows/ci.yml`) as a merge gate.
 - This is the precondition for the **Phase 3 plan**, which: (a) adds service-mode codegen + the generated event routing table, (b) extends the e2e suite to `["embedded","service"]` and adds scenarios 6 (topology parity) + 7 (composer→service-runtime pipeline), (c) migrates the remaining 16 modules (incl. the `email` dual tree), and (d) removes the flat-field fallback from `workspace-tools`.
 
 ## Carried to Phase 3 (do not attempt here)
