@@ -33,6 +33,16 @@ const defs = schema.$defs ?? {};
 const errors = [];
 const err = (path, msg) => errors.push(`${path || "(root)"}: ${msg}`);
 
+// Print the collected errors as a bullet list under a header (and optional
+// footer), then exit non-zero. Used by both the schema-keyword guard and the
+// content validation pass.
+function fail(header, footer) {
+  console.error(header);
+  for (const e of errors) console.error(`  • ${e}`);
+  if (footer) console.error(footer);
+  process.exit(1);
+}
+
 // Guard: this validator implements a fixed JSON Schema subset. If a schema grows
 // to use keywords we don't handle (oneOf, allOf, if/then, etc.) we must fail loud
 // rather than silently pass invalid content. Walk schema positions and flag any
@@ -56,9 +66,7 @@ function checkKeywords(node, path = "(root)") {
 }
 checkKeywords(schema);
 if (errors.length) {
-  console.error(`✗ content.schema.json uses keywords this validator does not support:\n`);
-  for (const e of errors) console.error(`  • ${e}`);
-  process.exit(1);
+  fail("✗ content.schema.json uses keywords this validator does not support:\n");
 }
 
 function deref(node) {
@@ -116,10 +124,10 @@ function validate(rawNode, value, path) {
 validate(schema, data, "");
 
 if (errors.length) {
-  console.error(`✗ src/content.json failed validation (${errors.length} error${errors.length > 1 ? "s" : ""}):\n`);
-  for (const e of errors) console.error(`  • ${e}`);
-  console.error(`\nSee content.schema.json for the contract and CLAUDE.md for the playbook.`);
-  process.exit(1);
+  fail(
+    `✗ src/content.json failed validation (${errors.length} error${errors.length > 1 ? "s" : ""}):\n`,
+    `\nSee content.schema.json for the contract and CLAUDE.md for the playbook.`
+  );
 }
 
 console.log("✓ src/content.json is valid against content.schema.json");
