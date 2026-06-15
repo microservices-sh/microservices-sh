@@ -97,6 +97,7 @@ async function loadConfig(
   }
   const db = getDb(d1);
   const dow = weekday(date);
+  try {
   const forService = (col: typeof availabilityRules.serviceId | typeof availabilityExceptions.serviceId) =>
     or(isNull(col), eq(col, serviceId));
 
@@ -113,8 +114,14 @@ async function loadConfig(
       .all(),
   ]);
 
-  const rules: Window[] = ruleRows.map((r) => ({ startTime: r.startTime, endTime: r.endTime, bufferMinutes: r.bufferMinutes }));
-  return { rules, exceptions: exceptionRows };
+    const rules: Window[] = ruleRows.map((r) => ({ startTime: r.startTime, endTime: r.endTime, bufferMinutes: r.bufferMinutes }));
+    return { rules, exceptions: exceptionRows };
+  } catch (error) {
+    // Tables not migrated yet / DB hiccup — fall back to defaults rather than
+    // failing the public booking page.
+    console.error("availability rules query failed; using defaults:", error);
+    return { rules: DEFAULT_RULES, exceptions: [] };
+  }
 }
 
 /**
@@ -135,9 +142,14 @@ export async function getAvailability(opts: {
 
   // Unexpired holds block slots too (a slot mid-checkout shouldn't be offered).
   if (d1) {
-    const heldRows = await activeHolds(d1, serviceId, new Date().toISOString());
-    for (const h of heldRows) {
-      blocking.push({ serviceId: h.serviceId, startsAt: h.startsAt, endsAt: h.endsAt, status: "hold" });
+    try {
+      const heldRows = await activeHolds(d1, serviceId, new Date().toISOString());
+      for (const h of heldRows) {
+        blocking.push({ serviceId: h.serviceId, startsAt: h.startsAt, endsAt: h.endsAt, status: "hold" });
+      }
+    } catch (error) {
+      // holds table not migrated / DB hiccup — proceed without holds.
+      console.error("active holds query failed; ignoring holds:", error);
     }
   }
 
