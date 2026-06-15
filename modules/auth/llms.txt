@@ -4,12 +4,14 @@ Purpose: issue and verify short-lived EdDSA tokens for auth-gated inter-service
 communication in microservices.sh apps.
 
 Entry points:
+- `examples/use-auth.ts` — runnable, end-to-end worked example (rotate → mint → verify → jwks). Start here.
 - `src/index.ts` exports the safe public surface.
 - `src/use-cases/` contains framework-neutral behavior (mint, verify, jwks, rotate).
 - `src/jwt.ts` holds EdDSA (Ed25519) WebCrypto primitives — no external JWT dep.
 - `src/scope.ts` exports `requireScope` for callee-side enforcement.
 - `src/ports/` defines the `SigningKeyStore` interface.
 - `src/adapters/` contains Cloudflare D1 and memory implementations.
+- `@microservices-sh/auth/deps` — `createAuthDeps({ DB? })` wires the signing-key store (D1 when `DB` is present, in-memory otherwise).
 - `src/rpc.ts` is the RPC contract descriptor for service-mode codegen.
 - `schemas/` and `openapi.json` describe API-facing contracts.
 - `module.json` is the machine-readable module manifest.
@@ -19,6 +21,12 @@ Token model:
   the public key from JWKS. Never distribute the private key.
 - Claims: sub, workspace, project, scopes[], iss, iat, exp, jti. Default TTL 60s.
 - Callee checks scopes against its own module permissions before executing.
+
+Results & reference usage:
+- Use cases return the shared Result envelope: `{ ok: true, status, data, meta }`
+  or `{ ok: false, status, error, meta }`. Narrow with `if (!result.ok)` (or isOk/isErr).
+- Real wiring: `templates/booking-sveltekit/src/hooks.server.ts` builds the signing-key
+  store; the gateway mints per request and services verify at their entrypoint.
 
 Agent rules:
 - Keep token logic in this module; keep app routes and UI in templates.
