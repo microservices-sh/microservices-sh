@@ -33,6 +33,34 @@ const defs = schema.$defs ?? {};
 const errors = [];
 const err = (path, msg) => errors.push(`${path || "(root)"}: ${msg}`);
 
+// Guard: this validator implements a fixed JSON Schema subset. If a schema grows
+// to use keywords we don't handle (oneOf, allOf, if/then, etc.) we must fail loud
+// rather than silently pass invalid content. Walk schema positions and flag any
+// keyword outside the supported set.
+const SUPPORTED = new Set([
+  "$schema", "$id", "$ref", "$defs", "title", "description",
+  "type", "required", "properties", "additionalProperties", "items",
+  "enum", "pattern", "minLength", "maxLength", "minItems", "maxItems",
+  "format", "default", "examples",
+]);
+function checkKeywords(node, path = "(root)") {
+  if (!node || typeof node !== "object" || Array.isArray(node)) return;
+  for (const key of Object.keys(node)) {
+    if (key.startsWith("x-") || SUPPORTED.has(key)) continue;
+    err(`(schema) ${path}`, `uses unsupported JSON Schema keyword "${key}" — extend scripts/validate-content.mjs (canonical in create-microservices-app/assets) to handle it`);
+  }
+  if (node.properties) for (const [k, v] of Object.entries(node.properties)) checkKeywords(v, `${path}.${k}`);
+  if (node.$defs) for (const [k, v] of Object.entries(node.$defs)) checkKeywords(v, `$defs.${k}`);
+  if (node.items) checkKeywords(node.items, `${path}[]`);
+  if (node.additionalProperties && typeof node.additionalProperties === "object") checkKeywords(node.additionalProperties, `${path}.*`);
+}
+checkKeywords(schema);
+if (errors.length) {
+  console.error(`✗ content.schema.json uses keywords this validator does not support:\n`);
+  for (const e of errors) console.error(`  • ${e}`);
+  process.exit(1);
+}
+
 function deref(node) {
   if (node && node.$ref) {
     const m = /^#\/\$defs\/(.+)$/.exec(node.$ref);

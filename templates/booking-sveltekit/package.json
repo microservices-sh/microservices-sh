@@ -11,6 +11,7 @@
     "validate": "node scripts/validate-content.mjs",
     "prebuild": "node scripts/validate-content.mjs",
     "build": "vite build",
+    "prebuild:app": "node scripts/validate-content.mjs",
     "build:app": "vite build",
     "preview": "vite preview",
     "check:spec": "node ../../packages/workspace-tools/src/index.js check template --path .",
