@@ -41,7 +41,7 @@ export async function createPaymentIntent(
   if (!hooked.ok) {
     return err(hooked.status, hooked.error, meta);
   }
-  const data = hooked.value;
+  const data = hooked.value as typeof configData;
 
   const intent = await deps.paymentGateway.createIntent({
     amount: data.amount,
