@@ -1157,6 +1157,8 @@ async function deployStatus(deploymentId, flags) {
   return apiRequest(flags, `/deployments/${deploymentId}`);
 }
 
+const TERMINAL_DEPLOYMENT_STATES = new Set(["live", "failed", "disabled"]);
+
 async function deployUploadPlan(deploymentId, flags) {
   const resolved = deploymentIdArg(deploymentId, flags);
   if (!resolved.ok) return resolved;
@@ -1188,6 +1190,85 @@ async function deployLogs(deploymentId, flags) {
     return fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id returned by deploy preview.");
   }
   return apiRequest(flags, `/deployments/${deploymentId}/logs`);
+}
+
+async function deployFollow(deploymentId, flags) {
+  const resolved = deploymentIdArg(deploymentId, flags);
+  if (!resolved.ok) return resolved;
+  deploymentId = resolved.data;
+
+  if (!deploymentId) {
+    return fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id returned by deploy preview.");
+  }
+
+  const startedAt = Date.now();
+  let lastLine = "";
+  let lastStatus = null;
+  let lastLogs = { ok: true, data: { deploymentId, logs: [] } };
+
+  while (Date.now() - startedAt < flags.timeoutMs) {
+    const status = await deployStatus(deploymentId, flags);
+    if (!status.ok) return status;
+    const logs = await deployLogs(deploymentId, flags);
+    if (logs.ok) lastLogs = logs;
+
+    const deployment = status.data?.deployment ?? {};
+    const state = deployment.status ?? "unknown";
+    const previewUrl = deployment.previewUrl ?? "not live yet";
+    const latestLog = logs.ok ? logs.data?.logs?.at(-1) : null;
+    const latestText = latestLog ? `${latestLog.level.toUpperCase()} ${latestLog.message}` : "No deploy logs yet.";
+    const line = `${deploymentId}: ${state} | ${previewUrl} | ${latestText}`;
+
+    if (!flags.json && line !== lastLine) {
+      process.stdout.write(`${line}\n`);
+      lastLine = line;
+    }
+
+    lastStatus = status;
+    if (TERMINAL_DEPLOYMENT_STATES.has(String(state))) {
+      return {
+        ok: state === "live",
+        data: {
+          ...status.data,
+          logs: lastLogs.data?.logs ?? [],
+          follow: {
+            status: state,
+            elapsedMs: Date.now() - startedAt
+          }
+        },
+        ...(state === "live"
+          ? {}
+          : {
+              error: {
+                code: "DEPLOYMENT_NOT_LIVE",
+                message: `Deployment ended with status ${state}.`,
+                remediation: "Run deploy logs for details.",
+                details: { deploymentId, status: state }
+              }
+            })
+      };
+    }
+
+    await sleep(3000);
+  }
+
+  return {
+    ok: false,
+    data: {
+      ...(lastStatus?.data ?? { deployment: { id: deploymentId } }),
+      logs: lastLogs.data?.logs ?? [],
+      follow: {
+        status: lastStatus?.data?.deployment?.status ?? "unknown",
+        elapsedMs: Date.now() - startedAt
+      }
+    },
+    error: {
+      code: "DEPLOYMENT_FOLLOW_TIMEOUT",
+      message: "Timed out waiting for deployment to finish.",
+      remediation: "Run deploy status or deploy logs to inspect the current state.",
+      details: { deploymentId, timeoutMs: flags.timeoutMs }
+    }
+  };
 }
 
 async function deployActivate(deploymentId, flags) {
@@ -1433,6 +1514,21 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
 `;
 }
 
+function formatUpload(result) {
+  const deployment = result.deployment ?? {};
+  const upload = result.upload ?? {};
+  const previewUrl = deployment.previewUrl ?? upload.previewUrl ?? null;
+  return `Deployment upload complete
+Deployment: ${deployment.id ?? "unknown"}
+Status: ${deployment.status ?? "unknown"}
+Mode: ${deployment.mode ?? "unknown"}
+Worker: ${upload.workerName ?? deployment.workerName ?? "unknown"}
+Preview URL: ${previewUrl ?? "not live yet"}
+Next:
+${(result.nextSteps ?? []).map((step) => `- ${step}`).join("\n") || "- Run deploy status to refresh the deployment state."}
+`;
+}
+
 function formatResources(result) {
   return `Deployment: ${result.deployment.id}
 Resources:
@@ -1450,6 +1546,19 @@ ${result.cleanup.length ? result.cleanup.map((item) => `- ${item.resource.resour
 
 function formatLogs(result) {
   return `${result.logs.map((log) => `${log.level.toUpperCase()} ${log.message}`).join("\n")}\n`;
+}
+
+function formatFollow(result) {
+  const deployment = result.deployment ?? {};
+  const logs = result.logs ?? [];
+  const latestLogs = logs.slice(-5);
+  return `Deployment: ${deployment.id ?? "unknown"}
+Status: ${deployment.status ?? "unknown"}
+Mode: ${deployment.mode ?? "unknown"}
+Preview URL: ${deployment.previewUrl ?? "not live yet"}
+Latest logs:
+${latestLogs.length ? latestLogs.map((log) => `- ${log.level.toUpperCase()} ${log.message}`).join("\n") : "- No deploy logs yet."}
+`;
 }
 
 function usage() {
@@ -1478,6 +1587,7 @@ function usage() {
   microservices deploy status [deployment-id] [--input deployment.json] [--json]
   microservices deploy resources [deployment-id] [--input deployment.json] [--json]
   microservices deploy logs [deployment-id] [--input deployment.json] [--json]
+  microservices deploy follow [deployment-id] [--input deployment.json] [--timeout 10m] [--json]
   microservices deploy activate [deployment-id] [--input deployment.json] --url <managed-url> [--mode dispatch-uploaded] [--json]
   microservices deploy disable [deployment-id] [--input deployment.json] --confirm disable [--json]
   microservices deploy cleanup [deployment-id] [--input deployment.json] [--plan] --confirm cleanup [--json]
@@ -1587,7 +1697,7 @@ async function main() {
   } else if (resource === "deploy" && action === "upload-plan") {
     emit(await deployUploadPlan(value, flags), formatUploadPlan, flags);
   } else if (resource === "deploy" && action === "upload") {
-    emit(await deployUpload(value, flags), (data) => `Upload plan: ${data.status}\n`, flags);
+    emit(await deployUpload(value, flags), (data) => data.deployment ? formatUpload(data) : `Upload plan: ${data.status}\n`, flags);
   } else if (resource === "deploy" && action === "status") {
     emit(await deployStatus(value, flags), formatStatus, flags);
   } else if (resource === "deploy" && action === "resources") {
@@ -1595,6 +1705,8 @@ async function main() {
   } else if ((resource === "deploy" && action === "logs") || resource === "logs") {
     const deploymentId = resource === "logs" ? action : value;
     emit(await deployLogs(deploymentId, flags), formatLogs, flags);
+  } else if (resource === "deploy" && action === "follow") {
+    emit(await deployFollow(value, flags), formatFollow, flags);
   } else if (resource === "deploy" && action === "activate") {
     emit(await deployActivate(value, flags), formatStatus, flags);
   } else if (resource === "deploy" && action === "disable") {
@@ -1614,13 +1726,15 @@ async function main() {
   } else if (resource === "preview" && action === "upload-plan") {
     emit(await deployUploadPlan(value, flags), formatUploadPlan, flags);
   } else if (resource === "preview" && action === "upload") {
-    emit(await deployUpload(value, flags), (data) => `Upload plan: ${data.status}\n`, flags);
+    emit(await deployUpload(value, flags), (data) => data.deployment ? formatUpload(data) : `Upload plan: ${data.status}\n`, flags);
   } else if (resource === "preview" && action === "status") {
     emit(await deployStatus(value, flags), formatStatus, flags);
   } else if (resource === "preview" && action === "resources") {
     emit(await deployResources(value, flags), formatResources, flags);
   } else if (resource === "preview" && action === "logs") {
     emit(await deployLogs(value, flags), formatLogs, flags);
+  } else if (resource === "preview" && action === "follow") {
+    emit(await deployFollow(value, flags), formatFollow, flags);
   } else if (resource === "preview" && action === "activate") {
     emit(await deployActivate(value, flags), formatStatus, flags);
   } else if (resource === "preview" && action === "disable") {

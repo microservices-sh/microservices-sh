@@ -74,14 +74,17 @@ Preview deploys are approval-gated and routed through the microservices.sh API. 
 8. Run `pnpm microservices deploy migrate --input deployment.json --confirm migrate`.
 9. Run `pnpm microservices deploy upload-plan --input deployment.json`.
 10. Run `pnpm microservices deploy upload --input deployment.json --plan`.
-11. Run `pnpm microservices deploy status --input deployment.json`.
-12. Or pass the returned deployment id directly with `--deployment-id <deployment-id>`.
-13. After the API reports a live preview URL, run `pnpm microservices preview smoke --url <preview-url>`.
-14. Clean disposable preview resources with `pnpm microservices deploy cleanup --input deployment.json --plan`, then `--confirm cleanup`.
+11. Run `pnpm microservices deploy follow --input deployment.json` to watch status/logs until the deployment is live or failed.
+12. Run `pnpm microservices deploy status --input deployment.json`.
+13. Or pass the returned deployment id directly with `--deployment-id <deployment-id>`.
+14. After the API reports a live preview URL, run `pnpm microservices preview smoke --url <preview-url>`.
+15. Clean disposable preview resources with `pnpm microservices deploy cleanup --input deployment.json --plan`, then `--confirm cleanup`.
 
 `deploy preview --confirm deploy` runs the local build, runs a local Wrangler dry-run bundle, packages `.microservices/deploy-bundle/_worker.js`, `.svelte-kit/cloudflare` assets, migrations, and project manifests, then uploads that artifact to the API. Remote provisioning, remote D1 migration, Worker/assets upload, preview routing, cleanup, and deploy state belong to the API. The local template keeps `wrangler.jsonc` for local Miniflare/D1 development, but managed preview commands do not mutate it with remote resource ids.
 
 Hosted Worker/assets upload is now API-owned. `deploy upload-plan` reports readiness for the bundled Worker artifact, created D1/KV bindings, Cloudflare credentials, and the managed preview route. `deploy upload --confirm upload` asks the API to upload assets/modules, attach final bindings, create the preview route, and mark the deployment live.
+
+Deploy status is visible through CLI output, `deploy follow`, `deploy status`, and `deploy logs`. `deploy upload --confirm upload` prints the final status and preview URL when the API marks the deployment live. The template does not send async deploy-complete email, webhook, or browser notifications yet; CI should use `--json`, `--output`, and `--wait`/smoke checks.
 
 ## CI Preview
 
