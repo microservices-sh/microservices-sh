@@ -1,22 +1,25 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { connectCalendarInputSchema } from "../schemas";
+import { calendarGoogleMeta } from "../meta";
 import type { SyncStateStore, TokenStore } from "../ports";
-import type { CalendarSyncState, CalendarToken } from "../types";
+import type { CalendarSyncState, CalendarToken, DomainEvent } from "../types";
 
 // Store the OAuth credentials for a calendar and seed an empty sync cursor. The
 // first syncCalendar run will full-sync (syncToken === null) and refresh the
 // access token on demand via single-flight. No Google call happens here.
 export async function connectCalendar(
   input: unknown,
-  deps: { tokenStore: TokenStore; syncStateStore: SyncStateStore; now?: () => number }
+  deps: { tokenStore: TokenStore; syncStateStore: SyncStateStore; now?: () => number; correlationId?: string }
 ) {
+  const meta = calendarGoogleMeta(deps);
+
   const parsed = connectCalendarInputSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      data: null,
-      error: { code: "INVALID_CONNECT_INPUT", message: "Connect input is invalid.", issues: parsed.error.issues }
-    };
+    return err(
+      400,
+      { code: "calendar-google.INVALID_CONNECT_INPUT", message: "Connect input is invalid.", issues: parsed.error.issues },
+      meta
+    );
   }
 
   const { tenantId, calendarId } = parsed.data;
@@ -59,5 +62,11 @@ export async function connectCalendar(
     await deps.syncStateStore.upsert(state);
   }
 
-  return { ok: true as const, status: 201 as const, data: { tenantId, calendarId, connected: true } };
+  const event: DomainEvent = {
+    name: "calendar-google.connected",
+    correlationId: meta.correlationId,
+    payload: { tenantId, calendarId }
+  };
+
+  return ok(201, { tenantId, calendarId, connected: true, event }, meta);
 }

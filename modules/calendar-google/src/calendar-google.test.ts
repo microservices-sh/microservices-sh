@@ -151,7 +151,10 @@ describe("calendar-google: single-flight OAuth refresh lock", () => {
     // Exactly one network refresh happened despite two contenders.
     expect(client.refreshCalls).toBe(1);
     // Exactly one of them did the real refresh; the other reused the result.
-    const refreshedFlags = [a.data?.refreshed, b.data?.refreshed].filter((x) => x === true);
+    const refreshedFlags = [
+      a.ok ? a.data.refreshed : undefined,
+      b.ok ? b.data.refreshed : undefined
+    ].filter((x) => x === true);
     expect(refreshedFlags).toHaveLength(1);
   });
 
@@ -173,7 +176,7 @@ describe("calendar-google: single-flight OAuth refresh lock", () => {
       { tokenStore, client, now: fixedNow(T0) }
     );
     expect(res.ok).toBe(true);
-    expect(res.data?.refreshed).toBe(false);
+    if (res.ok) expect(res.data.refreshed).toBe(false);
     expect(client.refreshCalls).toBe(0);
   });
 });
@@ -210,9 +213,11 @@ describe("calendar-google: incremental sync 410 gone -> clears cursor + full res
     );
 
     expect(res.ok).toBe(true);
-    expect(res.data?.didResync).toBe(true);
-    expect(res.data?.resyncCount).toBe(1);
-    expect(res.data?.inserted).toBe(1);
+    if (res.ok && "didResync" in res.data) {
+      expect(res.data.didResync).toBe(true);
+      expect(res.data.resyncCount).toBe(1);
+      expect(res.data.inserted).toBe(1);
+    }
 
     const state = await syncStateStore.get("tenant-1", "primary");
     expect(state?.syncToken).toBe("fresh-cursor");

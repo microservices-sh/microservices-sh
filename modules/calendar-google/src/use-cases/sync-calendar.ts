@@ -1,8 +1,11 @@
+import { ok, err, runHooks } from "@microservices-sh/connection-contract";
+import type { ResolvedHook } from "@microservices-sh/connection-contract";
 import { beforeCalendarSync } from "../hooks";
 import { syncCalendarInputSchema } from "../schemas";
+import { calendarGoogleMeta } from "../meta";
 import { applyEvents } from "./upsert-events";
 import type { CalendarEventStore, GoogleCalendarClient, SyncStateStore, TokenStore } from "../ports";
-import type { CalendarSyncState } from "../types";
+import type { CalendarSyncState, DomainEvent } from "../types";
 
 // Incremental sync via Google's syncToken, with the critical fallback agents miss:
 // when Google invalidates the cursor it returns HTTP 410 Gone. Naively this looks
@@ -10,6 +13,11 @@ import type { CalendarSyncState } from "../types";
 // { gone: true }) clears the stored syncToken and re-runs a FULL sync, then stores
 // the fresh nextSyncToken. The access token must be valid before calling —
 // refreshAccessToken (single-flight) is the caller's job; we accept it injected.
+//
+// Two layers of customization gate the sync (Plan 25 §5):
+//   1. the local config seam `beforeCalendarSync` (per-app override)
+//   2. the cross-module `beforeCalendarSync` guard chain, injected by the composed
+//      app via deps.beforeSyncHooks — guards may veto a run.
 export async function syncCalendar(
   input: unknown,
   deps: {
@@ -19,23 +27,36 @@ export async function syncCalendar(
     eventStore: CalendarEventStore;
     tokenStore?: TokenStore;
     now?: () => number;
+    correlationId?: string;
+    beforeSyncHooks?: ResolvedHook[];
   }
 ) {
+  const meta = calendarGoogleMeta(deps);
+
   const parsed = syncCalendarInputSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      data: null,
-      error: { code: "INVALID_SYNC_INPUT", message: "Sync input is invalid.", issues: parsed.error.issues }
-    };
+    return err(
+      400,
+      { code: "calendar-google.INVALID_SYNC_INPUT", message: "Sync input is invalid.", issues: parsed.error.issues },
+      meta
+    );
   }
 
   const { tenantId, calendarId, maxPages } = parsed.data;
 
   const proceed = await beforeCalendarSync({ tenantId, calendarId });
   if (!proceed) {
-    return { ok: true as const, status: 200 as const, data: { tenantId, calendarId, skipped: true } };
+    return ok(200, { tenantId, calendarId, skipped: true }, meta);
+  }
+
+  const hooked = await runHooks(
+    "beforeCalendarSync",
+    { tenantId, calendarId },
+    { correlationId: meta.correlationId },
+    deps.beforeSyncHooks ?? []
+  );
+  if (!hooked.ok) {
+    return err(hooked.status, hooked.error, meta);
   }
 
   const nowIso = () => new Date(deps.now?.() ?? Date.now()).toISOString();
@@ -99,10 +120,22 @@ export async function syncCalendar(
   state.updatedAt = nowIso();
   await deps.syncStateStore.upsert(state);
 
-  return {
-    ok: true as const,
-    status: 200 as const,
-    data: {
+  const event: DomainEvent = {
+    name: "calendar-google.synced",
+    correlationId: meta.correlationId,
+    payload: {
+      tenantId,
+      calendarId,
+      didResync,
+      inserted: totalInserted,
+      updated: totalUpdated,
+      deduped: totalDeduped
+    }
+  };
+
+  return ok(
+    200,
+    {
       tenantId,
       calendarId,
       didResync,
@@ -110,7 +143,9 @@ export async function syncCalendar(
       inserted: totalInserted,
       updated: totalUpdated,
       deduped: totalDeduped,
-      syncToken: state.syncToken
-    }
-  };
+      syncToken: state.syncToken,
+      event
+    },
+    meta
+  );
 }

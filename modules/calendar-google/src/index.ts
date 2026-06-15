@@ -47,5 +47,8 @@ export type {
   ListEventsResult,
   RefreshedToken,
   WatchResult,
-  ExpandedInstance
+  ExpandedInstance,
+  DomainEvent
 } from "./types";
+
+export { calendarGoogleMeta } from "./meta";

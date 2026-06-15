@@ -1,7 +1,10 @@
+import { ok, err } from "@microservices-sh/connection-contract";
+import type { Meta } from "@microservices-sh/connection-contract";
 import { defaultConfig } from "../config";
 import { refreshAccessTokenInputSchema } from "../schemas";
+import { calendarGoogleMeta } from "../meta";
 import type { GoogleCalendarClient, TokenStore } from "../ports";
-import type { CalendarToken } from "../types";
+import type { CalendarToken, DomainEvent } from "../types";
 
 // SINGLE-FLIGHT OAuth refresh. The bug this prevents: N concurrent workers all
 // see an expired access token and all POST to Google's token endpoint at once —
@@ -17,18 +20,20 @@ export async function refreshAccessToken(
     client: GoogleCalendarClient;
     now?: () => number;
     config?: Partial<typeof defaultConfig>;
+    correlationId?: string;
     // Injected so tests don't actually sleep; defaults to setTimeout.
     sleep?: (ms: number) => Promise<void>;
   }
 ) {
+  const meta = calendarGoogleMeta(deps);
+
   const parsed = refreshAccessTokenInputSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      data: null,
-      error: { code: "INVALID_REFRESH_INPUT", message: "Refresh input is invalid.", issues: parsed.error.issues }
-    };
+    return err(
+      400,
+      { code: "calendar-google.INVALID_REFRESH_INPUT", message: "Refresh input is invalid.", issues: parsed.error.issues },
+      meta
+    );
   }
 
   const leaseMs = deps.config?.refreshLeaseMs ?? defaultConfig.refreshLeaseMs;
@@ -38,13 +43,13 @@ export async function refreshAccessToken(
 
   const token = await deps.tokenStore.get(tenantId, calendarId);
   if (!token) {
-    return { ok: false as const, status: 404 as const, data: null, error: { code: "TOKEN_NOT_FOUND", message: "No connected calendar." } };
+    return err(404, { code: "calendar-google.TOKEN_NOT_FOUND", message: "No connected calendar." }, meta);
   }
 
   const nowMs = deps.now?.() ?? Date.now();
   // Still-valid (with slack)? Reuse it; no refresh, no lock.
   if (token.accessToken && token.accessTokenExpiresAt - earlyRefreshMs > nowMs) {
-    return { ok: true as const, status: 200 as const, data: { accessToken: token.accessToken, refreshed: false } };
+    return ok(200, { accessToken: token.accessToken, refreshed: false }, meta);
   }
 
   // Try to win the single-flight lease.
@@ -57,25 +62,24 @@ export async function refreshAccessToken(
       const fresh = await deps.tokenStore.get(tenantId, calendarId);
       const checkMs = deps.now?.() ?? Date.now();
       if (fresh?.accessToken && fresh.accessTokenExpiresAt - earlyRefreshMs > checkMs) {
-        return { ok: true as const, status: 200 as const, data: { accessToken: fresh.accessToken, refreshed: false, viaOtherFlight: true } };
+        return ok(200, { accessToken: fresh.accessToken, refreshed: false, viaOtherFlight: true }, meta);
       }
       // Lease expired without a result (crashed refresher): try to take over.
       if (!fresh?.refreshLockOwner || (fresh.refreshLockExpiresAt ?? 0) <= checkMs) {
         const tookOver = await deps.tokenStore.acquireRefreshLock(tenantId, calendarId, owner, checkMs + leaseMs, checkMs);
-        if (tookOver) return doRefresh(fresh ?? token, owner, deps, earlyRefreshMs);
+        if (tookOver) return doRefresh(fresh ?? token, deps, meta);
       }
     }
-    return { ok: false as const, status: 503 as const, data: null, error: { code: "REFRESH_CONTENDED", message: "Token refresh did not settle in time; retry." } };
+    return err(503, { code: "calendar-google.REFRESH_CONTENDED", message: "Token refresh did not settle in time; retry." }, meta);
   }
 
-  return doRefresh(token, owner, deps, earlyRefreshMs);
+  return doRefresh(token, deps, meta);
 }
 
 async function doRefresh(
   token: CalendarToken,
-  owner: string,
   deps: { tokenStore: TokenStore; client: GoogleCalendarClient; now?: () => number },
-  _earlyRefreshMs: number
+  meta: Meta
 ) {
   try {
     const refreshed = await deps.client.refreshToken({ refreshToken: token.refreshToken });
@@ -92,12 +96,17 @@ async function doRefresh(
     };
     // releaseRefreshLock persists the new token AND clears the lease atomically.
     await deps.tokenStore.releaseRefreshLock(updated);
-    return { ok: true as const, status: 200 as const, data: { accessToken: refreshed.accessToken, refreshed: true } };
-  } catch (err) {
+    const event: DomainEvent = {
+      name: "calendar-google.token.refreshed",
+      correlationId: meta.correlationId,
+      payload: { tenantId: token.tenantId, calendarId: token.calendarId }
+    };
+    return ok(200, { accessToken: refreshed.accessToken, refreshed: true, event }, meta);
+  } catch (cause) {
     // Clear the lease on failure so a retry isn't blocked by our dead lock.
     const cleared: CalendarToken = { ...token, refreshLockOwner: null, refreshLockExpiresAt: null };
     await deps.tokenStore.releaseRefreshLock(cleared);
-    const message = err instanceof Error ? err.message : String(err);
-    return { ok: false as const, status: 502 as const, data: null, error: { code: "REFRESH_FAILED", message } };
+    const message = cause instanceof Error ? cause.message : String(cause);
+    return err(502, { code: "calendar-google.REFRESH_FAILED", message }, meta);
   }
 }

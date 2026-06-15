@@ -114,6 +114,14 @@ export interface WatchResult {
   expiration: number;
 }
 
+// A lifecycle domain event carried out of a use-case Result. correlationId is
+// threaded from the request meta so emitters/consumers stay correlated (Plan 25 §4).
+export interface DomainEvent {
+  name: string;
+  correlationId: string;
+  payload: Record<string, unknown>;
+}
+
 // A single expanded instance of a recurring event (pure, from src/rrule.ts).
 export interface ExpandedInstance {
   // Instance start/end as RFC3339 strings (UTC for dateTime inputs).

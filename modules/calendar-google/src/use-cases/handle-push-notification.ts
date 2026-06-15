@@ -1,4 +1,6 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { pushNotificationInputSchema } from "../schemas";
+import { calendarGoogleMeta } from "../meta";
 import type { ChannelStore } from "../ports";
 
 // Validate an inbound Google push notification and tell the caller whether to
@@ -10,42 +12,43 @@ import type { ChannelStore } from "../ports";
 // does NOT process events directly, which is how double-processing creeps in.
 export async function handlePushNotification(
   input: unknown,
-  deps: { channelStore: ChannelStore }
+  deps: { channelStore: ChannelStore; now?: () => number; correlationId?: string }
 ) {
+  const meta = calendarGoogleMeta(deps);
+
   const parsed = pushNotificationInputSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      data: null,
-      error: { code: "INVALID_PUSH_INPUT", message: "Push input is invalid.", issues: parsed.error.issues }
-    };
+    return err(
+      400,
+      { code: "calendar-google.INVALID_PUSH_INPUT", message: "Push input is invalid.", issues: parsed.error.issues },
+      meta
+    );
   }
 
   const channel = await deps.channelStore.get(parsed.data.channelId);
   if (!channel) {
-    return { ok: false as const, status: 404 as const, data: null, error: { code: "CHANNEL_NOT_FOUND", message: "Unknown push channel." } };
+    return err(404, { code: "calendar-google.CHANNEL_NOT_FOUND", message: "Unknown push channel." }, meta);
   }
 
   // Authenticate: resource id and the echoed channel token must match, and the
   // channel must still be active. Rejecting spoofed callbacks is mandatory.
   if (channel.resourceId !== parsed.data.resourceId || channel.token !== parsed.data.token) {
-    return { ok: false as const, status: 401 as const, data: null, error: { code: "CHANNEL_UNAUTHORIZED", message: "Channel token/resource mismatch." } };
+    return err(401, { code: "calendar-google.CHANNEL_UNAUTHORIZED", message: "Channel token/resource mismatch." }, meta);
   }
   if (channel.status !== "active") {
-    return { ok: true as const, status: 200 as const, data: { acknowledged: true, shouldSync: false, reason: "channel-stopped" } };
+    return ok(200, { acknowledged: true, shouldSync: false, reason: "channel-stopped" }, meta);
   }
 
   // The initial "sync" handshake carries no change; ack without syncing.
   if (parsed.data.resourceState === "sync") {
-    return { ok: true as const, status: 200 as const, data: { acknowledged: true, shouldSync: false, reason: "handshake" } };
+    return ok(200, { acknowledged: true, shouldSync: false, reason: "handshake" }, meta);
   }
 
   // Real change: tell the caller which connection to syncCalendar(). Dedup is the
   // sync path's job (deduped event store), so re-delivered pushes are safe.
-  return {
-    ok: true as const,
-    status: 200 as const,
-    data: { acknowledged: true, shouldSync: true, tenantId: channel.tenantId, calendarId: channel.calendarId }
-  };
+  return ok(
+    200,
+    { acknowledged: true, shouldSync: true, tenantId: channel.tenantId, calendarId: channel.calendarId },
+    meta
+  );
 }

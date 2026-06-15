@@ -1,7 +1,9 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { onChannelRenewed } from "../hooks";
 import { renewExpiringChannelsInputSchema } from "../schemas";
+import { calendarGoogleMeta } from "../meta";
 import type { ChannelStore, GoogleCalendarClient, TokenStore } from "../ports";
-import type { CalendarChannel } from "../types";
+import type { CalendarChannel, DomainEvent } from "../types";
 
 // Renew watch channels BEFORE they expire. Google push channels live ~7 days; if
 // nobody renews them, push delivery silently stops and the calendar appears to
@@ -21,16 +23,18 @@ export async function renewExpiringChannels(
     // refresh here). Return null to skip a connection whose token can't be refreshed.
     resolveAccessToken: (tenantId: string, calendarId: string) => Promise<string | null>;
     now?: () => number;
+    correlationId?: string;
   }
 ) {
+  const meta = calendarGoogleMeta(deps);
+
   const parsed = renewExpiringChannelsInputSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      data: null,
-      error: { code: "INVALID_RENEW_INPUT", message: "Renew input is invalid.", issues: parsed.error.issues }
-    };
+    return err(
+      400,
+      { code: "calendar-google.INVALID_RENEW_INPUT", message: "Renew input is invalid.", issues: parsed.error.issues },
+      meta
+    );
   }
 
   const nowMs = deps.now?.() ?? Date.now();
@@ -40,6 +44,7 @@ export async function renewExpiringChannels(
   const renewed: string[] = [];
   const skipped: string[] = [];
   const failed: string[] = [];
+  const events: DomainEvent[] = [];
 
   for (const old of expiring) {
     const accessToken = await deps.resolveAccessToken(old.tenantId, old.calendarId);
@@ -87,14 +92,15 @@ export async function renewExpiringChannels(
 
       await onChannelRenewed(fresh);
       renewed.push(fresh.id);
+      events.push({
+        name: "calendar-google.channel.renewed",
+        correlationId: meta.correlationId,
+        payload: { channelId: fresh.id, previousChannelId: old.id, tenantId: fresh.tenantId, calendarId: fresh.calendarId }
+      });
     } catch {
       failed.push(old.id);
     }
   }
 
-  return {
-    ok: true as const,
-    status: 200 as const,
-    data: { considered: expiring.length, renewed, skipped, failed }
-  };
+  return ok(200, { considered: expiring.length, renewed, skipped, failed, events }, meta);
 }

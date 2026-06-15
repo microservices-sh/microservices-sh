@@ -16,12 +16,29 @@
   "resources": [
     { "type": "d1", "binding": "DB", "tables": ["calendar_tokens", "calendar_sync_state", "calendar_channels", "calendar_events"] }
   ],
-  "permissions": ["calendar-google.read", "calendar-google.write", "calendar-google.admin"],
-  "requires": [],
-  "optional": ["auth", "audit-log", "jobs-workflows", "webhook-delivery"],
-  "hooks": ["beforeCalendarSync", "onCalendarEventUpserted", "onChannelRenewed"],
-  "events": ["calendar-google.connected", "calendar-google.synced", "calendar-google.event.upserted", "calendar-google.event.deleted", "calendar-google.channel.renewed", "calendar-google.token.refreshed"],
-  "rpc": [],
+  "permissions": ["calendar-google.read", "calendar-google.write", "calendar-google.admin", "calendar-google.extend"],
+  "connections": {
+    "requires": [],
+    "optional": ["auth", "audit-log", "jobs-workflows", "webhook-delivery"],
+    "rpc": { "exposes": [], "calls": [] },
+    "events": {
+      "emits": [
+        "calendar-google.connected",
+        "calendar-google.synced",
+        "calendar-google.event.upserted",
+        "calendar-google.event.deleted",
+        "calendar-google.channel.renewed",
+        "calendar-google.token.refreshed"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeCalendarSync": { "kind": "guard", "scope": "calendar-google.extend" },
+      "onCalendarEventUpserted": { "kind": "observer", "scope": "calendar-google.extend" },
+      "onChannelRenewed": { "kind": "observer", "scope": "calendar-google.extend" }
+    },
+    "provides": { "hooks": [] }
+  },
   "customization": {
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]

@@ -1,1 +1,1 @@
-export const permissions = ["calendar-google.read", "calendar-google.write", "calendar-google.admin"] as const;
+export const permissions = ["calendar-google.read", "calendar-google.write", "calendar-google.admin", "calendar-google.extend"] as const;

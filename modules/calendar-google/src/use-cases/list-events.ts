@@ -1,4 +1,6 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { listEventsFilterSchema } from "../schemas";
+import { calendarGoogleMeta } from "../meta";
 import type { CalendarEventStore } from "../ports";
 
 // Read the locally-cached, deduped events for a connection. Read model only — no
@@ -6,19 +8,20 @@ import type { CalendarEventStore } from "../ports";
 // display window is done with the pure expandRecurrence() in src/rrule.ts.
 export async function listEvents(
   input: unknown,
-  deps: { eventStore: CalendarEventStore }
+  deps: { eventStore: CalendarEventStore; now?: () => number; correlationId?: string }
 ) {
+  const meta = calendarGoogleMeta(deps);
+
   const parsed = listEventsFilterSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      data: null,
-      error: { code: "INVALID_LIST_INPUT", message: "List input is invalid.", issues: parsed.error.issues }
-    };
+    return err(
+      400,
+      { code: "calendar-google.INVALID_LIST_INPUT", message: "List input is invalid.", issues: parsed.error.issues },
+      meta
+    );
   }
 
   const { tenantId, calendarId, limit } = parsed.data;
   const events = await deps.eventStore.list(tenantId, calendarId, limit);
-  return { ok: true as const, status: 200 as const, data: { events, count: events.length } };
+  return ok(200, { events, count: events.length }, meta);
 }
