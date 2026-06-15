@@ -317,6 +317,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@microservices-sh/connection-contract':
+        specifier: workspace:*
+        version: link:../connection-contract
       '@microservices-sh/sdk-internal':
         specifier: workspace:*
         version: link:../sdk-internal

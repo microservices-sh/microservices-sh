@@ -6,6 +6,7 @@ import { dirname, join, normalize, resolve } from "node:path";
 import { stdin as nodeStdin, stdout as nodeStdout } from "node:process";
 import { createInterface } from "node:readline/promises";
 import { track, telemetryNotice } from "./telemetry.js";
+import { buildHoneycomb, formatHoneycomb, formatIssues } from "./graph.js";
 import {
   composeApp,
   checkUpdates,
@@ -240,6 +241,7 @@ Usage:
   microservices updates [--json]
   microservices upgrade <module-id> --plan [--json]
   microservices compose [template-id] [--modules auth,customer,booking] [--config '{"appName":"Demo"}'] [--json]
+  microservices graph [template-id] [--modules auth,customer,booking] [--json]
   microservices validate [template-id] [--config '{"timezone":"America/New_York"}'] [--json]
   microservices generate [template-id] --out <dir> [--json]
   microservices check [template-id] [--json]
@@ -2258,6 +2260,26 @@ Files: ${plan.filesLikelyTouched.join(", ") || "none"}
   if (resource === "compose") {
     response = composeApp(templateInput(action, flags));
     return flags.json ? writeJson(response) : printHuman(response, formatComposition);
+  }
+
+  if (resource === "graph") {
+    const { ids, result } = await buildHoneycomb({ templateId: action, modules: flags.modules });
+
+    if (!result.ok) {
+      if (flags.json) {
+        return writeJson({ ok: false, modules: ids, issues: result.issues, warnings: result.warnings });
+      }
+      process.stderr.write(`Connection issues for [${ids.join(", ")}]:\n`);
+      process.stderr.write(formatIssues(result.issues));
+      process.exitCode = 1;
+      return;
+    }
+
+    if (flags.json) {
+      return writeJson(result.wiring);
+    }
+    process.stdout.write(formatHoneycomb(result.wiring, result.warnings));
+    return;
   }
 
   if (resource === "validate") {

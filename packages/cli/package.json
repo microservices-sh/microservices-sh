@@ -8,9 +8,11 @@
   },
   "scripts": {
     "cli": "node src/index.js",
-    "build": "node --check src/index.js"
+    "build": "node --check src/index.js",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@microservices-sh/connection-contract": "workspace:*",
     "@microservices-sh/sdk-internal": "workspace:*"
   }
 }
