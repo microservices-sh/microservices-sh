@@ -1,8 +1,9 @@
 import type { PageServerLoad, Actions } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
-import { createBooking } from "@microservices-sh/booking";
+import { createBooking, getBooking } from "@microservices-sh/booking";
 import { getCompanySettings } from "$lib/server/settings";
 import { getAvailability } from "$lib/server/availability";
+import { sendBookingConfirmation } from "$lib/server/notifications";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -36,7 +37,7 @@ export const load: PageServerLoad = async ({ locals, url, platform }) => {
 };
 
 export const actions: Actions = {
-  default: async ({ request, locals }) => {
+  default: async ({ request, locals, platform }) => {
     const form = await request.formData();
     const result = await createBooking(
       {
@@ -59,6 +60,22 @@ export const actions: Actions = {
         error: result.error,
         values: Object.fromEntries(form.entries())
       });
+    }
+
+    // Confirmation email — best-effort; never block the booking on email.
+    try {
+      const settings = await getCompanySettings(platform?.env?.DB);
+      const full = await getBooking({ id: result.data.booking.id }, { bookingRepository: locals.bookingRepository });
+      if (full.ok) {
+        await sendBookingConfirmation({
+          d1: platform?.env?.DB,
+          env: platform?.env,
+          timezone: settings.timezone,
+          booking: full.data.booking as never,
+        });
+      }
+    } catch (error) {
+      console.error("Booking confirmation email failed:", error);
     }
 
     throw redirect(303, `/booking/${result.data.booking.id}`);

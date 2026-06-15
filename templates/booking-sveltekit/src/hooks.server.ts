@@ -28,7 +28,10 @@ const PUBLIC_API = new Set([
   "/api/bookings",
   "/api/gateway/tokens",
   "/api/auth/jwks",
-  "/api/auth/bootstrap"
+  "/api/auth/bootstrap",
+  // Scheduled endpoints — self-gated by CRON_TOKEN, not the gateway token.
+  "/api/cron/run",
+  "/api/holds/expire"
 ]);
 
 export const handle: Handle = async ({ event, resolve }) => {

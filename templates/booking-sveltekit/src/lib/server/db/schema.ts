@@ -189,3 +189,11 @@ export const holds = sqliteTable(
 );
 
 export type Hold = typeof holds.$inferSelect;
+
+// NEW (revamp P3a): one row per booking once its reminder email has been sent.
+export const bookingReminders = sqliteTable("booking_reminders", {
+  bookingId: text("booking_id").primaryKey(),
+  sentAt: text("sent_at").notNull(),
+});
+
+export type BookingReminder = typeof bookingReminders.$inferSelect;

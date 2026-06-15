@@ -14,8 +14,12 @@ declare global {
         MICROSERVICES_TEMPLATE_ID?: string;
         /** Shared secret gating the one-time /api/auth/bootstrap route. */
         BOOTSTRAP_TOKEN?: string;
-        /** Optional bearer token gating scheduled endpoints (e.g. /api/holds/expire). */
+        /** Optional bearer token gating scheduled endpoints (/api/holds/expire, /api/cron/run). */
         CRON_TOKEN?: string;
+        /** Email: set to send via Resend; unset falls back to a console provider (dev). */
+        RESEND_API_KEY?: string;
+        /** From-address for outbound email. */
+        EMAIL_FROM?: string;
       };
     }
 
