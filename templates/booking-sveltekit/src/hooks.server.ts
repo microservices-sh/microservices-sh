@@ -1,5 +1,6 @@
 import type { Handle } from "@sveltejs/kit";
 import { json } from "@sveltejs/kit";
+import { dev } from "$app/environment";
 import { createD1BookingRepository } from "@microservices-sh/booking/adapters/d1";
 import { createMemoryBookingRepository } from "@microservices-sh/booking/adapters/memory";
 import { createD1CustomerRepository } from "@microservices-sh/customer/adapters/d1";
@@ -67,13 +68,20 @@ export const handle: Handle = async ({ event, resolve }) => {
       email: "",
       isAdmin: verified.data.claims.scopes.includes("gateway.admin")
     };
-  } else {
-    // Session path for SSR pages (local dev admin).
+  } else if (dev) {
+    // Local dev ONLY: inject an admin session so the SSR admin UI is usable
+    // without a login flow. Guarded by `dev` so it can never run in production.
     event.locals.user = {
       id: "local-admin",
       email: "admin@example.com",
       isAdmin: true
     };
+  } else {
+    // Production SSR pages have no authenticated user until a real admin session
+    // is established. Routes under /admin enforce this and fail closed (see
+    // src/routes/admin/+layout.server.ts). Wire a prod admin session here (e.g.
+    // a cookie minted from a gateway.admin-scoped token) to light up /admin.
+    event.locals.user = null;
   }
 
   return resolve(event);
