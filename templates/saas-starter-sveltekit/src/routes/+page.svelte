@@ -1,3 +1,13 @@
+<script lang="ts">
+  // Home page content is data — edit src/content.json (see content.schema.json
+  // for the contract and CLAUDE.md for the playbook). Shape is enforced by
+  // `npm run validate`, which gates `npm run build`, so this assertion is sound.
+  import content from "../content.json";
+  import type { SiteContent } from "../content.types";
+
+  const c = content as SiteContent;
+</script>
+
 <svelte:head>
   <title>SaaS Starter · Multi-tenant B2B on Cloudflare</title>
 </svelte:head>
@@ -5,28 +15,21 @@
 <main class="hero">
   <div class="hero-grid">
     <section>
-      <p class="eyebrow">Cloudflare-native B2B SaaS template</p>
-      <h1>Ship a multi-tenant SaaS, not boilerplate.</h1>
-      <p>
-        Sign up, create an organization, invite your team, and bill on a subscription —
-        all on a SvelteKit app shell with detached module use cases for tenancy, RBAC,
-        and billing.
-      </p>
+      <p class="eyebrow">{c.hero.eyebrow}</p>
+      <h1>{c.hero.headline}</h1>
+      <p>{c.hero.lead}</p>
       <div class="nav">
-        <a class="button" href="/signup">Create your organization</a>
-        <a class="button secondary" href="/login">Log in</a>
+        <a class="button" href={c.hero.primaryCta.href}>{c.hero.primaryCta.label}</a>
+        <a class="button secondary" href={c.hero.secondaryCta.href}>{c.hero.secondaryCta.label}</a>
       </div>
     </section>
 
-    <aside class="panel" aria-label="Template status">
-      <p class="eyebrow">What's inside</p>
-      <h2>Tenancy by default</h2>
-      <p>
-        Org-scoped access is enforced through <code>authorize</code> and
-        <code>resolvePermissions</code> from org-team-rbac — not a flat admin flag.
-      </p>
+    <aside class="panel" aria-label="Highlights">
+      <p class="eyebrow">{c.panel.eyebrow}</p>
+      <h2>{c.panel.title}</h2>
+      <p>{c.panel.body}</p>
       <ul class="list mt-6" role="list">
-        {#each ["Org sign-up + membership", "Role-based team management", "Subscription plans + status", "Super-admin over all orgs", "Audit trail of changes"] as feature}
+        {#each c.panel.features as feature}
           <li class="list-item flex items-center gap-2.5">
             <span class="text-accent font-semibold" aria-hidden="true">✓</span>
             {feature}
