@@ -1,6 +1,12 @@
 ---
 import "../styles/tokens.css";
-import { site } from "../site.config";
+import { site, theme } from "../site.config";
+
+// Brand accent override: one hex in content.json drives all three accent vars
+// (ink + wash derived via color-mix). Empty when unset → tokens.css default.
+const accentCss = theme.accent
+  ? `:root{--accent:${theme.accent};--accent-ink:color-mix(in srgb,${theme.accent},#000 22%);--accent-wash:color-mix(in srgb,${theme.accent} 9%,transparent)}`
+  : "";
 
 interface Props {
   title?: string;
@@ -25,6 +31,7 @@ const jsonLd = {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#faf8f4" />
+    {accentCss && <style is:inline set:html={accentCss} />}
     <!-- Progressive enhancement: only hide-for-reveal when JS is on, so content
          is visible without/before JS (a11y, SEO, no blank page on JS failure). -->
     <script is:inline>

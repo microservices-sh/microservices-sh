@@ -5,6 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "astro dev",
+    "validate": "node scripts/validate-content.mjs",
+    "prebuild": "node scripts/validate-content.mjs",
     "build": "astro build",
     "preview": "astro preview",
     "microservices": "node scripts/microservices.js"

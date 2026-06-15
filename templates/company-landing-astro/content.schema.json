@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://microservices.sh/schemas/company-landing-astro/content.schema.json",
+  "title": "Company Landing (Astro) — site content",
+  "description": "The complete contract for customizing this site. An agent fills src/content.json to match this schema, validates, then runs the verify command. Edit data only — never the components or layout.",
+
+  "x-microservices": {
+    "template": "company-landing-astro",
+    "appliesTo": "src/content.json",
+    "verify": "npm run validate && npm run build",
+    "doNotEdit": ["src/components/**", "src/layouts/**", "src/pages/**", "src/styles/**"],
+    "notes": "All copy and the brand accent live in src/content.json. Layout, components, and design tokens are intentionally off-limits — they read from the JSON. Keep array lengths within the stated bounds so the layout holds. Fonts are fixed in this phase (Fraunces / Hanken Grotesk)."
+  },
+
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["company", "domain", "description", "nav", "hero", "features", "pricing", "faq", "cta", "footer"],
+  "properties": {
+    "company": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 40,
+      "x-hint": "Brand name. Appears in nav, footer, page title, and Organization schema."
+    },
+    "domain": {
+      "type": "string",
+      "format": "uri",
+      "x-hint": "Canonical https URL of the site; used for SEO canonical + JSON-LD."
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 200,
+      "x-hint": "One-to-two sentence company summary. Used as the meta description."
+    },
+
+    "theme": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "accent": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "x-hint": "Brand primary as #rrggbb. Drives --accent and the derived ink/wash. Pick something with enough contrast on a warm-paper (#faf8f4) background. Omit to keep the terracotta default."
+        }
+      }
+    },
+
+    "nav": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["links", "cta"],
+      "properties": {
+        "links": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 5,
+          "x-hint": "Header anchor links. Keep to in-page anchors (#features, #process, #pricing, #faq).",
+          "items": { "$ref": "#/$defs/link" }
+        },
+        "cta": { "$ref": "#/$defs/link" }
+      }
+    },
+
+    "hero": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eyebrow", "titleLead", "titleEmphasis", "titleTail", "lead", "primary", "secondary", "note"],
+      "properties": {
+        "eyebrow": { "type": "string", "maxLength": 40, "x-hint": "Small label above the headline." },
+        "titleLead": { "type": "string", "maxLength": 40, "x-hint": "Headline part 1 (plain ink)." },
+        "titleEmphasis": { "type": "string", "maxLength": 40, "x-hint": "Headline part 2, rendered in the accent color — the memorable bit." },
+        "titleTail": { "type": "string", "maxLength": 40, "x-hint": "Headline part 3 (plain ink). Combined headline reads lead+emphasis+tail; keep the whole thing under ~9 words." },
+        "lead": { "type": "string", "maxLength": 240, "x-hint": "Sub-headline paragraph; 1–2 sentences." },
+        "primary": { "$ref": "#/$defs/link" },
+        "secondary": { "$ref": "#/$defs/link" },
+        "note": { "type": "string", "maxLength": 80, "x-hint": "Small reassurance line under the buttons." }
+      }
+    },
+
+    "logos": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "items"],
+      "properties": {
+        "label": { "type": "string", "maxLength": 30 },
+        "items": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 6,
+          "x-hint": "Client/partner names rendered as text wordmarks (no image assets).",
+          "items": { "type": "string", "maxLength": 24 }
+        }
+      }
+    },
+
+    "features": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eyebrow", "title", "items"],
+      "properties": {
+        "eyebrow": { "type": "string", "maxLength": 30 },
+        "title": { "type": "string", "maxLength": 60 },
+        "items": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "x-hint": "Exactly 3 — the layout is a fixed 3-column row.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["title", "body", "icon"],
+            "properties": {
+              "title": { "type": "string", "maxLength": 40 },
+              "body": { "type": "string", "maxLength": 180 },
+              "icon": { "enum": ["engineering", "design", "performance"], "x-hint": "Fixed icon set. Reuse these three keys; do not invent new ones." }
+            }
+          }
+        }
+      }
+    },
+
+    "process": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eyebrow", "title", "intro", "steps"],
+      "properties": {
+        "eyebrow": { "type": "string", "maxLength": 30 },
+        "title": { "type": "string", "maxLength": 60 },
+        "intro": { "type": "string", "maxLength": 200 },
+        "steps": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "x-hint": "Exactly 3 steps.",
+          "items": { "$ref": "#/$defs/titleBody" }
+        }
+      }
+    },
+
+    "testimonial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["quote", "author", "role"],
+      "properties": {
+        "quote": { "type": "string", "maxLength": 220 },
+        "author": { "type": "string", "maxLength": 40 },
+        "role": { "type": "string", "maxLength": 60 }
+      }
+    },
+
+    "pricing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eyebrow", "title", "intro", "plans"],
+      "properties": {
+        "eyebrow": { "type": "string", "maxLength": 30 },
+        "title": { "type": "string", "maxLength": 60 },
+        "intro": { "type": "string", "maxLength": 160 },
+        "plans": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "x-hint": "Exactly 3 plans. Mark exactly one as featured:true (the highlighted middle card).",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "price", "unit", "bestFor", "features", "cta", "featured"],
+            "properties": {
+              "name": { "type": "string", "maxLength": 24 },
+              "price": { "type": "string", "maxLength": 16, "x-hint": "Display string, e.g. \"$6k\" or \"Let's talk\"." },
+              "unit": { "type": "string", "maxLength": 16, "x-hint": "e.g. \"/ month\". Empty string for custom/contact plans." },
+              "bestFor": { "type": "string", "maxLength": 40 },
+              "features": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 5,
+                "items": { "type": "string", "maxLength": 40 }
+              },
+              "cta": { "$ref": "#/$defs/link" },
+              "featured": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+
+    "faq": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eyebrow", "title", "items"],
+      "properties": {
+        "eyebrow": { "type": "string", "maxLength": 30 },
+        "title": { "type": "string", "maxLength": 60 },
+        "items": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["q", "a"],
+            "properties": {
+              "q": { "type": "string", "maxLength": 100 },
+              "a": { "type": "string", "maxLength": 280 }
+            }
+          }
+        }
+      }
+    },
+
+    "cta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "body", "primary", "secondary"],
+      "properties": {
+        "title": { "type": "string", "maxLength": 60 },
+        "body": { "type": "string", "maxLength": 180 },
+        "primary": { "$ref": "#/$defs/link" },
+        "secondary": { "$ref": "#/$defs/link" }
+      }
+    },
+
+    "footer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["groups", "copyright"],
+      "properties": {
+        "groups": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["title", "links"],
+            "properties": {
+              "title": { "type": "string", "maxLength": 24 },
+              "links": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 6,
+                "items": { "$ref": "#/$defs/link" }
+              }
+            }
+          }
+        },
+        "copyright": { "type": "string", "maxLength": 60 }
+      }
+    }
+  },
+
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "href"],
+      "properties": {
+        "label": { "type": "string", "minLength": 1, "maxLength": 30 },
+        "href": { "type": "string", "minLength": 1, "x-hint": "In-page anchor (#id), mailto:, or absolute https URL." }
+      }
+    },
+    "titleBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "body"],
+      "properties": {
+        "title": { "type": "string", "maxLength": 40 },
+        "body": { "type": "string", "maxLength": 160 }
+      }
+    }
+  }
+}
