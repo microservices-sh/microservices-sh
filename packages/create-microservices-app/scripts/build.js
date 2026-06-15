@@ -15,7 +15,7 @@ const REPO_TEMPLATE_MODULES = {
   "booking-sveltekit": ["gateway", "auth", "customer", "booking", "audit-log"],
   "company-landing-astro": [],
 };
-const TEMPLATE_IGNORE = new Set(["node_modules", ".svelte-kit", ".wrangler", "dist", ".DS_Store", ".git"]);
+const TEMPLATE_IGNORE = new Set(["node_modules", ".svelte-kit", ".astro", ".wrangler", "dist", ".DS_Store", ".git"]);
 
 function includeTemplateFile(src) {
   return !src.split(/[\\/]/).some((segment) => TEMPLATE_IGNORE.has(segment));
