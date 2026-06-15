@@ -37,14 +37,14 @@ describe("admin-shell: listRecords RBAC", () => {
     const res = await listRecords(registry, "widget", {}, { gateway, actor: noneActor });
     expect(res.ok).toBe(false);
     expect(res.status).toBe(403);
-    expect(res.error?.code).toBe("FORBIDDEN");
+    if (!res.ok) expect(res.error.code).toBe("admin-shell.FORBIDDEN");
   });
 
   it("returns rows for an actor with read permission", async () => {
     const gateway = createMemoryTableGateway({ widgets: [{ id: "w1", name: "A" }] });
     const res = await listRecords(registry, "widget", {}, { gateway, actor: readerActor });
     expect(res.ok).toBe(true);
-    expect(res.data?.rows.length).toBe(1);
+    if (res.ok) expect(res.data.rows.length).toBe(1);
   });
 });
 
@@ -59,7 +59,7 @@ describe("admin-shell: deleteRecord soft-delete", () => {
 
     const del = await deleteRecord(registry, "widget", "w1", { gateway, actor: writerActor, now: fixedNow(T0) });
     expect(del.ok).toBe(true);
-    expect(del.data?.mode).toBe("soft");
+    if (del.ok) expect(del.data.mode).toBe("soft");
 
     // Row still physically present (soft delete), but flagged.
     const raw = await gateway.get(widgetDef, "w1");
@@ -68,7 +68,8 @@ describe("admin-shell: deleteRecord soft-delete", () => {
 
     // Default list (read-only actor) excludes the soft-deleted row.
     const list = await listRecords(registry, "widget", {}, { gateway, actor: writerActor });
-    const ids = list.data!.rows.map((r) => r.id);
+    if (!list.ok) throw new Error("expected list to succeed");
+    const ids = list.data.rows.map((r) => r.id);
     expect(ids).toContain("w2");
     expect(ids).not.toContain("w1");
   });
@@ -87,10 +88,12 @@ describe("admin-shell: update rejects non-editable field", () => {
     );
     expect(res.ok).toBe(false);
     expect(res.status).toBe(400);
-    expect(res.error?.code).toBe("VALIDATION_FAILED");
-    expect(res.error?.issues).toEqual(
-      expect.arrayContaining([expect.objectContaining({ column: "createdBy", message: "is not editable" })])
-    );
+    if (!res.ok) {
+      expect(res.error.code).toBe("admin-shell.VALIDATION_FAILED");
+      expect(res.error.issues).toEqual(
+        expect.arrayContaining([expect.objectContaining({ column: "createdBy", message: "is not editable" })])
+      );
+    }
   });
 
   it("allows an update to an editable column", async () => {

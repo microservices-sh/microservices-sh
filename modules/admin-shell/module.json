@@ -14,12 +14,21 @@
   },
   "entrypoint": "src/index.ts",
   "resources": [],
-  "permissions": ["admin.access", "admin.read", "admin.write"],
-  "requires": [],
-  "optional": ["auth", "audit-log"],
-  "hooks": ["beforeWrite", "onAdminAction"],
-  "events": ["admin.record_created", "admin.record_updated", "admin.record_deleted"],
-  "rpc": [],
+  "permissions": ["admin.access", "admin.read", "admin.write", "admin-shell.extend"],
+  "connections": {
+    "requires": [],
+    "optional": ["auth", "audit-log"],
+    "rpc": { "exposes": [], "calls": [] },
+    "events": {
+      "emits": ["admin.record_created", "admin.record_updated", "admin.record_deleted"],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeWrite": { "kind": "filter", "scope": "admin-shell.extend" },
+      "onAdminAction": { "kind": "observer", "scope": "admin-shell.extend" }
+    },
+    "provides": { "hooks": [] }
+  },
   "customization": {
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]

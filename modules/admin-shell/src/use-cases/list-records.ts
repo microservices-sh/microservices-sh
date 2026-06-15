@@ -1,7 +1,9 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { hasPermission } from "../authz";
 import { defaultConfig } from "../config";
 import { isKnownColumn, type ResourceRegistry } from "../registry";
 import { listQuerySchema } from "../schemas";
+import { adminShellMeta } from "../meta";
 import type { TableGateway } from "../ports";
 import type { AdminActor, ListQuery } from "../types";
 
@@ -12,19 +14,21 @@ export async function listRecords(
   registry: ResourceRegistry,
   resourceName: string,
   query: unknown,
-  deps: { gateway: TableGateway; actor: AdminActor; config?: Partial<typeof defaultConfig> }
+  deps: { gateway: TableGateway; actor: AdminActor; config?: Partial<typeof defaultConfig>; correlationId?: string }
 ) {
+  const meta = adminShellMeta(deps);
+
   const def = registry.get(resourceName);
   if (!def) {
-    return { ok: false as const, status: 404 as const, data: null, error: { code: "RESOURCE_NOT_FOUND", message: `Unknown admin resource: ${resourceName}.` } };
+    return err(404, { code: "admin-shell.RESOURCE_NOT_FOUND", message: `Unknown admin resource: ${resourceName}.` }, meta);
   }
   if (!hasPermission(deps.actor, def.permissions.read)) {
-    return { ok: false as const, status: 403 as const, data: null, error: { code: "FORBIDDEN", message: "Missing read permission for this resource." } };
+    return err(403, { code: "admin-shell.FORBIDDEN", message: "Missing read permission for this resource." }, meta);
   }
 
   const parsed = listQuerySchema.safeParse(query ?? {});
   if (!parsed.success) {
-    return { ok: false as const, status: 400 as const, data: null, error: { code: "INVALID_QUERY", message: "List query is invalid.", issues: parsed.error.issues } };
+    return err(400, { code: "admin-shell.INVALID_QUERY", message: "List query is invalid.", issues: parsed.error.issues }, meta);
   }
 
   const cfg = { ...defaultConfig, ...deps.config };
@@ -45,5 +49,5 @@ export async function listRecords(
 
   const listQuery: ListQuery = { search: parsed.data.search, filters, sort, limit, offset, includeDeleted };
   const result = await deps.gateway.list(def, listQuery);
-  return { ok: true as const, status: 200 as const, data: result };
+  return ok(200, result, meta);
 }

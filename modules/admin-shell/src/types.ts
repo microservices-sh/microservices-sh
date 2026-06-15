@@ -64,3 +64,12 @@ export interface AdminAuditEntry {
   actorId: string;
   at: string;
 }
+
+// Lifecycle event emitted on a successful admin mutation. Carries the
+// correlationId so downstream consumers (e.g. audit-log) can tie it back to the
+// originating request. See Plan 25 §4.
+export interface DomainEvent {
+  name: "admin.record_created" | "admin.record_updated" | "admin.record_deleted";
+  correlationId: string;
+  payload: { resource: string; recordId: string; actorId: string };
+}
