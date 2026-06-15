@@ -1,5 +1,7 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { onFileUploaded } from "../hooks";
 import { completeUploadInputSchema } from "../schemas";
+import { fileMediaMeta } from "../meta";
 import type { MediaStore, ObjectStorage } from "../ports";
 import type { MediaFile } from "../types";
 
@@ -9,40 +11,37 @@ import type { MediaFile } from "../types";
 // agents miss. Idempotent: completing an already-completed ticket is a no-op.
 export async function completeUpload(
   input: unknown,
-  deps: { mediaStore: MediaStore; storage: ObjectStorage; now?: () => number }
+  deps: { mediaStore: MediaStore; storage: ObjectStorage; now?: () => number; correlationId?: string }
 ) {
+  const meta = fileMediaMeta(deps);
+
   const parsed = completeUploadInputSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      data: null,
-      error: { code: "INVALID_COMPLETE_INPUT", message: "Complete-upload input is invalid.", issues: parsed.error.issues }
-    };
+    return err(400, { code: "file-media.INVALID_COMPLETE_INPUT", message: "Complete-upload input is invalid.", issues: parsed.error.issues }, meta);
   }
 
   const ticket = await deps.mediaStore.getTicket(parsed.data.ticketId);
   // Tenant check folded into the not-found response so existence never leaks.
   if (!ticket || ticket.tenantId !== parsed.data.tenantId) {
-    return { ok: false as const, status: 404 as const, data: null, error: { code: "TICKET_NOT_FOUND", message: "Upload ticket not found." } };
+    return err(404, { code: "file-media.TICKET_NOT_FOUND", message: "Upload ticket not found." }, meta);
   }
   if (ticket.status === "completed") {
-    return { ok: true as const, status: 200 as const, data: { ticketId: ticket.id, status: "already_completed" } };
+    return ok(200, { ticketId: ticket.id, status: "already_completed" as const }, meta);
   }
 
   const nowMs = deps.now?.() ?? Date.now();
   if (ticket.status === "expired" || Date.parse(ticket.expiresAt) <= nowMs) {
-    return { ok: false as const, status: 410 as const, data: null, error: { code: "TICKET_EXPIRED", message: "Upload ticket has expired; request a new one." } };
+    return err(410, { code: "file-media.TICKET_EXPIRED", message: "Upload ticket has expired; request a new one." }, meta);
   }
 
   const info = await deps.storage.head(ticket.key);
   if (!info) {
-    return { ok: false as const, status: 422 as const, data: null, error: { code: "OBJECT_NOT_FOUND", message: "Upload the bytes to the ticket key before completing." } };
+    return err(422, { code: "file-media.OBJECT_NOT_FOUND", message: "Upload the bytes to the ticket key before completing." }, meta);
   }
   if (info.size > ticket.maxBytes) {
     // Reject and remove the oversized object so it is not left orphaned.
     await deps.storage.delete(ticket.key);
-    return { ok: false as const, status: 413 as const, data: null, error: { code: "PAYLOAD_TOO_LARGE", message: `Uploaded ${info.size} bytes exceeds the ${ticket.maxBytes}-byte limit.` } };
+    return err(413, { code: "file-media.PAYLOAD_TOO_LARGE", message: `Uploaded ${info.size} bytes exceeds the ${ticket.maxBytes}-byte limit.` }, meta);
   }
 
   const nowIso = new Date(nowMs).toISOString();
@@ -64,9 +63,11 @@ export async function completeUpload(
 
   await onFileUploaded(file);
 
-  return {
-    ok: true as const,
-    status: 201 as const,
-    data: { id: file.id, key: file.key, bytes: file.bytes, contentType: file.contentType }
+  const event = {
+    name: "media.uploaded",
+    correlationId: meta.correlationId,
+    payload: { id: file.id, tenantId: file.tenantId, key: file.key, bytes: file.bytes, contentType: file.contentType }
   };
+
+  return ok(201, { id: file.id, key: file.key, bytes: file.bytes, contentType: file.contentType, event }, meta);
 }

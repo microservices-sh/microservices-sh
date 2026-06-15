@@ -20,7 +20,7 @@ describe("file-media: createUploadTicket content-type allowlist", () => {
     );
     expect(res.ok).toBe(false);
     expect(res.status).toBe(415);
-    expect(res.error?.code).toBe("UNSUPPORTED_MEDIA_TYPE");
+    if (!res.ok) expect(res.error.code).toBe("file-media.UNSUPPORTED_MEDIA_TYPE");
   });
 
   it("accepts an allowed content-type and returns a tenant-prefixed key", async () => {
@@ -31,7 +31,7 @@ describe("file-media: createUploadTicket content-type allowlist", () => {
     );
     expect(res.ok).toBe(true);
     expect(res.status).toBe(201);
-    expect(res.data!.key!).toMatch(/^tenant-1\//);
+    if (res.ok) expect(String((res.data as { key?: string }).key)).toMatch(/^tenant-1\//);
   });
 });
 
@@ -44,7 +44,7 @@ describe("file-media: completeUpload storage check", () => {
       { tenantId: "tenant-1", originalName: "photo.png", contentType: "image/png" },
       { mediaStore, now: fixedNow(T0) }
     );
-    const ticketId = ticketRes.data!.ticketId as string;
+    const ticketId = ticketRes.ok ? (ticketRes.data as { ticketId: string }).ticketId : "";
 
     // Intentionally do NOT upload bytes to storage.
     const res = await completeUpload(
@@ -53,7 +53,7 @@ describe("file-media: completeUpload storage check", () => {
     );
     expect(res.ok).toBe(false);
     expect(res.status).toBe(422);
-    expect(res.error?.code).toBe("OBJECT_NOT_FOUND");
+    if (!res.ok) expect(res.error.code).toBe("file-media.OBJECT_NOT_FOUND");
   });
 
   it("completes when the bytes are present at the ticket key", async () => {
@@ -64,8 +64,8 @@ describe("file-media: completeUpload storage check", () => {
       { tenantId: "tenant-1", originalName: "photo.png", contentType: "image/png" },
       { mediaStore, now: fixedNow(T0) }
     );
-    const ticketId = ticketRes.data!.ticketId as string;
-    const key = ticketRes.data!.key as string;
+    const ticketId = ticketRes.ok ? (ticketRes.data as { ticketId: string }).ticketId : "";
+    const key = ticketRes.ok ? (ticketRes.data as { key: string }).key : "";
 
     storage.setSize(key, { size: 1024, contentType: "image/png" });
 
@@ -75,7 +75,7 @@ describe("file-media: completeUpload storage check", () => {
     );
     expect(res.ok).toBe(true);
     expect(res.status).toBe(201);
-    expect(res.data?.bytes).toBe(1024);
+    if (res.ok) expect((res.data as { bytes?: number }).bytes).toBe(1024);
   });
 });
 
@@ -100,8 +100,8 @@ describe("file-media: expireStaleTickets", () => {
       { tenantId: "tenant-1", originalName: "orphan.png", contentType: "image/png" },
       { mediaStore, now: fixedNow(T0) }
     );
-    const ticketId = ticketRes.data!.ticketId as string;
-    const key = ticketRes.data!.key as string;
+    const ticketId = ticketRes.ok ? (ticketRes.data as { ticketId: string }).ticketId : "";
+    const key = ticketRes.ok ? (ticketRes.data as { key: string }).key : "";
 
     // Bytes were uploaded but the upload was never completed (orphan).
     storage.setSize(key, { size: 512, contentType: "image/png" });
@@ -110,7 +110,7 @@ describe("file-media: expireStaleTickets", () => {
     // Run cleanup well after the ticket TTL (default 900_000 ms).
     const res = await expireStaleTickets({ mediaStore, storage, now: fixedNow(T0 + 1_000_000) });
     expect(res.ok).toBe(true);
-    expect(res.data?.cleaned).toBe(1);
+    if (res.ok) expect(res.data.cleaned).toBe(1);
 
     // Orphan object removed.
     expect(await storage.head(key)).toBeNull();

@@ -17,12 +17,30 @@
     { "type": "d1", "binding": "DB", "tables": ["media_files", "upload_tickets"] },
     { "type": "r2", "binding": "MEDIA_BUCKET" }
   ],
-  "permissions": ["media.upload", "media.read", "media.admin"],
-  "requires": [],
-  "optional": ["auth", "audit-log", "jobs-workflows"],
-  "hooks": ["beforeUpload", "allowContentType", "onFileUploaded"],
-  "events": ["media.upload_requested", "media.uploaded", "media.deleted", "media.ticket_expired"],
-  "rpc": [],
+  "permissions": ["media.upload", "media.read", "media.admin", "media.extend", "media.observe"],
+  "connections": {
+    "requires": [],
+    "optional": ["auth", "audit-log", "jobs-workflows"],
+    "rpc": {
+      "exposes": [
+        { "method": "createUploadTicket", "scope": "media.upload", "public": false },
+        { "method": "completeUpload", "scope": "media.upload", "public": false },
+        { "method": "listFiles", "scope": "media.read", "public": false },
+        { "method": "deleteFile", "scope": "media.admin", "public": false }
+      ],
+      "calls": []
+    },
+    "events": {
+      "emits": ["media.upload_requested", "media.uploaded", "media.deleted", "media.ticket_expired"],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeUpload": { "kind": "filter", "scope": "media.extend" },
+      "allowContentType": { "kind": "guard", "scope": "media.extend" },
+      "onFileUploaded": { "kind": "observer", "scope": "media.observe" }
+    },
+    "provides": { "hooks": [] }
+  },
   "customization": {
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]

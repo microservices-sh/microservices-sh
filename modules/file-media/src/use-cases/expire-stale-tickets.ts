@@ -1,3 +1,5 @@
+import { ok } from "@microservices-sh/connection-contract";
+import { fileMediaMeta } from "../meta";
 import type { MediaStore, ObjectStorage } from "../ports";
 
 // Orphan cleanup: for every pending ticket past its expiry, delete any object
@@ -9,10 +11,13 @@ export async function expireStaleTickets(deps: {
   storage: ObjectStorage;
   now?: () => number;
   limit?: number;
+  correlationId?: string;
 }) {
+  const meta = fileMediaMeta(deps);
   const nowIso = new Date(deps.now?.() ?? Date.now()).toISOString();
   const stale = await deps.mediaStore.listExpiredTickets(nowIso, deps.limit ?? 100);
 
+  const events: Array<{ name: string; correlationId: string; payload: Record<string, unknown> }> = [];
   let cleaned = 0;
   for (const ticket of stale) {
     try {
@@ -22,8 +27,13 @@ export async function expireStaleTickets(deps: {
     }
     ticket.status = "expired";
     await deps.mediaStore.updateTicket(ticket);
+    events.push({
+      name: "media.ticket_expired",
+      correlationId: meta.correlationId,
+      payload: { ticketId: ticket.id, tenantId: ticket.tenantId, key: ticket.key }
+    });
     cleaned += 1;
   }
 
-  return { ok: true as const, status: 200 as const, data: { cleaned } };
+  return ok(200, { cleaned, events }, meta);
 }
