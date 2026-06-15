@@ -26,6 +26,7 @@
       <a class="button secondary" href="/book">Create another booking</a>
       {#if !cancelled && data.cancel.allowed}
         <form method="POST" action="?/cancel">
+          <input type="hidden" name="t" value={data.manageToken} />
           <button type="submit" class="button">Cancel booking</button>
         </form>
       {:else if !cancelled && data.cancel.reason}

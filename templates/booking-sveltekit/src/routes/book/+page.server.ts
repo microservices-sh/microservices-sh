@@ -39,7 +39,14 @@ export const load: PageServerLoad = async ({ locals, url, platform }) => {
 };
 
 export const actions: Actions = {
-  default: async ({ request, locals, platform }) => {
+  default: async ({ request, locals, platform, getClientAddress }) => {
+    // Rate-limit anonymous booking creation per client IP (10 per 10 minutes).
+    const ip = getClientAddress();
+    const rl = await locals.rateLimitStore.hit("book:" + ip, 10, 600);
+    if (!rl.allowed) {
+      return fail(429, { error: "Too many booking attempts. Please try again later." });
+    }
+
     const form = await request.formData();
     const result = await createBooking(
       {
@@ -102,6 +109,6 @@ export const actions: Actions = {
       console.error("Deposit payment intent failed:", error);
     }
 
-    throw redirect(303, `/booking/${result.data.booking.id}`);
+    throw redirect(303, `/booking/${result.data.booking.id}?t=${result.data.booking.accessToken}`);
   }
 };

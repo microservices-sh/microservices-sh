@@ -25,6 +25,8 @@ function rowToBooking(row: Record<string, unknown>): Booking {
     endsAt: String(row.ends_at),
     status: row.status === "cancelled" ? "cancelled" : "confirmed",
     notes: row.notes ? String(row.notes) : null,
+    // Legacy rows have NULL access_token → "" (never satisfies verification).
+    accessToken: row.access_token ? String(row.access_token) : "",
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at)
   };
@@ -93,12 +95,13 @@ export function createD1BookingRepository(db: D1Database): BookingRepository {
         endsAt: input.endsAt,
         status: "confirmed",
         notes: input.notes ?? null,
+        accessToken: input.accessToken,
         createdAt: timestamp,
         updatedAt: timestamp
       };
       await db
         .prepare(
-          "INSERT INTO bookings (id, customer_id, service_id, starts_at, ends_at, status, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+          "INSERT INTO bookings (id, customer_id, service_id, starts_at, ends_at, status, notes, access_token, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         )
         .bind(
           booking.id,
@@ -108,6 +111,7 @@ export function createD1BookingRepository(db: D1Database): BookingRepository {
           booking.endsAt,
           booking.status,
           booking.notes,
+          booking.accessToken,
           booking.createdAt,
           booking.updatedAt
         )

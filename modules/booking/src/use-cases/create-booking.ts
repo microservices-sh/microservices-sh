@@ -13,6 +13,13 @@ const defaultIdGenerator: IdGenerator = {
   create: (prefix) => `${prefix}_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`
 };
 
+// High-entropy per-booking access token: 256 bits of WebCrypto randomness as hex.
+// WebCrypto's getRandomValues is available on Cloudflare Workers and Node 18+.
+function generateAccessToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 function isBookingConflict(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   return /constraint|unique/i.test(message);
@@ -116,7 +123,8 @@ export async function createBooking(
       serviceName: service.name,
       startsAt: draft.startsAt,
       endsAt,
-      notes: draft.notes ?? null
+      notes: draft.notes ?? null,
+      accessToken: generateAccessToken()
     });
   } catch (error) {
     if (!isBookingConflict(error)) throw error;

@@ -26,6 +26,8 @@ describe.skipIf(!harness)("D1BookingRepository (real SQL via node:sqlite)", () =
     expect(fetched!.customerName).toBe("Ada Lovelace");
     expect(fetched!.customerEmail).toBe("ada@example.com");
     expect(fetched!.status).toBe("confirmed");
+    // access_token round-trips (FIX C2).
+    expect(fetched!.accessToken).toBe("tok_test_access_token");
   });
 
   describe("isSlotAvailable overlap SQL (starts_at < ? AND ends_at > ?)", () => {

@@ -97,6 +97,7 @@ export function createMemoryBookingRepository(): BookingRepository {
         endsAt: input.endsAt,
         status: "confirmed",
         notes: input.notes ?? null,
+        accessToken: input.accessToken,
         createdAt: timestamp,
         updatedAt: timestamp
       };

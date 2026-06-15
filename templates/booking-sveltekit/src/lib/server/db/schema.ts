@@ -50,6 +50,9 @@ export const bookings = sqliteTable(
     endsAt: text("ends_at").notNull(),
     status: text("status").notNull().default("confirmed"),
     notes: text("notes"),
+    // Per-booking access token (FIX C2). Nullable for legacy rows; added in
+    // migrations/0011_booking_access_token.sql.
+    accessToken: text("access_token"),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },

@@ -12,8 +12,9 @@ import type { BookingRepository } from "../../src/ports";
  * instead of hard-failing.
  */
 
-// Schema = customer migration (customers) + booking migration (services,
-// bookings, events). Kept in sync with modules/*/migrations/0001_*.sql.
+// Schema = customer migration (customers) + booking migrations (services,
+// bookings incl. access_token, events). Kept in sync with
+// modules/*/migrations/*.sql (0001 + 0002 access_token).
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS customers (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL,
@@ -28,7 +29,7 @@ CREATE TABLE IF NOT EXISTS services (
 CREATE TABLE IF NOT EXISTS bookings (
   id TEXT PRIMARY KEY, customer_id TEXT NOT NULL, service_id TEXT NOT NULL,
   starts_at TEXT NOT NULL, ends_at TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'confirmed', notes TEXT,
+  status TEXT NOT NULL DEFAULT 'confirmed', notes TEXT, access_token TEXT,
   created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
   FOREIGN KEY (customer_id) REFERENCES customers(id),
   FOREIGN KEY (service_id) REFERENCES services(id)
@@ -116,6 +117,7 @@ export function bookingInput(overrides: Record<string, unknown> = {}) {
     startsAt: "2026-07-01T09:00:00.000Z",
     endsAt: "2026-07-01T10:00:00.000Z",
     notes: null,
+    accessToken: "tok_test_access_token",
     ...overrides
   };
 }

@@ -14,6 +14,7 @@ export interface BookingRepository {
     startsAt: string;
     endsAt: string;
     notes?: string | null;
+    accessToken: string;
   }): Promise<Booking>;
   listBookings(): Promise<Booking[]>;
   getBooking(id: string): Promise<Booking | null>;

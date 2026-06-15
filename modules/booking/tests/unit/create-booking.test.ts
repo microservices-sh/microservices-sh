@@ -21,6 +21,26 @@ describe("createBooking", () => {
     expect(booking.customerId).toMatch(/^cus_/);
   });
 
+  it("generates a 256-bit hex access token and returns it on the booking", async () => {
+    const deps = makeDeps();
+    const result = await createBooking(validBookingInput(), deps);
+
+    const token = result.data!.booking.accessToken;
+    // 32 bytes → 64 hex chars.
+    expect(token).toMatch(/^[0-9a-f]{64}$/);
+
+    const second = await createBooking(
+      validBookingInput({ startsAt: "2026-07-01T11:00:00.000Z" }),
+      deps
+    );
+    // Tokens are unique per booking.
+    expect(second.data!.booking.accessToken).not.toBe(token);
+
+    // Persisted and read back unchanged.
+    const stored = await deps.bookingRepository.getBooking(result.data!.booking.id);
+    expect(stored!.accessToken).toBe(token);
+  });
+
   it("derives endsAt from the service duration (60 min)", async () => {
     const deps = makeDeps();
     const result = await createBooking(

@@ -21,6 +21,10 @@ export interface Booking {
   endsAt: string;
   status: BookingStatus;
   notes: string | null;
+  // High-entropy per-booking secret (256-bit hex). Gates anonymous guest
+  // access to view/cancel; never expose to clients other than the booker.
+  // NULL/empty for legacy rows created before this column existed.
+  accessToken: string;
   createdAt: string;
   updatedAt: string;
 }

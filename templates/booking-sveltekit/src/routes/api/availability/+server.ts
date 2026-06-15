@@ -5,7 +5,14 @@ import { getAvailability } from "$lib/server/availability";
 
 // Availability JSON API — backed by the template availability engine (weekly
 // rules + exceptions + buffers + timezone), conflict-checked against bookings.
-export const GET: RequestHandler = async ({ url, locals, platform }) => {
+export const GET: RequestHandler = async ({ url, locals, platform, getClientAddress }) => {
+  // Rate-limit public availability reads per client IP (60 per minute).
+  const ip = getClientAddress();
+  const rl = await locals.rateLimitStore.hit("availability:" + ip, 60, 60);
+  if (!rl.allowed) {
+    return json({ ok: false, error: { code: "RATE_LIMITED", message: "Too many requests. Please slow down." } }, { status: 429 });
+  }
+
   const serviceId = url.searchParams.get("serviceId") ?? "";
   const date = url.searchParams.get("date") ?? "";
   if (!serviceId || !date) {
