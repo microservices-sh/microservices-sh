@@ -1,7 +1,20 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { beforeNotify } from "../hooks";
 import { notifyInputSchema } from "../schemas";
+import { notificationsInappMeta } from "../meta";
 import type { NotificationStore } from "../ports";
-import type { Notification } from "../types";
+import type { DomainEvent, Notification } from "../types";
+
+// Unified result shape for notify(): both the "created" and the idempotent
+// "deduped" paths return the same object so the use-case has a single ok branch
+// (a single Result<NotifyResult>) rather than a union of two ok shapes. `event`
+// is only present when a new notification row was actually created.
+export interface NotifyResult {
+  id: string;
+  userId: string;
+  deduped: boolean;
+  event?: DomainEvent;
+}
 
 // Create one in-app notification addressed to a specific user.
 //
@@ -13,19 +26,21 @@ import type { Notification } from "../types";
 // This use case is framework-neutral: it never imports SvelteKit or Hono.
 export async function notify(
   input: unknown,
-  deps: { store: NotificationStore; now?: () => number }
+  deps: { store: NotificationStore; now?: () => number; correlationId?: string }
 ) {
+  const meta = notificationsInappMeta(deps);
+
   const parsed = notifyInputSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      error: {
-        code: "INVALID_NOTIFICATION_INPUT",
+    return err(
+      400,
+      {
+        code: "notifications-inapp.INVALID_NOTIFICATION_INPUT",
         message: "Notification input is invalid.",
         issues: parsed.error.issues
-      }
-    };
+      },
+      meta
+    );
   }
 
   const data = await beforeNotify(parsed.data);
@@ -35,11 +50,9 @@ export async function notify(
   if (data.dedupKey) {
     const existing = await deps.store.recordDedupKey(data.userId, data.dedupKey);
     if (existing) {
-      return {
-        ok: true as const,
-        status: 200 as const,
-        data: { id: existing.id, userId: existing.userId, deduped: true as const }
-      };
+      // Replay of an already-recorded (userId, dedupKey): no new row, no event.
+      const replayed: NotifyResult = { id: existing.id, userId: existing.userId, deduped: true };
+      return ok(200, replayed, meta);
     }
   }
 
@@ -57,9 +70,12 @@ export async function notify(
 
   await deps.store.insert(notification);
 
-  return {
-    ok: true as const,
-    status: 201 as const,
-    data: { id: notification.id, userId: notification.userId, deduped: false as const }
+  const event: DomainEvent = {
+    name: "notification.created",
+    correlationId: meta.correlationId,
+    payload: { id: notification.id, userId: notification.userId, type: notification.type }
   };
+
+  const created: NotifyResult = { id: notification.id, userId: notification.userId, deduped: false, event };
+  return ok(201, created, meta);
 }

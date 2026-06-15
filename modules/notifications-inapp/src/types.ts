@@ -24,6 +24,14 @@ export interface Notification {
   createdAt: string;
 }
 
+// A domain event the module emits (e.g. notification.created). correlationId is
+// threaded from the use-case Meta so downstream consumers can trace the chain.
+export interface DomainEvent {
+  name: string;
+  correlationId?: string | null;
+  payload: Record<string, unknown>;
+}
+
 // Filter for the user-scoped feed query. userId is supplied separately (it is
 // never optional — see ports), so it is not part of the filter shape.
 export interface NotificationListFilter {

@@ -16,12 +16,21 @@
   "resources": [
     { "type": "d1", "binding": "DB", "tables": ["notifications"] }
   ],
-  "permissions": ["notifications.read", "notifications.write", "notifications.admin"],
-  "requires": [],
-  "optional": [],
-  "hooks": ["beforeNotify", "renderNotification"],
-  "events": ["notification.created", "notification.read"],
-  "rpc": [],
+  "permissions": ["notifications.read", "notifications.write", "notifications.admin", "notifications-inapp.extend"],
+  "connections": {
+    "requires": [],
+    "optional": [],
+    "rpc": { "exposes": [], "calls": [] },
+    "events": {
+      "emits": ["notification.created", "notification.read"],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeNotify": { "kind": "filter", "scope": "notifications-inapp.extend" },
+      "renderNotification": { "kind": "filter", "scope": "notifications-inapp.extend" }
+    },
+    "provides": { "hooks": [] }
+  },
   "customization": {
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]

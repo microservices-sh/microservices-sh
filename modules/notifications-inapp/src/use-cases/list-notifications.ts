@@ -1,4 +1,6 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { listNotificationsInputSchema } from "../schemas";
+import { notificationsInappMeta } from "../meta";
 import type { NotificationStore } from "../ports";
 
 // User-scoped feed read. ALWAYS scoped to input.userId — there is no path to
@@ -7,22 +9,27 @@ import type { NotificationStore } from "../ports";
 //  - sinceIso: reconnect/catch-up cursor; a client that dropped its connection
 //    passes the createdAt of the last notification it saw to fetch only what it
 //    missed (no full re-sync).
-export async function listNotifications(input: unknown, deps: { store: NotificationStore }) {
+export async function listNotifications(
+  input: unknown,
+  deps: { store: NotificationStore; correlationId?: string }
+) {
+  const meta = notificationsInappMeta(deps);
+
   const parsed = listNotificationsInputSchema.safeParse(input ?? {});
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      error: {
-        code: "INVALID_NOTIFICATION_FILTER",
+    return err(
+      400,
+      {
+        code: "notifications-inapp.INVALID_NOTIFICATION_FILTER",
         message: "Notification list filter is invalid.",
         issues: parsed.error.issues
-      }
-    };
+      },
+      meta
+    );
   }
 
   const { userId, unreadOnly, limit, sinceIso } = parsed.data;
   const notifications = await deps.store.listForUser(userId, { unreadOnly, limit, sinceIso });
 
-  return { ok: true as const, status: 200 as const, data: { notifications } };
+  return ok(200, { notifications }, meta);
 }

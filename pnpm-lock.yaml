@@ -136,6 +136,9 @@ importers:
 
   modules/file-media:
     dependencies:
+      '@microservices-sh/connection-contract':
+        specifier: workspace:*
+        version: link:../../packages/connection-contract
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -149,6 +152,9 @@ importers:
 
   modules/forms-intake:
     dependencies:
+      '@microservices-sh/connection-contract':
+        specifier: workspace:*
+        version: link:../../packages/connection-contract
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -226,6 +232,9 @@ importers:
 
   modules/notifications-inapp:
     dependencies:
+      '@microservices-sh/connection-contract':
+        specifier: workspace:*
+        version: link:../../packages/connection-contract
       zod:
         specifier: ^3.25.76
         version: 3.25.76
