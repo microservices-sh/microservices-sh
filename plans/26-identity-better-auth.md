@@ -137,13 +137,20 @@ Sequence **after** Plan 25's auth+payment reference migration to avoid contract 
   positive (depth > NIH).
 - **Workers/D1 compatibility.** Better Auth runs on Workers (reference proves it), but pin a
   known-good version and smoke it under Miniflare + real dispatch.
-- **Dependency conflict (found 2026-06-15 during prototyping).** `better-auth@1.6.18` (latest)
-  peers on **zod ^4 + drizzle-orm ^0.45**; the monorepo is on **zod ^3.25 + drizzle 0.41**, and
-  pnpm `auto-install-peers` drags the newer transitives in. A repo-wide zod 3→4 migration is
-  breaking and out of scope here. **Mitigation in the prototype:** `@microservices-sh/identity`
-  does **not** declare `better-auth`/`drizzle-orm` — the *consuming app* installs them at a
-  version compatible with its own zod (pin an older better-auth, or the app migrates to zod 4).
-  Decide the canonical pin before templates adopt identity.
+- **Dependency conflict (found 2026-06-15, spiked in a generated app).** `better-auth@1.6.18`
+  peers on **drizzle-orm ^0.45 / drizzle-kit ^0.31 / zod ^4**. Spike findings:
+  - The **hard blocker is drizzle, not zod.** A generated booking app ships drizzle-orm 0.41 /
+    drizzle-kit 0.30 → `npm i better-auth` fails **ERESOLVE** on the drizzle-kit peer. zod is only
+    an overridable *warning* — **zod 3 and zod 4 coexist** in `node_modules` and the app **builds
+    fine with both** (verified).
+  - **Clean fix (verified):** bump the templates'/modules' drizzle to **`drizzle-orm ^0.45.2 +
+    drizzle-kit ^0.31.4`** → `npm i better-auth` installs with **no ERESOLVE, no `--legacy-peer-deps`**,
+    and the existing Drizzle code **still builds** (booking template, vite build green on 0.45).
+  - So: **do NOT** rely on `--legacy-peer-deps` (it leaves better-auth on drizzle 0.41, an
+    unverified runtime mismatch) and **do NOT** migrate zod. Just align drizzle to 0.45/0.31.
+  - `@microservices-sh/identity` still does not declare `better-auth`/`drizzle-orm` — the app
+    installs them — but the app's drizzle pin must be ≥0.45. Caveat: build ≠ full runtime; smoke
+    the booking template's Drizzle queries on 0.45 (low risk — minor bump, typecheck passed).
 - **Third auth flavor risk.** Must *settle* the credential model, not add a third. Tie to the
   api/web-portal reconciliation.
 - **Plan 25 timing.** Identity declares a `connections` manifest; land it after the contract
