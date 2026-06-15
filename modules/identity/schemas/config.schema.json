@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Identity Module Config",
+  "type": "object",
+  "properties": {
+    "loginCodeDigits": { "type": "integer", "minimum": 4, "maximum": 12, "default": 6 },
+    "loginCodeTtlSeconds": { "type": "integer", "minimum": 60, "default": 600 },
+    "loginCodeMaxAttempts": { "type": "integer", "minimum": 1, "default": 5 },
+    "sessionTtlSeconds": { "type": "integer", "minimum": 60, "default": 2592000 }
+  },
+  "additionalProperties": false
+}

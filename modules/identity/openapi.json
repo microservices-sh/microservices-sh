@@ -1,0 +1,82 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Identity Module",
+    "version": "0.1.0",
+    "description": "Illustrative HTTP surface for the identity use-cases (passwordless email-code login + server-side sessions). Paths are mounted by the host template's route adapter; the module itself is framework-neutral. All responses use the { ok, data | error } Result envelope."
+  },
+  "paths": {
+    "/identity/login/request": {
+      "post": {
+        "operationId": "requestLoginCode",
+        "summary": "Issue a one-time email login code",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "minLength": 3 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Login code issued (plaintext emailed; only a salted hash is stored)" },
+          "400": { "description": "Invalid email" }
+        }
+      }
+    },
+    "/identity/login/verify": {
+      "post": {
+        "operationId": "verifyLoginCode",
+        "summary": "Verify a login code and create a session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "code"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "minLength": 3 },
+                  "code": { "type": "string", "minLength": 1 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Session created; returns the authenticated user and session id" },
+          "400": { "description": "Invalid input" },
+          "401": { "description": "Wrong, expired, consumed, or locked code" }
+        }
+      }
+    },
+    "/identity/session": {
+      "get": {
+        "operationId": "readSession",
+        "summary": "Resolve the current session into the authenticated user",
+        "parameters": [
+          { "name": "sessionId", "in": "query", "required": false, "schema": { "type": "string", "nullable": true } }
+        ],
+        "responses": {
+          "200": { "description": "Authenticated user, or null when no valid session" }
+        }
+      },
+      "delete": {
+        "operationId": "destroySession",
+        "summary": "Destroy the current session (logout)",
+        "parameters": [
+          { "name": "sessionId", "in": "query", "required": false, "schema": { "type": "string", "nullable": true } }
+        ],
+        "responses": {
+          "200": { "description": "Session destroyed (idempotent)" }
+        }
+      }
+    }
+  }
+}

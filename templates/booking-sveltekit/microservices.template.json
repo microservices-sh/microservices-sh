@@ -36,7 +36,7 @@
   },
   "slots": {
     "identity": {
-      "activeModule": "auth",
+      "activeModule": "identity",
       "allowedModules": [
         "auth"
       ],

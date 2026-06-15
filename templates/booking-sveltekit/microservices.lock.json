@@ -15,7 +15,9 @@
     "source": "registry:booking-sveltekit@0.1.0",
     "checksum": "sha256:scaffold-booking-sveltekit-0.1.0"
   },
-  "deploy": { "mode": "embedded" },
+  "deploy": {
+    "mode": "embedded"
+  },
   "modules": [
     {
       "id": "gateway",
@@ -26,13 +28,29 @@
       "mode": "embedded",
       "contract": {
         "mount": "/gateway",
-        "bindings": ["DB", "RATE_LIMIT_KV"],
-        "resources": ["D1", "KV"],
-        "permissions": ["gateway.admin"],
+        "bindings": [
+          "DB",
+          "RATE_LIMIT_KV"
+        ],
+        "resources": [
+          "D1",
+          "KV"
+        ],
+        "permissions": [
+          "gateway.admin"
+        ],
         "rpc": [],
-        "hooks": ["beforeIssueToken", "afterTokenIssued"],
-        "events": ["gateway.token_issued", "gateway.access_denied"],
-        "requires": ["auth"]
+        "hooks": [
+          "beforeIssueToken",
+          "afterTokenIssued"
+        ],
+        "events": [
+          "gateway.token_issued",
+          "gateway.access_denied"
+        ],
+        "requires": [
+          "auth"
+        ]
       }
     },
     {
@@ -44,17 +62,100 @@
       "mode": "embedded",
       "contract": {
         "mount": "/auth",
-        "bindings": ["DB"],
-        "resources": ["D1"],
-        "permissions": ["auth.mint", "auth.verify", "auth.admin"],
-        "rpc": [
-          { "method": "mintToken", "scope": "auth.mint", "public": false },
-          { "method": "verifyToken", "scope": "auth.verify", "public": false },
-          { "method": "getJwks", "scope": null, "public": true }
+        "bindings": [
+          "DB"
         ],
-        "hooks": ["beforeMintToken", "afterTokenMinted"],
-        "events": ["auth.token_minted", "auth.key_rotated"],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "auth.mint",
+          "auth.verify",
+          "auth.admin"
+        ],
+        "rpc": [
+          {
+            "method": "mintToken",
+            "scope": "auth.mint",
+            "public": false
+          },
+          {
+            "method": "verifyToken",
+            "scope": "auth.verify",
+            "public": false
+          },
+          {
+            "method": "getJwks",
+            "scope": null,
+            "public": true
+          }
+        ],
+        "hooks": [
+          "beforeMintToken",
+          "afterTokenMinted"
+        ],
+        "events": [
+          "auth.token_minted",
+          "auth.key_rotated"
+        ],
         "requires": []
+      }
+    },
+    {
+      "id": "identity",
+      "version": "0.1.0",
+      "source": "registry:identity@0.1.0",
+      "checksum": "sha256:preview-identity-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/identity",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "identity.login",
+          "identity.session",
+          "identity.admin"
+        ],
+        "rpc": [
+          {
+            "method": "requestLoginCode",
+            "scope": "identity.login",
+            "public": false
+          },
+          {
+            "method": "verifyLoginCode",
+            "scope": "identity.login",
+            "public": false
+          },
+          {
+            "method": "readSession",
+            "scope": "identity.session",
+            "public": false
+          },
+          {
+            "method": "destroySession",
+            "scope": "identity.session",
+            "public": false
+          }
+        ],
+        "hooks": [
+          "beforeVerifyCode",
+          "afterSessionCreated"
+        ],
+        "events": [
+          "identity.login_code_issued",
+          "identity.login_verified",
+          "identity.session_created",
+          "identity.session_destroyed"
+        ],
+        "requires": [
+          "auth"
+        ]
       }
     },
     {
@@ -66,13 +167,29 @@
       "mode": "embedded",
       "contract": {
         "mount": "/customers",
-        "bindings": ["DB"],
-        "resources": ["D1"],
-        "permissions": ["customer.read", "customer.write", "customer.admin"],
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "customer.read",
+          "customer.write",
+          "customer.admin"
+        ],
         "rpc": [],
-        "hooks": ["beforeCustomerCreate", "afterCustomerUpdated"],
-        "events": ["customer.created", "customer.updated"],
-        "requires": ["auth"]
+        "hooks": [
+          "beforeCustomerCreate",
+          "afterCustomerUpdated"
+        ],
+        "events": [
+          "customer.created",
+          "customer.updated"
+        ],
+        "requires": [
+          "auth"
+        ]
       }
     },
     {
@@ -84,13 +201,36 @@
       "mode": "embedded",
       "contract": {
         "mount": "/bookings",
-        "bindings": ["DB", "CACHE_KV"],
-        "resources": ["D1", "KV"],
-        "permissions": ["booking.read", "booking.write", "booking.admin"],
+        "bindings": [
+          "DB",
+          "CACHE_KV"
+        ],
+        "resources": [
+          "D1",
+          "KV"
+        ],
+        "permissions": [
+          "booking.read",
+          "booking.write",
+          "booking.admin"
+        ],
         "rpc": [],
-        "hooks": ["calculateAvailability", "beforeBookingCreate", "afterBookingConfirmed", "beforeBookingCancel"],
-        "events": ["booking.hold_created", "booking.created", "booking.confirmed", "booking.cancelled"],
-        "requires": ["auth", "customer"]
+        "hooks": [
+          "calculateAvailability",
+          "beforeBookingCreate",
+          "afterBookingConfirmed",
+          "beforeBookingCancel"
+        ],
+        "events": [
+          "booking.hold_created",
+          "booking.created",
+          "booking.confirmed",
+          "booking.cancelled"
+        ],
+        "requires": [
+          "auth",
+          "customer"
+        ]
       }
     },
     {
@@ -102,12 +242,26 @@
       "mode": "embedded",
       "contract": {
         "mount": "/audit",
-        "bindings": ["DB"],
-        "resources": ["D1"],
-        "permissions": ["audit.read", "audit.export", "audit.admin"],
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "audit.read",
+          "audit.export",
+          "audit.admin"
+        ],
         "rpc": [],
-        "hooks": ["redactAuditPayload", "beforeAuditExport"],
-        "events": ["audit.recorded", "audit.exported"],
+        "hooks": [
+          "redactAuditPayload",
+          "beforeAuditExport"
+        ],
+        "events": [
+          "audit.recorded",
+          "audit.exported"
+        ],
         "requires": []
       }
     },
@@ -120,21 +274,57 @@
       "mode": "embedded",
       "contract": {
         "mount": "/payments",
-        "bindings": ["DB"],
-        "resources": ["D1"],
-        "permissions": ["payment.read", "payment.write", "payment.admin", "payment.extend", "payment.observe"],
-        "rpc": [
-          { "method": "createPaymentIntent", "scope": "payment.write", "public": false }
+        "bindings": [
+          "DB"
         ],
-        "hooks": ["beforeCreatePaymentIntent", "afterPaymentSucceeded"],
-        "events": ["payment.checkout_created", "payment.succeeded", "payment.refunded", "payment.failed"],
-        "requires": ["auth", "customer"]
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "payment.read",
+          "payment.write",
+          "payment.admin",
+          "payment.extend",
+          "payment.observe"
+        ],
+        "rpc": [
+          {
+            "method": "createPaymentIntent",
+            "scope": "payment.write",
+            "public": false
+          }
+        ],
+        "hooks": [
+          "beforeCreatePaymentIntent",
+          "afterPaymentSucceeded"
+        ],
+        "events": [
+          "payment.checkout_created",
+          "payment.succeeded",
+          "payment.refunded",
+          "payment.failed"
+        ],
+        "requires": [
+          "auth",
+          "customer"
+        ]
       }
     }
   ],
   "customizations": {
     "config": true,
-    "hooks": ["beforeMintToken", "afterTokenMinted", "beforeCustomerCreate", "afterCustomerUpdated", "calculateAvailability", "beforeBookingCreate", "afterBookingConfirmed", "beforeBookingCancel", "beforeCreatePaymentIntent", "afterPaymentSucceeded"],
+    "hooks": [
+      "beforeMintToken",
+      "afterTokenMinted",
+      "beforeCustomerCreate",
+      "afterCustomerUpdated",
+      "calculateAvailability",
+      "beforeBookingCreate",
+      "afterBookingConfirmed",
+      "beforeBookingCancel",
+      "beforeCreatePaymentIntent",
+      "afterPaymentSucceeded"
+    ],
     "overlays": [],
     "forks": []
   }

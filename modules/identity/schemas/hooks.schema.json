@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Identity Hooks",
+  "type": "object",
+  "properties": {
+    "beforeVerifyCode": { "type": "string" },
+    "afterSessionCreated": { "type": "string" }
+  }
+}

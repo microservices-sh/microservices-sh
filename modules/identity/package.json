@@ -6,15 +6,26 @@
   "description": "Passwordless email-code identity + server-side sessions, built on @microservices-sh/auth (no third-party auth dep, no zod migration). Bridges to the auth module for scoped service tokens.",
   "exports": {
     ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./schemas": "./src/schemas.ts",
+    "./hooks": "./src/hooks.ts",
+    "./manifest": "./src/manifest/index.ts",
+    "./config": "./src/config/index.ts",
+    "./schema": "./src/schema/index.ts",
+    "./events": "./src/events/index.ts",
+    "./permissions": "./src/permissions/index.ts",
+    "./resources": "./src/resources/index.ts",
+    "./service": "./src/service/index.ts",
+    "./ports": "./src/ports/index.ts",
     "./bridge": "./src/bridge.ts",
     "./session": "./src/session.ts",
-    "./ports": "./src/ports.ts",
     "./adapters/memory": "./src/adapters/memory.ts",
     "./adapters/d1": "./src/adapters/d1.ts"
   },
   "scripts": {
     "test": "vitest run",
-    "build": "tsc --noEmit -p tsconfig.json"
+    "build": "tsc --noEmit -p tsconfig.json",
+    "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path ."
   },
   "dependencies": {
     "@microservices-sh/auth": "workspace:*",

@@ -1,0 +1,28 @@
+# Identity Module
+
+Module ID: identity
+Status: available
+Class: platform
+Purpose: Passwordless email-code login + server-side sessions, built on @microservices-sh/auth. Bridges an authenticated session to a short-lived scoped service token (Plan 26).
+Entrypoint: src/index.ts
+
+RPC exposed: requestLoginCode, verifyLoginCode, readSession, destroySession
+Events emitted: identity.login_code_issued, identity.login_verified, identity.session_created, identity.session_destroyed
+Hook points: beforeVerifyCode (filter, identity.extend), afterSessionCreated (observer, identity.observe)
+Resources: D1 DB (accounts, login_codes, sessions)
+Permissions: identity.login, identity.session, identity.admin, identity.extend, identity.observe
+Requires: auth
+Optional: email, audit-log
+
+Flow: requestLoginCode issues a 6-digit code (10 min TTL), stores only a salted
+SHA-256 hash, emails the plaintext to the user. verifyLoginCode timing-safe compares
+the submitted code, upserts the account, and creates a 30-day rolling session.
+readSession/destroySession manage the session lifecycle. mintSessionToken bridges a
+session to a short-lived scoped service JWT via @microservices-sh/auth.
+
+Security: login codes are never stored plaintext (salted SHA-256); comparison is
+constant-time; tokens are signed by the auth module (EdDSA), never a local secret.
+
+Check: pnpm check:spec
+Build: pnpm build
+Test: pnpm test

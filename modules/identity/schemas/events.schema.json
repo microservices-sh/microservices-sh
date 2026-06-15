@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Identity Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": [
+        "identity.login_code_issued",
+        "identity.login_verified",
+        "identity.session_created",
+        "identity.session_destroyed"
+      ]
+    },
+    "entityType": {
+      "type": "string",
+      "enum": ["account", "session"]
+    }
+  },
+  "required": ["eventName", "entityType"]
+}
