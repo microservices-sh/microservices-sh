@@ -3,12 +3,6 @@
 //   { rule, severity: "error"|"warn", code, message, module, detail }.
 // `compose()` fails the build if any error-severity issue is returned.
 
-function byId(modules) {
-  const map = {};
-  for (const m of modules) map[m.id] = m;
-  return map;
-}
-
 const issue = (rule, severity, code, message, module, detail) => ({
   rule, severity, code, message, module, detail: detail ?? null,
 });
