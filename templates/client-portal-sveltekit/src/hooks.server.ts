@@ -1,4 +1,5 @@
 import type { Handle } from "@sveltejs/kit";
+import { dev } from "$app/environment";
 import { createD1CustomerRepository } from "@microservices-sh/customer/adapters/d1";
 import { createMemoryCustomerRepository } from "@microservices-sh/customer/adapters/memory";
 import { createD1InvoiceStore, createD1NumberAllocator } from "@microservices-sh/invoice";
@@ -57,25 +58,34 @@ export const handle: Handle = async ({ event, resolve }) => {
     });
   }
 
-  // Demo session resolution. Staff side is reachable with ?role=staff (and is
-  // remembered via a cookie) so both portal and admin can be exercised locally.
-  // Replace this block with real auth-module session verification before beta.
-  const roleParam = event.url.searchParams.get("role");
-  if (roleParam === "staff" || roleParam === "customer") {
-    event.cookies.set("portal_role", roleParam, { path: "/", httpOnly: true, sameSite: "lax" });
-  }
-  const role = (event.cookies.get("portal_role") as "staff" | "customer" | undefined) ?? "customer";
+  if (dev) {
+    // Local dev ONLY: demo session resolution. Staff side is reachable with
+    // ?role=staff (remembered via a cookie) so both portal and admin can be
+    // exercised locally without real auth. Guarded by `dev` so this can NEVER
+    // grant a session — or staff elevation via ?role=staff — in production.
+    const roleParam = event.url.searchParams.get("role");
+    if (roleParam === "staff" || roleParam === "customer") {
+      event.cookies.set("portal_role", roleParam, { path: "/", httpOnly: true, sameSite: "lax" });
+    }
+    const role = (event.cookies.get("portal_role") as "staff" | "customer" | undefined) ?? "customer";
 
-  if (role === "staff") {
-    event.locals.user = { id: "staff-1", email: "staff@example.com", role: "staff", customerId: null };
+    if (role === "staff") {
+      event.locals.user = { id: "staff-1", email: "staff@example.com", role: "staff", customerId: null };
+    } else {
+      const customer = await event.locals.customerRepository.findCustomerByEmail(DEMO_CUSTOMER_EMAIL);
+      event.locals.user = {
+        id: customer?.id ?? "customer-1",
+        email: customer?.email ?? DEMO_CUSTOMER_EMAIL,
+        role: "customer",
+        customerId: customer?.id ?? null
+      };
+    }
   } else {
-    const customer = await event.locals.customerRepository.findCustomerByEmail(DEMO_CUSTOMER_EMAIL);
-    event.locals.user = {
-      id: customer?.id ?? "customer-1",
-      email: customer?.email ?? DEMO_CUSTOMER_EMAIL,
-      role: "customer",
-      customerId: customer?.id ?? null
-    };
+    // Production: no demo session. Wire real @microservices-sh/auth session
+    // verification here (passwordless email-code → verifyToken) before beta.
+    // Until then /admin and /portal fail closed (see their +layout.server.ts):
+    // no cross-customer or customer PII is served without an authenticated user.
+    event.locals.user = null;
   }
 
   return resolve(event);
