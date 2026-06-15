@@ -24,7 +24,7 @@ describe("buildGraph", () => {
 
   it("resolves rpc call edges to the target module + method", () => {
     expect(g.rpcEdges).toEqual([
-      { from: "payment", target: "auth.verifyToken", targetModule: "auth", method: "verifyToken", scope: "auth.verify" },
+      { from: "payment", target: "auth.verifyToken", targetModule: "auth", method: "verifyToken", scope: "auth.verify", input: null },
     ]);
   });
 

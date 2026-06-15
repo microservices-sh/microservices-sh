@@ -38,6 +38,7 @@ export function buildGraph(modules) {
         targetModule,
         method,
         scope: call.scope ?? null,
+        input: call.input ?? null,
       });
     }
   }

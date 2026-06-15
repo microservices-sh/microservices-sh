@@ -14,6 +14,7 @@ const rpcExpose = z.object({
 const rpcCall = z.object({
   target: z.string().min(1), // "<moduleId>.<method>"
   scope: z.string().nullable().optional(),
+  input: z.string().optional(), // expected input schema ref; checked against the exposed method (rule 6)
 });
 
 const hookPoint = z.object({
