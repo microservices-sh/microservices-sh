@@ -16,12 +16,24 @@
   "resources": [
     { "type": "d1", "binding": "DB", "tables": ["forms", "form_submissions"] }
   ],
-  "permissions": ["forms-intake.read", "forms-intake.write", "forms-intake.admin"],
-  "requires": [],
-  "optional": ["auth", "audit-log", "file-media", "jobs-workflows"],
-  "hooks": ["beforeFormPublish", "onSubmissionReceived"],
-  "events": ["forms-intake.form_created", "forms-intake.form_updated", "forms-intake.submission_received", "forms-intake.submission_rejected"],
-  "rpc": [],
+  "permissions": ["forms-intake.read", "forms-intake.write", "forms-intake.admin", "forms-intake.extend", "forms-intake.observe"],
+  "connections": {
+    "requires": [],
+    "optional": ["auth", "audit-log", "file-media", "jobs-workflows"],
+    "rpc": {
+      "exposes": [],
+      "calls": []
+    },
+    "events": {
+      "emits": ["forms-intake.form_created", "forms-intake.form_updated", "forms-intake.submission_received", "forms-intake.submission_rejected"],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeFormPublish": { "kind": "filter", "scope": "forms-intake.extend" },
+      "onSubmissionReceived": { "kind": "observer", "scope": "forms-intake.observe" }
+    },
+    "provides": { "hooks": [] }
+  },
   "customization": {
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]

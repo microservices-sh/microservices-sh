@@ -1,23 +1,25 @@
+import { ok, err } from "@microservices-sh/connection-contract";
+import { formsIntakeMeta } from "../meta";
 import { getFormInputSchema } from "../schemas";
 import type { FormStore } from "../ports";
 
 // Fetch a single form, tenant-scoped (a tenant can never read another tenant's
 // form even if it guesses the id).
-export async function getForm(input: unknown, deps: { formStore: FormStore }) {
+export async function getForm(
+  input: unknown,
+  deps: { formStore: FormStore; now?: () => number; correlationId?: string }
+) {
+  const meta = formsIntakeMeta(deps);
+
   const parsed = getFormInputSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      data: null,
-      error: { code: "INVALID_GET_INPUT", message: "Get input is invalid.", issues: parsed.error.issues }
-    };
+    return err(400, { code: "forms-intake.INVALID_GET_INPUT", message: "Get input is invalid.", issues: parsed.error.issues }, meta);
   }
 
   const form = await deps.formStore.getForm(parsed.data.formId, parsed.data.tenantId);
   if (!form) {
-    return { ok: false as const, status: 404 as const, data: null, error: { code: "FORM_NOT_FOUND", message: "Form not found." } };
+    return err(404, { code: "forms-intake.FORM_NOT_FOUND", message: "Form not found." }, meta);
   }
 
-  return { ok: true as const, status: 200 as const, data: { form } };
+  return ok(200, { form }, meta);
 }

@@ -93,7 +93,8 @@ async function makeForm(formStore: ReturnType<typeof createMemoryFormStore>, ove
     },
     { formStore, now: fixedNow(T0) }
   );
-  return created.data!.id as string;
+  if (!created.ok) throw new Error("form creation failed");
+  return created.data.id as string;
 }
 
 describe("forms-intake: submitForm idempotency", () => {
@@ -106,14 +107,14 @@ describe("forms-intake: submitForm idempotency", () => {
       { formStore, now: fixedNow(T0) }
     );
     expect(first.status).toBe(201);
-    expect(first.data?.deduped).toBe(false);
+    expect(first.ok && first.data.deduped).toBe(false);
 
     const replay = await submitForm(
       { formId, tenantId: "tenant-1", values: { email: "a@b.com" }, idempotencyKey: "key-1" },
       { formStore, now: fixedNow(T0 + 1) }
     );
     expect(replay.status).toBe(200);
-    expect(replay.data?.deduped).toBe(true);
+    expect(replay.ok && replay.data.deduped).toBe(true);
 
     const stored = await formStore.listSubmissions({ tenantId: "tenant-1", formId });
     expect(stored).toHaveLength(1);
@@ -136,7 +137,7 @@ describe("forms-intake: attachment rejection at submit time", () => {
     );
     expect(res.ok).toBe(false);
     expect(res.status).toBe(415);
-    expect(res.error?.code).toBe("ATTACHMENT_REJECTED");
+    if (!res.ok) expect(res.error.code).toBe("forms-intake.ATTACHMENT_REJECTED");
   });
 });
 
@@ -163,7 +164,7 @@ describe("forms-intake: Turnstile gating", () => {
     );
     expect(res.ok).toBe(false);
     expect(res.status).toBe(403);
-    expect(res.error?.code).toBe("TURNSTILE_FAILED");
+    if (!res.ok) expect(res.error.code).toBe("forms-intake.TURNSTILE_FAILED");
   });
 
   it("rejects a missing token when Turnstile is required", async () => {
@@ -176,6 +177,6 @@ describe("forms-intake: Turnstile gating", () => {
     );
     expect(res.ok).toBe(false);
     expect(res.status).toBe(400);
-    expect(res.error?.code).toBe("TURNSTILE_REQUIRED");
+    if (!res.ok) expect(res.error.code).toBe("forms-intake.TURNSTILE_REQUIRED");
   });
 });

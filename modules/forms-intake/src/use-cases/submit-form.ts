@@ -1,5 +1,8 @@
+import { ok, err, runHooks } from "@microservices-sh/connection-contract";
+import type { ResolvedHook } from "@microservices-sh/connection-contract";
 import { defaultConfig } from "../config";
 import { onSubmissionReceived } from "../hooks";
+import { formsIntakeMeta } from "../meta";
 import { submitFormInputSchema } from "../schemas";
 import { validateAttachment, validateSubmission } from "../validate-submission";
 import type { FormStore, TurnstileVerifier } from "../ports";
@@ -17,6 +20,11 @@ import type { AttachmentRef, FormSubmission } from "../types";
 //
 // Turnstile is OPTIONAL: only enforced when the form requires it AND a verifier is
 // injected. fetch is NEVER called here — the adapter does it behind the port.
+//
+// After an accepted submission the cross-module `onSubmissionReceived` observer
+// hook chain (Plan 25 §5) runs, injected by the composed app via
+// deps.onSubmissionHooks — observers may fan out to email/jobs-workflows. The
+// local config seam `onSubmissionReceived` runs first (per-app override).
 export async function submitForm(
   input: unknown,
   deps: {
@@ -24,45 +32,34 @@ export async function submitForm(
     turnstile?: TurnstileVerifier;
     now?: () => number;
     config?: Partial<typeof defaultConfig>;
+    correlationId?: string;
+    onSubmissionHooks?: ResolvedHook[];
   }
 ) {
+  const meta = formsIntakeMeta(deps);
+
   const parsed = submitFormInputSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      data: null,
-      error: { code: "INVALID_SUBMISSION_INPUT", message: "Submission input is invalid.", issues: parsed.error.issues }
-    };
+    return err(400, { code: "forms-intake.INVALID_SUBMISSION_INPUT", message: "Submission input is invalid.", issues: parsed.error.issues }, meta);
   }
 
   const cfg = { ...defaultConfig, ...deps.config };
   const form = await deps.formStore.getForm(parsed.data.formId, parsed.data.tenantId);
   if (!form) {
-    return { ok: false as const, status: 404 as const, data: null, error: { code: "FORM_NOT_FOUND", message: "Form not found." } };
+    return err(404, { code: "forms-intake.FORM_NOT_FOUND", message: "Form not found." }, meta);
   }
   if (form.status === "archived") {
-    return { ok: false as const, status: 409 as const, data: null, error: { code: "FORM_ARCHIVED", message: "This form no longer accepts submissions." } };
+    return err(409, { code: "forms-intake.FORM_ARCHIVED", message: "This form no longer accepts submissions." }, meta);
   }
 
   // 1. Spam protection (optional/configurable).
   if (form.requireTurnstile && deps.turnstile) {
     if (!parsed.data.turnstileToken) {
-      return {
-        ok: false as const,
-        status: 400 as const,
-        data: null,
-        error: { code: "TURNSTILE_REQUIRED", message: "A Turnstile token is required for this form." }
-      };
+      return err(400, { code: "forms-intake.TURNSTILE_REQUIRED", message: "A Turnstile token is required for this form." }, meta);
     }
     const passed = await deps.turnstile.verify(parsed.data.turnstileToken, parsed.data.ip ?? undefined);
     if (!passed) {
-      return {
-        ok: false as const,
-        status: 403 as const,
-        data: null,
-        error: { code: "TURNSTILE_FAILED", message: "Spam protection check failed." }
-      };
+      return err(403, { code: "forms-intake.TURNSTILE_FAILED", message: "Spam protection check failed." }, meta);
     }
   }
 
@@ -70,19 +67,14 @@ export async function submitForm(
   if (parsed.data.idempotencyKey) {
     const fresh = await deps.formStore.recordSubmissionKey(form.id, parsed.data.idempotencyKey);
     if (!fresh) {
-      return { ok: true as const, status: 200 as const, data: { id: null, deduped: true } };
+      return ok(200, { id: null, deduped: true, event: null }, meta);
     }
   }
 
   // 3. Validation via the PURE validator (conditional visibility handled there).
   const result = validateSubmission(form.fields, parsed.data.values);
   if (!result.ok) {
-    return {
-      ok: false as const,
-      status: 422 as const,
-      data: null,
-      error: { code: "SUBMISSION_INVALID", message: "Submission failed validation.", fieldErrors: result.errors }
-    };
+    return err(422, { code: "forms-intake.SUBMISSION_INVALID", message: "Submission failed validation.", issues: result.errors }, meta);
   }
 
   // 4. Attachment references: allowlist + size cap (mirror file-media). Refs only.
@@ -90,12 +82,7 @@ export async function submitForm(
   for (const att of attachments) {
     const attError = validateAttachment(att, cfg.allowedAttachmentTypes, cfg.maxAttachmentBytes);
     if (attError) {
-      return {
-        ok: false as const,
-        status: 415 as const,
-        data: null,
-        error: { code: "ATTACHMENT_REJECTED", message: attError, fieldId: att.fieldId }
-      };
+      return err(415, { code: "forms-intake.ATTACHMENT_REJECTED", message: attError, issues: [{ fieldId: att.fieldId }] }, meta);
     }
   }
 
@@ -112,7 +99,20 @@ export async function submitForm(
   };
   await deps.formStore.insertSubmission(submission);
 
+  // Local config seam, then the cross-module observer hook chain.
   await onSubmissionReceived(submission);
+  await runHooks(
+    "onSubmissionReceived",
+    submission,
+    { correlationId: meta.correlationId },
+    deps.onSubmissionHooks ?? []
+  );
 
-  return { ok: true as const, status: 201 as const, data: { id: submission.id, deduped: false } };
+  const event = {
+    name: "forms-intake.submission_received",
+    correlationId: meta.correlationId,
+    payload: { id: submission.id, formId: submission.formId, tenantId: submission.tenantId }
+  };
+
+  return ok(201, { id: submission.id, deduped: false, event }, meta);
 }

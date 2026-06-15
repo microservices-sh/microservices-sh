@@ -1,4 +1,6 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { defaultConfig } from "../config";
+import { formsIntakeMeta } from "../meta";
 import { createFormInputSchema } from "../schemas";
 import type { FormStore } from "../ports";
 import type { Form, FormField } from "../types";
@@ -8,28 +10,25 @@ import type { Form, FormField } from "../types";
 // second, drifting copy of the rules in route code.
 export async function createForm(
   input: unknown,
-  deps: { formStore: FormStore; now?: () => number; config?: Partial<typeof defaultConfig> }
+  deps: {
+    formStore: FormStore;
+    now?: () => number;
+    config?: Partial<typeof defaultConfig>;
+    correlationId?: string;
+  }
 ) {
+  const meta = formsIntakeMeta(deps);
+
   const parsed = createFormInputSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      data: null,
-      error: { code: "INVALID_FORM_INPUT", message: "Form input is invalid.", issues: parsed.error.issues }
-    };
+    return err(400, { code: "forms-intake.INVALID_FORM_INPUT", message: "Form input is invalid.", issues: parsed.error.issues }, meta);
   }
 
   // Field ids must be unique within a form — otherwise conditional logic and value
   // keying are ambiguous.
   const ids = parsed.data.fields.map((f) => f.id);
   if (new Set(ids).size !== ids.length) {
-    return {
-      ok: false as const,
-      status: 422 as const,
-      data: null,
-      error: { code: "DUPLICATE_FIELD_ID", message: "Field ids must be unique within a form." }
-    };
+    return err(422, { code: "forms-intake.DUPLICATE_FIELD_ID", message: "Field ids must be unique within a form." }, meta);
   }
 
   const cfg = { ...defaultConfig, ...deps.config };
@@ -50,5 +49,11 @@ export async function createForm(
 
   await deps.formStore.insertForm(form);
 
-  return { ok: true as const, status: 201 as const, data: { id, status: form.status, version: form.version } };
+  const event = {
+    name: "forms-intake.form_created",
+    correlationId: meta.correlationId,
+    payload: { id, tenantId: form.tenantId, version: form.version }
+  };
+
+  return ok(201, { id, status: form.status, version: form.version, event }, meta);
 }
