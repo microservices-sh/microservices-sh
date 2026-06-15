@@ -71,7 +71,7 @@
       "approvalRisk": "high"
     },
     "messaging": {
-      "activeModule": null,
+      "activeModule": "email",
       "allowedModules": [
         "email"
       ],

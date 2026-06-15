@@ -7,6 +7,9 @@
     <section>
       <p class="eyebrow">Admin</p>
       <h1>Booking operations.</h1>
+      <form method="POST" action="/logout">
+        <button class="button secondary" type="submit">Log out</button>
+      </form>
       <p>
         This admin surface stays intentionally compact for the MVP. The richer admin shell
         should be an optional module once core booking behavior is stable.

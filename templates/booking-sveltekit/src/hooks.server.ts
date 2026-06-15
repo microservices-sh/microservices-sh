@@ -30,6 +30,8 @@ const memoryRateLimitStore = createMemoryRateLimitStore();
 
 // API paths reachable without a token: the public booking flow, token exchange,
 // JWKS, and the one-time bootstrap (which self-disables once a signing key exists).
+// Note: /api/bookings is public for POST only (anonymous booking creation); GET
+// requires a gateway token (it returns all bookings joined with customer PII).
 const PUBLIC_API = new Set([
   "/api/availability",
   "/api/bookings",
@@ -63,7 +65,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   // Front door: machine-facing /api/* routes require a gateway-issued token,
   // except the public exchange/JWKS/bootstrap. SSR pages keep the session user.
-  if (path.startsWith("/api/") && !PUBLIC_API.has(path)) {
+  // /api/bookings is public for POST only; GET falls through to the token check.
+  const isPublicApi =
+    PUBLIC_API.has(path) && !(path === "/api/bookings" && event.request.method !== "POST");
+  if (path.startsWith("/api/") && !isPublicApi) {
     const authz = event.request.headers.get("authorization") ?? "";
     const token = authz.startsWith("Bearer ") ? authz.slice(7) : "";
     const verified = await verifyToken(token, { signingKeyStore });

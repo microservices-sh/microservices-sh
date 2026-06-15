@@ -19,7 +19,7 @@ function adminEmails(env: Record<string, string | undefined> | undefined): strin
 }
 
 // Passwordless email-code login (Plan 26). `/login` posts here.
-export const POST: RequestHandler = async ({ request, platform }) => {
+export const POST: RequestHandler = async ({ request, platform, locals }) => {
   const db = platform?.env?.DB;
   if (!db) return json({ ok: false, error: { code: "identity.NO_DB" } }, { status: 503 });
   const accountStore = createD1AccountStore(db);
@@ -28,6 +28,21 @@ export const POST: RequestHandler = async ({ request, platform }) => {
   const body = await request.json();
 
   if (body.action === "request") {
+    // Rate-limit code requests per email to blunt brute-force and email bombing.
+    // Only applies when an email is present; otherwise requestLoginCode validates it.
+    if (body.email) {
+      const identifier = "login:request:" + String(body.email).trim().toLowerCase();
+      const result = await locals.rateLimitStore.hit(identifier, 5, 600);
+      if (!result.allowed) {
+        return json(
+          {
+            ok: false,
+            error: { code: "identity.RATE_LIMITED", message: "Too many sign-in attempts. Try again later." }
+          },
+          { status: 429 }
+        );
+      }
+    }
     const res = await requestLoginCode({ email: body.email }, { accountStore, loginCodeStore, adminEmails: adminEmails(platform?.env) });
     if (!res.ok) return json({ ok: false, error: res.error }, { status: res.status });
     // Deliver the code by email. Dev also echoes it so local testing needs no inbox.
