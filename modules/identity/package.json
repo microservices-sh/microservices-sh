@@ -1,0 +1,28 @@
+{
+  "name": "@microservices-sh/identity",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "User identity (accounts, login, sessions) on Better Auth, bridging to @microservices-sh/auth for service tokens. Plan 26 prototype (draft).",
+  "exports": {
+    ".": "./src/index.ts",
+    "./bridge": "./src/bridge.ts",
+    "./schema": "./src/schema.ts",
+    "./session": "./src/session.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@microservices-sh/auth": "workspace:*",
+    "@microservices-sh/connection-contract": "workspace:*",
+    "zod": "^3.25.76"
+  },
+  "//peerNote": "better-auth + drizzle-orm are provided by the consuming app (see README 'Wiring guide'), NOT declared here: pnpm auto-install-peers would otherwise drag better-auth@1.6 (peer zod^4 / drizzle^0.45) into this zod^3 / drizzle^0.41 monorepo. Pin a compatible better-auth at app-install time — see plans/26 §9.",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "typescript": "^5.9.3",
+    "vitest": "^1.2.0"
+  }
+}

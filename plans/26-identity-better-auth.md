@@ -137,6 +137,13 @@ Sequence **after** Plan 25's auth+payment reference migration to avoid contract 
   positive (depth > NIH).
 - **Workers/D1 compatibility.** Better Auth runs on Workers (reference proves it), but pin a
   known-good version and smoke it under Miniflare + real dispatch.
+- **Dependency conflict (found 2026-06-15 during prototyping).** `better-auth@1.6.18` (latest)
+  peers on **zod ^4 + drizzle-orm ^0.45**; the monorepo is on **zod ^3.25 + drizzle 0.41**, and
+  pnpm `auto-install-peers` drags the newer transitives in. A repo-wide zod 3→4 migration is
+  breaking and out of scope here. **Mitigation in the prototype:** `@microservices-sh/identity`
+  does **not** declare `better-auth`/`drizzle-orm` — the *consuming app* installs them at a
+  version compatible with its own zod (pin an older better-auth, or the app migrates to zod 4).
+  Decide the canonical pin before templates adopt identity.
 - **Third auth flavor risk.** Must *settle* the credential model, not add a third. Tie to the
   api/web-portal reconciliation.
 - **Plan 25 timing.** Identity declares a `connections` manifest; land it after the contract
