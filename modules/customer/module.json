@@ -16,16 +16,28 @@
   "resources": [
     { "type": "d1", "binding": "DB", "tables": ["customers", "domain_events"] }
   ],
-  "permissions": ["customer.read", "customer.write", "customer.admin"],
-  "requires": [],
-  "optional": ["auth", "audit-log", "email"],
-  "hooks": ["beforeCustomerCreate", "afterCustomerUpdated"],
-  "events": ["customer.created", "customer.updated"],
-  "rpc": [
-    { "method": "getCustomer", "scope": "customer.read", "public": false },
-    { "method": "listCustomers", "scope": "customer.read", "public": false },
-    { "method": "upsertCustomer", "scope": "customer.write", "public": false }
-  ],
+  "permissions": ["customer.read", "customer.write", "customer.admin", "customer.extend", "customer.observe"],
+  "connections": {
+    "requires": [],
+    "optional": ["auth", "audit-log", "email"],
+    "rpc": {
+      "exposes": [
+        { "method": "getCustomer", "scope": "customer.read", "public": false },
+        { "method": "listCustomers", "scope": "customer.read", "public": false },
+        { "method": "upsertCustomer", "scope": "customer.write", "public": false }
+      ],
+      "calls": []
+    },
+    "events": {
+      "emits": ["customer.created", "customer.updated"],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeCustomerCreate": { "kind": "filter", "scope": "customer.extend" },
+      "afterCustomerUpdated": { "kind": "observer", "scope": "customer.observe" }
+    },
+    "provides": { "hooks": [] }
+  },
   "customization": {
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]

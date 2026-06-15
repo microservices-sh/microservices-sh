@@ -48,5 +48,14 @@ Any deployed booking app exposes its full customer list and per-customer detail 
 
 Fail-closed (steps 1–2) closes the vulnerability immediately; step 3 restores prod admin access as a feature.
 
+## Cross-template audit (2026-06-15)
+All SvelteKit templates audited for the same class of flaw (unauthenticated PII pages):
+
+| Template | Verdict | Action |
+|---|---|---|
+| `booking-sveltekit` | ❌ Vulnerable — unconditional fake admin, no page guard | **Fixed + boot-verified** (dev 200 / prod 401, no PII) — commit `5eb40cd` |
+| `client-portal-sveltekit` | ❌ Vulnerable, **worse** — `?role=staff` self-elevation + fake role-picker login, no `/admin` or `/portal` guard, no dev guard | **Fixed** — dev-guarded the demo session + login; added fail-closed `/admin` (staff-only, 403) and `/portal` (auth, /login) layout guards. ⚠️ Pattern-verified vs the booking fix + saas-starter reference; **not boot-tested** (template isn't in `REPO_TEMPLATES`, so not generatable via create-app — it is currently unshipped). Boot-test when it's wired into create-app. |
+| `saas-starter-sveltekit` | ✅ Not vulnerable — real cookie `readSession`, `/admin` `+layout.server.ts` enforces `isSuperAdmin` (403) + `/login` redirect, `/app` membership gate | None — this is the reference pattern |
+
 ## Note for maintainers
 If the intended deployment model is "admin behind Cloudflare Access / Zero Trust," that must be (a) documented in the template README/`docs/`, and (b) the unconditional `isAdmin: true` fallback still removed, since it would override any external gate's identity assumptions inside the app.

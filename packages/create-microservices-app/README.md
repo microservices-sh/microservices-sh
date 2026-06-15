@@ -1,119 +1,99 @@
 # create-microservices-app
 
-Create a microservices.sh app from verified Cloudflare-native modules.
+Scaffold a Cloudflare-native app from verified [microservices.sh](https://microservices.sh) modules — D1, Workers, typed module hooks, and a project CLI, wired up and ready to run.
+
+## Quick start
 
 ```bash
-npm create microservices-app@latest studio-booking -- --template booking-sveltekit
-pnpm create microservices-app@latest studio-booking --template booking-sveltekit
-pnpm create microservices-app@latest --interactive
+# npm (note the `--` before flags)
+npm create microservices-app@latest my-app -- --template booking-sveltekit
+
+# pnpm
+pnpm create microservices-app my-app --template booking-sveltekit
+
+# guided prompts (name, template, modules, package manager)
+npm create microservices-app@latest
 ```
 
-`studio-booking` is only the generated app directory and slug. The current full app template id is `booking-sveltekit`; there is no `booking-svelte` template, and `booking-demo` is not a special template name.
+Requires **Node.js >= 20**. The first argument (`my-app`) is the app directory and slug.
 
-The generated app includes:
+## What you get
 
-- Hono + Cloudflare Workers runtime, or the full SvelteKit booking template
-- D1 schema and Wrangler config
-- `microservices.lock.json`
-- LLM-readable module docs under `docs/`
-- project CLI script exposed as `pnpm microservices`
-- `updates`, `upgrade --plan`, `add --plan`, `secrets status`, and `check` foundations
+- A Cloudflare Workers runtime — Hono (`booking-business`) or a full SvelteKit app (`booking-sveltekit`)
+- D1 schema + `wrangler.jsonc` local-dev config
+- Verified microservices.sh modules wired in (auth, customer, booking, payment, email, …)
+- `microservices.lock.json` and LLM-readable module docs under `docs/`
+- A project CLI exposed as `<pm> microservices` — `modules list`, `add --plan`, `upgrade --plan`, `check`, `updates`, and managed deploy commands
 
-For local scaffold testing inside this repo:
+## Templates
+
+Pass with `--template <id>`. Default is `booking-business`.
+
+| id | What it is |
+|----|------------|
+| `booking-business` | Cloudflare Worker / Hono booking app, generated from the module contract (default) |
+| `booking-sveltekit` | Full Cloudflare SvelteKit booking app — public flow, admin, D1, typed hooks |
+| `company-landing-astro` | Static Astro company landing page, no backend modules |
+| `nextjs` `astro` `react-router` `nuxt` `hono` `sveltekit` | Empty Cloudflare framework starters (via C3); add modules afterward |
+
+## Options
+
+| Flag | Description |
+|------|-------------|
+| `--template <id>` | Template id (default `booking-business`) |
+| `--modules <ids>` | Comma-separated extra module ids to enable |
+| `--config '<json>'` | Template config override |
+| `--git-repo <url>` | Run `git init` and add an `origin` remote |
+| `--no-git` | Skip git setup |
+| `--interactive` | Force the guided prompts |
+| `--package-manager <name>` | `npm`, `pnpm`, `yarn`, or `bun` (auto-detected) |
+| `--dir <path>` | Parent directory (default: current directory) |
+| `--no-install` | Write files without installing dependencies |
+| `--json` | Machine-readable output |
 
 ```bash
-pnpm --filter create-microservices-app start -- studio-booking --template booking-sveltekit --no-install
+npm create microservices-app@latest shop -- --template booking-business --modules payment,email
+npm create microservices-app@latest shop -- --git-repo git@github.com:acme/shop.git
 ```
 
-Useful setup flags:
+Module ids are validated against the live registry — run `<pm> microservices modules list` to see what's available. Unknown ids that are *known but not yet generated* come back as follow-up `add --plan` commands.
+
+## After scaffolding
+
+For the SvelteKit template:
 
 ```bash
-pnpm create microservices-app@latest worker-booking --template booking-business --modules payment-stripe,email
-pnpm create microservices-app@latest studio-booking --template booking-sveltekit
-pnpm create microservices-app@latest studio-booking --template booking-sveltekit --git-repo git@github.com:acme/studio-booking.git
-pnpm create microservices-app@latest --interactive
+cd my-app
+pnpm microservices local setup   # applies migrations to local D1
+pnpm dev                         # http://127.0.0.1:5174
+pnpm microservices local smoke   # in a second terminal
 ```
 
-`booking-business` is the default Cloudflare Worker/Hono app generated from the module contract. `booking-sveltekit` is a full Cloudflare SvelteKit app template bundled with source-visible customer and booking modules through local `file:` dependencies, so the generated app can install and build outside this monorepo.
-
-For the SvelteKit template local baseline:
+Explore and evolve the project at any time:
 
 ```bash
-pnpm create microservices-app@latest studio-booking --template booking-sveltekit
-cd studio-booking
-pnpm microservices local setup
-pnpm dev
-pnpm microservices local smoke
+pnpm microservices modules list --json
+pnpm microservices add payment --plan --json
+pnpm microservices upgrade booking --plan --json
+pnpm microservices check --json
+pnpm microservices updates --json
 ```
 
-Run `microservices local smoke` in a second terminal after `pnpm dev` starts. `pnpm dev` applies checked-in migrations to Wrangler's local D1 database before starting Vite.
+## Deploying
 
-If port 5174 is busy:
-
-```bash
-pnpm dev -- --port 5175
-pnpm microservices local smoke --url http://127.0.0.1:5175
-```
-
-The generated SvelteKit app also includes approval-gated managed preview commands. These proxy to the microservices.sh API; they do not require users to run `wrangler login`, create D1/KV resources, or paste Cloudflare ids.
+Generated apps include managed, approval-gated deploy commands that proxy to the microservices.sh control plane — no `wrangler login`, no manual D1/KV ids:
 
 ```bash
 pnpm microservices auth login
-pnpm microservices deploy doctor
 pnpm microservices deploy preview --plan
-pnpm microservices deploy preview --confirm deploy --output deployment.json
-pnpm microservices deploy provision --input deployment.json --plan
-pnpm microservices deploy provision --input deployment.json --confirm provision
-pnpm microservices deploy migrate --input deployment.json --plan
-pnpm microservices deploy migrate --input deployment.json --confirm migrate
-pnpm microservices deploy upload-plan --input deployment.json
-pnpm microservices deploy upload --input deployment.json --plan
-pnpm microservices deploy upload --input deployment.json --confirm upload
-pnpm microservices deploy follow --input deployment.json
-pnpm microservices deploy status --input deployment.json
-pnpm microservices deploy cleanup --input deployment.json --plan
-pnpm microservices preview smoke --url <preview-url>
+pnpm microservices deploy preview --confirm deploy
 ```
 
-Remote deployment preparation, resource provisioning, remote migration, hosted Worker/assets upload, and cleanup require explicit approval. The control-plane API owns remote state and resource ids; the generated `wrangler.jsonc` remains a local-dev config. `microservices deploy upload-plan --input deployment.json` verifies the uploaded artifact, D1/KV bindings, Cloudflare credentials, and managed preview route before `microservices deploy upload --confirm upload` publishes the generated Worker/assets artifact.
+The control plane owns remote state and resource ids; `wrangler.jsonc` stays a local-dev config. See the [deployment docs](https://microservices.sh/docs) for the full provision → migrate → upload pipeline and CI usage.
 
-`microservices deploy preview --confirm deploy` builds locally, packages the Cloudflare SvelteKit output, and uploads that artifact to the microservices.sh API. In CI, use:
+## Links
 
-```bash
-MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy preview --confirm deploy --ci --json --output deployment.json
-MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy provision --input deployment.json --confirm provision --ci --json --output provision.json
-MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy migrate --input deployment.json --confirm migrate --ci --json --output migrate.json
-MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy upload-plan --input deployment.json --ci --json --output upload-plan.json
-MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy upload --input deployment.json --confirm upload --ci --json --output upload.json
-MICROSERVICES_API_KEY=<workspace-api-key> pnpm microservices deploy cleanup --input deployment.json --confirm cleanup --ci --json --output cleanup.json
-```
+- Website & docs: https://microservices.sh
+- Issues: https://github.com/microservices-sh/microservices-sh/issues
 
-Interactive setup asks for project name, template, extra modules, an optional Git remote, and package manager. Template, module, and package-manager prompts show numbered choices and accept either numbers or ids; enter nothing or `none` for template defaults. Available modules are generated immediately; planned modules are returned as follow-up `add --plan` commands. Local generation still works without login.
-
-Distribution builds bundle the internal generator into `dist/index.js`:
-
-```bash
-pnpm --filter create-microservices-app build
-pnpm --filter create-microservices-app pack --dry-run
-pnpm --filter create-microservices-app smoke
-```
-
-Generated projects support:
-
-```bash
-pnpm microservices updates --json
-pnpm microservices upgrade booking --plan --json
-pnpm microservices add payment-stripe --plan --json
-pnpm microservices check --json
-```
-
-## Release
-
-The repository includes a manual GitHub Actions workflow at `.github/workflows/npm-publish.yml`.
-
-Default runs use `dry_run=true`. A real publish requires:
-
-- `NPM_PUBLISH_ENABLED=true` as a GitHub repository variable
-- `NPM_TOKEN` as a GitHub repository secret
-
-Do not run a real publish until the version and license are finalized.
+MIT licensed.

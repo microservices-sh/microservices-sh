@@ -16,12 +16,33 @@
   "resources": [
     { "type": "d1", "binding": "DB", "tables": ["audit_events"] }
   ],
-  "permissions": ["audit.read", "audit.export", "audit.admin"],
-  "requires": [],
-  "optional": [],
-  "hooks": ["redactAuditPayload", "beforeAuditExport"],
-  "events": ["audit.recorded", "audit.exported"],
-  "rpc": [],
+  "permissions": ["audit.read", "audit.export", "audit.admin", "audit.extend"],
+  "connections": {
+    "requires": [],
+    "optional": ["auth", "customer", "booking", "payment"],
+    "rpc": { "exposes": [], "calls": [] },
+    "events": {
+      "emits": ["audit.recorded", "audit.exported"],
+      "consumes": [
+        "auth.token_minted",
+        "auth.key_rotated",
+        "customer.created",
+        "customer.updated",
+        "booking.created",
+        "booking.confirmed",
+        "booking.cancelled",
+        "payment.checkout_created",
+        "payment.succeeded",
+        "payment.refunded",
+        "payment.failed"
+      ]
+    },
+    "hookPoints": {
+      "redactAuditPayload": { "kind": "filter", "scope": "audit.extend" },
+      "beforeAuditExport": { "kind": "filter", "scope": "audit.extend" }
+    },
+    "provides": { "hooks": [] }
+  },
   "customization": {
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]

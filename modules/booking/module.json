@@ -17,16 +17,32 @@
     { "type": "d1", "binding": "DB", "tables": ["services", "bookings", "domain_events", "audit_events"] },
     { "type": "kv", "binding": "CACHE_KV", "optional": true }
   ],
-  "permissions": ["booking.read", "booking.write", "booking.admin"],
-  "requires": ["customer"],
-  "optional": ["auth", "audit-log", "payment", "email"],
-  "hooks": ["calculateAvailability", "beforeBookingCreate", "afterBookingConfirmed", "beforeBookingCancel"],
-  "events": ["booking.created", "booking.confirmed", "booking.cancelled"],
-  "rpc": [
-    { "method": "listBookings", "scope": "booking.read", "public": false },
-    { "method": "getBooking", "scope": "booking.read", "public": false },
-    { "method": "getAvailability", "scope": "booking.read", "public": false }
-  ],
+  "permissions": ["booking.read", "booking.write", "booking.admin", "booking.extend", "booking.observe"],
+  "connections": {
+    "requires": ["customer"],
+    "optional": ["auth", "audit-log", "payment", "email"],
+    "rpc": {
+      "exposes": [
+        { "method": "listBookings", "scope": "booking.read", "public": false },
+        { "method": "getBooking", "scope": "booking.read", "public": false },
+        { "method": "getAvailability", "scope": "booking.read", "public": false }
+      ],
+      "calls": [
+        { "target": "customer.getCustomer", "scope": "customer.read" }
+      ]
+    },
+    "events": {
+      "emits": ["booking.created", "booking.confirmed", "booking.cancelled"],
+      "consumes": ["payment.succeeded"]
+    },
+    "hookPoints": {
+      "calculateAvailability": { "kind": "filter", "scope": "booking.extend" },
+      "beforeBookingCreate": { "kind": "filter", "scope": "booking.extend" },
+      "afterBookingConfirmed": { "kind": "observer", "scope": "booking.observe" },
+      "beforeBookingCancel": { "kind": "guard", "scope": "booking.extend" }
+    },
+    "provides": { "hooks": [] }
+  },
   "customization": {
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
