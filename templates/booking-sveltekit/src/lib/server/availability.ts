@@ -105,21 +105,21 @@ async function loadConfig(
   const db = getDb(d1);
   const dow = weekday(date);
   try {
-  const forService = (col: typeof availabilityRules.serviceId | typeof availabilityExceptions.serviceId) =>
-    or(isNull(col), eq(col, serviceId));
+    const forService = (col: typeof availabilityRules.serviceId | typeof availabilityExceptions.serviceId) =>
+      or(isNull(col), eq(col, serviceId));
 
-  const [ruleRows, exceptionRows]: [AvailabilityRule[], AvailabilityException[]] = await Promise.all([
-    db
-      .select()
-      .from(availabilityRules)
-      .where(and(eq(availabilityRules.active, true), eq(availabilityRules.dayOfWeek, dow), forService(availabilityRules.serviceId)))
-      .all(),
-    db
-      .select()
-      .from(availabilityExceptions)
-      .where(and(eq(availabilityExceptions.date, date), forService(availabilityExceptions.serviceId)))
-      .all(),
-  ]);
+    const [ruleRows, exceptionRows]: [AvailabilityRule[], AvailabilityException[]] = await Promise.all([
+      db
+        .select()
+        .from(availabilityRules)
+        .where(and(eq(availabilityRules.active, true), eq(availabilityRules.dayOfWeek, dow), forService(availabilityRules.serviceId)))
+        .all(),
+      db
+        .select()
+        .from(availabilityExceptions)
+        .where(and(eq(availabilityExceptions.date, date), forService(availabilityExceptions.serviceId)))
+        .all(),
+    ]);
 
     const rules: Window[] = ruleRows.map((r) => ({ startTime: r.startTime, endTime: r.endTime, bufferMinutes: r.bufferMinutes }));
     return { rules, exceptions: exceptionRows };

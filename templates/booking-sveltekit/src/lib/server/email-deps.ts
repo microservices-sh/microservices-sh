@@ -13,8 +13,9 @@ function createConsoleEmailProvider(): EmailProvider {
       console.log(`[email:console] to=${input.to.join(",")} subject=${JSON.stringify(input.subject)}`);
       return {
         ok: true,
+        // "console" isn't a real EmailProviderId — the dev provider only logs.
         data: {
-          provider: "console" as EmailProvider["id"] as never,
+          provider: "console" as never,
           providerMessageId: `console_${crypto.randomUUID().slice(0, 8)}`,
           status: "sent",
         },

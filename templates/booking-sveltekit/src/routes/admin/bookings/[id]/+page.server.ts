@@ -1,10 +1,9 @@
 import type { PageServerLoad, Actions } from "./$types";
 import { error, fail, redirect } from "@sveltejs/kit";
 import { getBooking, cancelBooking, createBooking } from "@microservices-sh/booking";
-import { refundPayment } from "@microservices-sh/payment";
 import { getCompanySettings } from "$lib/server/settings";
 import { getAvailability } from "$lib/server/availability";
-import { getPaymentDeps, findBookingPayment } from "$lib/server/payment-deps";
+import { refundBookingDeposit } from "$lib/server/payment-deps";
 
 export const load: PageServerLoad = async ({ params, locals, url, platform }) => {
   const result = await getBooking({ id: params.id }, { bookingRepository: locals.bookingRepository });
@@ -44,17 +43,9 @@ export const actions: Actions = {
     );
     if (!res.ok) return fail(res.status, { error: res.error.message });
 
-    // Refund the deposit, if any — best-effort.
-    try {
-      if (current.ok) {
-        const deps = getPaymentDeps(platform?.env?.DB, platform?.env);
-        const payment = await findBookingPayment(deps, current.data.booking.customerId, params.id);
-        if (payment) await refundPayment({ intentId: payment.intentId }, deps);
-      }
-    } catch (err) {
-      console.error("Refund on cancel failed:", err);
+    if (current.ok) {
+      await refundBookingDeposit(platform?.env?.DB, platform?.env, current.data.booking.customerId, params.id);
     }
-
     return { cancelled: true };
   },
 

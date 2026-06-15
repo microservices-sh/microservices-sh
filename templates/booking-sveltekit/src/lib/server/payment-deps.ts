@@ -5,7 +5,7 @@
 // Booking↔payment linkage is template-side: a deposit's `description` is
 // `booking:<bookingId>`, so refund-on-cancel can find it.
 import type { PaymentGateway, PaymentRepository } from "@microservices-sh/payment/ports";
-import { listPayments } from "@microservices-sh/payment";
+import { listPayments, refundPayment } from "@microservices-sh/payment";
 import { createD1PaymentRepository } from "@microservices-sh/payment/adapters/d1";
 import { createMemoryPaymentRepository } from "@microservices-sh/payment/adapters/memory";
 import { createStripePaymentGateway } from "@microservices-sh/payment/adapters/stripe-gateway";
@@ -50,4 +50,21 @@ export async function findBookingPayment(deps: PaymentDeps, customerId: string, 
       (p) => p.description === bookingRef(bookingId) && p.status !== "refunded" && p.status !== "failed",
     ) ?? null
   );
+}
+
+// Refund a booking's deposit on cancellation. Best-effort — a payment/refund
+// problem must never block the cancel itself.
+export async function refundBookingDeposit(
+  d1: D1Database | undefined,
+  env: PaymentEnv | undefined,
+  customerId: string,
+  bookingId: string,
+): Promise<void> {
+  try {
+    const deps = getPaymentDeps(d1, env);
+    const payment = await findBookingPayment(deps, customerId, bookingId);
+    if (payment) await refundPayment({ intentId: payment.intentId }, deps);
+  } catch (err) {
+    console.error("Refund on cancel failed:", err);
+  }
 }
