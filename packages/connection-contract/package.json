@@ -1,0 +1,22 @@
+{
+  "name": "@microservices-sh/connection-contract",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "exports": {
+    ".": { "types": "./src/index.d.ts", "import": "./src/index.js", "default": "./src/index.js" },
+    "./envelope": "./src/envelope.js",
+    "./errors": "./src/errors.js",
+    "./correlation": "./src/correlation.js",
+    "./event-envelope": "./src/event-envelope.js",
+    "./hooks": "./src/hooks.js",
+    "./manifest": "./src/manifest.js",
+    "./composer": "./src/composer/compose.js"
+  },
+  "scripts": { "build": "node --check src/index.js", "test": "vitest run" },
+  "dependencies": { "zod": "^3.25.76" },
+  "files": ["src"],
+  "license": "MIT",
+  "publishConfig": { "access": "public" }
+}
