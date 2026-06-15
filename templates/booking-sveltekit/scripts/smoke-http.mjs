@@ -1,4 +1,18 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 const baseUrl = (process.argv[2] ?? process.env.MICROSERVICES_TEMPLATE_BASE_URL ?? "http://127.0.0.1:5174").replace(/\/$/, "");
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+
+function readExpectedHomeText() {
+  try {
+    const content = JSON.parse(readFileSync(resolve(scriptDir, "../src/content.json"), "utf8"));
+    return content.hero?.headline || "Create a booking";
+  } catch {
+    return "Create a booking";
+  }
+}
 
 async function fetchText(path, init) {
   const response = await fetch(`${baseUrl}${path}`, init);
@@ -105,7 +119,7 @@ async function main() {
   const checks = [];
 
   const home = await request("/");
-  assertIncludes("home", home.text, "Start with a real booking app");
+  assertIncludes("home", home.text, readExpectedHomeText());
   checks.push({ id: "route:/", status: "pass" });
 
   const book = await request("/book");
