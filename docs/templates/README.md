@@ -5,6 +5,7 @@ Templates are predefined starting repositories for generated apps. They are not 
 ## Current Specs
 
 - `template-spec-standard.md` - standard every template spec must follow.
+- `content-contracts.md` - convention for agent-editable content (content.json + schema + generated types + validator + CLAUDE.md).
 - `booking-sveltekit.md` - full Cloudflare SvelteKit booking app template spec.
 - `../../templates/booking-sveltekit` - concrete official template shell in this repo.
 

@@ -1,20 +1,26 @@
 #!/usr/bin/env node
 /* ─────────────────────────────────────────────────────────────────────────
-   Generate src/content.types.ts for every template that ships a content
-   contract (content.schema.json). The schema is the single source of truth;
-   the TypeScript type is derived from it so the two can never drift.
+   Sync the content-contract tooling into every template that ships a content
+   contract (content.schema.json). For each such template this:
+     1. generates src/content.types.ts from the schema (single source of truth —
+        the type can never drift from the contract), and
+     2. syncs the canonical validator into scripts/validate-content.mjs (so every
+        template runs identical validation logic).
 
-   Run after editing any template's content.schema.json:
+   Run after editing any template's content.schema.json, or after editing the
+   canonical validator (assets/validate-content.mjs):
      pnpm --filter create-microservices-app gen:template-types
    ───────────────────────────────────────────────────────────────────────── */
-import { readFile, writeFile, readdir } from "node:fs/promises";
+import { readFile, writeFile, readdir, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { compile } from "json-schema-to-typescript";
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = resolve(packageRoot, "..", "..");
 const templatesDir = resolve(repoRoot, "templates");
+const canonicalValidator = await readFile(resolve(packageRoot, "assets", "validate-content.mjs"), "utf8");
 
 const banner =
   "/* AUTO-GENERATED from content.schema.json — do not edit by hand.\n" +
@@ -53,7 +59,14 @@ for (const entry of await readdir(templatesDir, { withFileTypes: true })) {
 
   const out = resolve(templatesDir, entry.name, "src", "content.types.ts");
   await writeFile(out, ts);
-  process.stdout.write(`generated types: ${entry.name}/src/content.types.ts\n`);
+
+  // Sync the canonical validator into the template (templates ship standalone,
+  // so each carries its own copy — kept identical via this sync).
+  const scriptsDir = resolve(templatesDir, entry.name, "scripts");
+  await mkdir(scriptsDir, { recursive: true });
+  await writeFile(resolve(scriptsDir, "validate-content.mjs"), canonicalValidator);
+
+  process.stdout.write(`synced content tooling: ${entry.name} (types + validator)\n`);
   count += 1;
 }
 

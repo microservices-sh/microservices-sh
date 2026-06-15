@@ -1,10 +1,16 @@
 #!/usr/bin/env node
 /* ─────────────────────────────────────────────────────────────────────────
-   Validate src/content.json against content.schema.json.
-   Zero dependencies — implements the JSON Schema keyword subset this template's
-   schema uses (type, required, additionalProperties, properties, enum, pattern,
-   min/maxLength, min/maxItems, items, $ref → $defs, format: uri).
-   Runs automatically before `npm run build` (prebuild) and via `npm run validate`.
+   Content validator for the template content contract.
+   Canonical source: create-microservices-app/assets/validate-content.mjs.
+   Each template carries a synced copy at scripts/validate-content.mjs — edit the
+   canonical source and run `pnpm --filter create-microservices-app
+   gen:template-types`; do not hand-edit the copies.
+
+   Validates src/content.json against content.schema.json. Zero dependencies —
+   implements the JSON Schema keyword subset the content contracts use (type,
+   required, additionalProperties, properties, enum, pattern, min/maxLength,
+   min/maxItems, items, $ref → $defs, format: uri). Runs automatically before
+   `npm run build` (prebuild) and via `npm run validate`.
    ───────────────────────────────────────────────────────────────────────── */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
