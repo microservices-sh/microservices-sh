@@ -170,6 +170,14 @@ If executing with subagents, 3C is the fan-out; 3A/3B/3D are serial.
 
 ## Sub-phase 3C — Migrate the remaining 16 modules (PARALLELIZABLE)
 
+> **STATUS (2026-06-15): DONE.** All 17 real modules carry `connections` (268 tests green,
+> frozen-lockfile OK). `support-ticket` is a PHANTOM (dir has only a node_modules symlink
+> farm — no source/git), excluded. `email` has no dual tree here. Shared-tree approach that
+> worked (no worktree): pre-stage the contract dep + ONE lockfile commit, then one src-only
+> subagent per module (explicit-path commits, no install/amend) — avoided the
+> lockfile-contention git incident the first ad-hoc batch hit. REMAINING POLISH:
+> customer/booking/audit-log use-case envelope/meta (their manifests are done).
+
 > Run in an isolated worktree (concurrency). One subagent per module. Each module is independent; gate each on: `tsc --noEmit` clean + `compose([deps..., module])` ok + module `check:spec` + its `connections.test.ts` green.
 
 **Modules (16 total; 3 of them — customer, booking, audit-log — are migrated earlier in Task 6.5 because the e2e fixture needs them, leaving 13 for this fan-out):** admin-shell, billing-subscriptions, calendar-google, email, file-media, forms-intake, gateway, invoice, jobs-workflows, notifications-inapp, org-team-rbac, support-ticket, webhook-delivery.
