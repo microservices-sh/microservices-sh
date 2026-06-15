@@ -1378,19 +1378,23 @@ async function main() {
   process.stdout.write(`workspace spec check passed (${data.checked.length} target${data.checked.length === 1 ? "" : "s"})\n`);
 }
 
-main().catch((error) => {
-  const parsed = parseArgs(process.argv.slice(2));
-  if (parsed.flags.json) {
-    writeJson({
-      ok: false,
-      error: {
-        code: "CHECK_FAILED",
-        checkId: error.checkId || null,
-        message: error.message
-      }
-    });
-  } else {
-    process.stderr.write(`${error.message}\n`);
-  }
-  process.exit(1);
-});
+// Only run the CLI when invoked directly (not when imported, e.g. by tests).
+const isDirectRun = import.meta.url === pathToFileURL(process.argv[1] ?? "").href;
+if (isDirectRun) {
+  main().catch((error) => {
+    const parsed = parseArgs(process.argv.slice(2));
+    if (parsed.flags.json) {
+      writeJson({
+        ok: false,
+        error: {
+          code: "CHECK_FAILED",
+          checkId: error.checkId || null,
+          message: error.message
+        }
+      });
+    } else {
+      process.stderr.write(`${error.message}\n`);
+    }
+    process.exit(1);
+  });
+}
