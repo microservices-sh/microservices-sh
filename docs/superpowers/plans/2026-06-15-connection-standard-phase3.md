@@ -123,6 +123,16 @@ If executing with subagents, 3C is the fan-out; 3A/3B/3D are serial.
 
 ## Sub-phase 3B — Both-topology e2e
 
+> **STATUS (2026-06-15): EMBEDDED arm DONE; service/workerd arm DEFERRED.**
+> Task 6.5 manifests (customer/booking/audit-log → `connections`) done. The embedded
+> composer→runtime e2e lives at `tests/integration/honeycomb-pipeline.test.ts` (5 tests):
+> real `compose() → emitArtifacts → eventRoutes → handleQueueBatch → audit-log consumeEvent`
+> — event fan-out, tamper-reject, correlationId across the queue hop, composer→runtime
+> pipeline. 188 tests green. The `@cloudflare/vitest-pool-workers` service-topology harness
+> (Tasks 7–9 below, with D1 + service bindings + workerd boot) remains deferred — high-risk
+> infra, no in-repo worker-boot precedent; the embedded e2e covers contract correctness.
+> The use-case envelope/meta migration of customer/booking/audit-log is folded into 3C.
+
 > **Prerequisite (sequencing gap the reviewer caught):** the e2e fixture composes `[auth, customer, payment, booking, audit-log]`, and scenarios 3 & 5 require **audit-log to consume `payment.succeeded`** and **booking to consume it** — but only auth+payment carry `connections` today. So the three fixture modules **customer, booking, audit-log must be migrated FIRST** (run the Task 10 recipe for just those three before 3B). In particular, audit-log must declare `events.consumes` for the events the scenarios assert (it is NOT a broad sink today — that wiring is net-new and must be authored). Treat "migrate customer, booking, audit-log" as Task 6.5, ahead of Task 7.
 
 ### Task 6.5: migrate the 3 e2e fixture modules (customer, booking, audit-log)
