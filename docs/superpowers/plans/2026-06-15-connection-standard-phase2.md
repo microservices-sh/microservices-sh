@@ -12,6 +12,10 @@
 
 **Scope note:** Phase 3 (migrate the remaining 16 modules) is a *separate* plan — it is the parallelizable work and is gated on this plan completing. Do not start it here.
 
+**Two decisions locked after plan review (read before starting):**
+- **Flat manifest fields are REPLACED, not duplicated.** The nested `connections` block replaces the old flat `requires`/`optional`/`hooks`/`events`/`rpc` fields in `module.json`. No two-sources-of-truth. Every reader of the old fields must be updated (Task 11 covers `module-contract` AND `packages/workspace-tools/src/index.js`).
+- **Phase 2 e2e is EMBEDDED-only.** Service-mode RPC client/entrypoint codegen + event routing-table generation are *Phase 3 (Connector)* deliverables. Therefore the both-topology parity scenario (spec §10 #6) and the composer→service-runtime pipeline (#7) move to the Phase 3 exit gate. Phase 2 proves the contract end-to-end *in-process*. Task 15 is descoped accordingly.
+
 ---
 
 ## File Structure
@@ -73,7 +77,7 @@
     "./composer": "./src/composer/compose.js"
   },
   "scripts": { "build": "node --check src/index.js", "test": "vitest run" },
-  "dependencies": { "zod": "^3.23.8" },
+  "dependencies": { "zod": "^3.25.76" },
   "files": ["src"],
   "license": "MIT",
   "publishConfig": { "access": "public" }
@@ -97,7 +101,9 @@ export * from "./manifest.js";
 
 - [ ] **Step 4: Verify** `pnpm --filter @microservices-sh/connection-contract build` → exit 0.
 
-- [ ] **Step 5: Commit** `git add packages/connection-contract && git commit -m "feat(connection-contract): scaffold package"`
+- [ ] **Step 5: Extend the root test globs.** Root `vitest.config.ts` `include` is currently `["modules/*/src/**/*.test.ts"]` — it will NOT pick up `packages/**/tests/*.test.js` or `modules/*/tests/*.test.js`. Add `"packages/**/tests/**/*.test.{js,ts}"` and `"modules/*/tests/**/*.test.{js,ts}"` so the DoD `pnpm test` gate actually runs everything this plan creates. Verify `pnpm test` discovers the package (even with 0 tests yet).
+
+- [ ] **Step 6: Commit** `git add packages/connection-contract vitest.config.ts && git commit -m "feat(connection-contract): scaffold package + test globs"`
 
 ---
 
@@ -308,7 +314,8 @@ describe("event-envelope", () => {
 
 - [ ] **Step 2: Run** → FAIL.
 - [ ] **Step 3: Implement** — port `hmac`/`canonical`/`signEnvelope`/`verifyEnvelope` from `modules/audit-log/src/envelope.ts`, but extend `canonical()` to include `correlationId` (stable key order). Keep the constant-time compare.
-- [ ] **Step 4: Run** → PASS. **Step 5: Commit** `feat(connection-contract): signed event envelope with correlationId`
+- [ ] **Step 4:** Also add the `correlationId` field to the source `EventEnvelope` type in `modules/audit-log/src/types.ts` (spec §8) so audit-log's own emit/consume paths carry it. The audit-log module will switch to importing sign/verify from `@microservices-sh/connection-contract` during its Phase 3 migration; for now just add the field + keep its local envelope consistent with the ported `canonical()`.
+- [ ] **Step 5: Run** → PASS. **Step 6: Commit** `feat(connection-contract): signed event envelope with correlationId`
 
 ---
 
@@ -419,7 +426,7 @@ describe("connectionsSchema", () => {
 - Create: `packages/connection-contract/src/composer/rules.js`
 - Test: `tests/composer/rules.test.js`
 
-Implement the 7 rules from Plan 25 §7. **Each rule is its own TDD micro-cycle** (failing test with a fixture that violates the rule → implement rule → green → commit). Order:
+Implement the 7 rules from Plan 25 §7. **Each rule is its own TDD micro-cycle** (failing test with a fixture that violates the rule → implement rule → green → commit). Put shared fixtures in `tests/composer/fixtures/` — one minimal violating manifest-set per rule (e.g. `missing-module.js`, `dangling-consumer.js`, `scope-gap.js`, `hook-target-missing.js`, `order-collision.js`, `schema-mismatch.js`, `dependency-cycle.js`) plus one `valid-set.js` reused across green-path assertions. Order:
 
 - [ ] **9.1** Missing required module (`requires`/`rpc.calls` target absent) → `MISSING_MODULE`
 - [ ] **9.2** Dangling consumer (`consumes` with no emitter) → `DANGLING_CONSUMER` (warn if optional, error otherwise)
@@ -446,18 +453,22 @@ Each rule signature: `(graph, modules) => Issue[]` where `Issue = { rule, severi
 
 ---
 
-## Task 11: Reconcile `module-contract` type to the new shape
+## Task 11: Reconcile ALL flat-field readers to the new `connections` shape
+
+This is the single most error-prone task — there are **two** sources of truth plus a generator, all reading the old flat fields. All must move to `connections` together (replacement, not duplication).
 
 **Files:**
-- Read first: `packages/module-contract/src/index.d.ts`, `src/index.js`
-- Modify: same
-- Test: `packages/module-contract/tests/contract.test.js` (create if absent)
+- Read first: `packages/module-contract/src/index.d.ts`, `src/index.js`; `packages/workspace-tools/src/index.js` (the registry/catalog generator + spec validator — reads `manifest.hooks`, `manifest.events || manifest.eventsEmitted`, etc., ~line 1035).
+- Modify: all three.
+- Test: `packages/module-contract/tests/contract.test.js`, `packages/workspace-tools/tests/connections.test.js` (create if absent).
 
-- [ ] **Step 1: Write failing test** asserting the exported contract uses the nested `connections` shape (`connections.events.emits`, `connections.provides.hooks`, etc.) rather than flat `eventsEmitted`/`eventsConsumed`/`hooks`.
+- [ ] **Step 1: Write failing test (module-contract)** asserting the exported contract uses the nested `connections` shape (`connections.events.emits`, `connections.rpc.exposes`, `connections.provides.hooks`) rather than flat `eventsEmitted`/`eventsConsumed`/`hooks`.
 - [ ] **Step 2: Run** → FAIL.
-- [ ] **Step 3: Migrate** the `ModuleContract` type + the JS object(s) to the nested shape; keep `id/name/version/status/category/summary/quality` as-is.
-- [ ] **Step 4: Run** → PASS.
-- [ ] **Step 5:** Run `pnpm spec:check:all` — fix any catalog/registry generation that reads the old field names. **Commit** `refactor(module-contract): nested connections shape`
+- [ ] **Step 3: Migrate `module-contract`** — `ModuleContract` type + the `MODULES` JS objects to the nested shape. Keep `id/name/version/status/summary/quality`. **Pre-existing drift to fix while here:** `.d.ts` has no `rpc` field though `.js` carries `rpc: [...]`; `category` type is `"core"|"vertical"|"connector"` but data uses `"vertical"|"sink"|"provider"` and `module.json` uses `class:"platform"`. Reconcile `category`/`class` to one enum.
+- [ ] **Step 4: Write failing test (workspace-tools)** asserting registry/catalog build reads `connections.*` (hooks/events/rpc survive a build from a `connections`-only manifest).
+- [ ] **Step 5: Migrate `workspace-tools`** — make every flat-field read prefer `manifest.connections.*` with a **temporary fallback** to the old flat field, e.g. `const emits = manifest.connections?.events?.emits ?? manifest.events ?? manifest.eventsEmitted ?? []`. This fallback is required so the 16 not-yet-migrated modules keep passing `spec:check` during the Phase 2→3 window; mark each with `// TODO(phase3): drop flat fallback` and remove them in the Phase 3 plan once all modules carry `connections`.
+- [ ] **Step 6: Run** both tests → PASS, then `pnpm spec:check:all` → green for ALL modules (migrated auth/payment via `connections`, the other 16 via fallback).
+- [ ] **Step 7: Commit** `refactor: nested connections shape across module-contract + workspace-tools`
 
 ---
 
@@ -484,10 +495,12 @@ Each rule signature: `(graph, modules) => Issue[]` where `Issue = { rule, severi
 - Modify: `modules/payment/module.json` (+ `src/**`)
 - Test: existing payment tests + `modules/payment/tests/connections.test.js`
 
-- [ ] **Step 1:** Add `connections` block: rpc.exposes `createPaymentIntent`; rpc.calls `customer.getCustomer` + `auth.verifyToken`; events.emits the 4 payment events; **hookPoints**: `beforeCreatePaymentIntent` (filter, scope `payment.extend`), `afterPaymentSucceeded` (observer, scope `payment.observe`).
-- [ ] **Step 2: Write failing test** asserting `compose([auth, customer, payment])` is `ok`, and a simulated `provides.hooks` registrant against `payment.beforeCreatePaymentIntent` resolves into a `hookChain` and `runHooks` applies it.
+> **No invented cross-calls.** Today `payment` only depends on `paymentRepository` + `paymentGateway` — it does NOT call `customer.getCustomer`. Do not add that call here (it would be a new feature, not a migration). The only RPC `payment` legitimately needs is `auth.verifyToken` for caller-token verification, which the service-mode dispatcher already does at the entrypoint. So `rpc.calls` for payment = `auth.verifyToken` only. The `booking→customer.getCustomer` RPC-happy demo lives in the e2e fixture (Task 15), where `booking` + `customer` are present and the call already exists in the codebase.
+
+- [ ] **Step 1:** Add `connections` block: rpc.exposes `createPaymentIntent`; rpc.calls `auth.verifyToken`; events.emits the 4 payment events; **hookPoints**: `beforeCreatePaymentIntent` (filter, scope `payment.extend`), `afterPaymentSucceeded` (observer, scope `payment.observe`).
+- [ ] **Step 2: Write failing test** asserting `compose([auth, payment])` is `ok`, and a simulated `provides.hooks` registrant against `payment.beforeCreatePaymentIntent` resolves into a `hookChain` and `runHooks` applies it.
 - [ ] **Step 3: Run** → FAIL.
-- [ ] **Step 4:** Migrate `createPaymentIntent` to call `runHooks("beforeCreatePaymentIntent", input, ctx, chain)` before gateway call; emit signed events with `correlationId`; `ok/err` + registered codes + `meta`.
+- [ ] **Step 4:** Migrate `createPaymentIntent` to call `runHooks("beforeCreatePaymentIntent", input, ctx, chain)` before gateway call; emit signed events with `correlationId`; `ok/err` + registered codes + `meta`. Do not change payment's runtime deps.
 - [ ] **Step 5: Run** → PASS. **Step 6: Commit** `refactor(payment): migrate to connection standard + typed hookPoints`
 
 ---
@@ -495,27 +508,36 @@ Each rule signature: `(graph, modules) => Issue[]` where `Issue = { rule, severi
 ## Task 14: Integration test (in-process compose)
 
 **Files:**
-- Create: `tests/integration/compose-auth-payment-customer.test.js`
+- Create: `tests/integration/compose-auth-payment.test.js`
 
-- [ ] **Step 1: Write test:** compose `[auth, customer, payment]`, boot in-process (embedded), and assert: (a) payment→customer RPC returns data with envelope; (b) `payment.succeeded` event is signed + verified; (c) a registered filter hook mutates `createPaymentIntent` input; (d) one `correlationId` appears across RPC + event + hook.
+- [ ] **Step 1: Write test:** compose `[auth, payment]`, boot in-process (embedded), and assert: (a) payment verifies a caller token via `auth.verifyToken` (real existing call) → `403` on missing scope, `ok` with valid token; (b) `payment.succeeded` event is signed + verified; (c) a registered filter hook mutates `createPaymentIntent` input and a guard can veto; (d) one `correlationId` appears across the auth-verify call + emitted event + hook ctx.
 - [ ] **Step 2: Run** → exercise; fix wiring until green.
-- [ ] **Step 3: Commit** `test: integration compose auth+payment+customer`
+- [ ] **Step 3: Commit** `test: integration compose auth+payment`
 
 ---
 
-## Task 15: E2E topology harness (both modes)
+## Task 15: E2E harness — EMBEDDED topology only (Phase 2 scope)
+
+> **Why embedded-only:** spec §10's both-topology suite requires service-mode RPC client/entrypoint codegen + the generated event routing table, which are **Phase 3 (Connector)** deliverables. Phase 2 proves the contract in-process. Scenarios 6 (topology parity) and 7 (composer→service-runtime pipeline) are deferred to the Phase 3 exit gate. The e2e files are written now so the suite is *parameterizable over topology* later — Phase 3 just adds the `"service"` arm.
 
 **Files:**
 - Create: `tests/e2e/vitest.e2e.config.js` (`@cloudflare/vitest-pool-workers`)
-- Create: `tests/e2e/fixtures/compose-app.js`, `tests/e2e/helpers/flush-queues.js`
+- Create: `tests/e2e/fixtures/compose-app.js` (compose `[auth, customer, payment, booking, audit-log]`, boot embedded)
+- Create: `tests/e2e/helpers/flush-queues.js`
 - Create: `tests/e2e/scenarios.test.js`
 - Modify: root `package.json` → add `"test:e2e": "vitest run -c tests/e2e/vitest.e2e.config.js"`
 
-- [ ] **Step 1:** Add the dev dep `@cloudflare/vitest-pool-workers`; write the config with D1 + Queues + service bindings.
-- [ ] **Step 2:** Implement `flushQueues()` helper (deterministic drain — no sleeps).
-- [ ] **Step 3: Write the 7 scenarios** (Plan 25 §10) parameterized `describe.each(["embedded","service"])`. Scenario 6 (topology parity) diffs embedded vs service results modulo `requestId`/latency.
-- [ ] **Step 4: Run** `pnpm test:e2e` → iterate until scenarios 1–6 pass in **both** modes (scenario 7 = composer→runtime pipeline).
-- [ ] **Step 5: Commit** `test(e2e): connection standard scenarios, both topologies`
+- [ ] **Step 1:** Add dev dep `@cloudflare/vitest-pool-workers`; write the config with D1 + Queues bindings (embedded = single worker; no service bindings needed yet).
+- [ ] **Step 2:** Implement `flushQueues()` helper (deterministic Miniflare drain — no sleeps).
+- [ ] **Step 3:** Build `compose-app.js` fixture: run the real `compose()` on the 5 modules, boot the in-process app from the resulting wiring.
+- [ ] **Step 4: Write scenarios 1–5** (spec §10), parameterized `describe.each(["embedded"])` (the array is the seam Phase 3 extends to `["embedded","service"]`):
+  1. RPC happy — `booking → customer.getCustomer` returns data + envelope.
+  2. RPC auth-gate (negative) — missing scope → `403 FORBIDDEN_SCOPE`; expired JWT → `401`.
+  3. Event fan-out — `payment.succeeded` → booking consumer + audit-log sink; HMAC verified; tampered envelope rejected.
+  4. Hook chain — `payment.beforeCreatePaymentIntent` filter mutates (ordered) + a guard vetoes → intent aborts with guard error.
+  5. Correlation ID — one inbound request → same `correlationId` in RPC hop + event envelope + hook ctx + audit-log row (survives the async queue hop via `flushQueues()`).
+- [ ] **Step 5: Run** `pnpm test:e2e` → iterate until scenarios 1–5 pass embedded.
+- [ ] **Step 6: Commit** `test(e2e): connection standard scenarios (embedded)`
 
 ---
 
@@ -535,6 +557,13 @@ Each rule signature: `(graph, modules) => Issue[]` where `Issue = { rule, severi
 
 - `@microservices-sh/connection-contract` published-shape package: envelope, errors, correlation, event-envelope, hooks, manifest schema, composer — all unit-green.
 - Composer enforces all 7 rules; emits stable `wiring.json`.
-- `auth` + `payment` migrated; `module-contract` reconciled; `pnpm spec:check:all` green.
-- Integration + e2e scenarios 1–7 green in **both** embedded and service topologies.
-- This is the precondition for the Phase 3 plan (parallel migration of the remaining 16 modules, incl. the `email` dual tree).
+- `auth` + `payment` migrated to `connections`; `module-contract` + `workspace-tools` reconciled (with the temporary flat-field fallback keeping the other 16 modules green); `pnpm spec:check:all` green.
+- Root `vitest.config.ts` globs cover the new package + module tests; `pnpm test` runs unit + integration green.
+- Integration test + **embedded** e2e scenarios 1–5 green.
+- This is the precondition for the **Phase 3 plan**, which: (a) adds service-mode codegen + the generated event routing table, (b) extends the e2e suite to `["embedded","service"]` and adds scenarios 6 (topology parity) + 7 (composer→service-runtime pipeline), (c) migrates the remaining 16 modules (incl. the `email` dual tree), and (d) removes the flat-field fallback from `workspace-tools`.
+
+## Carried to Phase 3 (do not attempt here)
+- Service-mode RPC client/entrypoint codegen + generated event routing table (extend `packages/sdk-internal/src/rpc-codegen.js`).
+- E2E scenarios 6 (embedded vs service parity) + 7 (composer→service-runtime).
+- Migrate the 16 remaining modules; remove `// TODO(phase3)` flat-field fallbacks.
+- `microservices graph` CLI command (moved out of Phase 2 Task 16 unless trivial).
