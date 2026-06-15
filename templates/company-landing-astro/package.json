@@ -9,6 +9,7 @@
     "prebuild": "node scripts/validate-content.mjs",
     "build": "astro build",
     "preview": "astro preview",
+    "check:spec": "node ../../packages/workspace-tools/src/index.js check template --path .",
     "microservices": "node scripts/microservices.js"
   },
   "dependencies": {

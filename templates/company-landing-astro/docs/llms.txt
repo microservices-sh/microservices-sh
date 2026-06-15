@@ -1,0 +1,74 @@
+# Company Landing (Astro) LLM Guide
+
+Purpose: guide agents customizing the `company-landing-astro` template — a pure
+static company landing / marketing page built with Astro. No backend, no API, no
+database, no modules.
+
+## Read First
+
+- `microservices.template.json` — template manifest (category `marketing-site`,
+  `runtime.framework: astro`, `modules.required: []`)
+- `microservices.config.json` — `modules: []`, registry URL
+- `microservices.lock.json` — empty `modules` (this template uses none)
+- `content.schema.json` — the content contract (JSON Schema, draft 2020-12),
+  including the `x-microservices` envelope (write target + verify command)
+- `CLAUDE.md` / `README.agent.md` — the customization playbook
+- `docs/api-boundary.md` — why there is no server/API boundary
+
+## The One Rule
+
+All copy and the brand accent are **data**, not code. To make this the customer's
+site, edit **`src/content.json` only**. Components, layouts, pages, and styles
+read from that JSON — do not edit them for content changes.
+
+## Structure
+
+```txt
+src/content.json          customer-editable content (hero, features, process,
+                            pricing, theme.accent) — the single source of truth
+content.schema.json       contract: types, maxLength, minItems/maxItems, x-hint
+src/                      Astro pages/components/layouts (render content; no data)
+src/site.config.ts        types content.json — do not edit
+src/styles/tokens.css     design tokens — do not edit for brand color
+public/                   static assets served as-is
+scripts/validate-content.mjs   schema validator (runs on `validate` + `prebuild`)
+scripts/microservices.js  workspace shim
+```
+
+## Content Rules (from content.schema.json)
+
+- Respect every `maxLength` and array `minItems`/`maxItems`.
+- `features`, process steps, and pricing plans are **exactly 3** (fixed grids).
+- `features[].icon` must be one of: `engineering`, `design`, `performance`.
+- Mark **exactly one** pricing plan `featured: true`.
+- Links are in-page anchors (`#features`), `mailto:`, or `https://` URLs.
+- `theme.accent` is one `#rrggbb` hex (optional); it derives the whole accent
+  system. Pick enough contrast on the warm-paper background.
+- `additionalProperties` is false — extra fields fail validation and the build.
+
+## Customize
+
+1. Set the production origin: `site` in `astro.config.mjs` (used for canonical
+   URLs and OG tags).
+2. Edit `src/content.json` to the customer's company.
+3. Optionally set `theme.accent`.
+
+## Verify & Build
+
+```bash
+npm run validate   # fast schema check, path-pointed errors
+npm run dev        # preview locally
+npm run build      # runs validate (prebuild) then astro build -> ./dist
+```
+
+## Deploy
+
+Static only. `astro build` emits `./dist`; upload those assets to a static host.
+`wrangler.jsonc` points Cloudflare static assets at `./dist` (no Worker `main`).
+
+## Do Not
+
+- Do not add a server, API routes, SSR adapter, database, or modules — that would
+  break the static category and the boundary in `docs/api-boundary.md`.
+- Do not edit `src/site.config.ts` or `src/styles/tokens.css` for brand color.
+- Do not add fields outside `content.schema.json`.

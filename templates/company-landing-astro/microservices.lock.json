@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "2026-06-13",
+  "generatedAt": "template-scaffold",
+  "registry": {
+    "id": "microservices.sh",
+    "contractVersion": "2026-06-13"
+  },
+  "generator": {
+    "package": "create-microservices-app",
+    "version": "0.0.0"
+  },
+  "template": {
+    "id": "company-landing-astro",
+    "version": "0.2.0",
+    "source": "registry:company-landing-astro@0.2.0",
+    "checksum": "sha256:scaffold-company-landing-astro-0.2.0"
+  },
+  "deploy": {
+    "mode": "static"
+  },
+  "modules": [],
+  "customizations": {
+    "config": true,
+    "hooks": [],
+    "overlays": [],
+    "forks": []
+  }
+}

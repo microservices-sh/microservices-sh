@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "company-landing-astro",
+  "compatibility_date": "2026-06-01",
+  // Pure static site: Astro `output: "static"` builds to ./dist. There is no
+  // Worker entry (`main`) and no server runtime — Cloudflare serves the built
+  // assets directly. `not_found_handling` returns the built 404 page.
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  },
+  "observability": {
+    "enabled": true
+  }
+  // Custom domain routes are managed in the Cloudflare dashboard / deploy step,
+  // not here, so the upload token does not need Workers Routes permissions.
+}
