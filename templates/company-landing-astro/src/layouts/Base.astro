@@ -52,9 +52,20 @@ const jsonLd = {
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   </head>
   <body>
+    <div class="scroll-progress" aria-hidden="true"></div>
     <slot />
 
     <script>
+      // Scroll-progress hairline.
+      const sp = document.querySelector(".scroll-progress");
+      const onScroll = () => {
+        const h = document.documentElement;
+        const max = h.scrollHeight - h.clientHeight;
+        if (sp) sp.style.transform = `scaleX(${max > 0 ? h.scrollTop / max : 0})`;
+      };
+      document.addEventListener("scroll", onScroll, { passive: true });
+      onScroll();
+
       // One orchestrated reveal — staggered, and skipped for reduced-motion.
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const els = document.querySelectorAll("[data-reveal]");
@@ -98,16 +109,75 @@ const jsonLd = {
     text-rendering: optimizeLegibility;
     overflow-x: hidden;
   }
-  /* Faint paper grain + a single warm light source. */
+  /* A single warm light source. */
   body::before {
     content: "";
     position: fixed;
     inset: 0;
     pointer-events: none;
-    z-index: -1;
+    z-index: -2;
     background:
       radial-gradient(900px 500px at 78% -8%, var(--accent-wash), transparent 60%),
       radial-gradient(700px 600px at -5% 10%, rgba(26, 23, 20, 0.03), transparent 55%);
+  }
+  /* Authentic paper grain (SVG fractal noise). */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.4;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  }
+
+  /* Scroll-progress hairline. */
+  .scroll-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 2px;
+    width: 100%;
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    background: var(--accent);
+    z-index: 100;
+  }
+
+  /* Shared motion keyframes. */
+  @keyframes hf-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  @keyframes hf-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-7px);
+    }
+  }
+  @keyframes hf-marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes hf-dash {
+    to {
+      background-position: 32px 0;
+    }
+  }
+
+  /* Line-icons draw themselves when their card scrolls in (JS only). */
+  .js [data-reveal] .feat-icon path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+  .js [data-reveal].is-in .feat-icon path {
+    animation: hf-draw 0.9s var(--ease) 0.15s forwards;
   }
 
   h1,
@@ -203,6 +273,13 @@ const jsonLd = {
       opacity: 1;
       transform: none;
       transition: none;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
     }
   }
 

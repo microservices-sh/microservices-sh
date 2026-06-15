@@ -1,15 +1,20 @@
 ---
+import Icon from "./Icon.astro";
 interface Props {
   n: string;
   title: string;
   body: string;
+  icon?: string;
   delay?: number;
 }
-const { n, title, body, delay = 0 } = Astro.props;
+const { n, title, body, icon, delay = 0 } = Astro.props;
 ---
 
 <article class="card" data-reveal style={`--reveal-delay:${delay}ms`}>
-  <span class="card__n">{n}</span>
+  <div class="card__top">
+    {icon && <Icon name={icon} />}
+    <span class="card__n">{n}</span>
+  </div>
   <h3>{title}</h3>
   <p>{body}</p>
   <span class="card__rule" aria-hidden="true"></span>
@@ -23,6 +28,13 @@ const { n, title, body, delay = 0 } = Astro.props;
     gap: 0.75rem;
     padding: 1.75rem 0 0;
     border-top: 1px solid var(--rule-strong);
+  }
+  .card__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;
+    min-height: 34px;
   }
   .card__n {
     font-family: var(--font-mono);

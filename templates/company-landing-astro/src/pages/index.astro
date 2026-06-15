@@ -6,6 +6,7 @@ import Section from "../components/Section.astro";
 import Button from "../components/Button.astro";
 import FeatureCard from "../components/FeatureCard.astro";
 import FaqItem from "../components/FaqItem.astro";
+import Compass from "../components/Compass.astro";
 import { site } from "../site.config";
 
 const pad = (i: number) => String(i + 1).padStart(2, "0");
@@ -18,12 +19,12 @@ const pad = (i: number) => String(i + 1).padStart(2, "0");
   <main>
     <!-- HERO -->
     <section class="hero">
-      <div class="container">
-        <p class="eyebrow" data-reveal>{site.hero.eyebrow}</p>
-        <h1 data-reveal style="--reveal-delay:80ms">
-          {site.hero.titleLead} <em>{site.hero.titleEmphasis}</em> {site.hero.titleTail}
-        </h1>
-        <div class="hero__grid">
+      <div class="container hero__top">
+        <div class="hero__main">
+          <p class="eyebrow" data-reveal>{site.hero.eyebrow}</p>
+          <h1 data-reveal style="--reveal-delay:80ms">
+            {site.hero.titleLead} <em>{site.hero.titleEmphasis}</em> {site.hero.titleTail}
+          </h1>
           <p class="lead hero__lead" data-reveal style="--reveal-delay:160ms">{site.hero.lead}</p>
           <div class="hero__actions" data-reveal style="--reveal-delay:220ms">
             <Button href={site.hero.primary.href}>{site.hero.primary.label}</Button>
@@ -31,20 +32,30 @@ const pad = (i: number) => String(i + 1).padStart(2, "0");
             <p class="hero__note">{site.hero.note}</p>
           </div>
         </div>
+        <aside class="hero__aside">
+          <Compass />
+        </aside>
       </div>
 
       <div class="container logos" data-reveal style="--reveal-delay:300ms">
         <span class="logos__label">{site.logos.label}</span>
-        <ul class="logos__list">
-          {site.logos.items.map((n) => <li>{n}</li>)}
-        </ul>
+        <div class="logos__track">
+          <div class="logos__marquee">
+            <ul class="logos__list">
+              {site.logos.items.map((n) => <li>{n}</li>)}
+            </ul>
+            <ul class="logos__list" aria-hidden="true">
+              {site.logos.items.map((n) => <li>{n}</li>)}
+            </ul>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- FEATURES -->
     <Section id="features" n="01" eyebrow={site.features.eyebrow} title={site.features.title} ruled={false}>
       <div class="features">
-        {site.features.items.map((f, i) => <FeatureCard n={pad(i)} title={f.title} body={f.body} delay={i * 80} />)}
+        {site.features.items.map((f, i) => <FeatureCard n={pad(i)} title={f.title} body={f.body} icon={f.icon} delay={i * 80} />)}
       </div>
     </Section>
 
@@ -134,19 +145,23 @@ const pad = (i: number) => String(i + 1).padStart(2, "0");
 <style>
   /* HERO */
   .hero {
-    padding-top: clamp(3.5rem, 9vw, 7rem);
+    padding-top: clamp(3rem, 7vw, 5.5rem);
     padding-bottom: clamp(2.5rem, 6vw, 4rem);
   }
-  .hero h1 {
-    max-width: 17ch;
-    margin-top: 1.5rem;
-  }
-  .hero__grid {
+  .hero__top {
     display: grid;
-    grid-template-columns: 1.35fr 1fr;
-    gap: clamp(1.5rem, 4vw, 3.5rem);
-    margin-top: clamp(2rem, 4vw, 3.25rem);
-    align-items: end;
+    grid-template-columns: 1.35fr 0.85fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+  }
+  .hero__main {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: clamp(1.15rem, 2.6vw, 1.6rem);
+  }
+  .hero__main h1 {
+    max-width: 15ch;
   }
   .hero__lead {
     max-width: 46ch;
@@ -165,37 +180,62 @@ const pad = (i: number) => String(i + 1).padStart(2, "0");
     letter-spacing: 0.04em;
     margin-top: 0.25rem;
   }
-  @media (max-width: 760px) {
-    .hero__grid {
+  .hero__aside {
+    display: grid;
+    place-items: center;
+  }
+  @media (max-width: 860px) {
+    .hero__top {
       grid-template-columns: 1fr;
-      align-items: start;
+      gap: clamp(1.5rem, 6vw, 2.5rem);
+    }
+    .hero__aside {
+      order: -1;
+    }
+    .hero__main h1 {
+      max-width: 18ch;
     }
   }
 
-  /* LOGOS */
+  /* LOGOS — marquee */
   .logos {
     display: flex;
     align-items: center;
-    gap: clamp(1rem, 4vw, 2.5rem);
-    flex-wrap: wrap;
+    gap: clamp(1rem, 3vw, 2rem);
     margin-top: clamp(2.5rem, 6vw, 4rem);
     padding-top: 1.75rem;
     border-top: 1px solid var(--rule);
   }
   .logos__label {
+    flex: none;
     font-family: var(--font-mono);
     font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.16em;
     color: var(--faint);
   }
+  .logos__track {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  }
+  .logos__marquee {
+    display: flex;
+    width: max-content;
+    animation: hf-marquee 30s linear infinite;
+  }
+  .logos__track:hover .logos__marquee {
+    animation-play-state: paused;
+  }
   .logos__list {
     display: flex;
-    flex-wrap: wrap;
-    gap: clamp(1.25rem, 3.5vw, 2.75rem);
+    align-items: center;
+    gap: clamp(1.5rem, 3.5vw, 2.75rem);
     list-style: none;
     margin: 0;
-    padding: 0;
+    padding: 0 clamp(1.5rem, 3.5vw, 2.75rem) 0 0;
   }
   .logos__list li {
     font-family: var(--font-display);
@@ -204,6 +244,7 @@ const pad = (i: number) => String(i + 1).padStart(2, "0");
     color: var(--ink-soft);
     opacity: 0.72;
     letter-spacing: -0.01em;
+    white-space: nowrap;
   }
 
   /* FEATURES */
@@ -231,6 +272,7 @@ const pad = (i: number) => String(i + 1).padStart(2, "0");
     font-weight: 600;
   }
   .process__steps {
+    position: relative;
     list-style: none;
     margin: 0;
     padding: 0;
@@ -238,12 +280,32 @@ const pad = (i: number) => String(i + 1).padStart(2, "0");
     grid-template-columns: repeat(3, 1fr);
     gap: clamp(1.5rem, 4vw, 3rem);
   }
+  /* Animated connector flowing across the steps. */
+  .process__steps::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: repeating-linear-gradient(90deg, var(--accent) 0 9px, transparent 9px 18px);
+    background-size: 36px 2px;
+    opacity: 0.45;
+    animation: hf-dash 1.1s linear infinite;
+  }
   .process__steps li {
     display: flex;
     flex-direction: column;
     gap: 0.55rem;
     padding-top: 1.5rem;
-    border-top: 1px solid var(--rule-strong);
+  }
+  @media (max-width: 760px) {
+    .process__steps::before {
+      display: none;
+    }
+    .process__steps li {
+      border-top: 1px solid var(--rule-strong);
+    }
   }
   .process__n {
     font-family: var(--font-mono);

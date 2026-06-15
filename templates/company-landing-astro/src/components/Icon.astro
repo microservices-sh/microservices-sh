@@ -1,0 +1,33 @@
+---
+// Minimal line-art icons. Stroke-only so they self-draw (see Base.astro
+// .feat-icon rules). Add new icons by extending the map.
+interface Props {
+  name: string;
+}
+const { name } = Astro.props;
+
+const ICONS: Record<string, string[]> = {
+  engineering: ["M9.5 8.5 6 12l3.5 3.5", "M14.5 8.5 18 12l-3.5 3.5", "M13 7l-2 10"],
+  design: ["M5 9.5 12 6l7 3.5-7 3.5z", "M5 13.5 12 17l7-3.5"],
+  performance: ["M4.5 16a7.5 7.5 0 0 1 15 0", "M12 16l4-3.2", "M12 16v0"],
+};
+const paths = ICONS[name] ?? [];
+---
+
+<svg class="feat-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  {paths.map((d) => <path d={d} pathLength="1" />)}
+</svg>
+
+<style>
+  .feat-icon {
+    width: 34px;
+    height: 34px;
+  }
+  .feat-icon path {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+</style>

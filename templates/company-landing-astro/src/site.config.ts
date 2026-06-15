@@ -11,6 +11,7 @@ export interface Link {
 export interface Feature {
   title: string;
   body: string;
+  icon: string;
 }
 
 export interface Step {
@@ -67,14 +68,17 @@ export const site = {
       {
         title: "Product engineering",
         body: "Auth, payments, and the boring 30% that decides whether a product survives — built once, built right.",
+        icon: "engineering",
       },
       {
         title: "Design systems",
         body: "A typographic, token-driven foundation your whole team can build on without it drifting into chaos.",
+        icon: "design",
       },
       {
         title: "Performance & care",
         body: "Fast by default, accessible by default, observed in production. We sweat the details you'll never see.",
+        icon: "performance",
       },
     ] as Feature[],
   },

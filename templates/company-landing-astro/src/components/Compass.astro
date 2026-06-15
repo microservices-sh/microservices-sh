@@ -1,0 +1,132 @@
+---
+// Animated line-art compass rose — the hero signature mark (Northwind).
+// Rings + ticks self-draw on load, the needle oscillates like it's settling,
+// and the whole mark floats. Pure SVG + CSS. Decorative (aria-hidden).
+const ticks = [0, 45, 90, 135, 180, 225, 270, 315];
+---
+
+<div class="compass-wrap" data-reveal style="--reveal-delay:240ms">
+  <svg class="compass" viewBox="0 0 200 200" role="img" aria-hidden="true">
+    <!-- rings -->
+    <circle class="ring ring--1" cx="100" cy="100" r="94" pathLength="1" />
+    <circle class="ring ring--2" cx="100" cy="100" r="73" pathLength="1" />
+
+    <!-- ticks -->
+    <g class="ticks">
+      {
+        ticks.map((deg, i) => (
+          <line
+            class={`tick ${deg % 90 === 0 ? "tick--major" : "tick--minor"}`}
+            x1="100"
+            y1={deg % 90 === 0 ? 11 : 13}
+            x2="100"
+            y2={deg % 90 === 0 ? 24 : 22}
+            pathLength="1"
+            transform={`rotate(${deg} 100 100)`}
+            style={`animation-delay:${0.5 + i * 0.07}s`}
+          />
+        ))
+      }
+    </g>
+
+    <!-- cardinal labels -->
+    <g class="labels">
+      <text class="label" x="100" y="46" text-anchor="middle">N</text>
+      <text class="label" x="158" y="104" text-anchor="middle">E</text>
+      <text class="label" x="100" y="162" text-anchor="middle">S</text>
+      <text class="label" x="42" y="104" text-anchor="middle">W</text>
+    </g>
+
+    <!-- needle -->
+    <g class="needle-fade">
+      <g class="needle">
+        <polygon class="north" points="100,34 106,102 94,102" />
+        <polygon class="south" points="100,166 106,98 94,98" />
+      </g>
+    </g>
+    <circle class="hub" cx="100" cy="100" r="4.5" />
+  </svg>
+</div>
+
+<style>
+  .compass-wrap {
+    display: grid;
+    place-items: center;
+  }
+  .compass {
+    width: clamp(220px, 27vw, 330px);
+    height: auto;
+    color: var(--ink);
+    animation: hf-float 7s var(--ease) infinite;
+  }
+
+  .ring {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.1;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: hf-draw 1.5s var(--ease) forwards;
+  }
+  .ring--2 {
+    opacity: 0.5;
+    animation-delay: 0.25s;
+  }
+
+  .tick {
+    stroke: currentColor;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: hf-draw 0.5s var(--ease) forwards;
+  }
+  .tick--major {
+    stroke-width: 1.6;
+  }
+  .tick--minor {
+    stroke-width: 1;
+    opacity: 0.45;
+  }
+
+  .label {
+    fill: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    opacity: 0;
+    animation: hf-fade 0.6s ease forwards 1s;
+  }
+
+  .needle-fade {
+    opacity: 0;
+    animation: hf-fade 0.7s ease forwards 0.85s;
+  }
+  .needle {
+    transform-origin: 100px 100px;
+    animation: needle-osc 6.5s var(--ease) infinite;
+  }
+  .north {
+    fill: var(--accent);
+  }
+  .south {
+    fill: var(--ink);
+    opacity: 0.82;
+  }
+  .hub {
+    fill: var(--ink);
+  }
+
+  @keyframes needle-osc {
+    0%,
+    100% {
+      transform: rotate(-7deg);
+    }
+    50% {
+      transform: rotate(8deg);
+    }
+  }
+  @keyframes hf-fade {
+    to {
+      opacity: 1;
+    }
+  }
+</style>
