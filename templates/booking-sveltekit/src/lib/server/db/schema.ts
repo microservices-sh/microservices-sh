@@ -133,3 +133,39 @@ export const companySettings = sqliteTable("company_settings", {
 });
 
 export type CompanySettings = typeof companySettings.$inferSelect;
+
+// NEW (revamp P1): weekly recurring availability. service_id NULL = all services.
+export const availabilityRules = sqliteTable(
+  "availability_rules",
+  {
+    id: text("id").primaryKey(),
+    serviceId: text("service_id").references(() => services.id),
+    dayOfWeek: integer("day_of_week").notNull(), // 0=Sun … 6=Sat
+    startTime: text("start_time").notNull(), // 'HH:MM' (company timezone)
+    endTime: text("end_time").notNull(), // 'HH:MM'
+    bufferMinutes: integer("buffer_minutes").notNull().default(0),
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (t) => ({ day: index("idx_availability_rules_day").on(t.dayOfWeek) }),
+);
+
+// NEW (revamp P1): date-specific overrides — closures or special hours.
+export const availabilityExceptions = sqliteTable(
+  "availability_exceptions",
+  {
+    id: text("id").primaryKey(),
+    serviceId: text("service_id").references(() => services.id),
+    date: text("date").notNull(), // 'YYYY-MM-DD'
+    type: text("type").notNull(), // 'closed' | 'special_hours'
+    startTime: text("start_time"), // 'HH:MM' when special_hours
+    endTime: text("end_time"),
+    reason: text("reason"),
+    createdAt: text("created_at").notNull(),
+  },
+  (t) => ({ date: index("idx_availability_exceptions_date").on(t.date) }),
+);
+
+export type AvailabilityRule = typeof availabilityRules.$inferSelect;
+export type AvailabilityException = typeof availabilityExceptions.$inferSelect;

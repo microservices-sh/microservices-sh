@@ -29,6 +29,8 @@
     "@microservices-sh/gateway": "workspace:*",
     "@sveltejs/adapter-cloudflare": "^7.2.4",
     "@sveltejs/kit": "^2.9.0",
+    "date-fns": "^3.6.0",
+    "date-fns-tz": "^3.2.0",
     "drizzle-orm": "^0.41.0",
     "svelte": "^5.0.0",
     "vite": "^5.0.0",

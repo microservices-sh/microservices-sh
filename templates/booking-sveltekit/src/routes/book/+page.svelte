@@ -1,5 +1,12 @@
 <script lang="ts">
   let { data, form } = $props();
+
+  const fmtSlot = (iso: string) =>
+    new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: data.timezone,
+    }).format(new Date(iso));
 </script>
 
 <main class="section">
@@ -52,7 +59,7 @@
                   disabled={!slot.available}
                   checked={index === 0 && slot.available}
                 />
-                {new Date(slot.startsAt).toLocaleString()} {slot.available ? "" : "(unavailable)"}
+                {fmtSlot(slot.startsAt)} {slot.available ? "" : "(unavailable)"}
               </label>
             {/each}
           </div>

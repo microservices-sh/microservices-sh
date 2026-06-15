@@ -1,26 +1,38 @@
 import type { PageServerLoad, Actions } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
-import { createBooking, getAvailability } from "@microservices-sh/booking";
+import { createBooking } from "@microservices-sh/booking";
+import { getCompanySettings } from "$lib/server/settings";
+import { getAvailability } from "$lib/server/availability";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export const load: PageServerLoad = async ({ locals, url }) => {
+export const load: PageServerLoad = async ({ locals, url, platform }) => {
   const date = url.searchParams.get("date") ?? today();
-  const serviceId = url.searchParams.get("serviceId") ?? "svc-consultation";
+  const requestedService = url.searchParams.get("serviceId") ?? "svc-consultation";
   const services = await locals.bookingRepository.listServices();
-  const availability = await getAvailability(
-    { serviceId, date },
-    { bookingRepository: locals.bookingRepository }
-  );
+  const service = services.find((s) => s.id === requestedService) ?? services[0];
+  const serviceId = service?.id ?? requestedService;
 
-  return {
-    date,
+  const settings = await getCompanySettings(platform?.env?.DB);
+  const existing = await locals.bookingRepository.listBookings();
+
+  const availability = await getAvailability({
+    d1: platform?.env?.DB,
     serviceId,
-    services,
-    availability: availability.ok ? availability.data.slots : []
-  };
+    date,
+    durationMinutes: service?.durationMinutes ?? 60,
+    timezone: settings.timezone,
+    bookings: existing.map((b) => ({
+      serviceId: b.serviceId,
+      startsAt: b.startsAt,
+      endsAt: b.endsAt,
+      status: b.status,
+    })),
+  });
+
+  return { date, serviceId, services, availability, timezone: settings.timezone };
 };
 
 export const actions: Actions = {
