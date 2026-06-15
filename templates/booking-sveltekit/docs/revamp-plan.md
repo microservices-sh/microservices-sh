@@ -23,7 +23,7 @@ build → `microservices check` → e2e (generate via create-app → build → s
 
 ## Status
 - [x] P0 Foundations — drizzle-orm + drizzle-kit added; `src/lib/server/db/schema.ts` mirrors all tables + new `company_settings`; `db/index.ts` client; `settings.ts` loader (graceful no-DB fallback); `migrations/0005_company_settings.sql`; root `+layout.server.ts` loads settings via Drizzle, brand wired. Build + `microservices check` pass. (Live-D1 read deferred to P1.)
-- [ ] P1 Availability + timezones
+- [x] P1 Availability + timezones — `availability_rules` + `availability_exceptions` tables (Drizzle + `migrations/0006_availability.sql`, seeded Mon–Fri 09–17); pure `src/lib/server/availability.ts` engine (rules − exceptions − bookings − buffers, DST-correct via date-fns-tz, closed + special-hours overrides); `/book` + `/api/availability` rewired to it; slot labels formatted in company timezone. Verified: build, engine runtime tests (TZ/conflict/closed/special), migrations applied to real SQLite, `microservices check`.
 - [ ] P2 Lifecycle
 - [ ] P3 Payment + email
 - [ ] P4 Admin calendar + polish
