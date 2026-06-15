@@ -3,18 +3,17 @@ import { json } from "@sveltejs/kit";
 import { getCompanySettings } from "$lib/server/settings";
 import { expireHolds } from "$lib/server/lifecycle";
 import { sendDueReminders } from "$lib/server/notifications";
+import { requireCronAuth } from "$lib/server/cron-auth";
 
 // Scheduled work entrypoint: expire stale holds + send due booking reminders.
-// Gated by CRON_TOKEN when set (bearer). Intended to be invoked by a Cloudflare
-// Cron Trigger via a scheduled() worker wrapper (see docs/cron.md) or any
-// external scheduler. Idempotent: reminders are de-duped via booking_reminders.
+// Requires CRON_TOKEN (fail-closed). Invoke from a Cloudflare Cron Trigger via a
+// scheduled() worker wrapper (see docs/cron.md) or any external scheduler.
+// Idempotent: reminders are de-duped via booking_reminders.
 export const POST: RequestHandler = async ({ request, locals, platform }) => {
-  const db = platform?.env?.DB;
-  const token = platform?.env?.CRON_TOKEN;
-  if (token && request.headers.get("authorization") !== `Bearer ${token}`) {
-    return json({ ok: false, error: { code: "UNAUTHORIZED", message: "Invalid cron token." } }, { status: 401 });
-  }
+  const denied = requireCronAuth(request, platform?.env?.CRON_TOKEN);
+  if (denied) return denied;
 
+  const db = platform?.env?.DB;
   const settings = await getCompanySettings(db);
   const expired = db ? await expireHolds(db) : 0;
 

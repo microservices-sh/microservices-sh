@@ -8,8 +8,10 @@ POST /api/cron/run            # expires holds + sends due reminders
 POST /api/holds/expire        # holds only
 ```
 
-Set `CRON_TOKEN` and call with `Authorization: Bearer <CRON_TOKEN>` (when unset,
-the endpoints are open for local dev). Reminders are de-duped via the
+These endpoints are **fail-closed**: they require `CRON_TOKEN` to be set and a
+matching `Authorization: Bearer <CRON_TOKEN>` header (constant-time compared). If
+`CRON_TOKEN` is unset they return 401 — there is no open-by-default mode. For
+local dev, put `CRON_TOKEN=...` in `.dev.vars`. Reminders are de-duped via the
 `booking_reminders` table, so repeated calls are safe.
 
 ## Wiring on Cloudflare
