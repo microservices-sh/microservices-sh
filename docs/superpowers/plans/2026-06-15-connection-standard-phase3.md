@@ -48,7 +48,7 @@ If executing with subagents, 3C is the fan-out; 3A/3B/3D are serial.
 - `packages/cli/src/**` — add `microservices graph` (render resolved honeycomb from `compose()`).
 
 **Migration (3C), per module under `modules/<id>/`:**
-- `module.json` (flat → `connections`), use-cases (envelope + meta where cross-module), `tests/connections.test.ts`. ⚠️ `email` also at `modules/modules/email` (dual tree — migrate both, keep byte-identical).
+- `module.json` (flat → `connections`), use-cases (envelope + meta where cross-module), `tests/connections.test.ts`. NB: the historical `email` dual tree (`modules/modules/email`) is NOT present in this working tree — migrate `modules/email` only, but `if [ -d modules/modules/email ]` migrate that copy too and `diff -r` for byte-identity.
 
 **Cleanup (3D):**
 - `packages/workspace-tools/src/index.js` — remove `// TODO(phase3)` flat fallbacks.
@@ -66,7 +66,7 @@ If executing with subagents, 3C is the fan-out; 3A/3B/3D are serial.
 
 - [ ] **Step 1: Write failing test** — `rpcMethods({ id:"payment", connections:{ rpc:{ exposes:[{method:"createPaymentIntent",scope:"payment.write",public:false}] } } })` returns the exposed methods; `generateRpcEntrypoint` emits a `PaymentService extends WorkerEntrypoint` with a `createPaymentIntent` method and a scope check for `payment.write`.
 - [ ] **Step 2: Run** → FAIL (today `rpcMethods` reads flat `module.rpc`).
-- [ ] **Step 3: Implement** — `rpcMethods` reads `module.connections?.rpc?.exposes ?? module.rpc ?? []` (fallback during 3C). Replace the hardcoded `SERVICE_SPECS` verify table with: `verify = module.id === "auth" ? "self" : "binding"`; `pkg = "@microservices-sh/" + module.id`.
+- [ ] **Step 3: Implement** — `rpcMethods` reads `module.connections?.rpc?.exposes ?? module.rpc ?? []` (fallback during 3C). Replace the hardcoded `SERVICE_SPECS` *verify* table with: `verify = module.id === "auth" ? "self" : "binding"`; `pkg = "@microservices-sh/" + module.id`. **Note:** `SERVICE_SPECS` also carries `depsImport`/`depsExpr` (adapter wiring) for only 4 modules. Keep that table-driven for now and have `generateRpcEntrypoint` skip (or emit a TODO stub for) modules lacking a deps spec — full deps wiring for all 18 is out of scope here; entrypoint codegen is meaningful only for modules with declared adapters. Document which modules are covered.
 - [ ] **Step 4: Run** → PASS.
 - [ ] **Step 5: Commit** `feat(codegen): rpc entrypoint/client from connections.rpc`
 
@@ -91,11 +91,15 @@ If executing with subagents, 3C is the fan-out; 3A/3B/3D are serial.
 ### Task 4: hook map codegen
 
 **Files:**
+- Modify: `packages/connection-contract/src/composer/compose.js` (+ test) — **prerequisite**
 - Create: `packages/sdk-internal/src/hook-codegen.js`, `.d.ts`
 - Test: `packages/sdk-internal/tests/hook-codegen.test.js`
 
-- [ ] **Step 1: Write failing test** — `generateHookMap(wiring)` where `wiring.hooks={"payment.beforeCreatePaymentIntent":[{registrant:"booking",handler:"src/hooks/x.ts",order:50,...}]}` emits an ordered chain map keyed by hook point, each entry referencing `{kind, order, fn-import}`. Order is preserved.
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement** (kind comes from the target module's `hookPoints[point].kind`). **Step 4: Run** → PASS. **Step 5: Commit** `feat(codegen): ordered hook map`
+> **Prerequisite (real gap):** today `stableWiring()` in `compose.js` emits hook entries as `{target, targetModule, point, registrant, handler, order}` — **no `kind`** — and discards the `hookPointsByModule` index. `generateHookMap` cannot derive `kind` from `wiring` alone.
+
+- [ ] **Step 1: Extend `stableWiring()`** — add `kind` to each hook entry by looking up `hookPointsByModule[targetModule][point].kind`; update the existing compose test to assert `wiring.hooks[...][0].kind`. Run `pnpm --filter @microservices-sh/connection-contract test` → green.
+- [ ] **Step 2: Write failing test** — `generateHookMap(wiring)` where `wiring.hooks={"payment.beforeCreatePaymentIntent":[{registrant:"booking",handler:"src/hooks/x.ts",order:50,kind:"filter"}]}` emits an ordered chain map keyed by hook point, each entry `{kind, order, fn-import}`. Order preserved.
+- [ ] **Step 3: Run** → FAIL. **Step 4: Implement** (kind now present on the wiring entry). **Step 5: Run** → PASS. **Step 6: Commit** `feat(codegen): ordered hook map (+ kind in wiring)`
 
 ### Task 5: runtime queue event consumer
 
@@ -119,6 +123,12 @@ If executing with subagents, 3C is the fan-out; 3A/3B/3D are serial.
 
 ## Sub-phase 3B — Both-topology e2e
 
+> **Prerequisite (sequencing gap the reviewer caught):** the e2e fixture composes `[auth, customer, payment, booking, audit-log]`, and scenarios 3 & 5 require **audit-log to consume `payment.succeeded`** and **booking to consume it** — but only auth+payment carry `connections` today. So the three fixture modules **customer, booking, audit-log must be migrated FIRST** (run the Task 10 recipe for just those three before 3B). In particular, audit-log must declare `events.consumes` for the events the scenarios assert (it is NOT a broad sink today — that wiring is net-new and must be authored). Treat "migrate customer, booking, audit-log" as Task 6.5, ahead of Task 7.
+
+### Task 6.5: migrate the 3 e2e fixture modules (customer, booking, audit-log)
+
+- [ ] Apply the **Task 10 recipe** to `customer`, `booking`, `audit-log` (only). For `audit-log`, author `connections.events.consumes` to include the events the e2e asserts (`payment.succeeded`, `booking.created`, etc.) so it records them. For `booking`, declare `events.consumes:["payment.succeeded"]` + the `booking→customer.getCustomer` rpc call used by scenario 1. Gate each on tsc + compose + `check:spec` + a `connections.test.ts`. Commit per module.
+
 ### Task 7: pool-workers harness + fixtures
 
 **Files:**
@@ -127,10 +137,12 @@ If executing with subagents, 3C is the fan-out; 3A/3B/3D are serial.
 - Create: `tests/e2e/helpers/flush-queues.js`
 - Modify: root `package.json` → `"test:e2e": "vitest run -c tests/e2e/vitest.e2e.config.js"`
 
+> **Riskiest task** — no wrangler configs / deployable worker entries exist in any module today, so booting "embedded AND service" from generated artifacts is net-new scaffolding with no in-repo precedent. **Land the `embedded` arm first** (already proven in-process by Phase 2's integration test), get scenarios green there, then add the `service` arm.
+
 - [ ] **Step 1:** Add dev dep `@cloudflare/vitest-pool-workers`; write the config.
 - [ ] **Step 2:** `flushQueues()` deterministic Miniflare drain (no sleeps).
-- [ ] **Step 3:** `compose-app.js` boots the 5-module fixture `[auth, customer, payment, booking, audit-log]` in both `embedded` and `service` modes from generated artifacts.
-- [ ] **Step 4: Commit** `test(e2e): pool-workers harness + both-topology boot`
+- [ ] **Step 3:** `compose-app.js` boots the 5-module fixture `[auth, customer, payment, booking, audit-log]` — `embedded` arm first, then `service` from generated artifacts.
+- [ ] **Step 4: Commit** `test(e2e): pool-workers harness + embedded boot` (service arm follows once green)
 
 ### Task 8: scenarios 1–5 (both topologies)
 
@@ -150,7 +162,7 @@ If executing with subagents, 3C is the fan-out; 3A/3B/3D are serial.
 
 > Run in an isolated worktree (concurrency). One subagent per module. Each module is independent; gate each on: `tsc --noEmit` clean + `compose([deps..., module])` ok + module `check:spec` + its `connections.test.ts` green.
 
-**Modules (16):** admin-shell, audit-log, billing-subscriptions, booking, calendar-google, customer, email, file-media, forms-intake, gateway, invoice, jobs-workflows, notifications-inapp, org-team-rbac, support-ticket, webhook-delivery.
+**Modules (16 total; 3 of them — customer, booking, audit-log — are migrated earlier in Task 6.5 because the e2e fixture needs them, leaving 13 for this fan-out):** admin-shell, billing-subscriptions, calendar-google, email, file-media, forms-intake, gateway, invoice, jobs-workflows, notifications-inapp, org-team-rbac, support-ticket, webhook-delivery.
 
 ### Task 10: per-module migration recipe (repeat for each)
 
@@ -163,9 +175,10 @@ Mirror the auth/payment reference migrations (see Phase 2 commits `e002823`, `dc
 - [ ] **Step 5:** `pnpm --filter @microservices-sh/<id> build` (tsc) clean + `pnpm exec vitest run modules/<id>` green + `check:spec` pass.
 - [ ] **Step 6: Commit** `refactor(<id>): migrate to connection standard`.
 
-**⚠️ `email` dual tree:** apply identically to BOTH `modules/email` and `modules/modules/email`; keep byte-identical (see [[email-module-dual-trees]]). Verify with `diff -r`.
+**`email`:** migrate `modules/email`. The historical second tree `modules/modules/email` is NOT in this working tree (verified) — but guard for it: `if [ -d modules/modules/email ]`, apply identically and `diff -r` for byte-identity (see [[email-module-dual-trees]]).
 
 **Special cases to flag for the migrating agent:**
+- `audit-log` is migrated in Task 6.5 (e2e prerequisite), not here — its `events.consumes` set is authored there.
 - `gateway` calls `auth.mintToken` (embedded vs binding minter) — declare `rpc.calls:[auth.mintToken]` + scope `auth.mint`; grant the scope.
 - `audit-log` is the universal event sink — `events.consumes` is broad; it may legitimately consume events from many emitters (rule 2 should pass since emitters are present, or mark sources optional).
 - `webhook-delivery` is also a sink.
@@ -183,6 +196,8 @@ Mirror the auth/payment reference migrations (see Phase 2 commits `e002823`, `dc
 ### Task 12: reshape module-contract internal MODULES
 
 **Files:** `packages/module-contract/src/index.js`, `.d.ts`, `packages/module-contract/tests/contract.test.js`
+
+> **Read current state first:** Phase 2 (commit `2cceef9`) already added a forward-compat optional `connections` field + `ModuleConnections` type to `module-contract`. Do NOT double-reshape — this task makes `connections` the *source* (required, flat fields derived/removed), building on that layer.
 
 - [ ] **Step 1: Write failing test** — `inspectModule("payment").connections.events.emits` is the source of truth; `composeApp`/`createModuleLock` derive their aggregates from `connections`.
 - [ ] **Step 2: Run** → FAIL. **Step 3:** Reshape the `MODULES` array entries to carry `connections` (drop `eventsEmitted`/`eventsConsumed`/flat `hooks`); update `composeApp` + `createModuleLock` + `listModules` to read `connections.*`; make `connections` required in the type. **Step 4:** `pnpm test` + the CLI smoke (`pnpm cli -- compose booking-business --json`) green. **Step 5: Commit** `refactor(module-contract): connections is the source of truth`
