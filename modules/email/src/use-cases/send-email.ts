@@ -1,8 +1,11 @@
+import { ok, err, runHooks } from "@microservices-sh/connection-contract";
+import type { ResolvedHook, Result } from "@microservices-sh/connection-contract";
 import { defaultConfig, configSchema } from "../config";
 import { defaultEmailHooks, type EmailHooks } from "../hooks";
 import { sendEmailInputSchema } from "../schemas";
+import { emailMeta } from "../meta";
 import type { Clock, EmailProvider, EmailRepository, IdGenerator } from "../ports";
-import type { Actor, EmailDelivery, EmailProviderResult, ModuleResult, SendEmailInput } from "../types";
+import type { Actor, EmailDelivery, EmailProviderResult, SendEmailInput } from "../types";
 
 const defaultClock: Clock = {
   now: () => new Date()
@@ -52,6 +55,15 @@ function createDelivery(input: {
   };
 }
 
+// Send a transactional email through the configured provider and record the
+// delivery attempt. Emits email.queued / email.failed (correlationId threaded
+// into the persisted event payload).
+//
+// Two layers of customization run before the provider call:
+//   1. the local config seam `beforeEmailSend` (per-app override)
+//   2. the cross-module `beforeEmailSend` filter chain (Plan 25 §5), injected by
+//      the composed app via deps.beforeSendHooks — filters may mutate the input,
+//      guards may veto.
 export async function sendEmail(
   input: unknown,
   deps: {
@@ -62,71 +74,85 @@ export async function sendEmail(
     actor?: Actor | null;
     clock?: Clock;
     idGenerator?: IdGenerator;
+    correlationId?: string;
+    beforeSendHooks?: ResolvedHook[];
   }
-): Promise<ModuleResult<{ delivery: EmailDelivery }>> {
+): Promise<Result<{ delivery: EmailDelivery }>> {
+  const meta = emailMeta(deps);
+
   const configResult = configSchema.safeParse({ ...defaultConfig, ...deps.config });
   if (!configResult.success) {
-    return {
-      ok: false,
-      status: 500,
-      error: {
-        code: "INVALID_EMAIL_CONFIG",
+    return err(
+      500,
+      {
+        code: "email.INVALID_EMAIL_CONFIG",
         message: "Email module configuration is invalid.",
         issues: configResult.error.issues
-      }
-    };
+      },
+      meta
+    );
   }
 
   const config = configResult.data;
   if (!config.enabled) {
-    return {
-      ok: false,
-      status: 503,
-      error: {
-        code: "EMAIL_DISABLED",
+    return err(
+      503,
+      {
+        code: "email.EMAIL_DISABLED",
         message: "Email sending is disabled by module configuration."
-      }
-    };
+      },
+      meta
+    );
   }
 
   const parsed = sendEmailInputSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false,
-      status: 400,
-      error: {
-        code: "INVALID_EMAIL_INPUT",
+    return err(
+      400,
+      {
+        code: "email.INVALID_EMAIL_INPUT",
         message: "Email input is invalid.",
         issues: parsed.error.issues
-      }
-    };
+      },
+      meta
+    );
   }
 
   const from = parsed.data.from ?? config.defaultFrom;
   if (!from) {
-    return {
-      ok: false,
-      status: 400,
-      error: {
-        code: "MISSING_EMAIL_FROM",
+    return err(
+      400,
+      {
+        code: "email.MISSING_EMAIL_FROM",
         message: "Email input must include from, or config.defaultFrom must be set."
-      }
-    };
+      },
+      meta
+    );
   }
 
   const hooks = { ...defaultEmailHooks, ...deps.hooks };
-  const prepared = await hooks.beforeEmailSend({ ...parsed.data, from });
-  const preparedParsed = sendEmailInputSchema.safeParse(prepared);
+  // Local config seam, then the cross-module beforeEmailSend filter chain.
+  const configPrepared = await hooks.beforeEmailSend({ ...parsed.data, from });
+  const hooked = await runHooks(
+    "beforeEmailSend",
+    configPrepared,
+    { correlationId: meta.correlationId },
+    deps.beforeSendHooks ?? []
+  );
+  if (!hooked.ok) {
+    return err(hooked.status, hooked.error, meta);
+  }
+  const preparedParsed = sendEmailInputSchema.safeParse(hooked.value);
   if (!preparedParsed.success || !preparedParsed.data.from) {
-    return {
-      ok: false,
-      status: 400,
-      error: {
-        code: "INVALID_EMAIL_AFTER_HOOK",
+    return err(
+      400,
+      {
+        code: "email.INVALID_EMAIL_AFTER_HOOK",
         message: "beforeEmailSend returned invalid email input.",
         issues: preparedParsed.success ? undefined : preparedParsed.error.issues
-      }
-    };
+      },
+      meta
+    );
   }
 
   const clock = deps.clock ?? defaultClock;
@@ -158,6 +184,7 @@ export async function sendEmail(
     entityType: "email",
     entityId: delivery.id,
     payload: {
+      correlationId: meta.correlationId,
       actorId: deps.actor?.id ?? null,
       provider: delivery.provider,
       providerMessageId: delivery.providerMessageId,
@@ -168,20 +195,16 @@ export async function sendEmail(
 
   if (delivery.status === "failed") {
     await hooks.afterEmailFailed({ delivery, email: preparedParsed.data });
-    return {
-      ok: false,
-      status: result.ok ? 502 : result.status,
-      error: {
-        code: delivery.errorCode ?? "EMAIL_SEND_FAILED",
+    return err(
+      result.ok ? 502 : result.status,
+      {
+        code: delivery.errorCode ?? "email.EMAIL_SEND_FAILED",
         message: delivery.errorMessage ?? "Email provider failed to send the message."
-      }
-    };
+      },
+      meta
+    );
   }
 
   await hooks.afterEmailQueued({ delivery, email: preparedParsed.data });
-  return {
-    ok: true,
-    status: 202,
-    data: { delivery }
-  };
+  return ok(202, { delivery }, meta);
 }

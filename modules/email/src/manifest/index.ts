@@ -45,24 +45,35 @@ export const manifest = {
   "permissions": [
     "email.read",
     "email.write",
-    "email.admin"
+    "email.admin",
+    "email.extend"
   ],
-  "requires": [],
-  "optional": [
-    "auth",
-    "audit-log",
-    "customer"
-  ],
-  "hooks": [
-    "beforeEmailSend",
-    "afterEmailQueued",
-    "afterEmailFailed"
-  ],
-  "events": [
-    "email.queued",
-    "email.sent",
-    "email.failed"
-  ],
+  "connections": {
+    "requires": [],
+    "optional": [
+      "auth",
+      "audit-log",
+      "customer"
+    ],
+    "rpc": {
+      "exposes": [],
+      "calls": []
+    },
+    "events": {
+      "emits": [
+        "email.queued",
+        "email.sent",
+        "email.failed"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeEmailSend": { "kind": "filter", "scope": "email.extend" },
+      "afterEmailQueued": { "kind": "observer", "scope": "email.extend" },
+      "afterEmailFailed": { "kind": "observer", "scope": "email.extend" }
+    },
+    "provides": { "hooks": [] }
+  },
   "customization": {
     "default": "config-hooks",
     "supported": [
