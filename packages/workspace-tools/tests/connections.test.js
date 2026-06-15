@@ -22,7 +22,7 @@ describe("normalizeManifestConnections", () => {
     expect(n.rpc.calls).toHaveLength(1);
   });
 
-  it("falls back to legacy flat fields (TODO phase3)", () => {
+  it("ignores legacy flat fields (fallbacks removed in phase 3)", () => {
     const n = normalizeManifestConnections({
       requires: ["auth"],
       events: ["payment.succeeded"],
@@ -30,11 +30,11 @@ describe("normalizeManifestConnections", () => {
       hooks: ["beforeCreate"],
       rpc: [{ method: "createPaymentIntent" }]
     });
-    expect(n.requires).toEqual(["auth"]);
-    expect(n.events).toEqual(["payment.succeeded"]);
-    expect(n.consumes).toEqual(["booking.created"]);
-    expect(n.hooks).toEqual(["beforeCreate"]);
-    expect(n.rpc.exposes).toHaveLength(1);
+    // flat fields are no longer read — only `connections` counts
+    expect(n.requires).toEqual([]);
+    expect(n.events).toEqual([]);
+    expect(n.hooks).toEqual([]);
+    expect(n.rpc.exposes).toEqual([]);
   });
 
   it("defaults everything to empty when neither shape present", () => {

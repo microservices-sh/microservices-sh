@@ -7,33 +7,21 @@ import { pathToFileURL } from "node:url";
 const IGNORED_DIRS = new Set([".git", ".svelte-kit", ".wrangler", "dist", "node_modules"]);
 const FORBIDDEN_FRAMEWORK_IMPORTS = ["@sveltejs/kit", "from \"hono\"", "from 'hono'", "OpenAPIHono"];
 
-// Normalize a module.json manifest to flat summary fields, reading the new nested
-// `connections` block (Plan 25 §6) first and falling back to the legacy flat fields.
-// TODO(phase3): drop the flat fallbacks once all 18 modules carry `connections`.
+// Normalize a module.json manifest to flat summary fields from the nested
+// `connections` block (Plan 25 §6). All modules carry `connections` as of
+// Phase 3; the legacy flat-field fallbacks have been removed.
 export function normalizeManifestConnections(manifest) {
-  const c = manifest.connections;
-  if (c) {
-    const emits = c.events?.emits ?? [];
-    const consumes = c.events?.consumes ?? [];
-    return {
-      requires: c.requires ?? [],
-      optional: c.optional ?? [],
-      emits,
-      consumes,
-      events: [...emits, ...consumes],
-      hooks: Object.keys(c.hookPoints ?? {}),
-      rpc: { exposes: c.rpc?.exposes ?? [], calls: c.rpc?.calls ?? [] }
-    };
-  }
-  const emits = manifest.eventsEmitted ?? manifest.events ?? [];
+  const c = manifest.connections ?? {};
+  const emits = c.events?.emits ?? [];
+  const consumes = c.events?.consumes ?? [];
   return {
-    requires: manifest.requires ?? [],
-    optional: manifest.optional ?? [],
+    requires: c.requires ?? [],
+    optional: c.optional ?? [],
     emits,
-    consumes: manifest.eventsConsumed ?? [],
-    events: manifest.events ?? manifest.eventsEmitted ?? [],
-    hooks: manifest.hooks ?? [],
-    rpc: { exposes: Array.isArray(manifest.rpc) ? manifest.rpc : [], calls: [] }
+    consumes,
+    events: [...emits, ...consumes],
+    hooks: Object.keys(c.hookPoints ?? {}),
+    rpc: { exposes: c.rpc?.exposes ?? [], calls: c.rpc?.calls ?? [] }
   };
 }
 
@@ -643,11 +631,18 @@ function moduleScaffoldFiles({ id, name, summary, className }) {
     resources: [
       { type: "d1", binding: "DB", tables: [tableName, "domain_events"] }
     ],
-    permissions: [`${id}.read`, `${id}.write`, `${id}.admin`],
-    requires: [],
-    optional: ["auth", "audit-log"],
-    hooks: [`before${pascalId}Create`, `after${pascalId}Updated`],
-    events: [`${id}.created`, `${id}.updated`],
+    permissions: [`${id}.read`, `${id}.write`, `${id}.admin`, `${id}.extend`, `${id}.observe`],
+    connections: {
+      requires: [],
+      optional: ["auth", "audit-log"],
+      rpc: { exposes: [], calls: [] },
+      events: { emits: [`${id}.created`, `${id}.updated`], consumes: [] },
+      hookPoints: {
+        [`before${pascalId}Create`]: { kind: "filter", scope: `${id}.extend` },
+        [`after${pascalId}Updated`]: { kind: "observer", scope: `${id}.observe` }
+      },
+      provides: { hooks: [] }
+    },
     customization: {
       default: "config-hooks",
       supported: ["config", "hooks", "overlay", "fork"]
@@ -683,6 +678,7 @@ function moduleScaffoldFiles({ id, name, summary, className }) {
       "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path ."
     },
     dependencies: {
+      "@microservices-sh/connection-contract": "workspace:*",
       zod: "^3.25.76"
     },
     devDependencies: {
@@ -714,18 +710,21 @@ function moduleScaffoldFiles({ id, name, summary, className }) {
     additionalProperties: true
   };
 
+  const scaffoldEvents = manifest.connections.events.emits;
+  const scaffoldHooks = Object.keys(manifest.connections.hookPoints);
+
   const eventsSchema = {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     title: `${name} Events`,
     type: "object",
-    enum: manifest.events
+    enum: scaffoldEvents
   };
 
   const hooksSchema = {
     $schema: "https://json-schema.org/draft/2020-12/schema",
     title: `${name} Hooks`,
     type: "object",
-    properties: Object.fromEntries(manifest.hooks.map((hook) => [hook, { type: "string" }]))
+    properties: Object.fromEntries(scaffoldHooks.map((hook) => [hook, { type: "string" }]))
   };
 
   return [
@@ -748,7 +747,7 @@ function moduleScaffoldFiles({ id, name, summary, className }) {
     { path: "src/config/index.ts", contents: `import { ${camelId}ConfigSchema } from "../schemas";\n\nexport const configSchema = ${camelId}ConfigSchema;\nexport const defaultConfig = configSchema.parse({ enabled: true });\n` },
     { path: "src/schema/index.ts", contents: `export { ${camelId}ConfigSchema, ${camelId}RecordSchema } from "../schemas";\n` },
     { path: "src/hooks/index.ts", contents: `export { default${pascalId}Hooks } from "../hooks";\nexport type { ${pascalId}Hooks } from "../hooks";\n` },
-    { path: "src/events/index.ts", contents: `export const ${camelId}Events = ${JSON.stringify(manifest.events, null, 2)} as const;\n` },
+    { path: "src/events/index.ts", contents: `export const ${camelId}Events = ${JSON.stringify({ emitted: scaffoldEvents, consumed: [] }, null, 2)} as const;\n` },
     { path: "src/permissions/index.ts", contents: `export const ${camelId}Permissions = ${JSON.stringify(manifest.permissions, null, 2)} as const;\n` },
     { path: "src/resources/index.ts", contents: `export const ${camelId}Resources = ${JSON.stringify(manifest.resources, null, 2)} as const;\n` },
     { path: "src/service/index.ts", contents: `export function get${pascalId}ModuleStatus() {\n  return { id: "${id}", status: "draft" } as const;\n}\n` },
