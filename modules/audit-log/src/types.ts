@@ -23,6 +23,7 @@ export interface EventEnvelope {
   entityId: string;
   source: string;
   actorId?: string | null;
+  correlationId?: string | null;
   payload: Record<string, unknown>;
   signature?: string;
 }

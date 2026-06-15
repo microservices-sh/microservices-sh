@@ -11,6 +11,7 @@ function canonical(envelope: EventEnvelope): string {
     entityId: envelope.entityId,
     source: envelope.source,
     actorId: envelope.actorId ?? null,
+    correlationId: envelope.correlationId ?? null,
     payload: envelope.payload,
   });
 }
