@@ -1,10 +1,13 @@
+import { ok } from "@microservices-sh/connection-contract";
 import { generateEd25519KeyPair } from "../jwt";
+import { authMeta } from "../meta";
 import type { SigningKeyStore } from "../ports";
 import type { SigningKey } from "../types";
 
 // Generates a new Ed25519 keypair, retires the previous active key, and promotes
 // the new one. Run once at provisioning time and on each rotation.
-export async function rotateSigningKey(deps: { signingKeyStore: SigningKeyStore; now?: () => number }) {
+export async function rotateSigningKey(deps: { signingKeyStore: SigningKeyStore; now?: () => number; correlationId?: string }) {
+  const meta = authMeta(deps);
   const nowMs = deps.now?.() ?? Date.now();
   const timestamp = new Date(nowMs).toISOString();
   const { publicJwk, privateJwk } = await generateEd25519KeyPair();
@@ -26,8 +29,9 @@ export async function rotateSigningKey(deps: { signingKeyStore: SigningKeyStore;
     eventName: "auth.key_rotated",
     entityType: "auth",
     entityId: key.kid,
+    correlationId: meta.correlationId,
     payload: { kid: key.kid }
   });
 
-  return { ok: true as const, status: 201 as const, data: { kid: key.kid, publicJwk } };
+  return ok(201, { kid: key.kid, publicJwk }, meta);
 }

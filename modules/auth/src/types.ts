@@ -37,5 +37,6 @@ export interface DomainEvent {
   eventName: "auth.token_minted" | "auth.key_rotated";
   entityType: "auth";
   entityId: string;
+  correlationId?: string | null;
   payload: Record<string, unknown>;
 }

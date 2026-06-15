@@ -40,6 +40,9 @@ importers:
 
   modules/auth:
     dependencies:
+      '@microservices-sh/connection-contract':
+        specifier: workspace:*
+        version: link:../../packages/connection-contract
       zod:
         specifier: ^3.25.76
         version: 3.25.76

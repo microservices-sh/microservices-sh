@@ -1,5 +1,7 @@
+import { ok, err } from "@microservices-sh/connection-contract";
 import { signJwt, type JwtHeader } from "../jwt";
 import { mintTokenInputSchema } from "../schemas";
+import { authMeta } from "../meta";
 import type { SigningKeyStore } from "../ports";
 import type { TokenClaims } from "../types";
 
@@ -8,24 +10,18 @@ import type { TokenClaims } from "../types";
 // verify the signature and check scopes against their own permissions.
 export async function mintToken(
   input: unknown,
-  deps: { signingKeyStore: SigningKeyStore; now?: () => number }
+  deps: { signingKeyStore: SigningKeyStore; now?: () => number; correlationId?: string }
 ) {
+  const meta = authMeta(deps);
+
   const parsed = mintTokenInputSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      error: { code: "INVALID_MINT_INPUT", message: "Mint token input is invalid.", issues: parsed.error.issues }
-    };
+    return err(400, { code: "auth.INVALID_MINT_INPUT", message: "Mint token input is invalid.", issues: parsed.error.issues }, meta);
   }
 
   const key = await deps.signingKeyStore.getActiveKey();
   if (!key) {
-    return {
-      ok: false as const,
-      status: 500 as const,
-      error: { code: "NO_ACTIVE_SIGNING_KEY", message: "No active signing key. Run rotateSigningKey first." }
-    };
+    return err(500, { code: "auth.NO_ACTIVE_SIGNING_KEY", message: "No active signing key. Run rotateSigningKey first." }, meta);
   }
 
   const nowMs = deps.now?.() ?? Date.now();
@@ -48,8 +44,9 @@ export async function mintToken(
     eventName: "auth.token_minted",
     entityType: "auth",
     entityId: claims.jti,
+    correlationId: meta.correlationId,
     payload: { sub: claims.sub, workspace: claims.workspace, project: claims.project, scopes: claims.scopes }
   });
 
-  return { ok: true as const, status: 200 as const, data: { token, claims, kid: key.kid } };
+  return ok(200, { token, claims, kid: key.kid }, meta);
 }

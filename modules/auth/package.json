@@ -28,6 +28,7 @@
     "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path ."
   },
   "dependencies": {
+    "@microservices-sh/connection-contract": "workspace:*",
     "zod": "^3.25.76"
   },
   "devDependencies": {
