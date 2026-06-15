@@ -1,6 +1,11 @@
 # create-microservices-app
 
-Scaffold a Cloudflare-native app from verified [microservices.sh](https://microservices.sh) modules — D1, Workers, typed module hooks, and a project CLI, wired up and ready to run.
+[![npm version](https://img.shields.io/npm/v/create-microservices-app.svg)](https://www.npmjs.com/package/create-microservices-app)
+[![npm downloads](https://img.shields.io/npm/dm/create-microservices-app.svg)](https://www.npmjs.com/package/create-microservices-app)
+[![license](https://img.shields.io/npm/l/create-microservices-app.svg)](https://github.com/microservices-sh/microservices-sh/blob/main/LICENSE)
+[![node](https://img.shields.io/node/v/create-microservices-app.svg)](https://nodejs.org)
+
+Scaffold a Cloudflare-native SaaS app — Workers, D1, SvelteKit or Hono, with verified [microservices.sh](https://microservices.sh) modules (auth, booking, payment, email) and a project CLI — in one command.
 
 ## Quick start
 
