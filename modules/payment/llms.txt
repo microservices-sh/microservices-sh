@@ -10,6 +10,8 @@ Entry points:
 - `src/webhook.ts` signs/verifies Stripe webhook signatures (HMAC-SHA256).
 - `src/ports/` defines `PaymentRepository` and `PaymentGateway`.
 - `src/adapters/` contains D1 + memory repositories and Stripe + memory gateways.
+- `@microservices-sh/payment/deps` — `createPaymentDeps({ DB?, STRIPE_SECRET_KEY? })`
+  wires both ports in one place (D1 + Stripe when present, in-memory otherwise).
 - `src/rpc.ts` declares the `createPaymentIntent` RPC method (scope payment.write).
 - `schemas/` and `openapi.json` describe API-facing contracts.
 - `module.json` is the machine-readable module manifest.
@@ -18,6 +20,11 @@ Model:
 - Provider module: holds Stripe secrets, makes outbound calls (gateway adapter only).
 - Webhooks are verified by HMAC signature, not by scope.
 - Emits payment.checkout_created / succeeded / refunded / failed.
+
+Reference usage:
+- `templates/booking-sveltekit/src/lib/server/payment-deps.ts` shows wiring +
+  booking-specific helpers (deposit/refund-on-cancel). Its core selection mirrors
+  `createPaymentDeps` and can delegate to it.
 
 Agent rules:
 - Keep Stripe HTTP in the gateway adapter; keep use cases neutral.
