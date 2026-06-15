@@ -9,6 +9,7 @@ dist/
 .output/
 .vercel/
 .wrangler/
+.microservices/
 
 # generated example apps (reproducible via `pnpm mvp:generate`)
 generated/
