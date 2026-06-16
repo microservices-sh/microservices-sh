@@ -1,17 +1,19 @@
 <script lang="ts">
+  import { Button, Panel, Eyebrow } from "$lib/components";
+
   let { data } = $props();
 </script>
 
 <main class="section">
   <div class="content-grid">
     <section>
-      <p class="eyebrow">Admin</p>
+      <Eyebrow>Admin</Eyebrow>
       <h1>Customers.</h1>
       <p>Review customer records created by the booking flow through the customer module.</p>
-      <p><a class="button secondary" href="/admin">Back to overview</a></p>
+      <p><Button href="/admin" variant="secondary">Back to overview</Button></p>
     </section>
 
-    <section class="panel">
+    <Panel>
       <h2>All customers</h2>
       {#if data.customers.length === 0}
         <p>No customers yet.</p>
@@ -28,6 +30,6 @@
           {/each}
         </ul>
       {/if}
-    </section>
+    </Panel>
   </div>
 </main>

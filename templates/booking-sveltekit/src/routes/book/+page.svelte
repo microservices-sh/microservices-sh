@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Button, Field, Panel, StatusMessage, Eyebrow } from "$lib/components";
+
   let { data, form } = $props();
 
   const fmtSlot = (iso: string) =>
@@ -12,36 +14,34 @@
 <main class="section">
   <div class="content-grid">
     <section>
-      <p class="eyebrow">Booking flow</p>
+      <Eyebrow>Booking flow</Eyebrow>
       <h1>Choose a time.</h1>
       <p>
         This page uses native form semantics and a SvelteKit action, while the actual
         booking behavior runs through detached module use cases.
       </p>
 
-      <form method="GET" class="panel" action="/book">
+      <Panel as="form" method="GET" action="/book">
         <div class="field-grid">
-          <div class="field">
-            <label for="serviceId">Service</label>
+          <Field label="Service" id="serviceId">
             <select id="serviceId" name="serviceId">
               {#each data.services as service}
                 <option value={service.id} selected={service.id === data.serviceId}>{service.name}</option>
               {/each}
             </select>
-          </div>
-          <div class="field">
-            <label for="date">Date</label>
+          </Field>
+          <Field label="Date" id="date">
             <input id="date" name="date" type="date" value={data.date} required />
-          </div>
+          </Field>
         </div>
-        <button type="submit" class="secondary">Refresh availability</button>
-      </form>
+        <Button variant="secondary">Refresh availability</Button>
+      </Panel>
     </section>
 
-    <section class="panel">
+    <Panel>
       <h2>Confirm booking</h2>
       {#if form?.error}
-        <div class="status error" aria-live="polite">Booking could not be created. Check the fields and try again.</div>
+        <StatusMessage variant="error" live>Booking could not be created. Check the fields and try again.</StatusMessage>
       {/if}
       <form method="POST">
         <input type="hidden" name="serviceId" value={data.serviceId} />
@@ -66,25 +66,21 @@
         </fieldset>
 
         <div class="field-grid">
-          <div class="field">
-            <label for="customerName">Name</label>
+          <Field label="Name" id="customerName">
             <input id="customerName" name="customerName" autocomplete="name" required maxlength="120" />
-          </div>
-          <div class="field">
-            <label for="customerEmail">Email</label>
+          </Field>
+          <Field label="Email" id="customerEmail">
             <input id="customerEmail" name="customerEmail" type="email" autocomplete="email" required />
-          </div>
+          </Field>
         </div>
-        <div class="field">
-          <label for="customerPhone">Phone</label>
+        <Field label="Phone" id="customerPhone">
           <input id="customerPhone" name="customerPhone" autocomplete="tel" inputmode="tel" />
-        </div>
-        <div class="field">
-          <label for="notes">Notes</label>
+        </Field>
+        <Field label="Notes" id="notes">
           <textarea id="notes" name="notes" rows="4"></textarea>
-        </div>
-        <button type="submit">Confirm booking</button>
+        </Field>
+        <Button>Confirm booking</Button>
       </form>
-    </section>
+    </Panel>
   </div>
 </main>

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Button, Panel, StatusMessage, Eyebrow, Badge } from "$lib/components";
+
   let { data, form } = $props();
 
   const fmt = (iso: string) =>
@@ -10,28 +12,28 @@
 </script>
 
 <main class="section">
-  <section class="panel">
-    <p class="eyebrow">{cancelled ? "Cancelled" : "Confirmed"}</p>
+  <Panel>
+    <Eyebrow>{cancelled ? "Cancelled" : "Confirmed"}</Eyebrow>
     <h1>{cancelled ? "Booking cancelled." : "Booking saved."}</h1>
     <p>
       {data.booking.customerName} — {data.booking.serviceName} at {fmt(data.booking.startsAt)}.
     </p>
-    <div class="status">Reference: {data.booking.id}</div>
+    <StatusMessage>Reference: {data.booking.id}</StatusMessage>
 
     {#if form?.error}
-      <p class="pill is-danger">{form.error}</p>
+      <Badge variant="danger">{form.error}</Badge>
     {/if}
 
     <div class="field-grid" style="margin-top:1rem">
-      <a class="button secondary" href="/book">Create another booking</a>
+      <Button href="/book" variant="secondary">Create another booking</Button>
       {#if !cancelled && data.cancel.allowed}
         <form method="POST" action="?/cancel">
           <input type="hidden" name="t" value={data.manageToken} />
-          <button type="submit" class="button">Cancel booking</button>
+          <Button>Cancel booking</Button>
         </form>
       {:else if !cancelled && data.cancel.reason}
-        <p class="pill is-muted">{data.cancel.reason}</p>
+        <Badge variant="muted">{data.cancel.reason}</Badge>
       {/if}
     </div>
-  </section>
+  </Panel>
 </main>

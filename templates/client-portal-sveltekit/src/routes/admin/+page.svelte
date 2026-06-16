@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { statusPillClass, formatMoney } from "$lib/status";
+  import { statusBadgeVariant, formatMoney } from "$lib/status";
+  import { Button, Panel, Eyebrow, Badge } from "$lib/components";
   let { data } = $props();
 </script>
 
@@ -10,7 +11,7 @@
 <main class="section">
   <div class="content-grid">
     <section>
-      <p class="eyebrow">Staff admin</p>
+      <Eyebrow>Staff admin</Eyebrow>
       <h1>Portal operations.</h1>
       <p>Overview of customers, invoices, and documents across the workspace.</p>
       <div class="stat-grid" aria-label="Operational totals">
@@ -33,7 +34,7 @@
       </div>
     </section>
 
-    <section class="panel">
+    <Panel>
       <h2>Recent invoices</h2>
       {#if data.recentInvoices.length === 0}
         <p>No invoices yet.</p>
@@ -45,15 +46,15 @@
                 <strong>{invoice.number ?? "Draft"}</strong>
                 <p>{invoice.customerName} · {formatMoney(invoice.totalCents, invoice.currency)}</p>
               </div>
-              <span class={statusPillClass(invoice.status)}>{invoice.status}</span>
+              <Badge variant={statusBadgeVariant(invoice.status)}>{invoice.status}</Badge>
             </li>
           {/each}
         </ul>
       {/if}
-      <p><a class="button secondary" href="/admin/invoices">View all invoices</a></p>
-    </section>
+      <p><Button href="/admin/invoices" variant="secondary">View all invoices</Button></p>
+    </Panel>
 
-    <section class="panel">
+    <Panel>
       <h2>Recent activity</h2>
       {#if data.events.length === 0}
         <p>No audit events yet.</p>
@@ -67,6 +68,6 @@
           {/each}
         </ul>
       {/if}
-    </section>
+    </Panel>
   </div>
 </main>

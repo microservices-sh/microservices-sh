@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Button, Panel, Eyebrow } from "$lib/components";
   let { data } = $props();
 </script>
 
@@ -9,7 +10,7 @@
 <main class="section">
   <div class="hero-grid">
     <section>
-      <p class="eyebrow">Account</p>
+      <Eyebrow>Account</Eyebrow>
       <h1>Sign in.</h1>
       <p>
         Production auth is passwordless email-code, served by the
@@ -24,7 +25,7 @@
       {/if}
     </section>
 
-    <section class="panel">
+    <Panel>
       <h2>Choose a session</h2>
       <form method="POST">
         <fieldset>
@@ -38,8 +39,8 @@
             Staff — sees the admin side
           </label>
         </fieldset>
-        <button type="submit">Sign in</button>
+        <Button>Sign in</Button>
       </form>
-    </section>
+    </Panel>
   </div>
 </main>

@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { statusPillClass, formatMoney } from "$lib/status";
+  import { statusBadgeVariant, formatMoney } from "$lib/status";
+  import { Button, Panel, Eyebrow, Badge } from "$lib/components";
   let { data } = $props();
 </script>
 
@@ -10,7 +11,7 @@
 <main class="section">
   <div class="content-grid">
     <section>
-      <p class="eyebrow">Your account</p>
+      <Eyebrow>Your account</Eyebrow>
       <h1>Welcome back.</h1>
       <p>Signed in as {data.email}. Here is a summary of your invoices and documents.</p>
       <div class="stat-grid" aria-label="Account summary">
@@ -33,7 +34,7 @@
       </div>
     </section>
 
-    <section class="panel">
+    <Panel>
       <h2>Recent invoices</h2>
       {#if data.invoices.length === 0}
         <p>No invoices yet.</p>
@@ -47,15 +48,15 @@
                 </a>
                 <p>{formatMoney(invoice.totalCents, invoice.currency)}</p>
               </div>
-              <span class={statusPillClass(invoice.status)}>{invoice.status}</span>
+              <Badge variant={statusBadgeVariant(invoice.status)}>{invoice.status}</Badge>
             </li>
           {/each}
         </ul>
       {/if}
-      <p><a class="button secondary" href="/portal/invoices">View all invoices</a></p>
-    </section>
+      <p><Button href="/portal/invoices" variant="secondary">View all invoices</Button></p>
+    </Panel>
 
-    <section class="panel">
+    <Panel>
       <h2>Recent documents</h2>
       {#if data.files.length === 0}
         <p>No documents yet.</p>
@@ -67,12 +68,12 @@
                 <strong>{file.originalName}</strong>
                 <p>{file.contentType} · {Math.ceil(file.bytes / 1024)} KB</p>
               </div>
-              <span class={statusPillClass(file.status)}>{file.status}</span>
+              <Badge variant={statusBadgeVariant(file.status)}>{file.status}</Badge>
             </li>
           {/each}
         </ul>
       {/if}
-      <p><a class="button secondary" href="/portal/files">View all files</a></p>
-    </section>
+      <p><Button href="/portal/files" variant="secondary">View all files</Button></p>
+    </Panel>
   </div>
 </main>

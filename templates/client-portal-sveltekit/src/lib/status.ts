@@ -1,26 +1,28 @@
+import type { BadgeVariant } from "./components/types";
+
 /**
- * Maps an invoice / file status to a pill style class.
- * accent (default) = open/active · warn = draft/pending · danger = void/deleted ·
+ * Maps an invoice / file status to a Badge variant.
+ * default (accent) = open/active · warn = draft/pending · danger = void/deleted ·
  * muted = paid/archived. Edit the buckets to match your own vocabulary.
  */
-export function statusPillClass(status: string | null | undefined): string {
+export function statusBadgeVariant(status: string | null | undefined): BadgeVariant {
   switch ((status ?? "").toLowerCase()) {
     case "void":
     case "voided":
     case "deleted":
     case "cancelled":
     case "canceled":
-      return "pill is-danger";
+      return "danger";
     case "draft":
     case "pending":
     case "awaiting":
-      return "pill is-warn";
+      return "warn";
     case "paid":
     case "completed":
     case "archived":
-      return "pill is-muted";
+      return "muted";
     default:
-      return "pill";
+      return "default";
   }
 }
 

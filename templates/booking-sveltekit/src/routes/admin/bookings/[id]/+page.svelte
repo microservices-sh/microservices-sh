@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { statusPillClass } from "$lib/status";
+  import { statusBadgeVariant } from "$lib/status";
+  import { Button, Field, Panel, Eyebrow, Badge } from "$lib/components";
   let { data, form } = $props();
 
   const fmt = (iso: string) =>
@@ -14,18 +15,18 @@
 <main class="section">
   <div class="content-grid">
     <section>
-      <p class="eyebrow">Booking detail</p>
+      <Eyebrow>Booking detail</Eyebrow>
       <h1>{data.booking.customerName}</h1>
       <p>{data.booking.serviceName} at {fmt(data.booking.startsAt)}.</p>
-      <p><a class="button secondary" href="/admin/bookings">Back to bookings</a></p>
+      <p><Button href="/admin/bookings" variant="secondary">Back to bookings</Button></p>
     </section>
 
-    <section class="panel">
+    <Panel>
       <h2>Record</h2>
       <dl class="detail-list">
         <div>
           <dt>Status</dt>
-          <dd><span class={statusPillClass(isCancelled ? "cancelled" : data.booking.status)}>{isCancelled ? "cancelled" : data.booking.status}</span></dd>
+          <dd><Badge variant={statusBadgeVariant(isCancelled ? "cancelled" : data.booking.status)}>{isCancelled ? "cancelled" : data.booking.status}</Badge></dd>
         </div>
         <div>
           <dt>Customer</dt>
@@ -48,22 +49,21 @@
           <dd><code>{data.booking.id}</code></dd>
         </div>
       </dl>
-    </section>
+    </Panel>
 
     {#if !isCancelled}
-      <section class="panel">
+      <Panel>
         <h2>Manage</h2>
         {#if form?.error}
-          <p class="pill is-danger">{form.error}</p>
+          <Badge variant="danger">{form.error}</Badge>
         {/if}
 
         <h3>Reschedule</h3>
         <form method="GET" class="field-grid">
-          <div class="field">
-            <label for="date">New date</label>
+          <Field label="New date" id="date">
             <input type="date" id="date" name="date" value={data.rescheduleDate ?? ""} />
-          </div>
-          <button type="submit" class="button secondary">Find times</button>
+          </Field>
+          <Button variant="secondary">Find times</Button>
         </form>
 
         {#if data.rescheduleDate}
@@ -80,23 +80,23 @@
                   {/each}
                 </div>
               </fieldset>
-              <button type="submit" class="button">Move booking</button>
+              <Button>Move booking</Button>
             </form>
           {:else}
-            <p class="pill is-muted">No open times on {data.rescheduleDate}.</p>
+            <Badge variant="muted">No open times on {data.rescheduleDate}.</Badge>
           {/if}
         {/if}
 
         <h3 style="margin-top:1.5rem">Cancel</h3>
         <form method="POST" action="?/cancel">
-          <button type="submit" class="button">Cancel booking</button>
+          <Button>Cancel booking</Button>
         </form>
-      </section>
+      </Panel>
     {/if}
 
-    <section class="panel">
+    <Panel>
       <h2>Notes</h2>
       <p>{data.booking.notes || "No notes captured."}</p>
-    </section>
+    </Panel>
   </div>
 </main>

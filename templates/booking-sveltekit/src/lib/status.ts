@@ -1,25 +1,27 @@
+import type { BadgeVariant } from "./components/types";
+
 /**
- * Maps a booking status to a pill style class.
- * Accent (default) = active/confirmed · warn = pending · danger = cancelled · muted = done.
+ * Maps a booking status to a Badge variant.
+ * default (accent) = active/confirmed · warn = pending · danger = cancelled · muted = done.
  * Edit the buckets below to match your own status vocabulary.
  */
-export function statusPillClass(status: string | null | undefined): string {
+export function statusBadgeVariant(status: string | null | undefined): BadgeVariant {
   switch ((status ?? "").toLowerCase()) {
     case "cancelled":
     case "canceled":
     case "declined":
     case "no_show":
-      return "pill is-danger";
+      return "danger";
     case "pending":
     case "tentative":
     case "hold":
     case "awaiting":
-      return "pill is-warn";
+      return "warn";
     case "completed":
     case "done":
     case "fulfilled":
-      return "pill is-muted";
+      return "muted";
     default:
-      return "pill";
+      return "default";
   }
 }

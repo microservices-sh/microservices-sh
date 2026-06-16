@@ -1,6 +1,7 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
-  import { statusPillClass } from "$lib/status";
+  import { statusBadgeVariant } from "$lib/status";
+  import { Button, Field, Panel, StatusMessage, Eyebrow, Badge } from "$lib/components";
   let { data, form } = $props();
 </script>
 
@@ -11,34 +12,33 @@
 <main class="section">
   <div class="content-grid">
     <section>
-      <p class="eyebrow">Documents</p>
+      <Eyebrow>Documents</Eyebrow>
       <h1>Your files.</h1>
       <p>
         Upload and review documents. Uploads use the file-media module's two-step flow:
         a tenant-scoped ticket is reserved, the bytes are stored, then the upload is
         verified and recorded.
       </p>
-      <p><a class="button secondary" href="/portal">Back to dashboard</a></p>
+      <p><Button href="/portal" variant="secondary">Back to dashboard</Button></p>
 
       {#if form?.uploaded}
-        <p class="status">Uploaded <strong>{form.uploaded}</strong>.</p>
+        <StatusMessage>Uploaded <strong>{form.uploaded}</strong>.</StatusMessage>
       {:else if form?.error}
-        <p class="status error">{form.error}</p>
+        <StatusMessage variant="error">{form.error}</StatusMessage>
       {/if}
 
-      <section class="panel mt-6">
+      <Panel class="mt-6">
         <h2>Upload a document</h2>
         <form method="POST" action="?/upload" enctype="multipart/form-data" use:enhance>
-          <div class="field">
-            <label for="file">File (PDF, PNG, or JPEG)</label>
+          <Field label="File (PDF, PNG, or JPEG)" id="file">
             <input id="file" name="file" type="file" accept="application/pdf,image/png,image/jpeg" required />
-          </div>
-          <button type="submit">Upload</button>
+          </Field>
+          <Button>Upload</Button>
         </form>
-      </section>
+      </Panel>
     </section>
 
-    <section class="panel">
+    <Panel>
       <h2>All documents</h2>
       {#if data.files.length === 0}
         <p>No documents yet.</p>
@@ -50,11 +50,11 @@
                 <strong>{file.originalName}</strong>
                 <p>{file.contentType} · {Math.ceil(file.bytes / 1024)} KB · {new Date(file.createdAt).toLocaleDateString()}</p>
               </div>
-              <span class={statusPillClass(file.status)}>{file.status}</span>
+              <Badge variant={statusBadgeVariant(file.status)}>{file.status}</Badge>
             </li>
           {/each}
         </ul>
       {/if}
-    </section>
+    </Panel>
   </div>
 </main>

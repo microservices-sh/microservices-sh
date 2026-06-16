@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { statusPillClass, formatMoney } from "$lib/status";
+  import { statusBadgeVariant, formatMoney } from "$lib/status";
+  import { Button, Panel, Eyebrow, Badge } from "$lib/components";
   let { data } = $props();
 </script>
 
@@ -10,13 +11,13 @@
 <main class="section">
   <div class="content-grid">
     <section>
-      <p class="eyebrow">Staff admin</p>
+      <Eyebrow>Staff admin</Eyebrow>
       <h1>All invoices.</h1>
       <p>Every invoice across the workspace, served by the invoice module.</p>
-      <p><a class="button secondary" href="/admin">Back to overview</a></p>
+      <p><Button href="/admin" variant="secondary">Back to overview</Button></p>
     </section>
 
-    <section class="panel">
+    <Panel>
       <h2>Invoices</h2>
       {#if data.invoices.length === 0}
         <p>No invoices yet.</p>
@@ -28,11 +29,11 @@
                 <strong>{invoice.number ?? "Draft"}</strong>
                 <p>{invoice.customerName} · {formatMoney(invoice.totalCents, invoice.currency)}</p>
               </div>
-              <span class={statusPillClass(invoice.status)}>{invoice.status}</span>
+              <Badge variant={statusBadgeVariant(invoice.status)}>{invoice.status}</Badge>
             </li>
           {/each}
         </ul>
       {/if}
-    </section>
+    </Panel>
   </div>
 </main>

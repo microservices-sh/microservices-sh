@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { statusPillClass, formatMoney } from "$lib/status";
+  import { statusBadgeVariant, formatMoney } from "$lib/status";
+  import { Button, Panel, Eyebrow, Badge } from "$lib/components";
   let { data } = $props();
 </script>
 
@@ -10,21 +11,21 @@
 <main class="section">
   <div class="content-grid">
     <section>
-      <p class="eyebrow">Invoice</p>
+      <Eyebrow>Invoice</Eyebrow>
       <h1>{data.invoice.number ?? "Draft invoice"}</h1>
       <p>
         {formatMoney(data.invoice.totalCents, data.invoice.currency)} ·
-        <span class={statusPillClass(data.invoice.status)}>{data.invoice.status}</span>
+        <Badge variant={statusBadgeVariant(data.invoice.status)}>{data.invoice.status}</Badge>
       </p>
-      <p><a class="button secondary" href="/portal/invoices">Back to invoices</a></p>
+      <p><Button href="/portal/invoices" variant="secondary">Back to invoices</Button></p>
     </section>
 
-    <section class="panel">
+    <Panel>
       <h2>Summary</h2>
       <dl class="detail-list">
         <div>
           <dt>Status</dt>
-          <dd><span class={statusPillClass(data.invoice.status)}>{data.invoice.status}</span></dd>
+          <dd><Badge variant={statusBadgeVariant(data.invoice.status)}>{data.invoice.status}</Badge></dd>
         </div>
         <div>
           <dt>Subtotal</dt>
@@ -59,9 +60,9 @@
           <dd><code>{data.invoice.id}</code></dd>
         </div>
       </dl>
-    </section>
+    </Panel>
 
-    <section class="panel">
+    <Panel>
       <h2>Line items</h2>
       {#if data.lineItems.length === 0}
         <p>No line items.</p>
@@ -78,13 +79,13 @@
           {/each}
         </ul>
       {/if}
-    </section>
+    </Panel>
 
     {#if data.invoice.notes}
-      <section class="panel">
+      <Panel>
         <h2>Notes</h2>
         <p>{data.invoice.notes}</p>
-      </section>
+      </Panel>
     {/if}
   </div>
 </main>

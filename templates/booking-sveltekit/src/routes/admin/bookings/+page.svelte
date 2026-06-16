@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { statusPillClass } from "$lib/status";
+  import { statusBadgeVariant } from "$lib/status";
+  import { Button, Panel, Eyebrow, Badge } from "$lib/components";
   import Icon from "$lib/components/Icon.svelte";
   let { data } = $props();
 
@@ -12,16 +13,16 @@
 <main class="section">
   <div class="content-grid">
     <section>
-      <p class="eyebrow"><Icon name="list" /> Admin</p>
+      <Eyebrow><Icon name="list" /> Admin</Eyebrow>
       <h1>Bookings.</h1>
       <p>Review scheduled bookings and inspect the module-owned records that agents can safely extend.</p>
       <p>
-        <a class="button secondary" href="/admin/calendar"><Icon name="calendar" /> Calendar view</a>
-        <a class="button secondary" href="/admin">Overview</a>
+        <Button href="/admin/calendar" variant="secondary"><Icon name="calendar" /> Calendar view</Button>
+        <Button href="/admin" variant="secondary">Overview</Button>
       </p>
     </section>
 
-    <section class="panel">
+    <Panel>
       <h2>All bookings</h2>
 
       <form method="GET" class="filter-bar">
@@ -35,7 +36,7 @@
             <option value={s} selected={s === data.status}>{s}</option>
           {/each}
         </select>
-        <button type="submit" class="button secondary">Filter</button>
+        <Button variant="secondary">Filter</Button>
       </form>
 
       <p class="filter-count">
@@ -52,12 +53,12 @@
                 <a href={`/admin/bookings/${booking.id}`}><strong>{booking.customerName}</strong></a>
                 <p>{booking.serviceName} · {fmt(booking.startsAt)}</p>
               </div>
-              <span class={statusPillClass(booking.status)}>{booking.status}</span>
+              <Badge variant={statusBadgeVariant(booking.status)}>{booking.status}</Badge>
             </li>
           {/each}
         </ul>
       {/if}
-    </section>
+    </Panel>
   </div>
 </main>
 

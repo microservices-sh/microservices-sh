@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatMoney } from "$lib/status";
+  import { Button, Panel, Eyebrow, Badge } from "$lib/components";
   let { data } = $props();
 </script>
 
@@ -10,13 +11,13 @@
 <main class="section">
   <div class="content-grid">
     <section>
-      <p class="eyebrow">Staff admin</p>
+      <Eyebrow>Staff admin</Eyebrow>
       <h1>Customers.</h1>
       <p>Customer accounts served by the customer module, with billing rollups from invoices.</p>
-      <p><a class="button secondary" href="/admin">Back to overview</a></p>
+      <p><Button href="/admin" variant="secondary">Back to overview</Button></p>
     </section>
 
-    <section class="panel">
+    <Panel>
       <h2>All customers</h2>
       {#if data.customers.length === 0}
         <p>No customers yet.</p>
@@ -28,13 +29,13 @@
                 <strong>{customer.name}</strong>
                 <p>{customer.email} · {customer.invoiceCount} invoice(s)</p>
               </div>
-              <span class="pill is-muted">
+              <Badge variant="muted">
                 {formatMoney(customer.outstandingCents, customer.currency)} due
-              </span>
+              </Badge>
             </li>
           {/each}
         </ul>
       {/if}
-    </section>
+    </Panel>
   </div>
 </main>

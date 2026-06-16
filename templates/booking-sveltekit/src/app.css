@@ -159,6 +159,16 @@
     @apply border-accent bg-surface-2 text-accent-strong;
   }
 
+  /* Quiet, low-emphasis action (e.g. destructive row actions). */
+  button.ghost,
+  .button.ghost {
+    @apply border-transparent bg-transparent text-muted shadow-none;
+  }
+  button.ghost:hover,
+  .button.ghost:hover {
+    @apply border-line bg-surface-2 text-danger;
+  }
+
   /* Form controls */
   label {
     @apply mb-[0.4rem] block text-[0.85rem] font-medium text-muted;

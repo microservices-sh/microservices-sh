@@ -1,14 +1,16 @@
 <script lang="ts">
+  import { Button, Panel, Eyebrow } from "$lib/components";
+
   let { data } = $props();
 </script>
 
 <main class="section">
   <div class="content-grid">
     <section>
-      <p class="eyebrow">Admin</p>
+      <Eyebrow>Admin</Eyebrow>
       <h1>Booking operations.</h1>
       <form method="POST" action="/logout">
-        <button class="button secondary" type="submit">Log out</button>
+        <Button variant="secondary">Log out</Button>
       </form>
       <p>
         This admin surface stays intentionally compact for the MVP. The richer admin shell
@@ -26,7 +28,7 @@
       </div>
     </section>
 
-    <section class="panel">
+    <Panel>
       <h2>Recent bookings</h2>
       {#if data.bookings.length === 0}
         <p>No bookings yet.</p>
@@ -41,10 +43,10 @@
           {/each}
         </ul>
       {/if}
-      <p><a class="button secondary" href="/admin/bookings">View all bookings</a></p>
-    </section>
+      <p><Button href="/admin/bookings" variant="secondary">View all bookings</Button></p>
+    </Panel>
 
-    <section class="panel">
+    <Panel>
       <h2>Recent customers</h2>
       {#if data.customers.length === 0}
         <p>No customers yet.</p>
@@ -59,7 +61,7 @@
           {/each}
         </ul>
       {/if}
-      <p><a class="button secondary" href="/admin/customers">View all customers</a></p>
-    </section>
+      <p><Button href="/admin/customers" variant="secondary">View all customers</Button></p>
+    </Panel>
   </div>
 </main>
