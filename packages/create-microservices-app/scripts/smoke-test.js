@@ -7,6 +7,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadFrameworks } from "../src/framework-starter.js";
 
+// Keep the smoke test hermetic: never emit usage telemetry to prod from a test
+// run (child CLIs inherit this). CI already auto-opts-out, this also covers local.
+process.env.MICROSERVICES_TELEMETRY = "0";
+
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const tempRoot = await mkdtemp(join(tmpdir(), "microservices-create-smoke-"));
 

@@ -30,6 +30,9 @@ function telemetryEnabled() {
   if (["0", "false", "off", "no"].includes(v)) return false;
   const dnt = String(process.env.DO_NOT_TRACK ?? "").toLowerCase();
   if (dnt === "1" || dnt === "true") return false;
+  // CI/automation is not human usage — never count it in the activation funnel.
+  const ci = String(process.env.CI ?? "").toLowerCase();
+  if (ci === "true" || ci === "1") return false;
   return true;
 }
 
