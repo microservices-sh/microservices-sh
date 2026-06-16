@@ -204,6 +204,26 @@ function templateInput(templateId, flags) {
   };
 }
 
+function cliTelemetryProps(flags, extra = {}) {
+  return {
+    source: "global-cli",
+    json: flags.json,
+    ...extra,
+  };
+}
+
+function errorCode(response) {
+  return response?.error?.code ?? (response?.ok === false ? "UNKNOWN_ERROR" : null);
+}
+
+async function trackResponse(successName, failureName, response, props = {}) {
+  if (response?.ok === false) {
+    await track(failureName, { ...props, result: "failed", errorCode: errorCode(response) });
+    return;
+  }
+  await track(successName, { ...props, result: "completed" });
+}
+
 function failResponse(code, message, remediation, details = {}) {
   return {
     ok: false,
@@ -2678,7 +2698,10 @@ async function main() {
   telemetryNotice(flags.json);
 
   if (resource === "auth" && action === "login") {
+    const loginStartedAt = Date.now();
     const settings = await resolvedApiSettings(flags);
+    const method = settings.apiKey ? "api_key" : "device";
+    await track("auth_login_started", cliTelemetryProps(flags, { method }));
 
     // Path A — explicit API key (agent-friendly, non-interactive): validate + save.
     if (settings.apiKey) {
@@ -2687,6 +2710,10 @@ async function main() {
       try {
         status = await apiRequest(flags, "/auth/status");
         if (!status.ok) {
+          await track(
+            "auth_login_failed",
+            cliTelemetryProps(flags, { method, errorCode: errorCode(status), durationMs: Date.now() - loginStartedAt })
+          );
           return flags.json ? writeJson(status) : printApiHuman(status);
         }
       } catch (error) {
@@ -2700,12 +2727,20 @@ async function main() {
         updatedAt: new Date().toISOString(),
       });
 
+      await track(
+        "auth_login_completed",
+        cliTelemetryProps(flags, { method, validated: Boolean(status?.ok), durationMs: Date.now() - loginStartedAt })
+      );
       return emitLoginResult(flags, settings, settings.apiKey, status?.data ?? null, warnings);
     }
 
     // Path B — interactive device-code login (no key): approve in a browser.
     const start = await apiRequest(flags, "/auth/device/start", { method: "POST", body: "{}" });
     if (!start.ok) {
+      await track(
+        "auth_login_failed",
+        cliTelemetryProps(flags, { method, phase: "device_start", errorCode: errorCode(start), durationMs: Date.now() - loginStartedAt })
+      );
       return flags.json ? writeJson(start) : printApiHuman(start);
     }
     const { userCode, deviceCode, verificationUri, interval, expiresIn } = start.data;
@@ -2754,6 +2789,10 @@ async function main() {
         failure ? `Login ${failure.replace(/_/g, " ")}.` : "Login timed out before approval.",
         "Run microservices auth login again."
       );
+      await track(
+        "auth_login_failed",
+        cliTelemetryProps(flags, { method, phase: "device_poll", errorCode: response.error.code, durationMs: Date.now() - loginStartedAt })
+      );
       return flags.json ? writeJson(response) : printApiHuman(response);
     }
 
@@ -2773,6 +2812,10 @@ async function main() {
       warnings.push(`Saved key without server validation: ${error.message}`);
     }
 
+    await track(
+      "auth_login_completed",
+      cliTelemetryProps(flags, { method, validated: Boolean(status?.ok), durationMs: Date.now() - loginStartedAt })
+    );
     return emitLoginResult(flags, settings, apiKey, status?.ok ? status.data : null, warnings);
   }
 
@@ -3041,6 +3084,10 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
           details: { moduleId: action },
         },
       };
+      await track(
+        "module_add_plan_failed",
+        cliTelemetryProps(flags, { moduleId: action ?? null, mode: flags.mode ?? null, errorCode: response.error.code })
+      );
       return flags.json
         ? writeJson(response)
         : printHuman(response, () => "");
@@ -3048,7 +3095,14 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
     response = planAddModule({ moduleId: action, mode: flags.mode, ...templateInput("booking-business", flags) });
     // Intent signal: which modules users want to add after scaffolding.
     // Plan-only in the MVP, so this is "planned", not "installed".
-    if (response?.ok !== false) await track("module_add_planned", { moduleId: action, mode: flags.mode ?? null });
+    if (response?.ok !== false) {
+      await track("module_add_planned", cliTelemetryProps(flags, { moduleId: action, mode: flags.mode ?? null }));
+    } else {
+      await track(
+        "module_add_plan_failed",
+        cliTelemetryProps(flags, { moduleId: action ?? null, mode: flags.mode ?? null, errorCode: errorCode(response) })
+      );
+    }
     return flags.json
       ? writeJson(response)
       : printHuman(
@@ -3137,9 +3191,17 @@ Files: ${plan.filesLikelyTouched.join(", ") || "none"}
   }
 
   if (resource === "check") {
-    response = runChecks(templateInput(action, flags));
+    const input = templateInput(action, flags);
+    response = runChecks(input);
     const checkData = response?.data ?? response;
-    await track(checkData?.status === "pass" ? "check_passed" : "check_failed", { status: checkData?.status ?? "unknown" });
+    await track(
+      checkData?.status === "pass" ? "check_passed" : "check_failed",
+      cliTelemetryProps(flags, {
+        status: checkData?.status ?? "unknown",
+        template: input.templateId,
+        moduleCount: input.modules?.length ?? 0,
+      })
+    );
     return flags.json ? writeJson(response) : printHuman(response, (result) => `${result.status}\n${result.checks.map((check) => `- ${check.id}: ${check.status} - ${check.message}`).join("\n")}\n`);
   }
 
@@ -3192,6 +3254,7 @@ Files: ${plan.filesLikelyTouched.join(", ") || "none"}
   }
 
   if (resource === "deploy" && action === "dev") {
+    const startedAt = Date.now();
     const body = {
       ...templateInput(value, flags),
       projectId: flags.projectId ?? undefined,
@@ -3199,10 +3262,29 @@ Files: ${plan.filesLikelyTouched.join(", ") || "none"}
       actor: flags.actor ?? "agent",
       environment: "dev",
     };
+    await track(
+      "workspace_start_attempted",
+      cliTelemetryProps(flags, {
+        kind: "managed_dev",
+        template: body.templateId,
+        moduleCount: body.modules?.length ?? 0,
+      })
+    );
     response = await apiRequest(flags, "/deployments/dev", {
       method: "POST",
       body: JSON.stringify(body),
     });
+    await trackResponse(
+      "workspace_start_completed",
+      "workspace_start_failed",
+      response,
+      cliTelemetryProps(flags, {
+        kind: "managed_dev",
+        template: body.templateId,
+        moduleCount: body.modules?.length ?? 0,
+        durationMs: Date.now() - startedAt,
+      })
+    );
     return flags.json
       ? writeJson(response)
       : printApiHuman(

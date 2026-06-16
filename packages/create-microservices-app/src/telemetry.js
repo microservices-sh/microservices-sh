@@ -1,8 +1,8 @@
 // Anonymous, opt-out usage telemetry.
 //
 // Sends event NAME + a few non-identifying props only — never code, file paths,
-// project names, env, or personal data. Used to measure the create→check funnel
-// (north-star metric). Disable with MICROSERVICES_TELEMETRY=0 (or DO_NOT_TRACK=1).
+// project names, env, or personal data. Used to measure create/install/check
+// activation. Disable with MICROSERVICES_TELEMETRY=0 (or DO_NOT_TRACK=1).
 //
 // Fire-and-forget: a short timeout, every error swallowed. Telemetry must never
 // slow, block, or break the CLI.

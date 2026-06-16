@@ -168,6 +168,22 @@ function repoTemplateModules(files) {
   }
 }
 
+function telemetryProps(flags, extra = {}) {
+  return {
+    source: "create-cli",
+    template: flags.template,
+    packageManager: flags.packageManager,
+    install: flags.install,
+    requestedModuleCount: flags.modules?.length ?? 0,
+    version: PACKAGE_VERSION,
+    ...extra,
+  };
+}
+
+function durationMs(startedAt) {
+  return Math.max(0, Date.now() - startedAt);
+}
+
 function availableTemplateList() {
   const sdk = listTemplates();
   const procedural = sdk.ok ? sdk.data : [];
@@ -574,6 +590,7 @@ function nextCommands(packageManager, appName, installed, planOnlyModules = [], 
 
 async function main() {
   const parsed = parseArgs(process.argv.slice(2));
+  const startedAt = Date.now();
 
   if (parsed.targetName === "help") {
     process.stdout.write(usage());
@@ -592,7 +609,14 @@ async function main() {
 
   const appName = slugify(targetName);
   const targetDirectory = resolve(flags.dir, appName);
-  await assertEmptyOrMissing(targetDirectory);
+  await track("create_app_started", telemetryProps(flags));
+  try {
+    await assertEmptyOrMissing(targetDirectory);
+  } catch (error) {
+    await track("create_app_failed", telemetryProps(flags, { errorCode: "TARGET_NOT_EMPTY", durationMs: durationMs(startedAt) }));
+    if (error && typeof error === "object") error.telemetryTracked = true;
+    throw error;
+  }
 
   const isRepoTemplate = Boolean(REPO_TEMPLATES[flags.template]);
   const allTemplates = availableTemplateList();
@@ -603,6 +627,7 @@ async function main() {
       "Run with --template set to an available template id.",
       { available: allTemplates.map((template) => template.id) }
     );
+    await track("create_app_failed", telemetryProps(flags, { errorCode: "TEMPLATE_NOT_FOUND", durationMs: durationMs(startedAt) }));
     return flags.json ? writeJson(response) : process.stderr.write(`Error: ${response.error.message}\n`);
   }
 
@@ -612,12 +637,13 @@ async function main() {
     const result = spawnSync(cmd, args, { stdio: "inherit", cwd: USER_CWD });
     if (result.status !== 0) {
       process.stderr.write(`\nC3 scaffold failed (exit ${result.status}). See output above.\n`);
+      await track("create_app_failed", telemetryProps(flags, { errorCode: "C3_SCAFFOLD_FAILED", exitCode: result.status ?? 1, durationMs: durationMs(startedAt) }));
       process.exit(result.status ?? 1);
     }
     const appDir = resolve(USER_CWD, appName);
     applyFrameworkHook(appDir, frameworkRow, flags.packageManager);
     process.stdout.write("\nNext steps:\n" + frameworkNextSteps(flags.packageManager, appName, frameworkRow).map((l) => `  ${l}`).join("\n") + "\n");
-    await track("create_app_completed", { template: flags.template, framework: true, packageManager: flags.packageManager, version: PACKAGE_VERSION });
+    await track("create_app_completed", telemetryProps(flags, { framework: true, durationMs: durationMs(startedAt) }));
     return;
   }
 
@@ -639,6 +665,7 @@ async function main() {
   } else {
     const selection = moduleSelection(flags.modules);
     if (!selection.ok) {
+      await track("create_app_failed", telemetryProps(flags, { errorCode: selection.response.error.code, durationMs: durationMs(startedAt) }));
       return flags.json
         ? writeJson(selection.response)
         : process.stderr.write(`Error: ${selection.response.error.message}\nNext: ${selection.response.error.remediation}\n`);
@@ -653,6 +680,7 @@ async function main() {
       },
     });
     if (!response.ok) {
+      await track("create_app_failed", telemetryProps(flags, { errorCode: response.error?.code ?? "GENERATE_FAILED", durationMs: durationMs(startedAt) }));
       return flags.json ? writeJson(response) : process.stderr.write(`Error: ${response.error.message}\n`);
     }
     generatedFiles = response.data.files;
@@ -666,6 +694,7 @@ async function main() {
   let installResult = null;
 
   if (flags.install) {
+    const installStartedAt = Date.now();
     installResult = installDependencies(root, flags.packageManager);
     if ((installResult.status ?? 1) !== 0) {
       const output = fail(
@@ -674,8 +703,17 @@ async function main() {
         `Run cd ${appName} and ${flags.packageManager} install.`,
         { appName, packageManager: flags.packageManager, root }
       );
+      await track(
+        "dependency_install_failed",
+        telemetryProps(flags, { exitCode: installResult.status ?? 1, durationMs: durationMs(installStartedAt) })
+      );
+      await track("create_app_failed", telemetryProps(flags, { errorCode: "INSTALL_FAILED", durationMs: durationMs(startedAt) }));
       return flags.json ? writeJson(output) : process.stderr.write(`\n${output.error.message}\nNext: ${output.error.remediation}\n`);
     }
+    await track(
+      "dependency_install_completed",
+      telemetryProps(flags, { durationMs: durationMs(installStartedAt) })
+    );
   }
 
   const output = {
@@ -700,12 +738,13 @@ async function main() {
   };
 
   await track("create_app_completed", {
+    ...telemetryProps(flags),
     template: flags.template,
     modules: generatedModules,
     moduleCount: generatedModules.length,
     packageManager: flags.packageManager,
     installed: flags.install,
-    version: PACKAGE_VERSION,
+    durationMs: durationMs(startedAt),
   });
 
   if (flags.json) {
@@ -724,7 +763,9 @@ async function main() {
 
 main().catch(async (error) => {
   const response = fail("CREATE_APP_FAILED", error.message, "Fix the input or choose an empty target directory.");
-  await track("create_app_failed", { code: "CREATE_APP_FAILED", version: PACKAGE_VERSION });
+  if (!error?.telemetryTracked) {
+    await track("create_app_failed", { code: "CREATE_APP_FAILED", version: PACKAGE_VERSION });
+  }
   writeJson(response);
   process.exitCode = 1;
 });

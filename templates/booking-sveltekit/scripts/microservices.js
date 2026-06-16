@@ -21,6 +21,49 @@ const DEFAULT_CONFIG_PATH = process.env.MICROSERVICES_CONFIG_PATH
   ? resolve(process.env.MICROSERVICES_CONFIG_PATH)
   : join(process.env.MICROSERVICES_CONFIG_DIR || join(homedir(), ".microservices"), "config.json");
 const IGNORE = new Set(["node_modules", "dist", ".svelte-kit", ".wrangler", ".git"]);
+const TELEMETRY_API_URL = process.env.MICROSERVICES_API_URL || DEFAULT_API_URL;
+const TELEMETRY_TIMEOUT_MS = 1500;
+const TELEMETRY_NOTICE_MARKER = join(dirname(DEFAULT_CONFIG_PATH), ".telemetry-notice");
+
+function telemetryEnabled() {
+  const v = String(process.env.MICROSERVICES_TELEMETRY ?? "").toLowerCase();
+  if (["0", "false", "off", "no"].includes(v)) return false;
+  const dnt = String(process.env.DO_NOT_TRACK ?? "").toLowerCase();
+  if (dnt === "1" || dnt === "true") return false;
+  return true;
+}
+
+function telemetryNotice(json) {
+  if (json || !telemetryEnabled()) return;
+  try {
+    if (existsSync(TELEMETRY_NOTICE_MARKER)) return;
+    mkdirSync(dirname(TELEMETRY_NOTICE_MARKER), { recursive: true });
+    writeFileSync(TELEMETRY_NOTICE_MARKER, "shown\n", "utf8");
+    process.stderr.write(
+      "microservices collects anonymous usage to improve the tool - no code, paths, or personal data. Opt out: MICROSERVICES_TELEMETRY=0\n"
+    );
+  } catch {
+    // Never let the notice break the workspace CLI.
+  }
+}
+
+async function track(name, props = {}) {
+  if (!telemetryEnabled()) return;
+  try {
+    await fetch(`${TELEMETRY_API_URL}/events`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name, props, session: "workspace-cli" }),
+      signal: AbortSignal.timeout(TELEMETRY_TIMEOUT_MS)
+    });
+  } catch {
+    // Telemetry is best-effort; never surface failures.
+  }
+}
+
+function durationMs(startedAt) {
+  return Math.max(0, Date.now() - startedAt);
+}
 
 // Runs the app's static contract spec (microservices.check.mjs) in a child process.
 // Keeps `check` fast (no server, no build) while verifying that generated routes stay
@@ -121,6 +164,28 @@ function emit(response, formatter = null, flags = { json: false }) {
 
 const manifest = readJson("microservices.template.json", {});
 const lock = readJson("microservices.lock.json", { modules: [] });
+
+function workspaceTelemetryProps(flags, extra = {}) {
+  return {
+    source: "workspace-cli",
+    template: manifest.id ?? lock.template ?? null,
+    moduleCount: (lock.modules ?? []).length,
+    json: flags.json,
+    ...extra
+  };
+}
+
+function responseErrorCode(response) {
+  return response?.error?.code ?? (response?.ok === false ? "UNKNOWN_ERROR" : null);
+}
+
+async function trackResponse(successName, failureName, response, props = {}) {
+  if (response?.ok === false) {
+    await track(failureName, { ...props, result: "failed", errorCode: responseErrorCode(response) });
+    return;
+  }
+  await track(successName, { ...props, result: "completed" });
+}
 
 function parseArgs(argv) {
   const args = [];
@@ -1891,6 +1956,8 @@ async function main() {
     return;
   }
 
+  telemetryNotice(flags.json);
+
   if (resource === "deploy" || resource === "preview") {
     const deployFlagError = validateDeployFlags(flags);
     if (deployFlagError) {
@@ -1906,11 +1973,26 @@ async function main() {
       flags
     );
   } else if (resource === "add") {
-    emit(
-      await addModule(action),
-      (data) => `Vendored ${data.id} to ${data.vendoredTo}.\n`,
-      flags
+    const startedAt = Date.now();
+    await track("module_install_started", workspaceTelemetryProps(flags, { moduleId: action ?? null }));
+    let response;
+    try {
+      response = await addModule(action);
+    } catch (error) {
+      response = fail(
+        "MODULE_INSTALL_FAILED",
+        `Module install failed${action ? `: ${action}` : ""}.`,
+        "Review the command output and retry.",
+        { moduleId: action ?? null, reason: error?.message ?? String(error) }
+      );
+    }
+    await trackResponse(
+      "module_install_completed",
+      "module_install_failed",
+      response,
+      workspaceTelemetryProps(flags, { moduleId: action ?? null, durationMs: durationMs(startedAt) })
     );
+    emit(response, (data) => `Vendored ${data.id} to ${data.vendoredTo}.\n`, flags);
   } else if (resource === "docs") {
     const moduleDocs = [];
     if (action) {
@@ -1961,20 +2043,63 @@ async function main() {
       flags
     );
   } else if (resource === "check") {
-    emit(checkResponse(), (data) => `Template checks: ${data.checks.every((check) => check.status === "pass") ? "pass" : "fail"}\n`, flags);
+    const response = checkResponse();
+    await track(
+      response.ok ? "check_passed" : "check_failed",
+      workspaceTelemetryProps(flags, {
+        status: response.ok ? "pass" : "fail",
+        errorCode: response.ok ? null : response.error?.code ?? "CHECK_FAILED"
+      })
+    );
+    emit(response, (data) => `Template checks: ${data.checks.every((check) => check.status === "pass") ? "pass" : "fail"}\n`, flags);
   } else if (resource === "local" && action === "setup") {
-    emit(localSetup(flags), (data) => `Local setup ${data.status}.\n`, flags);
+    const startedAt = Date.now();
+    const response = localSetup(flags);
+    await trackResponse(
+      "workspace_setup_completed",
+      "workspace_setup_failed",
+      response,
+      workspaceTelemetryProps(flags, { kind: "local_setup", durationMs: durationMs(startedAt) })
+    );
+    emit(response, (data) => `Local setup ${data.status}.\n`, flags);
   } else if (resource === "local" && action === "verify") {
     emit(localSetup(flags), (data) => `Local verification ${data.status}.\n`, flags);
   } else if (resource === "local" && action === "migrate") {
     emit(runCommand("local:migrate", "wrangler", ["d1", "migrations", "apply", "DB", "--local"], flags), (data) => `Local migration exited ${data.exitCode}.\n`, flags);
   } else if (resource === "local" && action === "dev") {
-    emit(localDev(flags), (data) => `Local dev exited ${data.exitCode}.\n`, flags);
+    const startedAt = Date.now();
+    await track("workspace_start_attempted", workspaceTelemetryProps(flags, { kind: "local_dev" }));
+    const response = localDev(flags);
+    await trackResponse(
+      "workspace_start_completed",
+      "workspace_start_failed",
+      response,
+      workspaceTelemetryProps(flags, { kind: "local_dev", durationMs: durationMs(startedAt) })
+    );
+    emit(response, (data) => `Local dev exited ${data.exitCode}.\n`, flags);
   } else if (resource === "local" && action === "smoke") {
     const url = flags.url || value || "http://127.0.0.1:5174";
-    emit(runCommand("local:smoke", "node", ["scripts/smoke-http.mjs", url], flags), (data) => `Local smoke exited ${data.exitCode}.\n`, flags);
+    const startedAt = Date.now();
+    const response = runCommand("local:smoke", "node", ["scripts/smoke-http.mjs", url], flags);
+    await trackResponse(
+      "workspace_smoke_completed",
+      "workspace_smoke_failed",
+      response,
+      workspaceTelemetryProps(flags, { kind: "local_smoke", durationMs: durationMs(startedAt) })
+    );
+    emit(response, (data) => `Local smoke exited ${data.exitCode}.\n`, flags);
   } else if (resource === "auth" && action === "login") {
-    emit(await authLogin(flags), (data) => `Logged in for ${data.apiUrl}.\nConfig: ${data.configPath}\n`, flags);
+    const startedAt = Date.now();
+    const method = flags.apiKey ? "api_key" : "device";
+    await track("auth_login_started", workspaceTelemetryProps(flags, { method }));
+    const response = await authLogin(flags);
+    await trackResponse(
+      "auth_login_completed",
+      "auth_login_failed",
+      response,
+      workspaceTelemetryProps(flags, { method, durationMs: durationMs(startedAt) })
+    );
+    emit(response, (data) => `Logged in for ${data.apiUrl}.\nConfig: ${data.configPath}\n`, flags);
   } else if (resource === "auth" && action === "status") {
     emit(await authStatus(flags), (data) => `API: ${data.apiUrl}\nToken: ${data.configured ? data.token : "not configured"}\nServer auth: ${data.server ? "authenticated" : "unknown"}\nConfig: ${data.configPath}\n`, flags);
   } else if (resource === "auth" && action === "logout") {

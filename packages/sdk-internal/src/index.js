@@ -1233,12 +1233,20 @@ pnpm deploy
 
 function buildProjectCliJs() {
   const script = `#!/usr/bin/env node
-import { existsSync, readFileSync } from "node:fs";
-import { spawnSync } from "node:child_process";
+	import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+	import { spawnSync } from "node:child_process";
+	import { homedir } from "node:os";
+	import { join } from "node:path";
 
-function parseArgs(argv) {
-  const args = [];
-  const flags = { json: false, plan: false };
+	const DEFAULT_API_URL = "https://api.microservices.sh";
+	const TELEMETRY_API_URL = process.env.MICROSERVICES_API_URL || DEFAULT_API_URL;
+	const TELEMETRY_TIMEOUT_MS = 1500;
+	const TELEMETRY_CONFIG_DIR = process.env.MICROSERVICES_CONFIG_DIR || join(homedir(), ".microservices");
+	const TELEMETRY_NOTICE_MARKER = join(TELEMETRY_CONFIG_DIR, ".telemetry-notice");
+
+	function parseArgs(argv) {
+	  const args = [];
+	  const flags = { json: false, plan: false };
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
     if (value === "--json") flags.json = true;
@@ -1248,14 +1256,64 @@ function parseArgs(argv) {
   return { args, flags };
 }
 
-function readJson(path, fallback = null) {
-  if (!existsSync(path)) return fallback;
-  return JSON.parse(readFileSync(path, "utf8"));
-}
+	function readJson(path, fallback = null) {
+	  if (!existsSync(path)) return fallback;
+	  return JSON.parse(readFileSync(path, "utf8"));
+	}
 
-function catalog() {
-  return readJson("docs/modules/catalog.json", { modules: [] });
-}
+	function telemetryEnabled() {
+	  const v = String(process.env.MICROSERVICES_TELEMETRY ?? "").toLowerCase();
+	  if (["0", "false", "off", "no"].includes(v)) return false;
+	  const dnt = String(process.env.DO_NOT_TRACK ?? "").toLowerCase();
+	  if (dnt === "1" || dnt === "true") return false;
+	  return true;
+	}
+
+	function telemetryNotice(json) {
+	  if (json || !telemetryEnabled()) return;
+	  try {
+	    if (existsSync(TELEMETRY_NOTICE_MARKER)) return;
+	    mkdirSync(TELEMETRY_CONFIG_DIR, { recursive: true });
+	    writeFileSync(TELEMETRY_NOTICE_MARKER, "shown\\n", "utf8");
+	    process.stderr.write("microservices collects anonymous usage to improve the tool - no code, paths, or personal data. Opt out: MICROSERVICES_TELEMETRY=0\\n");
+	  } catch {
+	    // Never let the notice break the project CLI.
+	  }
+	}
+
+	async function track(name, props = {}) {
+	  if (!telemetryEnabled()) return;
+	  try {
+	    await fetch(TELEMETRY_API_URL + "/events", {
+	      method: "POST",
+	      headers: { "content-type": "application/json" },
+	      body: JSON.stringify({ name, props, session: "workspace-cli" }),
+	      signal: AbortSignal.timeout(TELEMETRY_TIMEOUT_MS)
+	    });
+	  } catch {
+	    // Telemetry is best-effort; never surface failures.
+	  }
+	}
+
+	function durationMs(startedAt) {
+	  return Math.max(0, Date.now() - startedAt);
+	}
+
+	function telemetryProps(flags, extra = {}) {
+	  const lock = lockfile();
+	  const manifest = readJson("microservices.template.json", {});
+	  return {
+	    source: "workspace-cli",
+	    template: manifest.id ?? lock.template ?? null,
+	    moduleCount: (lock.modules ?? []).length,
+	    json: flags.json,
+	    ...extra
+	  };
+	}
+
+	function catalog() {
+	  return readJson("docs/modules/catalog.json", { modules: [] });
+	}
 
 function lockfile() {
   return readJson("microservices.lock.json", { modules: [] });
@@ -1559,52 +1617,71 @@ const { args, flags } = parseArgs(process.argv.slice(2));
 const [resource, action, value] = args;
 let response;
 
-if (!resource || resource === "help" || resource === "--help" || resource === "-h") {
-  process.stdout.write(usage());
-} else if (resource === "modules" && action === "list") {
-  response = ok(catalog().modules);
-  flags.json ? writeJson(response) : process.stdout.write(response.data.map((module) => module.id + " (" + module.status + ") - " + module.summary).join("\\n") + "\\n");
-} else if (resource === "modules" && action === "inspect") {
-  const module = findModule(value);
-  response = module ? ok(module) : fail("Unknown module.", "Run modules list --json and pick a returned id.", { id: value });
-  flags.json ? writeJson(response) : process.stdout.write(response.ok ? module.name + "\\n" + module.summary + "\\nMount: " + module.mount + "\\nStatus: " + module.status + "\\n" : "Error: " + response.error.message + "\\n");
-} else if (resource === "docs") {
-  const module = findModule(action);
-  if (!module) {
-    response = fail("Unknown module.", "Run modules list --json and pick a returned id.", { id: action });
+	if (!resource || resource === "help" || resource === "--help" || resource === "-h") {
+	  process.stdout.write(usage());
+	} else if (resource === "modules" && action === "list") {
+	  telemetryNotice(flags.json);
+	  response = ok(catalog().modules);
+	  flags.json ? writeJson(response) : process.stdout.write(response.data.map((module) => module.id + " (" + module.status + ") - " + module.summary).join("\\n") + "\\n");
+	} else if (resource === "modules" && action === "inspect") {
+	  telemetryNotice(flags.json);
+	  const module = findModule(value);
+	  response = module ? ok(module) : fail("Unknown module.", "Run modules list --json and pick a returned id.", { id: value });
+	  flags.json ? writeJson(response) : process.stdout.write(response.ok ? module.name + "\\n" + module.summary + "\\nMount: " + module.mount + "\\nStatus: " + module.status + "\\n" : "Error: " + response.error.message + "\\n");
+	} else if (resource === "docs") {
+	  telemetryNotice(flags.json);
+	  const module = findModule(action);
+	  if (!module) {
+	    response = fail("Unknown module.", "Run modules list --json and pick a returned id.", { id: action });
   } else if (!existsSync(module.docPath)) {
     response = fail("Module doc is missing.", "Regenerate the app or check docs/modules/catalog.json.", { path: module.docPath });
   } else {
     response = ok({ id: module.id, path: module.docPath, markdown: readFileSync(module.docPath, "utf8") });
-  }
-  flags.json ? writeJson(response) : process.stdout.write(response.ok ? response.data.markdown : "Error: " + response.error.message + "\\n");
-} else if (resource === "add") {
-  if (!flags.plan) {
-    response = fail("Add requires --plan in the MVP scaffold.", "Run pnpm microservices add <module-id> --plan --json.", { id: action });
-  } else {
-    response = modulePlan(action);
-  }
-  flags.json ? writeJson(response) : process.stdout.write(response.ok ? "Plan for " + response.data.module.id + ": " + response.data.action + "\\nApproval required: " + response.data.approvalRequired + "\\n" : "Error: " + response.error.message + "\\n");
-} else if (resource === "secrets" && action === "status") {
-  response = secretsStatus();
-  flags.json ? writeJson(response) : process.stdout.write((response.data.secrets.map((item) => item.module + ":" + item.name + " configured=" + item.configured).join("\\n") || "No required secrets for installed modules.") + "\\n");
-} else if (resource === "updates") {
-  response = updates();
-  flags.json ? writeJson(response) : process.stdout.write((response.data.current.map((item) => item.id + ": " + item.currentVersion + " -> " + item.latestVersion + " (" + item.status + ")").join("\\n") || "No locked modules.") + "\\n");
-} else if (resource === "upgrade") {
-  if (!flags.plan) {
-    response = fail("Upgrade requires --plan in the MVP scaffold.", "Run pnpm microservices upgrade <module-id> --plan --json.", { id: action });
-  } else {
+	  }
+	  flags.json ? writeJson(response) : process.stdout.write(response.ok ? response.data.markdown : "Error: " + response.error.message + "\\n");
+	} else if (resource === "add") {
+	  telemetryNotice(flags.json);
+	  if (!flags.plan) {
+	    response = fail("Add requires --plan in the MVP scaffold.", "Run pnpm microservices add <module-id> --plan --json.", { id: action });
+	  } else {
+	    response = modulePlan(action);
+	  }
+	  if (response.ok) {
+	    await track("module_add_planned", telemetryProps(flags, { moduleId: action ?? null }));
+	  } else {
+	    await track("module_add_plan_failed", telemetryProps(flags, { moduleId: action ?? null, errorCode: "MODULE_ADD_PLAN_FAILED" }));
+	  }
+	  flags.json ? writeJson(response) : process.stdout.write(response.ok ? "Plan for " + response.data.module.id + ": " + response.data.action + "\\nApproval required: " + response.data.approvalRequired + "\\n" : "Error: " + response.error.message + "\\n");
+	} else if (resource === "secrets" && action === "status") {
+	  telemetryNotice(flags.json);
+	  response = secretsStatus();
+	  flags.json ? writeJson(response) : process.stdout.write((response.data.secrets.map((item) => item.module + ":" + item.name + " configured=" + item.configured).join("\\n") || "No required secrets for installed modules.") + "\\n");
+	} else if (resource === "updates") {
+	  telemetryNotice(flags.json);
+	  response = updates();
+	  flags.json ? writeJson(response) : process.stdout.write((response.data.current.map((item) => item.id + ": " + item.currentVersion + " -> " + item.latestVersion + " (" + item.status + ")").join("\\n") || "No locked modules.") + "\\n");
+	} else if (resource === "upgrade") {
+	  telemetryNotice(flags.json);
+	  if (!flags.plan) {
+	    response = fail("Upgrade requires --plan in the MVP scaffold.", "Run pnpm microservices upgrade <module-id> --plan --json.", { id: action });
+	  } else {
     response = upgradePlan(action);
-  }
-  flags.json ? writeJson(response) : process.stdout.write(response.ok ? "Upgrade plan for " + response.data.module.id + ": " + response.data.action + "\\nApproval required: " + response.data.approvalRequired + "\\nRisk: " + response.data.risk + "\\n" : "Error: " + response.error.message + "\\n");
-} else if (resource === "check") {
-  response = checks();
-  flags.json ? writeJson(response) : process.stdout.write(response.data.status + "\\n" + response.data.checks.map((item) => "- " + item.id + ": " + item.status).join("\\n") + "\\n");
-} else if (resource === "dev") {
-  const child = spawnSync("pnpm", ["dev"], { stdio: "inherit" });
-  process.exitCode = child.status ?? 1;
-} else {
+	  }
+	  flags.json ? writeJson(response) : process.stdout.write(response.ok ? "Upgrade plan for " + response.data.module.id + ": " + response.data.action + "\\nApproval required: " + response.data.approvalRequired + "\\nRisk: " + response.data.risk + "\\n" : "Error: " + response.error.message + "\\n");
+	} else if (resource === "check") {
+	  telemetryNotice(flags.json);
+	  response = checks();
+	  await track(response.ok ? "check_passed" : "check_failed", telemetryProps(flags, { status: response.data?.status ?? "unknown" }));
+	  flags.json ? writeJson(response) : process.stdout.write(response.data.status + "\\n" + response.data.checks.map((item) => "- " + item.id + ": " + item.status).join("\\n") + "\\n");
+	} else if (resource === "dev") {
+	  telemetryNotice(flags.json);
+	  const startedAt = Date.now();
+	  await track("workspace_start_attempted", telemetryProps(flags, { kind: "pnpm_dev" }));
+	  const child = spawnSync("pnpm", ["dev"], { stdio: "inherit" });
+	  const ok = (child.status ?? 1) === 0;
+	  await track(ok ? "workspace_start_completed" : "workspace_start_failed", telemetryProps(flags, { kind: "pnpm_dev", exitCode: child.status ?? 1, durationMs: durationMs(startedAt) }));
+	  process.exitCode = child.status ?? 1;
+	} else {
   process.stderr.write(usage());
   process.exitCode = 1;
 }

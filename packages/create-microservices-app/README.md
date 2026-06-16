@@ -98,6 +98,10 @@ pnpm microservices deploy preview --confirm deploy
 
 The control plane owns remote state and resource ids; `wrangler.jsonc` stays a local-dev config. See the [deployment docs](https://microservices.sh/docs) for the full provision → migrate → upload pipeline and CI usage.
 
+## Telemetry
+
+The create command and generated project CLI collect anonymous, opt-out usage events for create/install/check/start/auth funnel statistics. They do not send code, paths, project names, secrets, environment values, or personal data. Disable with `MICROSERVICES_TELEMETRY=0` or `DO_NOT_TRACK=1`.
+
 ## Links
 
 - Website & docs: https://microservices.sh
