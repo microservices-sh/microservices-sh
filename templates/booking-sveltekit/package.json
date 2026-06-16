@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "description": "Official microservices.sh Cloudflare SvelteKit booking app template shell.",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "node scripts/microservices.js local dev",
     "dev:local": "node scripts/microservices.js local dev",

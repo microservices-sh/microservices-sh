@@ -14,7 +14,7 @@ export const createOrganizationInputSchema = z.object({
 
 export const inviteMemberInputSchema = z.object({
   orgId: z.string().min(1),
-  email: z.string().email(),
+  email: z.email(),
   roleId: z.string().min(1)
 });
 

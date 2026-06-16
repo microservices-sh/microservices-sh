@@ -22,7 +22,7 @@ export const listNotificationsInputSchema = z.object({
   unreadOnly: z.boolean().default(false),
   limit: z.number().int().positive().max(200).default(50),
   // Reconnect cursor — see types.NotificationListFilter.sinceIso.
-  sinceIso: z.string().datetime().optional()
+  sinceIso: z.iso.datetime().optional()
 });
 
 // markRead targets specific notification ids, always within one user's scope so

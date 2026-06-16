@@ -33,7 +33,7 @@ const attachmentSchema = z
   .object({
     filename: z.string().min(1).max(255),
     content: z.string().min(1).optional(),
-    path: z.string().url().optional()
+    path: z.url().optional()
   })
   .refine((value) => Boolean(value.content || value.path), {
     message: "Attachment must include content or path."
@@ -48,7 +48,7 @@ export const emailConfigSchema = z.object({
   enabled: z.boolean().default(true),
   provider: z.enum(["resend", "stacksuite"]).default("resend"),
   defaultFrom: senderAddressSchema.nullable().default(null),
-  apiBaseUrl: z.string().url().default("https://api.resend.com"),
+  apiBaseUrl: z.url().default("https://api.resend.com"),
   userAgent: z.string().min(1).max(256).default("microservices-sh-email/0.1.0"),
   testMode: z.boolean().default(false),
   redactRecipientsInEvents: z.boolean().default(true)

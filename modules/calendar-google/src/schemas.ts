@@ -38,7 +38,7 @@ export const renewExpiringChannelsInputSchema = z.object({
   // Channel TTL requested from Google for the new channel (ms). Default 7 days.
   ttlMs: z.number().int().positive().default(604_800_000),
   // Callback URL Google posts push notifications to.
-  callbackUrl: z.string().url(),
+  callbackUrl: z.url(),
   limit: z.number().int().positive().max(500).default(100)
 });
 

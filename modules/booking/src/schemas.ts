@@ -7,9 +7,9 @@ export const availabilityQuerySchema = z.object({
 
 export const createBookingSchema = z.object({
   serviceId: z.string().min(1),
-  startsAt: z.string().datetime(),
+  startsAt: z.iso.datetime(),
   customerName: z.string().min(1).max(120),
-  customerEmail: z.string().email(),
+  customerEmail: z.email(),
   customerPhone: z.string().max(40).optional().nullable(),
   notes: z.string().max(1000).optional().nullable()
 });

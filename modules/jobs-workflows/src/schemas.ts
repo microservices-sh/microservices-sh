@@ -17,7 +17,7 @@ export const upsertScheduleInputSchema = z.object({
   intervalMs: z.number().int().positive().max(31_536_000_000),
   maxAttempts: z.number().int().positive().max(50).default(5),
   // First fire time; defaults to now + intervalMs when omitted.
-  firstRunAt: z.string().datetime().optional()
+  firstRunAt: z.iso.datetime().optional()
 });
 
 export const listJobsFilterSchema = z.object({

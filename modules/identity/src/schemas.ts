@@ -6,11 +6,11 @@ import { z } from "zod";
 // that prefer to validate at the edge.
 
 export const requestLoginCodeInputSchema = z.object({
-  email: z.string().min(3).email(),
+  email: z.email().min(3),
 });
 
 export const verifyLoginCodeInputSchema = z.object({
-  email: z.string().min(3).email(),
+  email: z.email().min(3),
   code: z.string().min(1),
 });
 
