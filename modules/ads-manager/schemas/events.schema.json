@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ads Manager Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": ["ad.account_connected", "ad.account_disconnected", "ad.insights_synced", "ad.alert_raised"]
+    },
+    "entityType": {
+      "type": "string",
+      "enum": ["ad_connection", "ad_insights", "ad_alert"]
+    }
+  },
+  "required": ["eventName", "entityType"]
+}

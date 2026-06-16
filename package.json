@@ -20,8 +20,10 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "@microservices-sh/audit-log": "workspace:*",
     "@microservices-sh/auth": "workspace:*",
     "@microservices-sh/connection-contract": "workspace:*",
+    "@microservices-sh/image-generation": "workspace:*",
     "@microservices-sh/payment": "workspace:*",
     "vitest": "^3.2.4"
   }

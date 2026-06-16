@@ -8,12 +8,18 @@ importers:
 
   .:
     devDependencies:
+      '@microservices-sh/audit-log':
+        specifier: workspace:*
+        version: link:modules/audit-log
       '@microservices-sh/auth':
         specifier: workspace:*
         version: link:modules/auth
       '@microservices-sh/connection-contract':
         specifier: workspace:*
         version: link:packages/connection-contract
+      '@microservices-sh/image-generation':
+        specifier: workspace:*
+        version: link:modules/image-generation
       '@microservices-sh/payment':
         specifier: workspace:*
         version: link:modules/payment
@@ -22,6 +28,22 @@ importers:
         version: 3.2.6(@types/debug@4.1.13)(lightningcss@1.32.0)
 
   modules/admin-shell:
+    dependencies:
+      '@microservices-sh/connection-contract':
+        specifier: workspace:*
+        version: link:../../packages/connection-contract
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250109.0
+        version: 4.20260613.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  modules/ads-manager:
     dependencies:
       '@microservices-sh/connection-contract':
         specifier: workspace:*

@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "ads-manager",
+  "name": "Ads Manager",
+  "version": "0.1.0",
+  "status": "available",
+  "class": "provider",
+  "summary": "Cross-platform ad monitoring (Meta, Google) over an upstream ads service. Records insight snapshots to D1, raises anomaly alerts, and exposes a normalized campaign view. Platform apps/OAuth/tokens live in the upstream service; access is a paid, entitlement-gated connector.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    { "type": "d1", "binding": "DB", "tables": ["ad_connections", "ad_insight_snapshots", "ad_alerts"] }
+  ],
+  "permissions": ["ads.connect", "ads.read", "ads.manage", "ads.admin", "ads.observe"],
+  "connections": {
+    "requires": [],
+    "optional": ["auth", "audit-log", "billing-subscriptions", "jobs-workflows", "notifications-inapp"],
+    "rpc": {
+      "exposes": [
+        { "method": "connectAccount", "scope": "ads.connect", "public": false },
+        { "method": "listConnections", "scope": "ads.read", "public": false },
+        { "method": "disconnectAccount", "scope": "ads.admin", "public": false },
+        { "method": "listCampaigns", "scope": "ads.read", "public": false },
+        { "method": "getInsights", "scope": "ads.read", "public": false },
+        { "method": "syncInsights", "scope": "ads.read", "public": false },
+        { "method": "detectAnomalies", "scope": "ads.read", "public": false },
+        { "method": "listAlerts", "scope": "ads.read", "public": false }
+      ],
+      "calls": []
+    },
+    "events": {
+      "emits": ["ad.account_connected", "ad.account_disconnected", "ad.insights_synced", "ad.alert_raised"],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeSync": { "kind": "filter", "scope": "ads.observe" },
+      "onAlertRaised": { "kind": "observer", "scope": "ads.observe" }
+    },
+    "provides": { "hooks": [] }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": ["migrations", "production-deploy", "external-side-effects", "paid-service"]
+  }
+}

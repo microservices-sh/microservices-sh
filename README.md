@@ -1,8 +1,12 @@
 # microservices.sh
 
-Agent-native application infrastructure for building Cloudflare-native apps from source-visible, contract-checked modules.
+[![npm version](https://img.shields.io/npm/v/create-microservices-app.svg)](https://www.npmjs.com/package/create-microservices-app)
+[![CI](https://github.com/microservices-sh/microservices-sh/actions/workflows/ci.yml/badge.svg)](https://github.com/microservices-sh/microservices-sh/actions/workflows/ci.yml)
+[![Node](https://img.shields.io/node/v/create-microservices-app.svg)](https://nodejs.org)
 
-Start with a working app, then let your coding agent inspect the module docs, plan changes, run checks, and deploy when you are ready. Local generation does not require a microservices.sh account or a Cloudflare account.
+Cloudflare SaaS starter and app generator for teams building with AI coding agents.
+
+Start from a working Workers, D1, and SvelteKit app with source-visible, contract-checked modules. Your coding agent can inspect the docs, plan changes, run checks, and deploy when you are ready. Local generation does not require a microservices.sh account or a Cloudflare account.
 
 ```bash
 pnpm create microservices-app@latest studio-booking --template booking-sveltekit
@@ -20,16 +24,55 @@ npm create microservices-app@latest studio-booking -- --template booking-sveltek
 
 `studio-booking` is your app directory and slug. The current full-app template id is `booking-sveltekit`.
 
+## What You Get
+
+- A real Cloudflare SvelteKit booking app with public booking flow and admin screens.
+- Source-visible modules for gateway, auth, customer, booking, and audit log.
+- D1 migrations, Wrangler config, local dev commands, and HTTP smoke checks.
+- `microservices.lock.json` to pin module versions and make upgrades reviewable.
+- LLM-readable docs under `docs/` so Claude, Codex, Cursor, or another agent can inspect before editing.
+- A project CLI exposed as `pnpm microservices` for module discovery, checks, upgrades, local setup, and managed preview deployment requests.
+
+The goal is not to hide generated code behind a platform. The generated project is a normal repo you can read, change, export, and deploy.
+
+## Pick A Starter
+
+| Starter | Best for | Includes |
+|---------|----------|----------|
+| `booking-sveltekit` | Service businesses, appointment products, agency demos | Public booking flow, admin screens, auth, customers, booking, audit log, D1 |
+| `saas-starter-sveltekit` | Multi-tenant B2B SaaS apps | Org signup, team RBAC, subscriptions, admin shell, audit log |
+| `client-portal-sveltekit` | Customer portals and account areas | Customer auth, invoices, files, audit log |
+| `booking-business` | Lower-level Workers/Hono generation | API-first booking baseline generated from module contracts |
+
+## Good Fits
+
+| Use case | Why this repo helps |
+|----------|---------------------|
+| Solo founder or small business app | Start from a working booking/customer foundation instead of rebuilding auth, data, migrations, and admin flow from scratch. |
+| Agency or fractional CTO delivery | Reuse a known production foundation across clients while keeping every generated app inspectable and owned by the client. |
+| AI-assisted development | Give your agent stable module contracts, docs, checks, and upgrade plans instead of asking it to invent infrastructure ad hoc. |
+| Internal tools and operations portals | Compose common business primitives such as auth, customers, booking, audit logs, email, and payments into Cloudflare-native apps. |
+| Module/template contributors | Add new modules and templates behind explicit contracts, tests, docs, and governance rules. |
+
+This is probably not the right fit if you want a no-code builder, a black-box hosted SaaS, or a generic starter template with no upgrade contract.
+
+## Why Agents Work Better Here
+
+- Module docs are generated into the app so the agent can inspect local contracts before editing.
+- `microservices.lock.json` pins module versions so upgrades are explicit and reviewable.
+- Project commands expose `check`, `add --plan`, `upgrade --plan`, smoke tests, and deploy plans as agent-friendly CLI surfaces.
+- Secrets, migrations, provider actions, and managed deploys stay approval-gated.
+
 ## Agent Skill
 
-This repo includes portable agent skills under [`skills/`](./skills). Use them with Codex or another skill-aware coding agent.
+This repo includes portable agent skills under [`skills/`](./skills). Use them with Codex or another skill-aware coding agent after you generate or inspect an app.
 
-- [`skills/microservices-sh`](./skills/microservices-sh) — work inside a generated app: inspect it, read module contracts, plan module changes, run local checks, and keep secrets, migrations, provider actions, and deployments approval-gated.
-- [`skills/supabase-to-microservices`](./skills/supabase-to-microservices) — migrate a Supabase app (Postgres, Auth, Storage, Realtime, Edge Functions) onto microservices.sh modules backed by D1, R2, Durable Objects, and Workers.
-- [`skills/firebase-to-microservices`](./skills/firebase-to-microservices) — migrate a Firebase app (Firestore, Auth, Storage, Cloud Functions, FCM) the same way, modeling documents as relational D1 tables.
-- [`skills/prisma-postgres-to-d1`](./skills/prisma-postgres-to-d1) — translate a Prisma + Postgres data layer to Drizzle on D1: schema, query rewrites, and data import.
-- [`skills/express-api-to-workers`](./skills/express-api-to-workers) — port an Express/Node API onto the Workers runtime behind module boundaries, covering the runtime gap (no process state, no filesystem, no native DB drivers).
-- [`skills/vercel-next-to-cloudflare`](./skills/vercel-next-to-cloudflare) — move a Vercel/Next.js app to Cloudflare: a host-level OpenNext move, or a deeper backend rebuild onto microservices.sh modules.
+- [`skills/microservices-sh`](./skills/microservices-sh) - work inside a generated app: inspect it, read module contracts, plan module changes, run local checks, and keep secrets, migrations, provider actions, and deployments approval-gated.
+- [`skills/supabase-to-microservices`](./skills/supabase-to-microservices) - migrate a Supabase app (Postgres, Auth, Storage, Realtime, Edge Functions) onto microservices.sh modules backed by D1, R2, Durable Objects, and Workers.
+- [`skills/firebase-to-microservices`](./skills/firebase-to-microservices) - migrate a Firebase app (Firestore, Auth, Storage, Cloud Functions, FCM) the same way, modeling documents as relational D1 tables.
+- [`skills/prisma-postgres-to-d1`](./skills/prisma-postgres-to-d1) - translate a Prisma + Postgres data layer to Drizzle on D1: schema, query rewrites, and data import.
+- [`skills/express-api-to-workers`](./skills/express-api-to-workers) - port an Express/Node API onto the Workers runtime behind module boundaries, covering the runtime gap (no process state, no filesystem, no native DB drivers).
+- [`skills/vercel-next-to-cloudflare`](./skills/vercel-next-to-cloudflare) - move a Vercel/Next.js app to Cloudflare: a host-level OpenNext move, or a deeper backend rebuild onto microservices.sh modules.
 
 Install from the published GitHub repo with the Skills CLI:
 
@@ -57,29 +100,6 @@ cp -R skills/microservices-sh "${CODEX_HOME:-$HOME/.codex}/skills/"
 ```
 
 Or use it directly by asking your agent to use the skill at `skills/microservices-sh` while working inside a generated microservices.sh app.
-
-## What You Get
-
-- A real Cloudflare SvelteKit booking app with public booking flow and admin screens.
-- Source-visible modules for gateway, auth, customer, booking, and audit log.
-- D1 migrations, Wrangler config, local dev commands, and HTTP smoke checks.
-- `microservices.lock.json` to pin module versions and make upgrades reviewable.
-- LLM-readable docs under `docs/` so Claude, Codex, Cursor, or another agent can inspect before editing.
-- A project CLI exposed as `pnpm microservices` for module discovery, checks, upgrades, local setup, and managed preview deployment requests.
-
-The goal is not to hide generated code behind a platform. The generated project is a normal repo you can read, change, export, and deploy.
-
-## Good Fits
-
-| Use case | Why this repo helps |
-|----------|---------------------|
-| Solo founder or small business app | Start from a working booking/customer foundation instead of rebuilding auth, data, migrations, and admin flow from scratch. |
-| Agency or fractional CTO delivery | Reuse a known production foundation across clients while keeping every generated app inspectable and owned by the client. |
-| AI-assisted development | Give your agent stable module contracts, docs, checks, and upgrade plans instead of asking it to invent infrastructure ad hoc. |
-| Internal tools and operations portals | Compose common business primitives such as auth, customers, booking, audit logs, email, and payments into Cloudflare-native apps. |
-| Module/template contributors | Add new modules and templates behind explicit contracts, tests, docs, and governance rules. |
-
-This is probably not the right fit if you want a no-code builder, a black-box hosted SaaS, or a generic starter template with no upgrade contract.
 
 ## Current Catalog
 
@@ -274,8 +294,8 @@ pnpm --filter create-microservices-app smoke
 
 Publishing uses the manual workflow at `.github/workflows/npm-publish.yml`. Default runs use `dry_run=true`. A real npm publish requires:
 
-- GitHub variable: `NPM_PUBLISH_ENABLED=true`
-- GitHub secret: `NPM_TOKEN`
+- npm Trusted Publisher configured for this repository and workflow.
+- A tag push such as `create-microservices-app@0.2.6`, or a manual workflow run with `dry_run=false`.
 
 The `create-microservices-app` package declares an MIT license. Add/verify the root repository license before describing the entire repository as open source.
 

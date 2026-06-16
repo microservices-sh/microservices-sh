@@ -2,10 +2,10 @@
 
 [![npm version](https://img.shields.io/npm/v/create-microservices-app.svg)](https://www.npmjs.com/package/create-microservices-app)
 [![npm downloads](https://img.shields.io/npm/dm/create-microservices-app.svg)](https://www.npmjs.com/package/create-microservices-app)
-[![license](https://img.shields.io/npm/l/create-microservices-app.svg)](https://github.com/microservices-sh/microservices-sh/blob/main/LICENSE)
+[![license](https://img.shields.io/npm/l/create-microservices-app.svg)](https://www.npmjs.com/package/create-microservices-app)
 [![node](https://img.shields.io/node/v/create-microservices-app.svg)](https://nodejs.org)
 
-Scaffold a Cloudflare-native SaaS app — Workers, D1, SvelteKit or Hono, with verified [microservices.sh](https://microservices.sh) modules (auth, booking, payment, email) and a project CLI — in one command.
+Scaffold a Cloudflare-native SaaS app - Workers, D1, SvelteKit or Hono, with source-visible [microservices.sh](https://microservices.sh) modules and a project CLI - in one command.
 
 ## Quick start
 
@@ -26,7 +26,7 @@ Requires **Node.js >= 20**. The first argument (`my-app`) is the app directory a
 
 - A Cloudflare Workers runtime — Hono (`booking-business`) or a full SvelteKit app (`booking-sveltekit`)
 - D1 schema + `wrangler.jsonc` local-dev config
-- Verified microservices.sh modules wired in (auth, customer, booking, payment, email, …)
+- Contract-checked microservices.sh modules wired in or planned through `add --plan`
 - `microservices.lock.json` and LLM-readable module docs under `docs/`
 - A project CLI exposed as `<pm> microservices` — `modules list`, `add --plan`, `upgrade --plan`, `check`, `updates`, and managed deploy commands
 
@@ -59,7 +59,7 @@ Pass with `--template <id>`. Default is `booking-business`.
 | `--json` | Machine-readable output |
 
 ```bash
-npm create microservices-app@latest shop -- --template booking-business --modules payment,email
+npm create microservices-app@latest shop -- --template booking-business --modules audit-log
 npm create microservices-app@latest shop -- --git-repo git@github.com:acme/shop.git
 ```
 

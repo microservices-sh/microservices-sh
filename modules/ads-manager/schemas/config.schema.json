@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ads Manager Module Config",
+  "type": "object",
+  "properties": {
+    "baselineWindowDays": { "type": "integer", "minimum": 1, "maximum": 90, "default": 7 },
+    "spendSpikeMultiplier": { "type": "number", "exclusiveMinimum": 0, "default": 2 },
+    "cpcSpikeMultiplier": { "type": "number", "exclusiveMinimum": 0, "default": 1.5 },
+    "zeroConvMinSpendCents": { "type": "integer", "minimum": 1, "default": 2000 },
+    "defaultListLimit": { "type": "integer", "minimum": 1, "maximum": 500, "default": 100 },
+    "snapshotRetentionDays": { "type": "integer", "minimum": 1, "default": 180 }
+  },
+  "additionalProperties": false
+}

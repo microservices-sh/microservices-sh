@@ -1,0 +1,23 @@
+# Ads Manager Module
+
+Module ID: ads-manager
+Status: available
+Class: provider
+Purpose: Cross-platform ad monitoring (Meta, Google) over an upstream ads service. D1 insight snapshots, anomaly alerts, normalized campaign view. Paid entitlement-gated connector ($1.90/mo).
+Entrypoint: src/index.ts
+
+Key idea: platform apps/OAuth/tokens/dev-token live in the UPSTREAM service (openclaw); this module stores a connection reference (externalRef), not tokens, and adds monitoring/alerting.
+
+RPC: connectAccount, listConnections, disconnectAccount, listCampaigns, getInsights, syncInsights, detectAnomalies, listAlerts
+Events: ad.account_connected, ad.account_disconnected, ad.insights_synced, ad.alert_raised
+Hook points: beforeSync (filter), onAlertRaised (observer)
+Resources: D1 DB (ad_connections, ad_insight_snapshots, ad_alerts)
+Permissions: ads.connect, ads.read, ads.manage, ads.admin, ads.observe
+Optional connections: auth, audit-log, billing-subscriptions, jobs-workflows, notifications-inapp
+
+Entitlement: paid reads call Entitlement.check() → 402 ads.NOT_ENTITLED when inactive. openclaw connector forwards a signed ads.service token (X-Ads-Entitlement).
+Anomalies: spend_spike (>=2× baseline), cpc_spike (>=1.5×), zero_conv (spend>=threshold & 0 conv); deduped per (connection,campaign,type,day).
+
+Check: pnpm check:spec
+Build: pnpm build
+Test: pnpm test

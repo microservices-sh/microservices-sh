@@ -37,6 +37,7 @@ pnpm microservices deploy cleanup --input deployment.json --plan
 9. Do not ask template users to run `wrangler login`, create D1/KV resources, or paste Cloudflare resource ids for managed preview.
 10. Before managed preview, run `pnpm microservices auth login`, `pnpm microservices deploy doctor`, and `pnpm microservices deploy preview --plan`; use `--confirm deploy`, `--confirm provision`, `--confirm migrate`, `--confirm upload`, and `--confirm cleanup` only after approval.
 11. In CI, use `MICROSERVICES_API_KEY` with `pnpm microservices deploy preview --confirm deploy --ci --json --output deployment.json`; chain follow-up commands with `--input deployment.json` and never start an interactive auth flow.
+12. For user-owned Cloudflare accounts, prefer portal OAuth (`--target cloudflare --cloudflare-auth oauth --cloudflare-connection-id <id>`) for interactive users once API OAuth token storage/resolution is enabled, and scoped API tokens (`--cloudflare-auth api-token`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`) for CI or current BYO deploy actions. Do not store raw Cloudflare API tokens in project files.
 
 ## Current Status
 
