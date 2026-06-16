@@ -18,8 +18,9 @@ CREATE TABLE IF NOT EXISTS email_deliveries (
 
 CREATE TABLE IF NOT EXISTS domain_events (
   id TEXT PRIMARY KEY,
-  event_type TEXT NOT NULL,
-  aggregate_id TEXT,
+  event_name TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
   payload TEXT NOT NULL DEFAULT '{}',
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

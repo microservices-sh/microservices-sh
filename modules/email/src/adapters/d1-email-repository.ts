@@ -192,15 +192,17 @@ export function createD1EmailRepository(db: D1Database): EmailRepository {
         .prepare(
           `INSERT INTO domain_events (
             id,
-            event_type,
-            aggregate_id,
+            event_name,
+            entity_type,
+            entity_id,
             payload,
             created_at
-          ) VALUES (?, ?, ?, ?, ?)`
+          ) VALUES (?, ?, ?, ?, ?, ?)`
         )
         .bind(
           `evt_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`,
           event.eventName,
+          event.entityType,
           event.entityId,
           JSON.stringify(event.payload),
           new Date().toISOString()

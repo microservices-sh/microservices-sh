@@ -112,5 +112,11 @@ jobs:
             exit 1
           fi
 
-          pnpm microservices local smoke
+          # On failure, surface the dev-server log — a reachable server that
+          # 500s on a request (e.g. a D1 schema drift) is otherwise invisible.
+          if ! pnpm microservices local smoke; then
+            echo "=== dev server log (booking-sveltekit) ==="
+            cat "$RUNNER_TEMP/booking-sveltekit-dev.log"
+            exit 1
+          fi
           echo "standalone booking-sveltekit local baseline verified"
