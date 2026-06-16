@@ -10,7 +10,7 @@ import {
   type InsightSnapshot,
 } from "@microservices-sh/ads-manager";
 import { authorize } from "@microservices-sh/org-team-rbac";
-import { resolveAdsDeps, billingEntitlement, mintAdsToken } from "$lib/server/ads";
+import { resolveAdsDeps, billingEntitlement, mintAdsToken, adsIssuer } from "$lib/server/ads";
 
 // Verify the signed-in user actually belongs to (and may manage) the submitted
 // org before any tenant-scoped write. Form `orgId` is never authoritative.
@@ -27,7 +27,7 @@ function daysAgo(n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-export const load: PageServerLoad = async ({ locals, platform, parent }) => {
+export const load: PageServerLoad = async ({ locals, platform, parent, url }) => {
   if (!locals.user) throw redirect(303, "/login");
   const { activeOrgId } = await parent();
   if (!activeOrgId) throw redirect(303, "/app");
@@ -46,7 +46,7 @@ export const load: PageServerLoad = async ({ locals, platform, parent }) => {
   if (connections[0]) {
     // Mint the signed ads.service entitlement the upstream connector forwards.
     // Subject = the org (the billing tenant), so upstream grants/usage key on it.
-    const entitlementToken = await mintAdsToken(locals.signingKeyStore, activeOrgId, activeOrgId);
+    const entitlementToken = await mintAdsToken(locals.signingKeyStore, activeOrgId, activeOrgId, adsIssuer(platform, url.origin));
     const camp = await listCampaigns(
       { tenantId: activeOrgId, connectionId: connections[0].id, since: daysAgo(7), until: today() },
       { store, connector, entitlement, entitlementToken },
@@ -66,7 +66,7 @@ export const load: PageServerLoad = async ({ locals, platform, parent }) => {
 
 export const actions: Actions = {
   // Connect a demo ad account (real OAuth would happen in the upstream service).
-  connect: async ({ locals, platform, request }) => {
+  connect: async ({ locals, platform, request, url }) => {
     if (!locals.user) return fail(401, { error: "Sign in first." });
     const activeOrgId = String((await request.formData()).get("orgId") ?? "");
     if (!(await gateOrg(locals, activeOrgId))) return fail(403, { error: "You do not have access to this organization." });
@@ -82,7 +82,7 @@ export const actions: Actions = {
     // the dev memory connector has no grantConnection; openclaw may be unreachable.
     try {
       if (connector.grantConnection) {
-        const token = await mintAdsToken(locals.signingKeyStore, activeOrgId, activeOrgId);
+        const token = await mintAdsToken(locals.signingKeyStore, activeOrgId, activeOrgId, adsIssuer(platform, url.origin));
         const externalRef = (r.data as { connection: { externalRef: string } }).connection.externalRef;
         await connector.grantConnection({ tenantId: activeOrgId, entitlementToken: token }, externalRef);
       }

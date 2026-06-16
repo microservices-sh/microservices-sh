@@ -21,15 +21,32 @@ export async function ensureSigningKey(store: SigningKeyStore): Promise<void> {
 }
 
 // Mint the short-lived `ads.service` entitlement JWT the upstream ads service
-// verifies (model B). Best-effort: never blocks the page if signing fails.
-export async function mintAdsToken(store: SigningKeyStore, subject: string, orgId: string): Promise<string | undefined> {
+// verifies (model B). `issuer` identifies THIS app so the upstream can resolve
+// our JWKS by the token's `iss` (multi-app: many consuming apps each mint their
+// own tokens). It must equal the issuer registered with the upstream, whose JWKS
+// URL points at this app's /api/auth/jwks. Best-effort: never blocks the page.
+export async function mintAdsToken(
+  store: SigningKeyStore,
+  subject: string,
+  orgId: string,
+  issuer?: string,
+): Promise<string | undefined> {
   try {
     await ensureSigningKey(store);
-    const r = await mintToken({ subject, workspace: orgId, project: "ads", scopes: ["ads.service"] }, { signingKeyStore: store });
+    const input = { subject, workspace: orgId, project: "ads", scopes: ["ads.service"], ...(issuer ? { issuer } : {}) };
+    const r = await mintToken(input, { signingKeyStore: store });
     return r.ok ? (r.data as { token: string }).token : undefined;
   } catch {
     return undefined;
   }
+}
+
+// This app's entitlement issuer — a stable identity the upstream ads service has
+// registered (→ our JWKS at `${issuer}/api/auth/jwks`). Prefer an explicit env
+// override; fall back to the request origin so dev works without config.
+export function adsIssuer(platform: App.Platform | undefined, origin: string): string {
+  const env = (platform?.env ?? {}) as { APP_PUBLIC_URL?: string };
+  return env.APP_PUBLIC_URL ?? origin;
 }
 
 // Dev singleton: persists ad data across requests when no D1 binding is present.
