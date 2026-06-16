@@ -239,6 +239,8 @@ function parseArgs(argv) {
       continue;
     } else if (value === "--json") {
       flags.json = true;
+    } else if (value === "--help-all") {
+      flags.helpAll = true;
     } else if (value === "--dry-run") {
       flags.dryRun = true;
       flags.plan = true;
@@ -286,6 +288,27 @@ function parseArgs(argv) {
       const parsed = flagValue(index, value, flags.target);
       flags.target = parsed.value;
       index = parsed.index;
+    } else if (value === "--cloudflare-config") {
+      // One flag for BYO-Cloudflare instead of seven. Accepts the same fields
+      // (auth, accountId, zoneId, previewBaseDomain, connectionId, apiToken).
+      // The individual --cloudflare-* flags still work for overrides.
+      const parsed = flagValue(index, value);
+      index = parsed.index;
+      try {
+        const cfg = JSON.parse(parsed.value || "{}");
+        if (cfg.auth != null) flags.cloudflareAuth = String(cfg.auth);
+        if (cfg.accountId != null) flags.cloudflareAccountId = String(cfg.accountId);
+        if (cfg.zoneId != null) flags.cloudflareZoneId = String(cfg.zoneId);
+        if (cfg.previewBaseDomain != null) flags.cloudflarePreviewBaseDomain = String(cfg.previewBaseDomain);
+        if (cfg.connectionId != null) flags.cloudflareConnectionId = String(cfg.connectionId);
+        if (cfg.apiToken != null) flags.cloudflareApiToken = String(cfg.apiToken);
+      } catch {
+        parseError ??= fail(
+          "CLI_FLAG_VALUE_INVALID",
+          "--cloudflare-config must be a JSON object.",
+          `Example: --cloudflare-config '{"auth":"api-token","accountId":"...","apiToken":"..."}'`
+        );
+      }
     } else if (value === "--cloudflare-auth") {
       const parsed = flagValue(index, value);
       flags.cloudflareAuth = parsed.value;
@@ -1909,8 +1932,27 @@ ${latestLogs.length ? latestLogs.map((log) => `- ${log.level.toUpperCase()} ${lo
 
 function usage() {
   return `__MS_TEMPLATE_ID__ microservices commands:
+  microservices modules list                     # list installed modules
+  microservices add <id>                         # vendor a module into this app
+  microservices docs <id>                        # show a module's agent docs
+  microservices upgrade <id> [--plan]            # upgrade a module
+  microservices check                            # verify the app against its contract
+  microservices local dev [--host <h>] [--port <p>]   # run the app locally
+  microservices local setup                      # install deps + init local D1
+  microservices auth login                       # authenticate the CLI
+  microservices deploy run [--plan] [--confirm deploy]   # build + managed deploy to live
+
+  Common flags: [--json] [--api-url <url>] [--api-key <key>]
+  More: "microservices deploy --help-all" for granular deploy/local/auth steps and BYO-Cloudflare flags.
+`;
+}
+
+function usageAll() {
+  return `__MS_TEMPLATE_ID__ microservices commands (full):
   Global flags: [--json] [--api-url <url>] [--api-key <key>] [--input deployment.json] [--deployment-id <id>] [--output result.json]
-  Deploy target flags: [--target managed|cloudflare] [--cloudflare-auth oauth|api-token] [--cloudflare-account-id <id>] [--cloudflare-zone-id <id>] [--cloudflare-preview-base-domain <domain>] [--cloudflare-connection-id <id>] [--cloudflare-api-token <token>]
+  Deploy target flags: [--target managed|cloudflare] [--cloudflare-config '<json>']
+    BYO-Cloudflare config fields (or individual --cloudflare-* flags):
+      {"auth":"oauth|api-token","accountId":"...","zoneId":"...","previewBaseDomain":"...","connectionId":"...","apiToken":"..."}
   microservices modules list [--json]
   microservices add <id> [--json]
   microservices docs <id> [--json]
@@ -1925,6 +1967,7 @@ function usage() {
   microservices auth login --api-key <key> [--api-url https://api.microservices.sh] [--json]
   microservices auth status [--json]
   microservices auth logout [--json]
+  microservices deploy run [--plan] [--confirm deploy] [--ci] [--timeout 10m] [--json]   # one-command managed deploy (waits for live)
   microservices deploy doctor [deployment-id] [--json]
   microservices deploy preview [--plan] [--confirm deploy] [--name <name>] [--project-id <id>] [--ci] [--wait] [--timeout 10m] [--output deployment.json] [--json]
   microservices deploy provision [deployment-id] [--input deployment.json] [--plan] --confirm provision [--json]
@@ -1938,12 +1981,6 @@ function usage() {
   microservices deploy activate [deployment-id] [--input deployment.json] --url <managed-url> [--mode dispatch-uploaded] [--json]
   microservices deploy disable [deployment-id] [--input deployment.json] --confirm disable [--json]
   microservices deploy cleanup [deployment-id] [--input deployment.json] [--plan] --confirm cleanup [--json]
-  microservices preview deploy [--plan] [--confirm deploy] [--ci] [--wait] [--json]       # alias
-  microservices preview provision <deployment-id> --confirm provision      # alias
-  microservices preview migrate <deployment-id> --confirm migrate          # alias
-  microservices preview upload <deployment-id> --confirm upload            # alias
-  microservices preview cleanup <deployment-id> --confirm cleanup          # alias
-  microservices preview smoke --url <preview-url> [--json]
 `;
 }
 
@@ -1956,6 +1993,11 @@ async function main() {
     return;
   }
 
+  if (flags.helpAll || resource === "help-all") {
+    process.stdout.write(usageAll());
+    return;
+  }
+
   if (!resource || resource === "help" || resource === "--help" || resource === "-h") {
     process.stdout.write(usage());
     return;
@@ -1963,7 +2005,7 @@ async function main() {
 
   telemetryNotice(flags.json);
 
-  if (resource === "deploy" || resource === "preview") {
+  if (resource === "deploy") {
     const deployFlagError = validateDeployFlags(flags);
     if (deployFlagError) {
       emit(deployFlagError, null, flags);
@@ -2110,6 +2152,12 @@ async function main() {
   } else if (resource === "auth" && action === "logout") {
     removeCliConfig();
     emit({ ok: true, data: { configPath: DEFAULT_CONFIG_PATH } }, (data) => `Logged out. Removed ${data.configPath}\n`, flags);
+  } else if (resource === "deploy" && (action === "run" || action === "up")) {
+    // One-command managed deploy: prepares the deployment and waits for the
+    // control plane to provision/migrate/upload/activate it to "live". The
+    // granular steps (provision/migrate/upload/activate) remain available for
+    // the BYO-Cloudflare / manual path — see `microservices deploy --help-all`.
+    emit(await deployPreview({ ...flags, wait: true }), formatPreparedDeployment, flags);
   } else if (resource === "deploy" && action === "doctor") {
     emit(await deployDoctor(flags, value ?? null), (data) => `Deploy doctor: ${data.status}\n`, flags);
   } else if (resource === "deploy" && action === "preview") {
@@ -2137,38 +2185,6 @@ async function main() {
     emit(await deployDisable(value, flags), formatStatus, flags);
   } else if (resource === "deploy" && action === "cleanup") {
     emit(await deployCleanup(value, flags), (data) => data.cleanup ? formatCleanup(data) : `Cleanup plan: ${data.status}\n`, flags);
-  } else if (resource === "preview" && action === "doctor") {
-    emit(await deployDoctor(flags, value ?? null), (data) => `Deploy doctor: ${data.status}\n`, flags);
-  } else if (resource === "preview" && action === "auth") {
-    emit(await authStatus(flags), (data) => `API: ${data.apiUrl}\nToken: ${data.configured ? data.token : "not configured"}\nServer auth: ${data.server ? "authenticated" : "unknown"}\n`, flags);
-  } else if (resource === "preview" && action === "deploy") {
-    emit(await deployPreview(flags), formatPreparedDeployment, flags);
-  } else if (resource === "preview" && action === "provision") {
-    emit(await deployProvision(value, flags), (data) => data.resources ? formatProvision(data) : `Provision plan: ${data.status}\n`, flags);
-  } else if (resource === "preview" && action === "migrate") {
-    emit(await deployMigrate(value, flags), (data) => data.migration ? formatMigration(data) : `Migration plan: ${data.status}\n`, flags);
-  } else if (resource === "preview" && action === "upload-plan") {
-    emit(await deployUploadPlan(value, flags), formatUploadPlan, flags);
-  } else if (resource === "preview" && action === "upload") {
-    emit(await deployUpload(value, flags), (data) => data.deployment ? formatUpload(data) : `Upload plan: ${data.status}\n`, flags);
-  } else if (resource === "preview" && action === "status") {
-    emit(await deployStatus(value, flags), formatStatus, flags);
-  } else if (resource === "preview" && action === "resources") {
-    emit(await deployResources(value, flags), formatResources, flags);
-  } else if (resource === "preview" && action === "logs") {
-    emit(await deployLogs(value, flags), formatLogs, flags);
-  } else if (resource === "preview" && action === "follow") {
-    emit(await deployFollow(value, flags), formatFollow, flags);
-  } else if (resource === "preview" && action === "activate") {
-    emit(await deployActivate(value, flags), formatStatus, flags);
-  } else if (resource === "preview" && action === "disable") {
-    emit(await deployDisable(value, flags), formatStatus, flags);
-  } else if (resource === "preview" && action === "cleanup") {
-    emit(await deployCleanup(value, flags), (data) => data.cleanup ? formatCleanup(data) : `Cleanup plan: ${data.status}\n`, flags);
-  } else if (resource === "preview" && action === "smoke") {
-    emit(previewSmoke(flags, value), (data) => `Preview smoke exited ${data.exitCode}.\n`, flags);
-  } else if (resource === "preview" && action === "bind") {
-    emit(unsupportedLocalRemoteCommand(`preview ${action}`), null, flags);
   } else {
     process.stdout.write(usage());
     process.exitCode = 1;

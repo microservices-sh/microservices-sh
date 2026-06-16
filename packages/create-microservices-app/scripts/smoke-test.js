@@ -199,10 +199,12 @@ try {
     !svelteCli.includes("DEPLOYMENT_INPUT_INVALID") ||
     !svelteCli.includes("--input deployment.json") ||
     !svelteCli.includes("--target managed|cloudflare") ||
-    !svelteCli.includes("--cloudflare-auth oauth|api-token") ||
+    !svelteCli.includes("--cloudflare-config") ||
     !svelteCli.includes("CLOUDFLARE_API_TOKEN") ||
+    !svelteCli.includes("deploy run") ||
     svelteCli.includes("wrangler whoami") ||
-    svelteCli.includes("preview bind --d1-id <id> --kv-id <id>")
+    svelteCli.includes("preview bind --d1-id <id> --kv-id <id>") ||
+    svelteCli.includes('resource === "preview"')
   ) {
     throw new Error("SvelteKit generated app CLI should keep local D1 setup but proxy preview deployment to the control-plane API.");
   }
