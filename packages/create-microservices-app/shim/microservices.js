@@ -1807,26 +1807,6 @@ async function deployDoctor(flags, deploymentId = null) {
   };
 }
 
-function previewSmoke(flags, value) {
-  const url = flags.url || value || process.env.MICROSERVICES_TEMPLATE_BASE_URL;
-  if (!url) {
-    return fail(
-      "SMOKE_URL_REQUIRED",
-      "Preview smoke requires a deployed URL.",
-      "Pass --url https://<preview-url> or set MICROSERVICES_TEMPLATE_BASE_URL."
-    );
-  }
-  return runCommand("preview:smoke", "node", ["scripts/smoke-http.mjs", url], flags);
-}
-
-function unsupportedLocalRemoteCommand(name) {
-  return fail(
-    "MANAGED_DEPLOY_ONLY",
-    `${name} is no longer a local Cloudflare command in this template.`,
-    "Use microservices deploy preview/provision/migrate/upload-plan/upload/status/cleanup so the managed API owns remote resources and deployment state."
-  );
-}
-
 function formatPreparedDeployment(result) {
   return `Preview deployment: ${result.deployment.id}
 Environment: ${result.deployment.environment}
