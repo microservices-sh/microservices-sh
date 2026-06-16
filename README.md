@@ -120,17 +120,30 @@ Or use it directly by asking your agent to use the skill at `skills/microservice
 
 ## Current Catalog
 
-| Item | Status | Notes |
-|------|--------|-------|
-| `booking-sveltekit` | Ready local baseline | Full Cloudflare SvelteKit app with booking flow, admin views, D1, local smoke tests, and approval-gated preview deploy commands. |
-| `booking-business` | Procedural generator | Hono/Worker baseline generated from the module contract. Useful for lower-level CLI and SDK checks. |
-| `gateway` | Bundled module | API keys, token issue/verify flow, rate-limit storage adapters. |
-| `auth` | Bundled module | Signing keys, JWT mint/verify, JWKS endpoint foundations. |
-| `customer` | Bundled module | Customer records, D1 and memory adapters, list/get/upsert use cases. |
-| `booking` | Bundled module | Availability, booking creation, cancellation, listing, D1 and memory adapters. |
-| `audit-log` | Bundled module | Append-only event recording and listing. |
-| `email` | In repo | Transactional email module source; provider workflows remain gated by module maturity and integration checks. |
-| `payment` | In repo | Payment module source; Stripe/provider workflows remain gated by approval and integration checks. |
+Templates are listed under [Pick A Starter](#pick-a-starter). All modules below are source-visible and contract-checked; run `pnpm microservices modules list` in a generated app (or `pnpm cli -- modules list` here) for live status.
+
+| Module | What it does |
+|--------|--------------|
+| `gateway` | Public trust boundary: API-key auth, rate limiting, scope narrowing |
+| `auth` | EdDSA service-token mint/verify, scope checks, JWKS |
+| `identity` | Passwordless email-code login + server-side sessions |
+| `customer` | Customer profiles, contact fields, notes, lifecycle events |
+| `booking` | Service booking, availability, booking records, domain events |
+| `org-team-rbac` | Multi-tenant orgs, memberships, roles, invitations |
+| `billing-subscriptions` | Recurring plans and subscription state on Stripe |
+| `payment` | Stripe-backed payment intents and payment records |
+| `invoice` | Invoices with gapless atomic numbering, per-line tax, draft→issued |
+| `email` | Transactional email with provider-neutral ports (Resend) |
+| `notifications-inapp` | Per-user in-app notification feed |
+| `webhook-delivery` | Outbound webhook mirror of the event bus |
+| `audit-log` | Append-only audit trail / domain-event sink |
+| `admin-shell` | Schema-driven admin CRUD over your D1 tables |
+| `forms-intake` | Dynamic form builder + intake with validation |
+| `file-media` | R2-backed uploads with tenant-scoped keys and upload tickets |
+| `image-generation` | Text-to-image across pluggable providers (kie.ai, etc.) |
+| `jobs-workflows` | Durable background jobs with idempotent retries |
+| `calendar-google` | Google Calendar sync (OAuth, D1) |
+| `ads-manager` | Cross-platform ad monitoring (Meta, Google) |
 
 ## Local Baseline
 
