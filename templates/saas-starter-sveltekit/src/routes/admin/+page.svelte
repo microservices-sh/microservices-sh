@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Eyebrow } from "$lib/components";
+
   let { data } = $props();
 </script>
 
@@ -6,7 +8,7 @@
   <title>Admin · SaaS Starter</title>
 </svelte:head>
 
-<p class="eyebrow">Platform overview</p>
+<Eyebrow>Platform overview</Eyebrow>
 <h1>All organizations</h1>
 <p>Super-admin view across every tenant, served by the admin-shell table gateway.</p>
 

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Button, Field, Panel, StatusMessage, Eyebrow } from "$lib/components";
+
   let { form } = $props();
 </script>
 
@@ -9,7 +11,7 @@
 <main class="section">
   <div class="content-grid">
     <section>
-      <p class="eyebrow">Get started</p>
+      <Eyebrow>Get started</Eyebrow>
       <h1>Create your organization.</h1>
       <p>
         Signing up creates your user and your first organization in one step. You become the
@@ -17,27 +19,24 @@
       </p>
     </section>
 
-    <section class="panel">
+    <Panel>
       <h2>New organization</h2>
       {#if form?.error}
-        <div class="status error" aria-live="polite">{form.error}</div>
+        <StatusMessage variant="error" live>{form.error}</StatusMessage>
       {/if}
       <form method="POST">
-        <div class="field">
-          <label for="email">Your work email</label>
+        <Field label="Your work email" id="email">
           <input id="email" name="email" type="email" autocomplete="email" required value={form?.values?.email ?? ""} />
-        </div>
-        <div class="field">
-          <label for="orgName">Organization name</label>
+        </Field>
+        <Field label="Organization name" id="orgName">
           <input id="orgName" name="orgName" required maxlength="120" value={form?.values?.orgName ?? ""} />
-        </div>
-        <div class="field">
-          <label for="slug">URL slug (optional)</label>
+        </Field>
+        <Field label="URL slug (optional)" id="slug">
           <input id="slug" name="slug" placeholder="acme-inc" value={form?.values?.slug ?? ""} />
-        </div>
-        <button type="submit">Create organization</button>
+        </Field>
+        <Button type="submit">Create organization</Button>
       </form>
       <p class="mt-4 text-[0.9rem]">Already have an account? <a href="/login">Log in</a>.</p>
-    </section>
+    </Panel>
   </div>
 </main>

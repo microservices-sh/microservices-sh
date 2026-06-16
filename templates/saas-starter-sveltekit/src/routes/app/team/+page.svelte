@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Button, Field, Panel, StatusMessage, Eyebrow, Badge } from "$lib/components";
+
   let { data, form } = $props();
 
   const roleName = (roleId: string) => data.roles.find((r) => r.id === roleId)?.name ?? roleId;
@@ -9,27 +11,27 @@
 </svelte:head>
 
 <main class="section">
-  <p class="eyebrow">Team management</p>
+  <Eyebrow>Team management</Eyebrow>
   <h1>Members & invitations</h1>
   <p>Members, roles, and invites are scoped to your active organization and gated by your role.</p>
 
   {#if form?.error}
-    <div class="status error" aria-live="polite">{form.error}</div>
+    <StatusMessage variant="error" live>{form.error}</StatusMessage>
   {:else if form?.invited}
-    <div class="status">Invitation sent. Share this accept link: <code>/app/team/accept?token={form.token}</code></div>
+    <StatusMessage>Invitation sent. Share this accept link: <code>/app/team/accept?token={form.token}</code></StatusMessage>
   {:else if form?.roleChanged}
-    <div class="status">Role updated.</div>
+    <StatusMessage>Role updated.</StatusMessage>
   {/if}
 
   <div class="content-grid mt-6">
-    <section class="panel">
+    <Panel>
       <h2>Members</h2>
       <ul class="list" role="list">
         {#each data.members as member}
           <li class="list-item row-item">
             <div>
               <strong>{member.userId}</strong>
-              <p><span class="pill">{roleName(member.roleId)}</span></p>
+              <p><Badge>{roleName(member.roleId)}</Badge></p>
             </div>
             {#if data.canManage}
               <form method="POST" action="?/changeRole" class="flex items-center gap-2">
@@ -40,7 +42,7 @@
                     <option value={role.id} selected={role.id === member.roleId}>{role.name}</option>
                   {/each}
                 </select>
-                <button type="submit" class="secondary">Update</button>
+                <Button type="submit" variant="secondary">Update</Button>
               </form>
             {/if}
           </li>
@@ -57,30 +59,28 @@
           {/each}
         </ul>
       {/if}
-    </section>
+    </Panel>
 
-    <section class="panel">
+    <Panel>
       <h2>Invite a member</h2>
       {#if data.canManage}
         <form method="POST" action="?/invite">
           <input type="hidden" name="orgId" value={data.activeOrgId ?? ""} />
-          <div class="field">
-            <label for="email">Email</label>
+          <Field label="Email" id="email">
             <input id="email" name="email" type="email" autocomplete="off" required />
-          </div>
-          <div class="field">
-            <label for="roleId">Role</label>
+          </Field>
+          <Field label="Role" id="roleId">
             <select id="roleId" name="roleId" required>
               {#each data.roles as role}
                 <option value={role.id}>{role.name}</option>
               {/each}
             </select>
-          </div>
-          <button type="submit">Send invitation</button>
+          </Field>
+          <Button type="submit">Send invitation</Button>
         </form>
       {:else}
         <p>You need the <code>member.manage</code> permission to invite teammates.</p>
       {/if}
-    </section>
+    </Panel>
   </div>
 </main>

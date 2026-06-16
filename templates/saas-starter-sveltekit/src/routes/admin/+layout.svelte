@@ -1,12 +1,13 @@
 <script lang="ts">
   import { page } from "$app/stores";
+  import { Panel, Eyebrow } from "$lib/components";
 
   let { data, children } = $props();
 </script>
 
 <div class="content-grid">
-  <aside class="panel" aria-label="Admin resources">
-    <p class="eyebrow">Super admin</p>
+  <Panel as="aside" aria-label="Admin resources">
+    <Eyebrow>Super admin</Eyebrow>
     <nav class="nav" style="flex-direction: column; align-items: stretch;">
       <a href="/admin" aria-current={$page.url.pathname === "/admin" ? "page" : undefined}>Overview</a>
       {#each data.resources as resource}
@@ -15,7 +16,7 @@
         </a>
       {/each}
     </nav>
-  </aside>
+  </Panel>
 
   <div>
     {@render children()}

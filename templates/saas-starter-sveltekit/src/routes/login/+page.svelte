@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Button, Field, Panel, StatusMessage, Eyebrow } from "$lib/components";
+
   let { form } = $props();
 </script>
 
@@ -9,7 +11,7 @@
 <main class="section">
   <div class="content-grid">
     <section>
-      <p class="eyebrow">Welcome back</p>
+      <Eyebrow>Welcome back</Eyebrow>
       <h1>Log in to your workspace.</h1>
       <p>
         This starter uses a demo email session so it runs locally with no provider setup.
@@ -17,19 +19,18 @@
       </p>
     </section>
 
-    <section class="panel">
+    <Panel>
       <h2>Log in</h2>
       {#if form?.error}
-        <div class="status error" aria-live="polite">{form.error}</div>
+        <StatusMessage variant="error" live>{form.error}</StatusMessage>
       {/if}
       <form method="POST">
-        <div class="field">
-          <label for="email">Work email</label>
+        <Field label="Work email" id="email">
           <input id="email" name="email" type="email" autocomplete="email" required value={form?.values?.email ?? ""} />
-        </div>
-        <button type="submit">Continue</button>
+        </Field>
+        <Button type="submit">Continue</Button>
       </form>
       <p class="mt-4 text-[0.9rem]">No account yet? <a href="/signup">Create an organization</a>.</p>
-    </section>
+    </Panel>
   </div>
 </main>

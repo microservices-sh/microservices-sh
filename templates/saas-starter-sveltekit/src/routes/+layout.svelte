@@ -1,6 +1,7 @@
 <script lang="ts">
   import "../app.css";
   import { page } from "$app/stores";
+  import { Button } from "$lib/components";
 
   let { data, children } = $props();
 
@@ -56,7 +57,7 @@
 
       {#if data.user}
         <form method="POST" action="/logout">
-          <button type="submit" class="secondary">Log out</button>
+          <Button type="submit" variant="secondary">Log out</Button>
         </form>
       {/if}
     </nav>

@@ -1,20 +1,22 @@
+import type { BadgeVariant } from "./components/types";
+
 /**
- * Maps a subscription status to a pill style class.
- * Accent (default) = active · warn = trialing/past_due · danger = canceled/unpaid · muted = paused.
+ * Maps a subscription status to a Badge variant.
+ * default (accent) = active · warn = trialing/past_due · danger = canceled/unpaid · muted = paused.
  * Edit the buckets below to match your own status vocabulary.
  */
-export function statusPillClass(status: string | null | undefined): string {
+export function statusBadgeVariant(status: string | null | undefined): BadgeVariant {
   switch ((status ?? "").toLowerCase()) {
     case "canceled":
     case "cancelled":
     case "unpaid":
-      return "pill is-danger";
+      return "danger";
     case "trialing":
     case "past_due":
-      return "pill is-warn";
+      return "warn";
     case "paused":
-      return "pill is-muted";
+      return "muted";
     default:
-      return "pill";
+      return "default";
   }
 }

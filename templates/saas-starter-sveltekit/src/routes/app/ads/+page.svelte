@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Button, Panel, StatusMessage, Eyebrow, Badge } from "$lib/components";
+
   let { data, form } = $props();
 
   const fmtMoney = (cents: number) => `$${(cents / 100).toFixed(2)}`;
@@ -10,31 +12,31 @@
 <svelte:head><title>Ads Manager · SaaS Starter</title></svelte:head>
 
 <main class="section">
-  <p class="eyebrow">Ad monitoring</p>
+  <Eyebrow>Ad monitoring</Eyebrow>
   <h1>Ads Manager</h1>
 
   {#if !data.entitled}
     <!-- 402 subscribe state -->
-    <div class="panel" style="text-align:center; padding:40px;">
+    <Panel as="div" style="text-align:center; padding:40px;">
       <h2>Subscribe to Ads</h2>
       <p>{data.reason}</p>
       <p style="font-size:28px; font-weight:700; margin:12px 0;">$1.90<span style="font-size:14px; font-weight:400;">/mo</span></p>
       <p>Cross-platform monitoring (Meta, Google), daily snapshots, and anomaly alerts.</p>
-      <a class="button" href="/app/billing" style="display:inline-block; margin-top:12px;">Subscribe →</a>
-    </div>
+      <Button href="/app/billing" style="display:inline-block; margin-top:12px;">Subscribe →</Button>
+    </Panel>
   {:else}
     {#if form?.error}
-      <div class="status error">{form.error}</div>
+      <StatusMessage variant="error">{form.error}</StatusMessage>
     {:else if form?.seeded}
-      <div class="status">Loaded demo data — {form.alerts} alert(s) raised.</div>
+      <StatusMessage>Loaded demo data — {form.alerts} alert(s) raised.</StatusMessage>
     {:else if form?.connected}
-      <div class="status">Demo account connected.</div>
+      <StatusMessage>Demo account connected.</StatusMessage>
     {/if}
 
     <div class="content-grid mt-6">
       <div>
         <!-- Summary -->
-        <div class="panel">
+        <Panel as="div">
           <h2>Last 7 days</h2>
           <div style="display:flex; gap:24px; flex-wrap:wrap;">
             <div><strong style="font-size:22px;">{fmtMoney(totalSpend)}</strong><p>Spend</p></div>
@@ -45,18 +47,18 @@
             {#if data.connections.length === 0}
               <form method="POST" action="?/connect">
                 <input type="hidden" name="orgId" value={data.activeOrgId} />
-                <button type="submit">Connect ad account</button>
+                <Button type="submit">Connect ad account</Button>
               </form>
             {/if}
             <form method="POST" action="?/seedDemo">
               <input type="hidden" name="orgId" value={data.activeOrgId} />
-              <button type="submit" class="secondary">Load demo data</button>
+              <Button type="submit" variant="secondary">Load demo data</Button>
             </form>
           </div>
-        </div>
+        </Panel>
 
         <!-- Campaigns -->
-        <div class="panel mt-6">
+        <Panel as="div" class="mt-6">
           <h2>Campaigns</h2>
           {#if (data.campaigns ?? []).length === 0}
             <p>No campaigns yet. Connect an account or load demo data.</p>
@@ -67,7 +69,7 @@
                 {#each data.campaigns as c (c.id)}
                   <tr>
                     <td>{c.name}</td>
-                    <td><span class="pill">{c.status}</span></td>
+                    <td><Badge>{c.status}</Badge></td>
                     <td>{fmtMoney(c.spendCents)}</td>
                     <td>{c.clicks}</td>
                     <td>{c.ctr}%</td>
@@ -77,11 +79,11 @@
               </tbody>
             </table>
           {/if}
-        </div>
+        </Panel>
       </div>
 
       <!-- Alerts -->
-      <div class="panel">
+      <Panel as="div">
         <h2>Alerts</h2>
         {#if (data.alerts ?? []).length === 0}
           <p>No alerts. Anomalies (spend/CPC spikes, zero-conversion spend) appear here.</p>
@@ -89,14 +91,14 @@
           <ul class="list" role="list">
             {#each data.alerts as a (a.id)}
               <li class="list-item">
-                <span class="pill">{a.severity}</span>
+                <Badge>{a.severity}</Badge>
                 <strong>{a.type}</strong>
                 <p>{a.message}</p>
               </li>
             {/each}
           </ul>
         {/if}
-      </div>
+      </Panel>
     </div>
   {/if}
 </main>

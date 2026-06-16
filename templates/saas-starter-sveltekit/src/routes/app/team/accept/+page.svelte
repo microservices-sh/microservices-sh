@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Button, Field, Panel, StatusMessage, Eyebrow } from "$lib/components";
+
   let { data, form } = $props();
 </script>
 
@@ -7,18 +9,17 @@
 </svelte:head>
 
 <main class="section">
-  <section class="panel">
-    <p class="eyebrow">Team invitation</p>
+  <Panel>
+    <Eyebrow>Team invitation</Eyebrow>
     <h1>Join the organization.</h1>
     {#if form?.error}
-      <div class="status error" aria-live="polite">{form.error}</div>
+      <StatusMessage variant="error" live>{form.error}</StatusMessage>
     {/if}
     <form method="POST">
-      <div class="field">
-        <label for="token">Invitation token</label>
+      <Field label="Invitation token" id="token">
         <input id="token" name="token" required value={data.token} />
-      </div>
-      <button type="submit">Accept invitation</button>
+      </Field>
+      <Button type="submit">Accept invitation</Button>
     </form>
-  </section>
+  </Panel>
 </main>

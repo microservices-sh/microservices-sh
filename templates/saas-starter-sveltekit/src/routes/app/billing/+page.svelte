@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { statusPillClass } from "$lib/status";
+  import { statusBadgeVariant } from "$lib/status";
+  import { Button, Panel, StatusMessage, Eyebrow, Badge } from "$lib/components";
 
   let { data, form } = $props();
 
@@ -14,35 +15,35 @@
 </svelte:head>
 
 <main class="section">
-  <p class="eyebrow">Subscription billing</p>
+  <Eyebrow>Subscription billing</Eyebrow>
   <h1>Plans & billing</h1>
   <p>One subscription per organization. Plan and status are owned by the billing module.</p>
 
   {#if form?.error}
-    <div class="status error" aria-live="polite">{form.error}</div>
+    <StatusMessage variant="error" live>{form.error}</StatusMessage>
   {:else if form?.started}
-    <div class="status">Subscription started.</div>
+    <StatusMessage>Subscription started.</StatusMessage>
   {:else if form?.changed}
-    <div class="status">Plan changed.</div>
+    <StatusMessage>Plan changed.</StatusMessage>
   {/if}
 
-  <section class="panel mt-6">
+  <Panel class="mt-6">
     <h2>Current subscription</h2>
     {#if data.subscription}
       <dl class="detail-list">
-        <div><dt>Status</dt><dd><span class={statusPillClass(data.subscription.status)}>{data.subscription.status}</span></dd></div>
+        <div><dt>Status</dt><dd><Badge variant={statusBadgeVariant(data.subscription.status)}>{data.subscription.status}</Badge></dd></div>
         <div><dt>Access</dt><dd>{data.subscription.hasAccess ? "Active" : "Restricted"}</dd></div>
         <div><dt>Renews</dt><dd>{data.subscription.currentPeriodEnd ? new Date(data.subscription.currentPeriodEnd).toLocaleDateString() : "—"}</dd></div>
       </dl>
     {:else}
       <p>No subscription yet. Choose a plan below to start a 14-day trial.</p>
     {/if}
-  </section>
+  </Panel>
 
   <div class="card-grid">
     {#each data.plans as plan}
-      <section class="panel">
-        <p class="eyebrow">{plan.name}</p>
+      <Panel>
+        <Eyebrow>{plan.name}</Eyebrow>
         <h3>{price(plan.priceCents, plan.currency)}<span class="text-muted text-[0.9rem]"> / {plan.interval}</span></h3>
         <ul class="list mt-4" role="list">
           {#each plan.features as feature}
@@ -54,21 +55,21 @@
 
         {#if data.canManageBilling}
           {#if isCurrent(plan.id)}
-            <p class="mt-4"><span class="pill">Current plan</span></p>
+            <p class="mt-4"><Badge>Current plan</Badge></p>
           {:else}
             <form method="POST" action="?/selectPlan" class="mt-4">
               <input type="hidden" name="orgId" value={data.activeOrgId ?? ""} />
               <input type="hidden" name="planId" value={plan.id} />
               <input type="hidden" name="subscriptionId" value={data.subscription?.id ?? ""} />
-              <button type="submit">{data.subscription ? "Switch to this plan" : "Start trial"}</button>
+              <Button type="submit">{data.subscription ? "Switch to this plan" : "Start trial"}</Button>
             </form>
           {/if}
         {/if}
-      </section>
+      </Panel>
     {/each}
   </div>
 
   {#if !data.canManageBilling}
-    <div class="status mt-6">You need the <code>org.manage</code> permission to change billing.</div>
+    <StatusMessage class="mt-6">You need the <code>org.manage</code> permission to change billing.</StatusMessage>
   {/if}
 </main>

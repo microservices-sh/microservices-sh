@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Button, Field, Panel, Eyebrow } from "$lib/components";
+
   let { data } = $props();
 
   const cell = (row: Record<string, unknown>, name: string) => {
@@ -11,19 +13,18 @@
   <title>{data.resource} · Admin</title>
 </svelte:head>
 
-<p class="eyebrow">Super admin</p>
+<Eyebrow>Super admin</Eyebrow>
 <h1>{data.resource}</h1>
 <p>{data.total} record{data.total === 1 ? "" : "s"} across all organizations.</p>
 
-<form method="GET" class="panel">
-  <div class="field">
-    <label for="q">Search</label>
+<Panel as="form" method="GET">
+  <Field label="Search" id="q">
     <input id="q" name="q" value={data.search} placeholder="Search…" />
-  </div>
-  <button type="submit" class="secondary">Search</button>
-</form>
+  </Field>
+  <Button type="submit" variant="secondary">Search</Button>
+</Panel>
 
-<section class="panel mt-6">
+<Panel class="mt-6">
   {#if data.rows.length > 0}
     <ul class="list" role="list">
       {#each data.rows as row}
@@ -39,4 +40,4 @@
   {:else}
     <p>No records found.</p>
   {/if}
-</section>
+</Panel>

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Panel, Eyebrow, Badge } from "$lib/components";
+
   let { data } = $props();
 </script>
 
@@ -7,12 +9,12 @@
 </svelte:head>
 
 <main class="section">
-  <p class="eyebrow">Organization settings</p>
+  <Eyebrow>Organization settings</Eyebrow>
   <h1>{data.org.name}</h1>
   <p>Settings, your effective permissions, and recent org activity.</p>
 
   <div class="content-grid mt-6">
-    <section class="panel">
+    <Panel>
       <h2>Organization</h2>
       <dl class="detail-list">
         <div><dt>Name</dt><dd>{data.org.name}</dd></div>
@@ -24,14 +26,14 @@
       <h3 class="mt-6">Your permissions</h3>
       <div class="nav">
         {#each data.permissions as permission}
-          <span class="pill">{permission}</span>
+          <Badge>{permission}</Badge>
         {:else}
-          <span class="pill is-muted">none</span>
+          <Badge variant="muted">none</Badge>
         {/each}
       </div>
-    </section>
+    </Panel>
 
-    <section class="panel">
+    <Panel>
       <h2>Recent activity</h2>
       {#if data.activity.length > 0}
         <ul class="list" role="list">
@@ -45,6 +47,6 @@
       {:else}
         <p>No recorded activity yet.</p>
       {/if}
-    </section>
+    </Panel>
   </div>
 </main>
