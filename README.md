@@ -146,7 +146,7 @@ Common generated-app commands:
 pnpm microservices modules list --json
 pnpm microservices docs booking
 pnpm microservices upgrade booking --plan --json
-pnpm microservices add payment-stripe --plan --json
+pnpm microservices add payment --plan --json
 pnpm microservices check --json
 ```
 
@@ -154,18 +154,21 @@ Managed preview deploys are intentionally approval-gated and routed through the 
 
 ```bash
 pnpm microservices auth login
+pnpm microservices deploy run --plan               # preview the whole managed deploy
+pnpm microservices deploy run --confirm deploy     # build + deploy, wait for live
+pnpm microservices local smoke --url <preview-url>
+```
+
+Need to drive the pipeline by hand (BYO-Cloudflare or debugging)? The granular steps live under `pnpm microservices deploy --help-all`:
+
+```bash
 pnpm microservices deploy doctor
-pnpm microservices deploy preview --plan
 pnpm microservices deploy preview --confirm deploy --output deployment.json
-pnpm microservices deploy provision --input deployment.json --plan
 pnpm microservices deploy provision --input deployment.json --confirm provision
-pnpm microservices deploy migrate --input deployment.json --plan
 pnpm microservices deploy migrate --input deployment.json --confirm migrate
-pnpm microservices deploy upload-plan --input deployment.json
-pnpm microservices deploy upload --input deployment.json --plan
+pnpm microservices deploy upload --input deployment.json --confirm upload
 pnpm microservices deploy status --input deployment.json
 pnpm microservices deploy cleanup --input deployment.json --plan
-pnpm microservices preview smoke --url <preview-url>
 ```
 
 The generated app is ready for local testing now. Managed preview can now proxy artifact upload, D1/KV provisioning, remote D1 migrations, status checks, and cleanup through the API. End-to-end live preview remains gated by the hosted Worker/assets upload adapter; `deploy upload-plan --input deployment.json` reports the current readiness/blockers.
@@ -200,7 +203,10 @@ modules/
   email/                     Email module source
   payment/                   Payment module source
 templates/
-  booking-sveltekit/         Official full-app booking template
+  booking-sveltekit/         Full-app booking template (default)
+  saas-starter-sveltekit/    Multi-tenant B2B SaaS starter
+  client-portal-sveltekit/   Customer portal (invoices, files)
+  company-landing-astro/     Static Astro landing page
 docs/
   modules/                   Module docs and structure standards
   templates/                 Template standards and specs
@@ -312,7 +318,7 @@ pnpm --filter create-microservices-app smoke
 Publishing uses the manual workflow at `.github/workflows/npm-publish.yml`. Default runs use `dry_run=true`. A real npm publish requires:
 
 - npm Trusted Publisher configured for this repository and workflow.
-- A tag push such as `create-microservices-app@0.2.6`, or a manual workflow run with `dry_run=false`.
+- A tag push such as `create-microservices-app@0.4.0`, or a manual workflow run with `dry_run=false`.
 
 The `create-microservices-app` package declares an MIT license. Add/verify the root repository license before describing the entire repository as open source.
 

@@ -92,11 +92,11 @@ Generated apps include managed, approval-gated deploy commands that proxy to the
 
 ```bash
 pnpm microservices auth login
-pnpm microservices deploy preview --plan
-pnpm microservices deploy preview --confirm deploy
+pnpm microservices deploy run --plan            # preview the managed deploy
+pnpm microservices deploy run --confirm deploy  # build + deploy, wait for live
 ```
 
-The control plane owns remote state and resource ids; `wrangler.jsonc` stays a local-dev config. See the [deployment docs](https://microservices.sh/docs) for the full provision → migrate → upload pipeline and CI usage.
+`deploy run` prepares the deployment and waits for the control plane to take it live. The control plane owns remote state and resource ids; `wrangler.jsonc` stays a local-dev config. The granular `provision → migrate → upload` steps (and BYO-Cloudflare via `--cloudflare-config`) live under `pnpm microservices deploy --help-all`. See the [deployment docs](https://microservices.sh/docs) for CI usage.
 
 ## Telemetry
 
