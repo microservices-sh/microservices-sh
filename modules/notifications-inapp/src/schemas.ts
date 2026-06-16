@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // Input to the notify use case. `type` is the discriminator and `data` is the
-// polymorphic payload — intentionally `z.record(z.unknown())` so each type
+// polymorphic payload — intentionally `z.record(z.string(), z.unknown())` so each type
 // carries its own shape. Validating the per-type shape of `data` is the host's
 // concern (it knows its own notification types); this module stays generic.
 export const notifyInputSchema = z.object({
@@ -10,7 +10,7 @@ export const notifyInputSchema = z.object({
   type: z.string().min(1),
   title: z.string().optional().nullable(),
   body: z.string().optional().nullable(),
-  data: z.record(z.unknown()).default({}),
+  data: z.record(z.string(), z.unknown()).default({}),
   // Optional idempotency key. Repeated (userId, dedupKey) returns the existing
   // notification instead of inserting a duplicate.
   dedupKey: z.string().min(1).optional()

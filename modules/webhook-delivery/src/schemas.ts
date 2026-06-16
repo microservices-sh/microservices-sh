@@ -9,7 +9,7 @@ export const deliverEventInputSchema = z.object({
   eventName: z.string().min(1),
   entityType: z.string().min(1),
   entityId: z.string().min(1),
-  payload: z.record(z.unknown()).default({})
+  payload: z.record(z.string(), z.unknown()).default({})
 });
 
 export const listDeliveriesFilterSchema = z.object({

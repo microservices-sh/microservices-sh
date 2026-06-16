@@ -6,7 +6,7 @@ export const recordEventInputSchema = z.object({
   entityType: z.string().optional().nullable(),
   entityId: z.string().optional().nullable(),
   source: z.string().optional().nullable(),
-  payload: z.record(z.unknown()).default({})
+  payload: z.record(z.string(), z.unknown()).default({})
 });
 
 export const listEventsFilterSchema = z.object({

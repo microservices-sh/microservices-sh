@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const enqueueJobInputSchema = z.object({
   type: z.string().min(1),
-  payload: z.record(z.unknown()).default({}),
+  payload: z.record(z.string(), z.unknown()).default({}),
   // When set, enqueue is idempotent across retries/redeliveries.
   idempotencyKey: z.string().min(1).optional().nullable(),
   maxAttempts: z.number().int().positive().max(50).default(5),
@@ -13,7 +13,7 @@ export const enqueueJobInputSchema = z.object({
 export const upsertScheduleInputSchema = z.object({
   id: z.string().min(1).optional(),
   type: z.string().min(1),
-  payload: z.record(z.unknown()).default({}),
+  payload: z.record(z.string(), z.unknown()).default({}),
   intervalMs: z.number().int().positive().max(31_536_000_000),
   maxAttempts: z.number().int().positive().max(50).default(5),
   // First fire time; defaults to now + intervalMs when omitted.

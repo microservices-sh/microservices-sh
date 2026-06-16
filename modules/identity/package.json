@@ -30,7 +30,7 @@
   "dependencies": {
     "@microservices-sh/auth": "workspace:*",
     "@microservices-sh/connection-contract": "workspace:*",
-    "zod": "^3.25.76"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",

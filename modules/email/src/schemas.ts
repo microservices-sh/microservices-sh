@@ -41,7 +41,7 @@ const attachmentSchema = z
 
 const templateSchema = z.object({
   id: z.string().min(1).max(256),
-  variables: z.record(z.union([z.string().max(2000), z.number().safe()])).optional()
+  variables: z.record(z.string(), z.union([z.string().max(2000), z.number().safe()])).optional()
 });
 
 export const emailConfigSchema = z.object({
@@ -69,7 +69,7 @@ export const sendEmailInputSchema = z
     tags: z.array(tagSchema).max(10).optional(),
     template: templateSchema.optional(),
     idempotencyKey: z.string().min(1).max(256).optional(),
-    metadata: z.record(z.unknown()).default({})
+    metadata: z.record(z.string(), z.unknown()).default({})
   })
   .superRefine((value, context) => {
     if (value.template && (value.html || value.text)) {
@@ -98,7 +98,7 @@ export const emailDeliverySchema = z.object({
   bccAddresses: z.array(simpleEmailSchema).default([]),
   subject: z.string().min(1),
   idempotencyKey: z.string().nullable(),
-  metadata: z.record(z.unknown()).default({}),
+  metadata: z.record(z.string(), z.unknown()).default({}),
   errorCode: z.string().nullable(),
   errorMessage: z.string().nullable(),
   createdAt: z.string().min(1),

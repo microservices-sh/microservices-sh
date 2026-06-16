@@ -16,7 +16,7 @@
     "./runtime/event-consumer": "./src/runtime/event-consumer.js"
   },
   "scripts": { "build": "node --check src/index.js", "test": "vitest run" },
-  "dependencies": { "zod": "^3.25.76" },
+  "dependencies": { "zod": "^4.4.3" },
   "files": ["src"],
   "license": "MIT",
   "publishConfig": { "access": "public" }

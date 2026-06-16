@@ -4,7 +4,7 @@ import { z } from "zod";
 // validateValues against the ResourceDefinition (values are dynamic by design).
 export const listQuerySchema = z.object({
   search: z.string().max(200).optional(),
-  filters: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
+  filters: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
   sort: z
     .object({ column: z.string().min(1), direction: z.enum(["asc", "desc"]).default("asc") })
     .optional(),
@@ -13,6 +13,6 @@ export const listQuerySchema = z.object({
   includeDeleted: z.boolean().optional()
 });
 
-export const recordValuesSchema = z.record(z.unknown());
+export const recordValuesSchema = z.record(z.string(), z.unknown());
 
 export type ListQueryInput = z.infer<typeof listQuerySchema>;

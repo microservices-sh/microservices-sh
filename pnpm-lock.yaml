@@ -27,8 +27,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/connection-contract
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -40,8 +40,8 @@ importers:
   modules/audit-log:
     dependencies:
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -56,8 +56,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/connection-contract
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -72,8 +72,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/connection-contract
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -88,8 +88,8 @@ importers:
         specifier: workspace:*
         version: link:../customer
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -107,8 +107,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/connection-contract
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -120,8 +120,8 @@ importers:
   modules/customer:
     dependencies:
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -136,8 +136,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/connection-contract
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -152,8 +152,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/connection-contract
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -168,8 +168,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/connection-contract
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -187,8 +187,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/connection-contract
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -206,8 +206,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/connection-contract
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -225,8 +225,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/connection-contract
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -241,8 +241,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/connection-contract
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -257,8 +257,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/connection-contract
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -273,8 +273,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/connection-contract
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -289,8 +289,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/connection-contract
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -305,8 +305,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/connection-contract
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -321,8 +321,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/connection-contract
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -343,8 +343,8 @@ importers:
   packages/connection-contract:
     dependencies:
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
 
   packages/create-microservices-app:
     devDependencies:
@@ -413,8 +413,8 @@ importers:
         specifier: ^5.0.0
         version: 5.4.21(lightningcss@1.32.0)
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -468,8 +468,8 @@ importers:
         specifier: ^5.0.0
         version: 5.4.21(lightningcss@1.32.0)
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -529,8 +529,8 @@ importers:
         specifier: ^5.0.0
         version: 5.4.21(lightningcss@1.32.0)
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
@@ -3802,9 +3802,6 @@ packages:
   zimmerframe@1.1.4:
     resolution: {integrity: sha512-B58NGBEoc8Y9MWWCQGl/gq9xBCe4IiKM0a2x7GZdQKOW5Exr8S1W24J6OgM1njK8xCRGvAJIL/MxXHf6SkmQKQ==}
 
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
-
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
@@ -6887,8 +6884,6 @@ snapshots:
       youch-core: 0.3.3
 
   zimmerframe@1.1.4: {}
-
-  zod@3.25.76: {}
 
   zod@4.4.3: {}
 
