@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Idempotency Config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "defaultTtlMs": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 31536000000,
+      "default": 86400000
+    },
+    "defaultLockTtlMs": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3600000,
+      "default": 60000
+    },
+    "maxTtlMs": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 31536000000,
+      "default": 31536000000
+    }
+  }
+}

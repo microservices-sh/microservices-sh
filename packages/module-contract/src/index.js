@@ -287,6 +287,63 @@ const MODULES = Object.freeze([
     },
   },
   {
+    id: "idempotency",
+    name: "Idempotency",
+    version: "0.1.0",
+    status: "available",
+    category: "core",
+    summary: "Scoped idempotency records for safe retry, replay, and duplicate side-effect prevention.",
+    requires: [],
+    optional: ["audit-log", "jobs-workflows"],
+    storage: ["d1"],
+    runtime: {
+      framework: "hono",
+      mount: "/idempotency",
+      bindings: ["DB"],
+    },
+    eventsEmitted: [
+      "idempotency.claimed",
+      "idempotency.replayed",
+      "idempotency.completed",
+      "idempotency.failed",
+      "idempotency.expired_pruned",
+    ],
+    eventsConsumed: [],
+    permissions: ["idempotency.claim", "idempotency.read", "idempotency.admin"],
+    rpc: [
+      { method: "claimIdempotency", scope: "idempotency.claim", public: false },
+      { method: "getIdempotencyRecord", scope: "idempotency.read", public: false },
+    ],
+    hooks: [
+      {
+        name: "beforeIdempotencyClaim",
+        timing: "pre",
+        purpose: "Validate, enrich, or reject a claim before it is persisted or replayed.",
+      },
+      {
+        name: "afterIdempotencyComplete",
+        timing: "post",
+        purpose: "Observe a completed idempotency record for audit or activity feeds.",
+      },
+      {
+        name: "onIdempotencyReplay",
+        timing: "post",
+        purpose: "Observe terminal record replay without creating a duplicate side effect.",
+      },
+    ],
+    customization: {
+      config: ["defaultTtlMs", "defaultLockTtlMs", "maxTtlMs"],
+      hooks: ["beforeIdempotencyClaim", "afterIdempotencyComplete", "afterIdempotencyFail", "onIdempotencyReplay"],
+      forkable: true,
+    },
+    quality: {
+      tests: { unit: true, integration: false, fixtures: true },
+      agentDocs: true,
+      migrations: true,
+      upgradeNotes: true,
+    },
+  },
+  {
     id: "webhook-delivery",
     name: "Webhook Delivery",
     version: "0.1.0",
@@ -344,7 +401,7 @@ const TEMPLATES = Object.freeze([
     summary: "A bookable service business foundation for studios, clinics, consultants, and local operators.",
     targetCustomer: "AI-heavy agencies, consultants, and technical founders building custom booking systems.",
     defaultModules: ["gateway", "auth", "customer", "booking"],
-    optionalModules: ["email", "payment", "admin", "audit-log", "webhook-delivery"],
+    optionalModules: ["email", "payment", "admin", "audit-log", "idempotency", "webhook-delivery"],
     targetRuntime: {
       language: "typescript",
       framework: "hono",

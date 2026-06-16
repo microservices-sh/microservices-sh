@@ -17,6 +17,7 @@ Use these files before installing or modifying modules:
 - `docs/modules/auth.md` - Auth module reference
 - `docs/modules/customer.md` - Customer module reference
 - `docs/modules/booking.md` - Booking module reference
+- `docs/modules/idempotency.md` - Idempotency module reference
 - `docs/modules/payment-stripe.md` - planned Stripe payment provider module reference
 - `docs/modules/email.md` - planned transactional email module reference
 - `docs/modules/audit-log.md` - planned audit log module reference

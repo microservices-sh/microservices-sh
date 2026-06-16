@@ -1,0 +1,33 @@
+# idempotency
+
+Purpose: shared D1-backed idempotency records for deduplicating at-least-once
+operations across payment, webhooks, jobs, forms, booking, invoice, and email.
+
+Use when an operation can be retried or delivered more than once and duplicate
+side effects would be harmful.
+
+Primary API:
+
+- `claimIdempotency(input, { store })`
+- `completeIdempotency(input, { store })`
+- `failIdempotency(input, { store })`
+- `getIdempotencyRecord(input, { store })`
+- `pruneExpiredRecords(input, { store })`
+
+Adapters:
+
+- `createMemoryIdempotencyStore()`
+- `createD1IdempotencyStore(db)`
+
+Important behavior:
+
+- `(scope, key)` is unique.
+- `action: "claimed"` means the caller may run the side effect.
+- `action: "in_progress"` means another caller already claimed it.
+- `action: "replayed"` returns a completed or failed terminal record.
+- `requestHash` mismatch fails closed with 409.
+- stale `lockedUntil` records can be reclaimed.
+- expired records can be pruned.
+
+Approval gates: D1 migration, PII fields, retention policy changes, production
+deploy.

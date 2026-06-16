@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Idempotency API",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/claim" },
+    { "$ref": "#/$defs/complete" },
+    { "$ref": "#/$defs/fail" },
+    { "$ref": "#/$defs/get" },
+    { "$ref": "#/$defs/prune" }
+  ],
+  "$defs": {
+    "claim": {
+      "type": "object",
+      "required": ["scope", "key"],
+      "additionalProperties": false,
+      "properties": {
+        "scope": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "key": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "requestHash": { "type": ["string", "null"], "minLength": 1, "maxLength": 512 },
+        "ttlMs": { "type": "integer", "minimum": 1, "maximum": 31536000000 },
+        "lockTtlMs": { "type": "integer", "minimum": 1, "maximum": 3600000 },
+        "metadata": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "complete": {
+      "type": "object",
+      "required": ["scope", "key"],
+      "additionalProperties": false,
+      "properties": {
+        "scope": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "key": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "response": { "type": "object", "additionalProperties": true },
+        "statusCode": { "type": "integer", "minimum": 100, "maximum": 599 },
+        "metadata": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "fail": {
+      "type": "object",
+      "required": ["scope", "key"],
+      "additionalProperties": false,
+      "properties": {
+        "scope": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "key": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "error": { "type": "object", "additionalProperties": true },
+        "statusCode": { "type": "integer", "minimum": 100, "maximum": 599 },
+        "metadata": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "get": {
+      "type": "object",
+      "required": ["scope", "key"],
+      "additionalProperties": false,
+      "properties": {
+        "scope": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "key": { "type": "string", "minLength": 1, "maxLength": 512 }
+      }
+    },
+    "prune": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "before": { "type": "string", "format": "date-time" },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 1000 }
+      }
+    }
+  }
+}

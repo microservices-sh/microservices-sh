@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "idempotency",
+  "name": "Idempotency",
+  "version": "0.1.0",
+  "status": "available",
+  "class": "core",
+  "summary": "Reusable idempotency records for safely deduplicating retries, webhooks, jobs, payments, forms, and other at-least-once operations.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": [
+      "hono-later",
+      "sveltekit-later"
+    ]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "idempotency_records"
+      ]
+    }
+  ],
+  "permissions": [
+    "idempotency.claim",
+    "idempotency.read",
+    "idempotency.admin",
+    "idempotency.extend",
+    "idempotency.observe"
+  ],
+  "connections": {
+    "requires": [],
+    "optional": [
+      "auth",
+      "audit-log",
+      "jobs-workflows"
+    ],
+    "rpc": {
+      "exposes": [
+        {
+          "method": "claimIdempotency",
+          "scope": "idempotency.claim",
+          "public": false
+        },
+        {
+          "method": "getIdempotencyRecord",
+          "scope": "idempotency.read",
+          "public": false
+        }
+      ],
+      "calls": []
+    },
+    "events": {
+      "emits": [
+        "idempotency.claimed",
+        "idempotency.replayed",
+        "idempotency.completed",
+        "idempotency.failed",
+        "idempotency.expired_pruned"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeIdempotencyClaim": {
+        "kind": "filter",
+        "scope": "idempotency.extend"
+      },
+      "afterIdempotencyComplete": {
+        "kind": "observer",
+        "scope": "idempotency.observe"
+      },
+      "afterIdempotencyFail": {
+        "kind": "observer",
+        "scope": "idempotency.observe"
+      },
+      "onIdempotencyReplay": {
+        "kind": "observer",
+        "scope": "idempotency.observe"
+      }
+    },
+    "provides": {
+      "hooks": []
+    }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": [
+      "config",
+      "hooks",
+      "overlay",
+      "fork"
+    ]
+  },
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": [
+      "migrations",
+      "pii-fields",
+      "production-deploy",
+      "retention-policy-changes"
+    ]
+  }
+}

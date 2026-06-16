@@ -1,0 +1,103 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Idempotency Module",
+    "version": "0.1.0",
+    "description": "Framework-neutral boundary shapes for scoped idempotency records. Host apps own route mounting."
+  },
+  "paths": {
+    "/idempotency/claim": {
+      "post": {
+        "summary": "Claim a scoped idempotency key before running a side effect.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClaimRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Claimed; caller may run the side effect." },
+          "202": { "description": "A matching operation is still in progress." },
+          "200": { "description": "Completed or failed record replayed." },
+          "409": { "description": "Key was reused with a different request hash." }
+        }
+      }
+    },
+    "/idempotency/complete": {
+      "post": {
+        "summary": "Mark a claimed operation completed and persist the replay response.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CompleteRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Completion persisted or already completed." },
+          "404": { "description": "Record not found." },
+          "409": { "description": "Record is already failed." }
+        }
+      }
+    },
+    "/idempotency/fail": {
+      "post": {
+        "summary": "Mark a claimed operation failed and persist the replay error.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FailRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Failure persisted or already failed." },
+          "404": { "description": "Record not found." },
+          "409": { "description": "Record is already completed." }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ClaimRequest": {
+        "type": "object",
+        "required": ["scope", "key"],
+        "properties": {
+          "scope": { "type": "string" },
+          "key": { "type": "string" },
+          "requestHash": { "type": "string" },
+          "ttlMs": { "type": "integer" },
+          "lockTtlMs": { "type": "integer" },
+          "metadata": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "CompleteRequest": {
+        "type": "object",
+        "required": ["scope", "key"],
+        "properties": {
+          "scope": { "type": "string" },
+          "key": { "type": "string" },
+          "response": { "type": "object", "additionalProperties": true },
+          "statusCode": { "type": "integer" },
+          "metadata": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "FailRequest": {
+        "type": "object",
+        "required": ["scope", "key"],
+        "properties": {
+          "scope": { "type": "string" },
+          "key": { "type": "string" },
+          "error": { "type": "object", "additionalProperties": true },
+          "statusCode": { "type": "integer" },
+          "metadata": { "type": "object", "additionalProperties": true }
+        }
+      }
+    }
+  }
+}

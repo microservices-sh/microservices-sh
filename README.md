@@ -127,6 +127,7 @@ Templates are listed under [Pick A Starter](#pick-a-starter). All modules below 
 | `gateway` | Public trust boundary: API-key auth, rate limiting, scope narrowing |
 | `auth` | EdDSA service-token mint/verify, scope checks, JWKS |
 | `identity` | Passwordless email-code login + server-side sessions |
+| `idempotency` | Scoped idempotency records for safe retry, replay, and duplicate side-effect prevention |
 | `customer` | Customer profiles, contact fields, notes, lifecycle events |
 | `booking` | Service booking, availability, booking records, domain events |
 | `org-team-rbac` | Multi-tenant orgs, memberships, roles, invitations |

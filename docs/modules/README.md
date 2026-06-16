@@ -59,6 +59,7 @@ Future MCP/CLI tools should expose the same content through:
 | [`customer`](./customer.md) | Available | Customer profiles, tags, consent fields, and customer events. |
 | [`booking`](./booking.md) | Available | Service booking, availability, cancellation, and booking events. |
 | [`payment`](./payment.md) | Available | Stripe-backed payment provider: payment intents, payment records, and signed webhook verification. |
+| [`idempotency`](./idempotency.md) | Available | Scoped idempotency records for safe retry, replay, and duplicate side-effect prevention. |
 | [`email`](./email.md) | Planned | Transactional email sending, templates, jobs, and delivery events. |
 | [`audit-log`](./audit-log.md) | Available | Append-only audit trail; pure event sink with signed-envelope verification. |
 | [`webhook-delivery`](./webhook-delivery.md) | Available | Outbound mirror of the event bus: HMAC-signed event delivery to external endpoints with delivery logging. |

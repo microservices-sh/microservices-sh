@@ -309,6 +309,52 @@
       ]
     },
     {
+      "id": "idempotency",
+      "name": "Idempotency",
+      "version": "0.1.0",
+      "status": "available",
+      "class": "core",
+      "mount": "/idempotency",
+      "docPath": "docs/modules/idempotency.md",
+      "summary": "Scoped idempotency records for safe retry, replay, and duplicate side-effect prevention.",
+      "requires": [],
+      "permissions": [
+        "idempotency.claim",
+        "idempotency.read",
+        "idempotency.admin"
+      ],
+      "rpc": [
+        {
+          "method": "claimIdempotency",
+          "scope": "idempotency.claim",
+          "public": false
+        },
+        {
+          "method": "getIdempotencyRecord",
+          "scope": "idempotency.read",
+          "public": false
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeIdempotencyClaim",
+        "afterIdempotencyComplete",
+        "afterIdempotencyFail",
+        "onIdempotencyReplay"
+      ],
+      "events": [
+        "idempotency.claimed",
+        "idempotency.replayed",
+        "idempotency.completed",
+        "idempotency.failed",
+        "idempotency.expired_pruned"
+      ]
+    },
+    {
       "id": "email",
       "name": "Email",
       "version": "0.1.0",

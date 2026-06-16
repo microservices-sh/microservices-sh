@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Idempotency Hooks",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "beforeIdempotencyClaim": {
+      "type": "string",
+      "description": "Filter hook that can mutate or reject claim input before a record is created or replayed."
+    },
+    "afterIdempotencyComplete": {
+      "type": "string",
+      "description": "Observer hook after a record transitions to completed."
+    },
+    "afterIdempotencyFail": {
+      "type": "string",
+      "description": "Observer hook after a record transitions to failed."
+    },
+    "onIdempotencyReplay": {
+      "type": "string",
+      "description": "Observer hook when a completed or failed record is replayed."
+    }
+  }
+}
