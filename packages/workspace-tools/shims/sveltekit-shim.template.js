@@ -894,19 +894,19 @@ function deploymentInput(flags, environment = "preview") {
     wrangler?.vars?.MICROSERVICES_APP_SLUG ??
     wrangler?.name ??
     manifest.id ??
-    "client-portal-sveltekit";
+    "__MS_TEMPLATE_ID__";
   const moduleIds = Array.isArray(manifest.modules?.required)
     ? manifest.modules.required
     : (lock.modules ?? []).map((module) => module.id).filter(Boolean);
 
   return {
-    templateId: manifest.id ?? config.template ?? "client-portal-sveltekit",
+    templateId: manifest.id ?? config.template ?? "__MS_TEMPLATE_ID__",
     modules: moduleIds,
     config: {
       ...config,
       appName: appSlug,
       appSlug,
-      template: config.template ?? manifest.id ?? "client-portal-sveltekit"
+      template: config.template ?? manifest.id ?? "__MS_TEMPLATE_ID__"
     },
     environment,
     projectId: flags.projectId ?? undefined,
@@ -1048,13 +1048,13 @@ function buildDeployArtifact(flags) {
     data: {
       ...input,
       artifact: {
-        source: "client-portal-sveltekit-local-build",
+        source: "__MS_TEMPLATE_ID__-local-build",
         schemaVersion: "2026-06-14",
         composition: {
           compositionId: checksum,
           template: {
             id: input.templateId,
-            name: "Client Portal SvelteKit"
+            name: "__MS_TEMPLATE_NAME__"
           },
           modules: input.modules.map((id) => ({ id })),
           config: input.config
@@ -1908,7 +1908,7 @@ ${latestLogs.length ? latestLogs.map((log) => `- ${log.level.toUpperCase()} ${lo
 }
 
 function usage() {
-  return `client-portal-sveltekit microservices commands:
+  return `__MS_TEMPLATE_ID__ microservices commands:
   Global flags: [--json] [--api-url <url>] [--api-key <key>] [--input deployment.json] [--deployment-id <id>] [--output result.json]
   Deploy target flags: [--target managed|cloudflare] [--cloudflare-auth oauth|api-token] [--cloudflare-account-id <id>] [--cloudflare-zone-id <id>] [--cloudflare-preview-base-domain <domain>] [--cloudflare-connection-id <id>] [--cloudflare-api-token <token>]
   microservices modules list [--json]

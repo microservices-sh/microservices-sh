@@ -108,5 +108,9 @@
       "migrations"
     ],
     "apiLogic": "detached-use-cases-with-sveltekit-adapters"
-  }
+  },
+  "checks": [
+    { "id": "config", "file": "microservices.config.json" },
+    { "id": "layout", "file": "src/routes/+layout.svelte" }
+  ]
 }

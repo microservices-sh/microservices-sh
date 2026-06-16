@@ -108,5 +108,9 @@
       "migrations"
     ],
     "apiLogic": "detached-use-cases-with-sveltekit-adapters"
-  }
+  },
+  "checks": [
+    { "id": "migrations", "file": "migrations/0001_core.sql" },
+    { "id": "http-smoke", "file": "scripts/smoke-http.mjs" }
+  ]
 }

@@ -513,13 +513,18 @@ async function addModule(id) {
 }
 
 function checkResponse() {
+  // Universal base checks (every template ships these). Template-specific file
+  // checks are declared in microservices.template.json `checks: [{id, file}]`
+  // so this shim stays identical across templates (see workspace-tools shims).
+  const declared = Array.isArray(manifest.checks) ? manifest.checks : [];
   const checks = [
     { id: "manifest", status: existsSync("microservices.template.json") ? "pass" : "fail" },
     { id: "lockfile", status: existsSync("microservices.lock.json") ? "pass" : "fail" },
     { id: "api-boundary", status: existsSync("docs/api-boundary.md") ? "pass" : "fail" },
     { id: "wrangler-config", status: existsSync("wrangler.jsonc") ? "pass" : "fail" },
-    { id: "migrations", status: existsSync("migrations/0001_core.sql") ? "pass" : "fail" },
-    { id: "http-smoke", status: existsSync("scripts/smoke-http.mjs") ? "pass" : "fail" },
+    ...declared
+      .filter((check) => check && typeof check.id === "string" && typeof check.file === "string")
+      .map((check) => ({ id: check.id, status: existsSync(check.file) ? "pass" : "fail" })),
     ...runContractChecks()
   ];
   const failed = checks.filter((check) => check.status === "fail");

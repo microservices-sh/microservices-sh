@@ -103,6 +103,8 @@ Usage:
   microservices-workspace scaffold module <id>
   microservices-workspace scaffold template <id>
   microservices-workspace registry build
+  microservices-workspace shims sync
+  microservices-workspace shims check
   microservices-workspace discover
 
 Options:
@@ -1304,6 +1306,71 @@ async function runDiscover({ flags }) {
   };
 }
 
+// The SvelteKit project shims (templates/*/scripts/microservices.js and the
+// create-app bundled shim) are the SAME script. They drifted because updates
+// only landed in some copies. They are now generated from a single canonical
+// template; the only per-target variation is the template id + display name.
+// Template-specific `check` file lists live in each microservices.template.json
+// `checks: [{id,file}]` (read by the shim), NOT in the shim code, so even
+// templates with different check sets share one canonical.
+// Edit shims/sveltekit-shim.template.js, then run `shims sync`.
+const SHIM_TEMPLATE_PATH = "packages/workspace-tools/shims/sveltekit-shim.template.js";
+const SHIM_TARGETS = [
+  { id: "booking-sveltekit", name: "Booking SvelteKit", path: "templates/booking-sveltekit/scripts/microservices.js" },
+  { id: "saas-starter-sveltekit", name: "SaaS Starter SvelteKit", path: "templates/saas-starter-sveltekit/scripts/microservices.js" },
+  { id: "client-portal-sveltekit", name: "Client Portal SvelteKit", path: "templates/client-portal-sveltekit/scripts/microservices.js" },
+  // Bundled shim consumed by create-microservices-app framework-starter for new
+  // framework apps. Kept identical to booking to preserve current behavior.
+  { id: "booking-sveltekit", name: "Booking SvelteKit", path: "packages/create-microservices-app/shim/microservices.js" }
+];
+
+function renderShim(template, target) {
+  return template
+    .split("__MS_TEMPLATE_NAME__").join(target.name)
+    .split("__MS_TEMPLATE_ID__").join(target.id);
+}
+
+async function runShims({ scope, flags }) {
+  const mode = scope || "check";
+  if (!["sync", "check"].includes(mode)) {
+    failCheck("shims:scope", `Unknown shims command: ${mode}. Use "shims sync" or "shims check".`);
+  }
+
+  const rootPath = findWorkspaceRoot(process.cwd());
+  const templatePath = join(rootPath, SHIM_TEMPLATE_PATH);
+  if (!existsSync(templatePath)) {
+    failCheck("shims:template", `Canonical shim template not found: ${SHIM_TEMPLATE_PATH}`);
+  }
+  const template = readText(templatePath);
+
+  const results = [];
+  for (const target of SHIM_TARGETS) {
+    const absolute = join(rootPath, target.path);
+    const expected = renderShim(template, target);
+    const actual = existsSync(absolute) ? readText(absolute) : null;
+    const inSync = actual === expected;
+
+    if (mode === "sync" && !inSync) {
+      await mkdir(dirname(absolute), { recursive: true });
+      await writeFile(absolute, expected);
+    }
+
+    results.push({
+      id: target.id,
+      path: relativeToRoot(rootPath, absolute),
+      status: mode === "sync" ? (inSync ? "unchanged" : "written") : (inSync ? "in-sync" : "drift")
+    });
+  }
+
+  const drifted = results.filter((result) => result.status === "drift");
+  if (mode === "check" && drifted.length > 0) {
+    const list = drifted.map((result) => result.path).join(", ");
+    failCheck("shims:drift", `Shim(s) out of sync with ${SHIM_TEMPLATE_PATH}: ${list}. Run "pnpm sync:shims".`);
+  }
+
+  return { shims: { mode, template: SHIM_TEMPLATE_PATH, targets: results } };
+}
+
 async function main() {
   const parsed = parseArgs(process.argv.slice(2));
 
@@ -1339,6 +1406,21 @@ async function main() {
     for (const file of data.registry.files) {
       process.stdout.write(`wrote: ${file}\n`);
     }
+    return;
+  }
+
+  if (parsed.command === "shims") {
+    const data = await runShims(parsed);
+
+    if (parsed.flags.json) {
+      writeJson({ ok: true, data });
+      return;
+    }
+
+    for (const target of data.shims.targets) {
+      process.stdout.write(`${target.status}: ${target.path}\n`);
+    }
+    process.stdout.write(`shims ${data.shims.mode} ok (${data.shims.targets.length} target${data.shims.targets.length === 1 ? "" : "s"})\n`);
     return;
   }
 

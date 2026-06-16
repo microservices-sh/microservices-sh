@@ -189,6 +189,7 @@ async function trackResponse(successName, failureName, response, props = {}) {
 
 function parseArgs(argv) {
   const args = [];
+  let parseError = null;
   const flags = {
     json: false,
     dryRun: false,
@@ -204,6 +205,13 @@ function parseArgs(argv) {
     ci: process.env.CI === "true",
     wait: false,
     noBuild: false,
+    target: process.env.MICROSERVICES_DEPLOY_TARGET ?? "managed",
+    cloudflareAuth: process.env.MICROSERVICES_CLOUDFLARE_AUTH ?? null,
+    cloudflareAccountId: process.env.CLOUDFLARE_ACCOUNT_ID ?? null,
+    cloudflareZoneId: process.env.CLOUDFLARE_ZONE_ID ?? null,
+    cloudflarePreviewBaseDomain: process.env.MICROSERVICES_CLOUDFLARE_PREVIEW_DOMAIN ?? null,
+    cloudflareConnectionId: process.env.MICROSERVICES_CLOUDFLARE_CONNECTION_ID ?? null,
+    cloudflareApiToken: process.env.CLOUDFLARE_API_TOKEN ?? null,
     output: null,
     input: null,
     deploymentId: null,
@@ -211,6 +219,19 @@ function parseArgs(argv) {
     host: "127.0.0.1",
     port: "5174"
   };
+
+  function flagValue(index, option, fallback = "") {
+    const next = argv[index + 1];
+    if (!next || next.startsWith("--")) {
+      parseError ??= fail(
+        "CLI_FLAG_VALUE_REQUIRED",
+        `Missing value for ${option}.`,
+        `Pass ${option} <value>, or remove ${option}.`
+      );
+      return { value: fallback, index };
+    }
+    return { value: next, index: index + 1 };
+  }
 
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
@@ -224,59 +245,109 @@ function parseArgs(argv) {
     } else if (value === "--plan") {
       flags.plan = true;
     } else if (value === "--confirm") {
-      flags.confirm = argv[index + 1] ?? "";
-      index += 1;
+      const parsed = flagValue(index, value);
+      flags.confirm = parsed.value;
+      index = parsed.index;
     } else if (value === "--url") {
-      flags.url = argv[index + 1] ?? "";
-      index += 1;
+      const parsed = flagValue(index, value);
+      flags.url = parsed.value;
+      index = parsed.index;
     } else if (value === "--api-url") {
-      flags.apiUrl = argv[index + 1] ?? "";
-      index += 1;
+      const parsed = flagValue(index, value);
+      flags.apiUrl = parsed.value;
+      index = parsed.index;
     } else if (value === "--api-key") {
-      flags.apiKey = argv[index + 1] ?? "";
-      index += 1;
+      const parsed = flagValue(index, value);
+      flags.apiKey = parsed.value;
+      index = parsed.index;
     } else if (value === "--actor") {
-      flags.actor = argv[index + 1] ?? flags.actor;
-      index += 1;
+      const parsed = flagValue(index, value, flags.actor);
+      flags.actor = parsed.value;
+      index = parsed.index;
     } else if (value === "--name") {
-      flags.name = argv[index + 1] ?? "";
-      index += 1;
+      const parsed = flagValue(index, value);
+      flags.name = parsed.value;
+      index = parsed.index;
     } else if (value === "--project-id") {
-      flags.projectId = argv[index + 1] ?? "";
-      index += 1;
+      const parsed = flagValue(index, value);
+      flags.projectId = parsed.value;
+      index = parsed.index;
     } else if (value === "--mode") {
-      flags.mode = argv[index + 1] ?? "";
-      index += 1;
+      const parsed = flagValue(index, value);
+      flags.mode = parsed.value;
+      index = parsed.index;
     } else if (value === "--ci") {
       flags.ci = true;
     } else if (value === "--wait") {
       flags.wait = true;
     } else if (value === "--no-build") {
       flags.noBuild = true;
+    } else if (value === "--target") {
+      const parsed = flagValue(index, value, flags.target);
+      flags.target = parsed.value;
+      index = parsed.index;
+    } else if (value === "--cloudflare-auth") {
+      const parsed = flagValue(index, value);
+      flags.cloudflareAuth = parsed.value;
+      index = parsed.index;
+    } else if (value === "--cloudflare-account-id") {
+      const parsed = flagValue(index, value);
+      flags.cloudflareAccountId = parsed.value;
+      index = parsed.index;
+    } else if (value === "--cloudflare-zone-id") {
+      const parsed = flagValue(index, value);
+      flags.cloudflareZoneId = parsed.value;
+      index = parsed.index;
+    } else if (value === "--cloudflare-preview-base-domain") {
+      const parsed = flagValue(index, value);
+      flags.cloudflarePreviewBaseDomain = parsed.value;
+      index = parsed.index;
+    } else if (value === "--cloudflare-connection-id") {
+      const parsed = flagValue(index, value);
+      flags.cloudflareConnectionId = parsed.value;
+      index = parsed.index;
+    } else if (value === "--cloudflare-api-token") {
+      const parsed = flagValue(index, value);
+      flags.cloudflareApiToken = parsed.value;
+      index = parsed.index;
     } else if (value === "--output" || value === "--out") {
-      flags.output = argv[index + 1] ?? "";
-      index += 1;
+      const parsed = flagValue(index, value);
+      flags.output = parsed.value;
+      index = parsed.index;
     } else if (value === "--input" || value === "--from") {
-      flags.input = argv[index + 1] ?? "";
-      index += 1;
+      const parsed = flagValue(index, value);
+      flags.input = parsed.value;
+      index = parsed.index;
     } else if (value === "--deployment-id") {
-      flags.deploymentId = argv[index + 1] ?? "";
-      index += 1;
+      const parsed = flagValue(index, value);
+      flags.deploymentId = parsed.value;
+      index = parsed.index;
     } else if (value === "--timeout") {
-      flags.timeoutMs = parseDurationMs(argv[index + 1] ?? "") ?? flags.timeoutMs;
-      index += 1;
+      const parsed = flagValue(index, value, String(flags.timeoutMs));
+      const timeoutMs = parseDurationMs(parsed.value);
+      if (timeoutMs === null && !parseError) {
+        parseError = fail(
+          "CLI_FLAG_VALUE_INVALID",
+          `Invalid timeout value: ${parsed.value}.`,
+          "Use a timeout like 1000ms, 30s, or 10m."
+        );
+      }
+      flags.timeoutMs = timeoutMs ?? flags.timeoutMs;
+      index = parsed.index;
     } else if (value === "--host") {
-      flags.host = argv[index + 1] ?? flags.host;
-      index += 1;
+      const parsed = flagValue(index, value, flags.host);
+      flags.host = parsed.value;
+      index = parsed.index;
     } else if (value === "--port") {
-      flags.port = argv[index + 1] ?? flags.port;
-      index += 1;
+      const parsed = flagValue(index, value, flags.port);
+      flags.port = parsed.value;
+      index = parsed.index;
     } else {
       args.push(value);
     }
   }
 
-  return { args, flags };
+  return { args, flags, error: parseError };
 }
 
 function parseDurationMs(value) {
@@ -442,13 +513,18 @@ async function addModule(id) {
 }
 
 function checkResponse() {
+  // Universal base checks (every template ships these). Template-specific file
+  // checks are declared in microservices.template.json `checks: [{id, file}]`
+  // so this shim stays identical across templates (see workspace-tools shims).
+  const declared = Array.isArray(manifest.checks) ? manifest.checks : [];
   const checks = [
     { id: "manifest", status: existsSync("microservices.template.json") ? "pass" : "fail" },
     { id: "lockfile", status: existsSync("microservices.lock.json") ? "pass" : "fail" },
     { id: "api-boundary", status: existsSync("docs/api-boundary.md") ? "pass" : "fail" },
     { id: "wrangler-config", status: existsSync("wrangler.jsonc") ? "pass" : "fail" },
-    { id: "migrations", status: existsSync("migrations/0001_core.sql") ? "pass" : "fail" },
-    { id: "http-smoke", status: existsSync("scripts/smoke-http.mjs") ? "pass" : "fail" },
+    ...declared
+      .filter((check) => check && typeof check.id === "string" && typeof check.file === "string")
+      .map((check) => ({ id: check.id, status: existsSync(check.file) ? "pass" : "fail" })),
     ...runContractChecks()
   ];
   const failed = checks.filter((check) => check.status === "fail");
@@ -522,6 +598,122 @@ function resolvedApiSettings(flags) {
     actor: flags.actor ?? config.actor ?? "agent",
     config
   };
+}
+
+function requireCiApiKey(flags, action) {
+  const settings = resolvedApiSettings(flags);
+  if (!flags.ci || settings.apiKey) return null;
+
+  return fail(
+    "CI_API_KEY_REQUIRED",
+    `CI ${action} requires MICROSERVICES_API_KEY or --api-key.`,
+    "Create a workspace API key and store it as a CI secret."
+  );
+}
+
+function cleanString(value) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+const MANAGED_DEPLOY_TARGETS = new Set(["managed", "microservices"]);
+const CLOUDFLARE_DEPLOY_TARGETS = new Set(["cloudflare", "cf", "byo-cloudflare"]);
+const CLOUDFLARE_AUTH_VALUES = new Set(["oauth", "api-token", "api_token", "token"]);
+
+function deployTargetKind(flags) {
+  const target = cleanString(flags.target)?.toLowerCase() ?? "managed";
+  if (CLOUDFLARE_DEPLOY_TARGETS.has(target)) return "cloudflare";
+  if (MANAGED_DEPLOY_TARGETS.has(target)) return "managed";
+  return null;
+}
+
+function validateDeployFlags(flags) {
+  const target = cleanString(flags.target)?.toLowerCase() ?? "managed";
+  if (!deployTargetKind(flags)) {
+    return fail(
+      "DEPLOY_TARGET_INVALID",
+      `Unknown deploy target: ${target}.`,
+      "Use --target managed or --target cloudflare."
+    );
+  }
+
+  const auth = cleanString(flags.cloudflareAuth)?.toLowerCase();
+  if (auth && !CLOUDFLARE_AUTH_VALUES.has(auth)) {
+    return fail(
+      "CLOUDFLARE_AUTH_INVALID",
+      `Unknown Cloudflare auth mode: ${auth}.`,
+      "Use --cloudflare-auth oauth or --cloudflare-auth api-token."
+    );
+  }
+
+  return null;
+}
+
+function cloudflareAuthKind(flags) {
+  const rawAuth = cleanString(flags.cloudflareAuth)?.toLowerCase();
+  if (rawAuth === "api-token" || rawAuth === "api_token" || rawAuth === "token") {
+    return "api_token";
+  }
+  if (rawAuth === "oauth" || flags.cloudflareConnectionId) {
+    return "oauth";
+  }
+  if (flags.cloudflareApiToken) {
+    return "api_token";
+  }
+  return "oauth";
+}
+
+function deploymentTarget(flags) {
+  if (deployTargetKind(flags) !== "cloudflare") {
+    return {
+      provider: "microservices",
+      auth: "platform",
+      accountId: null,
+      connectionId: null,
+      zoneId: null,
+      previewBaseDomain: null,
+      tokenStored: true
+    };
+  }
+
+  const auth = cloudflareAuthKind(flags);
+
+  return {
+    provider: "cloudflare",
+    auth,
+    accountId: cleanString(flags.cloudflareAccountId),
+    connectionId: cleanString(flags.cloudflareConnectionId),
+    zoneId: cleanString(flags.cloudflareZoneId),
+    previewBaseDomain: cleanString(flags.cloudflarePreviewBaseDomain),
+    tokenStored: auth === "oauth"
+  };
+}
+
+function cloudflareCredentialCheck(target, flags) {
+  if (target.auth === "oauth") {
+    return {
+      id: "cloudflare-oauth-connection",
+      status: target.connectionId ? "pass" : "warn",
+      message: target.connectionId
+        ? `Cloudflare OAuth connection id is configured: ${target.connectionId}.`
+        : "OAuth target should include --cloudflare-connection-id after connecting Cloudflare in the portal."
+    };
+  }
+
+  return {
+    id: "cloudflare-api-token",
+    status: flags.cloudflareApiToken ? "pass" : "warn",
+    message: flags.cloudflareApiToken
+      ? "Cloudflare API token is available for mutating deploy actions."
+      : "API-token target must provide --cloudflare-api-token or CLOUDFLARE_API_TOKEN for provision/migrate/upload/cleanup."
+  };
+}
+
+function deploymentActionBody(flags) {
+  const body = { confirm: flags.confirm };
+  if (cleanString(flags.cloudflareApiToken)) {
+    body.cloudflareApiToken = cleanString(flags.cloudflareApiToken);
+  }
+  return body;
 }
 
 function apiUrl(baseUrl, path) {
@@ -719,6 +911,7 @@ function deploymentInput(flags, environment = "preview") {
     environment,
     projectId: flags.projectId ?? undefined,
     name: flags.name ?? config.business?.name ?? appSlug,
+    target: deploymentTarget(flags),
     actor: flags.actor ?? "agent"
   };
 }
@@ -809,8 +1002,7 @@ function buildDeployArtifact(flags) {
   const input = deploymentInput(flags, "preview");
   const files = [];
   const buildOutput = ".svelte-kit/cloudflare";
-  const serverOutput = ".svelte-kit/output/server";
-  const cloudflareManifestOutput = ".svelte-kit/cloudflare-tmp";
+  const deployBundleOutput = ".microservices/deploy-bundle";
 
   if (!existsSync(buildOutput)) {
     return fail(
@@ -830,16 +1022,14 @@ function buildDeployArtifact(flags) {
     collectArtifactFile(process.cwd(), path, files);
   }
   collectArtifactDirectory(process.cwd(), "migrations", files);
+  collectArtifactFile(process.cwd(), `${deployBundleOutput}/_worker.js`, files);
   collectArtifactDirectory(process.cwd(), buildOutput, files);
-  collectArtifactDirectory(process.cwd(), serverOutput, files);
-  collectArtifactDirectory(process.cwd(), cloudflareManifestOutput, files);
 
   const required = [
     "package.json",
     "wrangler.jsonc",
-    `${buildOutput}/_worker.js`,
-    `${serverOutput}/index.js`,
-    `${cloudflareManifestOutput}/manifest.js`
+    `${deployBundleOutput}/_worker.js`,
+    `${buildOutput}/_worker.js`
   ];
   const missing = required.filter((path) => !files.some((file) => file.path === path));
   if (missing.length) {
@@ -875,8 +1065,7 @@ function buildDeployArtifact(flags) {
           byteCount,
           fileCount: files.length,
           buildOutput,
-          serverOutput,
-          cloudflareManifestOutput,
+          deployBundleOutput,
           packageManager: "pnpm",
           createdAt: new Date().toISOString(),
           git: ciMetadata()
@@ -963,9 +1152,11 @@ function deployPreviewPlan(flags) {
       action: "deploy-preview",
       endpoint: "POST /deployments/preview",
       confirmationRequired: "deploy",
+      target: deploymentTarget(flags),
       request: body,
       sideEffects: [
         "run the local build unless --no-build is provided",
+        "run a local Wrangler dry-run bundle unless --no-build is provided",
         "package the Cloudflare build artifact",
         "upload the artifact to the control-plane API",
         "create or reuse a control-plane project",
@@ -980,6 +1171,8 @@ function deployPreviewPlan(flags) {
       ],
       nextSteps: [
         "Run microservices auth login, or set MICROSERVICES_API_KEY.",
+        "For BYO Cloudflare OAuth, connect Cloudflare in the portal once API OAuth token storage/resolution is enabled, then pass --target cloudflare --cloudflare-auth oauth --cloudflare-connection-id <id>.",
+        "For BYO Cloudflare CI, pass --target cloudflare --cloudflare-auth api-token --cloudflare-account-id <id> and provide MICROSERVICES_API_KEY plus CLOUDFLARE_API_TOKEN on deploy commands.",
         "Run microservices deploy preview --confirm deploy --output deployment.json.",
         "Run microservices deploy provision --input deployment.json --confirm provision.",
         "Run microservices deploy migrate --input deployment.json --confirm migrate.",
@@ -1005,18 +1198,19 @@ async function deployPreview(flags) {
       { confirmationRequired: "deploy" }
     );
   }
-  const settings = resolvedApiSettings(flags);
-  if (flags.ci && !settings.apiKey) {
-    return fail(
-      "CI_API_KEY_REQUIRED",
-      "CI preview deploy requires MICROSERVICES_API_KEY or --api-key.",
-      "Create a workspace API key and store it as a CI secret."
-    );
-  }
+  const ciAuth = requireCiApiKey(flags, "preview deploy");
+  if (ciAuth) return ciAuth;
 
   if (!flags.noBuild) {
     const build = runCommand("deploy:build", "vite", ["build"], flags);
     if (!build.ok) return build;
+    const bundle = runCommand(
+      "deploy:bundle",
+      "wrangler",
+      ["deploy", "--dry-run", "--outdir", ".microservices/deploy-bundle"],
+      flags
+    );
+    if (!bundle.ok) return bundle;
   }
 
   const body = buildDeployArtifact(flags);
@@ -1139,10 +1333,15 @@ async function deployProvision(deploymentId, flags) {
       { confirmationRequired: "provision" }
     );
   }
+  const ciAuth = requireCiApiKey(flags, "deployment provisioning");
+  if (ciAuth) return ciAuth;
 
   return apiRequest(flags, `/deployments/${deploymentId}/provision`, {
     method: "POST",
-    body: JSON.stringify({ confirm: flags.confirm === "production" ? "production" : undefined })
+    body: JSON.stringify({
+      ...deploymentActionBody(flags),
+      confirm: flags.confirm === "production" ? "production" : flags.confirm
+    })
   });
 }
 
@@ -1194,10 +1393,12 @@ async function deployMigrate(deploymentId, flags) {
       { confirmationRequired: "migrate", productionConfirmationRequired: "production-migrate" }
     );
   }
+  const ciAuth = requireCiApiKey(flags, "remote migration");
+  if (ciAuth) return ciAuth;
 
   return apiRequest(flags, `/deployments/${deploymentId}/migrate`, {
     method: "POST",
-    body: JSON.stringify({ confirm: flags.confirm })
+    body: JSON.stringify(deploymentActionBody(flags))
   });
 }
 
@@ -1248,10 +1449,12 @@ async function deployUpload(deploymentId, flags) {
       { confirmationRequired: "upload", productionConfirmationRequired: "production-upload" }
     );
   }
+  const ciAuth = requireCiApiKey(flags, "Worker upload");
+  if (ciAuth) return ciAuth;
 
   return apiRequest(flags, `/deployments/${deploymentId}/upload`, {
     method: "POST",
-    body: JSON.stringify({ confirm: flags.confirm })
+    body: JSON.stringify(deploymentActionBody(flags))
   });
 }
 
@@ -1263,6 +1466,8 @@ async function deployStatus(deploymentId, flags) {
   if (!deploymentId) {
     return fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id returned by deploy preview.");
   }
+  const ciAuth = requireCiApiKey(flags, "deployment status");
+  if (ciAuth) return ciAuth;
   return apiRequest(flags, `/deployments/${deploymentId}`);
 }
 
@@ -1276,6 +1481,8 @@ async function deployUploadPlan(deploymentId, flags) {
   if (!deploymentId) {
     return fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id returned by deploy preview.");
   }
+  const ciAuth = requireCiApiKey(flags, "upload planning");
+  if (ciAuth) return ciAuth;
   return apiRequest(flags, `/deployments/${deploymentId}/upload-plan`);
 }
 
@@ -1287,6 +1494,8 @@ async function deployResources(deploymentId, flags) {
   if (!deploymentId) {
     return fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id returned by deploy preview.");
   }
+  const ciAuth = requireCiApiKey(flags, "deployment resources");
+  if (ciAuth) return ciAuth;
   return apiRequest(flags, `/deployments/${deploymentId}/resources`);
 }
 
@@ -1298,6 +1507,8 @@ async function deployLogs(deploymentId, flags) {
   if (!deploymentId) {
     return fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id returned by deploy preview.");
   }
+  const ciAuth = requireCiApiKey(flags, "deployment logs");
+  if (ciAuth) return ciAuth;
   return apiRequest(flags, `/deployments/${deploymentId}/logs`);
 }
 
@@ -1395,6 +1606,8 @@ async function deployActivate(deploymentId, flags) {
       "Run microservices deploy upload-plan <deployment-id>, then deploy upload to let the API publish the raw SvelteKit Worker/assets artifact."
     );
   }
+  const ciAuth = requireCiApiKey(flags, "deployment activation");
+  if (ciAuth) return ciAuth;
   return apiRequest(flags, `/deployments/${deploymentId}/activate`, {
     method: "POST",
     body: JSON.stringify({
@@ -1421,6 +1634,8 @@ async function deployDisable(deploymentId, flags) {
       { confirmationRequired: "disable" }
     );
   }
+  const ciAuth = requireCiApiKey(flags, "deployment disable");
+  if (ciAuth) return ciAuth;
   return apiRequest(flags, `/deployments/${deploymentId}/disable`, { method: "POST", body: "{}" });
 }
 
@@ -1468,10 +1683,12 @@ async function deployCleanup(deploymentId, flags) {
       { confirmationRequired: "cleanup", productionConfirmationRequired: "production-cleanup" }
     );
   }
+  const ciAuth = requireCiApiKey(flags, "resource cleanup");
+  if (ciAuth) return ciAuth;
 
   return apiRequest(flags, `/deployments/${deploymentId}/cleanup`, {
     method: "POST",
-    body: JSON.stringify({ confirm: flags.confirm })
+    body: JSON.stringify(deploymentActionBody(flags))
   });
 }
 
@@ -1482,6 +1699,7 @@ async function deployDoctor(flags, deploymentId = null) {
 
   const local = checkResponse();
   const settings = resolvedApiSettings(flags);
+  const target = deploymentTarget(flags);
   const checks = [
     ...local.data.checks.map((check) => ({
       id: `local:${check.id}`,
@@ -1494,8 +1712,27 @@ async function deployDoctor(flags, deploymentId = null) {
       message: settings.apiKey
         ? `API key is configured at ${DEFAULT_CONFIG_PATH}.`
         : "No API key configured; API commands require auth unless the API has auth disabled."
+    },
+    {
+      id: "deploy-target",
+      status: "pass",
+      message:
+        target.provider === "cloudflare"
+          ? `BYO Cloudflare target selected with ${target.auth} auth.`
+          : "Managed microservices.sh Cloudflare target selected."
     }
   ];
+
+  if (target.provider === "cloudflare") {
+    checks.push({
+      id: "cloudflare-account",
+      status: target.accountId ? "pass" : "warn",
+      message: target.accountId
+        ? `Cloudflare account id is configured: ${target.accountId}.`
+        : "Cloudflare target should include --cloudflare-account-id or CLOUDFLARE_ACCOUNT_ID before provisioning."
+    });
+    checks.push(cloudflareCredentialCheck(target, flags));
+  }
 
   const auth = await apiRequest(flags, "/auth/status");
   checks.push({
@@ -1673,6 +1910,7 @@ ${latestLogs.length ? latestLogs.map((log) => `- ${log.level.toUpperCase()} ${lo
 function usage() {
   return `saas-starter-sveltekit microservices commands:
   Global flags: [--json] [--api-url <url>] [--api-key <key>] [--input deployment.json] [--deployment-id <id>] [--output result.json]
+  Deploy target flags: [--target managed|cloudflare] [--cloudflare-auth oauth|api-token] [--cloudflare-account-id <id>] [--cloudflare-zone-id <id>] [--cloudflare-preview-base-domain <domain>] [--cloudflare-connection-id <id>] [--cloudflare-api-token <token>]
   microservices modules list [--json]
   microservices add <id> [--json]
   microservices docs <id> [--json]
@@ -1710,8 +1948,13 @@ function usage() {
 }
 
 async function main() {
-  const { args, flags } = parseArgs(process.argv.slice(2));
+  const { args, flags, error } = parseArgs(process.argv.slice(2));
   const [resource, action, value] = args;
+
+  if (error) {
+    emit(error, null, flags);
+    return;
+  }
 
   if (!resource || resource === "help" || resource === "--help" || resource === "-h") {
     process.stdout.write(usage());
@@ -1719,6 +1962,14 @@ async function main() {
   }
 
   telemetryNotice(flags.json);
+
+  if (resource === "deploy" || resource === "preview") {
+    const deployFlagError = validateDeployFlags(flags);
+    if (deployFlagError) {
+      emit(deployFlagError, null, flags);
+      return;
+    }
+  }
 
   if (resource === "modules" && action === "list") {
     emit(
