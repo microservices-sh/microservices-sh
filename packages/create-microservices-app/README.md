@@ -32,12 +32,12 @@ Requires **Node.js >= 20**. The first argument (`my-app`) is the app directory a
 
 ## Templates
 
-Pass with `--template <id>`. Default is `booking-business`.
+Pass with `--template <id>`. Default is `booking-sveltekit`.
 
 | id | What it is |
 |----|------------|
-| `booking-business` | Cloudflare Worker / Hono booking app, generated from the module contract (default) |
-| `booking-sveltekit` | Full Cloudflare SvelteKit booking app — public flow, admin, D1, typed hooks |
+| `booking-sveltekit` | Full Cloudflare SvelteKit booking app — public flow, admin, D1, typed hooks (default) |
+| `booking-business` | Cloudflare Worker / Hono booking app, generated from the module contract |
 | `saas-starter-sveltekit` | Multi-tenant B2B SaaS starter (SvelteKit) — org sign-up, team RBAC, subscriptions, admin, audit log |
 | `client-portal-sveltekit` | SvelteKit client portal — customers see their own invoices and files; auth, customer, audit-log |
 | `company-landing-astro` | Static Astro company landing page, no backend modules |
@@ -47,7 +47,7 @@ Pass with `--template <id>`. Default is `booking-business`.
 
 | Flag | Description |
 |------|-------------|
-| `--template <id>` | Template id (default `booking-business`) |
+| `--template <id>` | Template id (default `booking-sveltekit`) |
 | `--modules <ids>` | Comma-separated extra module ids to enable |
 | `--config '<json>'` | Template config override |
 | `--git-repo <url>` | Run `git init` and add an `origin` remote |

@@ -76,7 +76,10 @@ try {
     throw new Error(`Missing packed create entrypoint: ${createEntrypoint}`);
   }
 
-  run("node", [createEntrypoint, "smoke-app", "--dir", tempRoot, "--no-install", "--json"], { stdio: "inherit" });
+  // booking-business (procedural / module-contract) — exercises catalog.json,
+  // module list/docs/add/upgrade below. Pinned explicitly: the default template
+  // is booking-sveltekit (covered separately as sveltekit-smoke).
+  run("node", [createEntrypoint, "smoke-app", "--dir", tempRoot, "--template", "booking-business", "--no-install", "--json"], { stdio: "inherit" });
   run("node", [
     createEntrypoint,
     "sveltekit-smoke",
@@ -89,7 +92,9 @@ try {
     "--no-install",
     "--json"
   ], { stdio: "inherit" });
-  run("node", [createEntrypoint, "plan-only-smoke", "--dir", tempRoot, "--no-install", "--json", "--modules", "payment,email"], { stdio: "inherit" });
+  // No --template → must resolve to the flagship default (booking-sveltekit).
+  run("node", [createEntrypoint, "default-smoke", "--dir", tempRoot, "--no-install", "--json"], { stdio: "inherit" });
+  run("node", [createEntrypoint, "plan-only-smoke", "--dir", tempRoot, "--template", "booking-business", "--no-install", "--json", "--modules", "payment,email"], { stdio: "inherit" });
   run("node", [createEntrypoint, "--interactive", "--dir", tempRoot, "--no-install", "--json"], {
     env: {
       ...process.env,
@@ -104,6 +109,11 @@ try {
   const guidedRoot = join(tempRoot, "guided-smoke");
   if (!existsSync(join(guidedRoot, "package.json"))) {
     throw new Error(`Interactive create command did not generate the expected app at ${guidedRoot}.`);
+  }
+
+  const defaultRoot = join(tempRoot, "default-smoke");
+  if (!existsSync(join(defaultRoot, "svelte.config.js"))) {
+    throw new Error("Default template (no --template) must scaffold the SvelteKit flagship (booking-sveltekit).");
   }
 
   const appRoot = join(tempRoot, "smoke-app");

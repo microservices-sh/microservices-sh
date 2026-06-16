@@ -203,7 +203,7 @@ function availableTemplateList() {
 function parseArgs(argv) {
   const args = [];
   const flags = {
-    template: "booking-business",
+    template: "booking-sveltekit",
     packageManager: detectPackageManager(),
     install: process.env.CI !== "true",
     json: false,
@@ -290,9 +290,9 @@ Usage:
   pnpm create microservices-app <app-name>
 
 Options:
-  --template <id>              Template id. Default: booking-business
-                               (booking-business = Cloudflare Worker / Hono;
-                                booking-sveltekit = full Cloudflare SvelteKit app)
+  --template <id>              Template id. Default: booking-sveltekit
+                               (booking-sveltekit = full Cloudflare SvelteKit app;
+                                booking-business = Cloudflare Worker / Hono)
   --modules <ids>              Comma-separated extra module ids to enable
   --config '<json>'            Template config override
   --git-repo <url>             Initialize git and add origin remote
@@ -567,7 +567,7 @@ function packageScriptCommand(packageManager, script, args = []) {
   return [packageManager, script, ...args].join(" ");
 }
 
-function nextCommands(packageManager, appName, installed, planOnlyModules = [], templateId = "booking-business") {
+function nextCommands(packageManager, appName, installed, planOnlyModules = [], templateId = "booking-sveltekit") {
   const installLine = installed ? null : `${packageManager} install`;
   const isSvelteKitTemplate = templateId === "booking-sveltekit";
   const microservices = (args) => packageScriptCommand(packageManager, "microservices", args);
