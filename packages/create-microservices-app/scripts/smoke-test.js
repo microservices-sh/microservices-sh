@@ -228,6 +228,11 @@ try {
 
   run("node", ["--check", "scripts/microservices.js"], { cwd: appRoot, stdio: "inherit" });
   run("node", ["scripts/microservices.js", "check", "--json"], { cwd: svelteRoot, stdio: "inherit" });
+  // `add --plan` must be read-only: report a vendor plan without mutating the project.
+  run("node", ["scripts/microservices.js", "add", "invoice", "--plan", "--json"], { cwd: svelteRoot, stdio: "inherit" });
+  if (existsSync(join(svelteRoot, "modules", "invoice"))) {
+    throw new Error("`add --plan` must not vendor the module — it created modules/invoice.");
+  }
   const byoPlanStdout = run(
     "node",
     [

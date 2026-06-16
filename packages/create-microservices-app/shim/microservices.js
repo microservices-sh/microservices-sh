@@ -484,7 +484,7 @@ function integrityOf(root) {
   return `sha256-${createHash("sha256").update(manifestText).digest("hex")}`;
 }
 
-async function addModule(id) {
+async function addModule(id, flags = {}) {
   if (!id) {
     return fail("MODULE_ID_REQUIRED", "Missing module id.", "Run microservices add <module-id>.");
   }
@@ -501,6 +501,24 @@ async function addModule(id) {
     const ref = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
     const integrity = integrityOf(src);
     const modulePkg = readJson(join(src, "package.json"), {});
+
+    // --plan is read-only: report what `add` would do without touching the project.
+    if (flags.plan) {
+      return {
+        ok: true,
+        data: {
+          id,
+          plan: true,
+          version: modulePkg.version ?? null,
+          source: SOURCE_REPO,
+          ref,
+          integrity,
+          wouldVendorTo: `modules/${id}`,
+          dependency: `"@microservices-sh/${id}": "file:./modules/${id}"`
+        },
+        warnings: [`Plan only — nothing written. Re-run "microservices add ${id}" (no --plan) to vendor it into modules/${id}.`]
+      };
+    }
 
     const dest = resolve("modules", id);
     mkdirSync(dest, { recursive: true });
@@ -2002,6 +2020,20 @@ async function main() {
       (modules) => `${modules.map((module) => `${module.id}@${module.version}`).join("\n")}\n`,
       flags
     );
+  } else if (resource === "add" && flags.plan) {
+    // Read-only: report what would be vendored. No telemetry (not an install).
+    let response;
+    try {
+      response = await addModule(action, { plan: true });
+    } catch (error) {
+      response = fail(
+        "MODULE_ADD_PLAN_FAILED",
+        `Could not plan add${action ? `: ${action}` : ""}.`,
+        "Review the command output and retry.",
+        { moduleId: action ?? null, reason: error?.message ?? String(error) }
+      );
+    }
+    emit(response, (data) => `Plan: would vendor ${data.id}@${data.version ?? "?"} to ${data.wouldVendorTo}\n  dependency: ${data.dependency}\n`, flags);
   } else if (resource === "add") {
     const startedAt = Date.now();
     await track("module_install_started", workspaceTelemetryProps(flags, { moduleId: action ?? null }));
