@@ -31,7 +31,8 @@
       "email",
       "webhook-delivery",
       "notifications-inapp",
-      "image-generation"
+      "image-generation",
+      "ads-manager"
     ]
   },
   "slots": {
@@ -88,6 +89,13 @@
       "activeModule": "image-generation",
       "allowedModules": [
         "image-generation"
+      ],
+      "approvalRisk": "medium"
+    },
+    "advertising": {
+      "activeModule": "ads-manager",
+      "allowedModules": [
+        "ads-manager"
       ],
       "approvalRisk": "medium"
     }

@@ -60,5 +60,20 @@ export function createOpenclawConnector(opts: OpenclawConnectorOptions): AdsConn
       });
       return data.insights ?? [];
     },
+    async grantConnection(ctx, externalRef) {
+      const res = await doFetch(`${opts.baseUrl}/api/ads/grants`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${opts.serviceKey}`,
+          "Content-Type": "application/json",
+          "X-Tenant-Id": ctx.tenantId,
+          ...(ctx.entitlementToken ? { "X-Ads-Entitlement": ctx.entitlementToken } : {}),
+        },
+        body: JSON.stringify({ connectionId: externalRef }),
+      });
+      if (!res.ok) {
+        throw new AdsServiceError("Ads service grant failed", res.status, await res.text().catch(() => undefined));
+      }
+    },
   };
 }

@@ -3,6 +3,7 @@ import { syncInsightsInputSchema } from "../schemas";
 import { beforeSync } from "../hooks";
 import { snapshotId } from "../keys";
 import { adsManagerMeta } from "../meta";
+import { mapConnectorError } from "./list-campaigns";
 import type { AdsConnector, AdsStore, Entitlement } from "../ports";
 import type { InsightSnapshot } from "../types";
 
@@ -36,11 +37,18 @@ export async function syncInsights(input: unknown, deps: SyncInsightsDeps) {
   const conn = await deps.store.getConnection(hooked.tenantId, hooked.connectionId);
   if (!conn) return err(404, { code: "ads.CONNECTION_NOT_FOUND", message: "Connection not found." }, meta);
 
-  const rows = await deps.connector.getInsights(
-    { tenantId: hooked.tenantId, entitlementToken: deps.entitlementToken },
-    conn.externalRef,
-    { since: hooked.date, until: hooked.date },
-  );
+  let rows;
+  try {
+    rows = await deps.connector.getInsights(
+      { tenantId: hooked.tenantId, entitlementToken: deps.entitlementToken },
+      conn.externalRef,
+      { since: hooked.date, until: hooked.date },
+    );
+  } catch (e) {
+    const mapped = mapConnectorError(e, meta);
+    if (mapped) return mapped;
+    throw e;
+  }
 
   const nowIso = new Date(deps.now?.() ?? Date.now()).toISOString();
   const snapshots: InsightSnapshot[] = rows.map((r) => ({

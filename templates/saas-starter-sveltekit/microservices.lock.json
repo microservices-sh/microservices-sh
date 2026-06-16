@@ -134,6 +134,33 @@
         "events": ["image.generated", "image.edited", "image.deleted"],
         "requires": []
       }
+    },
+    {
+      "id": "ads-manager",
+      "version": "0.1.0",
+      "source": "registry:ads-manager@0.1.0",
+      "checksum": "sha256:preview-ads-manager-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/ads",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["ads.connect", "ads.read", "ads.manage", "ads.admin", "ads.observe"],
+        "rpc": [
+          { "method": "connectAccount", "scope": "ads.connect", "public": false },
+          { "method": "listConnections", "scope": "ads.read", "public": false },
+          { "method": "disconnectAccount", "scope": "ads.admin", "public": false },
+          { "method": "listCampaigns", "scope": "ads.read", "public": false },
+          { "method": "getInsights", "scope": "ads.read", "public": false },
+          { "method": "syncInsights", "scope": "ads.read", "public": false },
+          { "method": "detectAnomalies", "scope": "ads.read", "public": false },
+          { "method": "listAlerts", "scope": "ads.read", "public": false }
+        ],
+        "hooks": ["beforeSync", "onAlertRaised"],
+        "events": ["ad.account_connected", "ad.account_disconnected", "ad.insights_synced", "ad.alert_raised"],
+        "requires": []
+      }
     }
   ],
   "customizations": {

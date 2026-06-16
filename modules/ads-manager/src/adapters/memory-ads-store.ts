@@ -60,10 +60,10 @@ export function createMemoryAdsStore(): AdsStore {
     async insertAlert(alert) {
       alerts.set(alert.id, { ...alert });
     },
-    async findAlert(connectionId, campaignId, type, date) {
+    async findAlert(tenantId, connectionId, campaignId, type, date) {
       return (
         [...alerts.values()].find(
-          (a) => a.connectionId === connectionId && a.campaignId === campaignId && a.type === type && a.date === date,
+          (a) => a.tenantId === tenantId && a.connectionId === connectionId && a.campaignId === campaignId && a.type === type && a.date === date,
         ) ?? null
       );
     },

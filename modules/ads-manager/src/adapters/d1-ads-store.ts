@@ -143,10 +143,10 @@ export function createD1AdsStore(db: D1Database): AdsStore {
         .bind(alert.id, alert.tenantId, alert.connectionId, alert.campaignId, alert.type, alert.severity, alert.message, alert.metricBefore, alert.metricAfter, alert.date, alert.firedAt, alert.acknowledgedAt)
         .run();
     },
-    async findAlert(connectionId, campaignId, type, date) {
+    async findAlert(tenantId, connectionId, campaignId, type, date) {
       const r = await db
-        .prepare(`SELECT ${ALERT_COLS} FROM ad_alerts WHERE connection_id=? AND campaign_id=? AND type=? AND date=?`)
-        .bind(connectionId, campaignId, type, date)
+        .prepare(`SELECT ${ALERT_COLS} FROM ad_alerts WHERE tenant_id=? AND connection_id=? AND campaign_id=? AND type=? AND date=?`)
+        .bind(tenantId, connectionId, campaignId, type, date)
         .first<Record<string, unknown>>();
       return r ? rowToAlert(r) : null;
     },

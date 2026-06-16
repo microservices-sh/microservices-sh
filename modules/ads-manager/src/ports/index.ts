@@ -14,6 +14,10 @@ import type {
 export interface AdsConnector {
   listCampaigns(ctx: ConnectorContext, externalRef: string, range: DateRange): Promise<NormalizedCampaign[]>;
   getInsights(ctx: ConnectorContext, externalRef: string, range: DateRange): Promise<InsightRow[]>;
+  // Optional: register the calling tenant's grant for a connection with the
+  // upstream service. Required before reads when the upstream enforces grants
+  // (the openclaw connector); no-op connectors (memory) omit it.
+  grantConnection?(ctx: ConnectorContext, externalRef: string): Promise<void>;
 }
 
 export interface ConnectionInput {
@@ -50,7 +54,7 @@ export interface AdsStore {
   listSnapshots(filter: SnapshotFilter): Promise<InsightSnapshot[]>;
 
   insertAlert(alert: AdAlert): Promise<void>;
-  findAlert(connectionId: string, campaignId: string, type: AdAlert["type"], date: string): Promise<AdAlert | null>;
+  findAlert(tenantId: string, connectionId: string, campaignId: string, type: AdAlert["type"], date: string): Promise<AdAlert | null>;
   listAlerts(filter: AlertFilter): Promise<AdAlert[]>;
 }
 

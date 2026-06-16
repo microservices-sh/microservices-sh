@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@microservices-sh/ads-manager':
+        specifier: workspace:*
+        version: link:modules/ads-manager
       '@microservices-sh/audit-log':
         specifier: workspace:*
         version: link:modules/audit-log
@@ -523,6 +526,9 @@ importers:
       '@microservices-sh/admin-shell':
         specifier: workspace:*
         version: link:../../modules/admin-shell
+      '@microservices-sh/ads-manager':
+        specifier: workspace:*
+        version: link:../../modules/ads-manager
       '@microservices-sh/audit-log':
         specifier: workspace:*
         version: link:../../modules/audit-log

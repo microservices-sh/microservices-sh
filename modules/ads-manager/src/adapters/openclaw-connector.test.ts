@@ -29,6 +29,31 @@ describe("openclaw connector", () => {
     expect(seen.entitlement).toBe("jwt-abc");
   });
 
+  it("grantConnection POSTs /api/ads/grants with the service key, tenant, entitlement + connectionId", async () => {
+    let seen: { url?: string; method?: string; auth?: string | null; tenant?: string | null; entitlement?: string | null; body?: string } = {};
+    const fetchImpl = (async (url: string | URL | Request, init?: RequestInit) => {
+      const h = new Headers(init?.headers);
+      seen = { url: String(url), method: init?.method, auth: h.get("Authorization"), tenant: h.get("X-Tenant-Id"), entitlement: h.get("X-Ads-Entitlement"), body: init?.body as string };
+      return jsonRes({ ok: true, data: { connectionId: "oc_conn_1", subject: "org-1" } }, 201);
+    }) as unknown as typeof fetch;
+
+    const c = createOpenclawConnector({ baseUrl: "https://api.test", serviceKey: "svc", fetchImpl });
+    await c.grantConnection!({ tenantId: "org-1", entitlementToken: "jwt-ent" }, "oc_conn_1");
+
+    expect(seen.method).toBe("POST");
+    expect(seen.url).toBe("https://api.test/api/ads/grants");
+    expect(seen.auth).toBe("Bearer svc");
+    expect(seen.tenant).toBe("org-1");
+    expect(seen.entitlement).toBe("jwt-ent");
+    expect(JSON.parse(seen.body!)).toEqual({ connectionId: "oc_conn_1" });
+  });
+
+  it("grantConnection throws AdsServiceError on a non-ok response", async () => {
+    const fetchImpl = (async () => jsonRes({ error: "no" }, 403)) as unknown as typeof fetch;
+    const c = createOpenclawConnector({ baseUrl: "https://api.test", serviceKey: "svc", fetchImpl });
+    await expect(c.grantConnection!({ tenantId: "org-1" }, "ref")).rejects.toMatchObject({ status: 403 });
+  });
+
   it("maps a 402 to a notEntitled AdsServiceError", async () => {
     const fetchImpl = (async () => jsonRes({ error: "subscribe" }, 402)) as unknown as typeof fetch;
     const c = createOpenclawConnector({ baseUrl: "https://api.test", serviceKey: "k", fetchImpl });

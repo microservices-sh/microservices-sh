@@ -1,6 +1,7 @@
 import { ok, err } from "@microservices-sh/connection-contract";
 import { insightsQuerySchema } from "../schemas";
 import { adsManagerMeta } from "../meta";
+import { mapConnectorError } from "./list-campaigns";
 import type { AdsConnector, AdsStore, Entitlement } from "../ports";
 
 export interface GetInsightsDeps {
@@ -28,10 +29,17 @@ export async function getInsights(input: unknown, deps: GetInsightsDeps) {
   const conn = await deps.store.getConnection(parsed.data.tenantId, parsed.data.connectionId);
   if (!conn) return err(404, { code: "ads.CONNECTION_NOT_FOUND", message: "Connection not found." }, meta);
 
-  const insights = await deps.connector.getInsights(
-    { tenantId: parsed.data.tenantId, entitlementToken: deps.entitlementToken },
-    conn.externalRef,
-    { since: parsed.data.since, until: parsed.data.until },
-  );
+  let insights;
+  try {
+    insights = await deps.connector.getInsights(
+      { tenantId: parsed.data.tenantId, entitlementToken: deps.entitlementToken },
+      conn.externalRef,
+      { since: parsed.data.since, until: parsed.data.until },
+    );
+  } catch (e) {
+    const mapped = mapConnectorError(e, meta);
+    if (mapped) return mapped;
+    throw e;
+  }
   return ok(200, { insights, count: insights.length }, meta);
 }

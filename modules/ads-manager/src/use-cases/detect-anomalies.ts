@@ -78,7 +78,7 @@ export async function detectAnomalies(input: unknown, deps: DetectAnomaliesDeps)
     }
 
     for (const c of cands) {
-      const existing = await deps.store.findAlert(conn.id, s.campaignId, c.type, until);
+      const existing = await deps.store.findAlert(conn.tenantId, conn.id, s.campaignId, c.type, until);
       if (existing) continue;
       const alert: AdAlert = {
         id: "alr_" + crypto.randomUUID().slice(0, 16),

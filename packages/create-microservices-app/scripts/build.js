@@ -14,7 +14,7 @@ const REPO_TEMPLATES = ["booking-sveltekit", "company-landing-astro", "saas-star
 const REPO_TEMPLATE_MODULES = {
   "booking-sveltekit": ["gateway", "auth", "customer", "booking", "audit-log", "email", "payment", "identity"],
   "company-landing-astro": [],
-  "saas-starter-sveltekit": ["auth", "org-team-rbac", "billing-subscriptions", "admin-shell", "audit-log", "image-generation"],
+  "saas-starter-sveltekit": ["auth", "org-team-rbac", "billing-subscriptions", "admin-shell", "audit-log", "image-generation", "ads-manager"],
   "client-portal-sveltekit": ["auth", "customer", "invoice", "file-media", "audit-log"],
 };
 const REPO_TEMPLATE_PACKAGES = {

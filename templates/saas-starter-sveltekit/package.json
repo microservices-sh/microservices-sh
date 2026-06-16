@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@microservices-sh/admin-shell": "workspace:*",
+    "@microservices-sh/ads-manager": "workspace:*",
     "@microservices-sh/audit-log": "workspace:*",
     "@microservices-sh/auth": "workspace:*",
     "@microservices-sh/billing-subscriptions": "workspace:*",
