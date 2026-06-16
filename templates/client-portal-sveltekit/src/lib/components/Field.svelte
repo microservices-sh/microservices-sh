@@ -6,15 +6,13 @@
   interface Props {
     label: string;
     id?: string;
-    hint?: string;
     children: Snippet;
   }
 
-  let { label, id = undefined, hint = undefined, children }: Props = $props();
+  let { label, id = undefined, children }: Props = $props();
 </script>
 
 <div class="field">
   <label for={id}>{label}</label>
   {@render children()}
-  {#if hint}<span class="field-hint">{hint}</span>{/if}
 </div>
