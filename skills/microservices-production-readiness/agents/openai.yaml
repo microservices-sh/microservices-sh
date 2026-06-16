@@ -1,0 +1,4 @@
+interface:
+  display_name: "microservices.sh Production Readiness"
+  short_description: "Review apps before pilot or production"
+  default_prompt: "Use $microservices-production-readiness to audit this app before a pilot or production launch."

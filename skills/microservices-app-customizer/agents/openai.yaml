@@ -1,0 +1,4 @@
+interface:
+  display_name: "microservices.sh App Customizer"
+  short_description: "Customize generated apps safely"
+  default_prompt: "Use $microservices-app-customizer to change this generated microservices.sh app safely."

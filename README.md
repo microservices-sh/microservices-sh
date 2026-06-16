@@ -67,7 +67,18 @@ This is probably not the right fit if you want a no-code builder, a black-box ho
 
 This repo includes portable agent skills under [`skills/`](./skills). Use them with Codex or another skill-aware coding agent after you generate or inspect an app.
 
-- [`skills/microservices-sh`](./skills/microservices-sh) - work inside a generated app: inspect it, read module contracts, plan module changes, run local checks, and keep secrets, migrations, provider actions, and deployments approval-gated.
+Core workflow skills:
+
+- [`skills/microservices-app-planner`](./skills/microservices-app-planner) - choose a starter, module set, risks, commands, and first checks for a new app idea.
+- [`skills/microservices-app-customizer`](./skills/microservices-app-customizer) - customize generated apps through config, hooks, overlays, routes, UI, and content while preserving upgrade boundaries.
+- [`skills/microservices-production-readiness`](./skills/microservices-production-readiness) - audit an app before pilot, client handoff, preview, or production.
+- [`skills/microservices-provider-setup`](./skills/microservices-provider-setup) - plan and configure provider integrations such as Stripe, email, webhooks, Google Calendar, R2, image generation, and ads.
+- [`skills/microservices-data-migration`](./skills/microservices-data-migration) - move app data, auth users, files, and provider records into microservices.sh safely.
+- [`skills/microservices-authoring`](./skills/microservices-authoring) - create or update modules, templates, contracts, docs, checks, and registry contributions.
+
+Compatibility and migration-specific skills:
+
+- [`skills/microservices-sh`](./skills/microservices-sh) - work inside a generated app with the original all-in-one workflow skill.
 - [`skills/supabase-to-microservices`](./skills/supabase-to-microservices) - migrate a Supabase app (Postgres, Auth, Storage, Realtime, Edge Functions) onto microservices.sh modules backed by D1, R2, Durable Objects, and Workers.
 - [`skills/firebase-to-microservices`](./skills/firebase-to-microservices) - migrate a Firebase app (Firestore, Auth, Storage, Cloud Functions, FCM) the same way, modeling documents as relational D1 tables.
 - [`skills/prisma-postgres-to-d1`](./skills/prisma-postgres-to-d1) - translate a Prisma + Postgres data layer to Drizzle on D1: schema, query rewrites, and data import.
@@ -78,6 +89,12 @@ Install from the published GitHub repo with the Skills CLI:
 
 ```bash
 npx skills add microservices-sh/microservices-sh --skill microservices-sh
+```
+
+Install the app-planning skill instead when starting from a product idea:
+
+```bash
+npx skills add microservices-sh/microservices-sh --skill microservices-app-planner
 ```
 
 For a user-level install that is available across projects:

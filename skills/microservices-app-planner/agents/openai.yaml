@@ -1,0 +1,4 @@
+interface:
+  display_name: "microservices.sh App Planner"
+  short_description: "Plan templates and modules for new apps"
+  default_prompt: "Use $microservices-app-planner to choose the right microservices.sh starter and module plan for my app."

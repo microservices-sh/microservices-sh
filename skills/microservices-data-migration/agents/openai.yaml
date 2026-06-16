@@ -1,0 +1,4 @@
+interface:
+  display_name: "microservices.sh Data Migration"
+  short_description: "Move app data into microservices.sh"
+  default_prompt: "Use $microservices-data-migration to plan a safe data migration into microservices.sh."

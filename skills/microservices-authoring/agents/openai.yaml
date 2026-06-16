@@ -1,0 +1,4 @@
+interface:
+  display_name: "microservices.sh Authoring"
+  short_description: "Create modules and templates correctly"
+  default_prompt: "Use $microservices-authoring to create or update a microservices.sh module or template."

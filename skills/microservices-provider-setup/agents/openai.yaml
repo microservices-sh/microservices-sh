@@ -1,0 +1,4 @@
+interface:
+  display_name: "microservices.sh Provider Setup"
+  short_description: "Configure risky provider integrations"
+  default_prompt: "Use $microservices-provider-setup to plan and configure this provider integration safely."
