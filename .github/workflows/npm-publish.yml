@@ -56,6 +56,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       # Resolve the target package + dry-run flag across both triggers:
       #   tag push      → parse `<package>` from the tag, real publish
@@ -94,6 +96,17 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Check module release tags
+        run: |
+          case "$PKG" in
+            create-microservices-app|@microservices-sh/module-contract|@microservices-sh/sdk-internal|@microservices-sh/cli)
+              pnpm registry:check-tags -- --json
+              ;;
+            *)
+              echo "Skipping module release tag check for $PKG"
+              ;;
+          esac
 
       - name: Build package
         run: pnpm --filter "$PKG" build

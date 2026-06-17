@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
@@ -120,6 +121,7 @@ Usage:
   microservices-workspace scaffold module <id>
   microservices-workspace scaffold template <id>
   microservices-workspace registry build
+  microservices-workspace registry check-tags
   microservices-workspace shims sync
   microservices-workspace shims check
   microservices-workspace discover
@@ -221,9 +223,10 @@ function readJsonOptional(path, fallback = null) {
   return readJson(path);
 }
 
-function failCheck(id, message) {
+function failCheck(id, message, details = null) {
   const error = new Error(message);
   error.checkId = id;
+  if (details) error.details = details;
   throw error;
 }
 
@@ -1055,6 +1058,42 @@ function bindingSummary(resources) {
   return resources.map((resource) => resource?.binding).filter(Boolean).sort();
 }
 
+function normalizeTagName(value) {
+  const tag = String(value || "").trim();
+  return tag.startsWith("refs/tags/") ? tag.slice("refs/tags/".length) : tag;
+}
+
+export function moduleReleaseTagReport(modules, existingTags = []) {
+  const existing = new Set(existingTags.map(normalizeTagName).filter(Boolean));
+  const required = modules
+    .filter((module) => module?.status === "available")
+    .map((module) => {
+      const tag = module.sourceRef?.tag || moduleReleaseTag(module.id, module.version);
+      const ref = module.sourceRef?.ref || `refs/tags/${tag}`;
+      const normalizedTag = normalizeTagName(tag);
+      const present = existing.has(normalizedTag);
+      return {
+        id: module.id,
+        version: module.version,
+        path: module.path || null,
+        tag: normalizedTag,
+        ref,
+        present
+      };
+    })
+    .sort((a, b) => a.id.localeCompare(b.id));
+  const missing = required.filter((item) => !item.present);
+
+  return {
+    status: missing.length === 0 ? "pass" : "fail",
+    checked: required.length,
+    present: required.length - missing.length,
+    missing: missing.length,
+    required,
+    missingTags: missing
+  };
+}
+
 async function moduleRegistryEntry(rootPath, modulePath) {
   const manifest = readJson(join(modulePath, "module.json"));
   const packageJson = readJsonOptional(join(modulePath, "package.json"), {});
@@ -1193,11 +1232,40 @@ async function writeRegistryFiles(outputPath, workspace) {
 
 async function runRegistry({ scope, flags }) {
   const rootPath = findWorkspaceRoot(process.cwd());
-  if (scope !== "build") {
-    failCheck("registry:scope", `Unknown registry command: ${scope}`);
+  if (!["build", "check-tags"].includes(scope)) {
+    failCheck("registry:scope", `Unknown registry command: ${scope}. Use "registry build" or "registry check-tags".`);
   }
 
   const workspace = await discoverWorkspace(rootPath);
+
+  if (scope === "check-tags") {
+    let tagOutput = "";
+    try {
+      tagOutput = execFileSync("git", ["-C", rootPath, "tag", "--list", "modules/*"], { encoding: "utf8" });
+    } catch (error) {
+      failCheck(
+        "registry:git-tags",
+        `Could not list local module release tags: ${error?.message || String(error)}`,
+        { root: rootPath }
+      );
+    }
+    const report = moduleReleaseTagReport(workspace.modules, tagOutput.split("\n"));
+    if (report.status !== "pass") {
+      const preview = report.missingTags.slice(0, 8).map((item) => item.tag).join(", ");
+      const suffix = report.missingTags.length > 8 ? `, ... (${report.missingTags.length} total)` : "";
+      failCheck(
+        "registry:module-release-tags",
+        `Missing module release tag(s): ${preview}${suffix}. Create tags like modules/<module-id>/v<version> before publishing versioned module metadata.`,
+        report
+      );
+    }
+    return {
+      registry: {
+        tagCheck: report
+      }
+    };
+  }
+
   const outputPath = flags.out ? resolveFromCwd(flags.out) : join(rootPath, ".generated", "registry");
   const result = await writeRegistryFiles(outputPath, workspace);
 
@@ -1423,6 +1491,11 @@ async function main() {
       return;
     }
 
+    if (data.registry.tagCheck) {
+      process.stdout.write(`module release tags ok (${data.registry.tagCheck.checked} checked)\n`);
+      return;
+    }
+
     process.stdout.write(`registry built: ${data.registry.outputPath}\n`);
     for (const file of data.registry.files) {
       process.stdout.write(`wrote: ${file}\n`);
@@ -1491,7 +1564,8 @@ if (isDirectRun) {
         error: {
           code: "CHECK_FAILED",
           checkId: error.checkId || null,
-          message: error.message
+          message: error.message,
+          details: error.details || null
         }
       });
     } else {

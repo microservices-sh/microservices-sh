@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeManifestConnections } from "../src/index.js";
+import { moduleReleaseTagReport, normalizeManifestConnections } from "../src/index.js";
 
 describe("normalizeManifestConnections", () => {
   it("reads the nested connections block when present", () => {
@@ -43,5 +43,67 @@ describe("normalizeManifestConnections", () => {
       requires: [], optional: [], emits: [], consumes: [], events: [], hooks: [],
       rpc: { exposes: [], calls: [] }
     });
+  });
+});
+
+describe("moduleReleaseTagReport", () => {
+  const modules = [
+    {
+      id: "auth",
+      version: "0.1.0",
+      status: "available",
+      path: "modules/auth",
+      sourceRef: {
+        tag: "modules/auth/v0.1.0",
+        ref: "refs/tags/modules/auth/v0.1.0"
+      }
+    },
+    {
+      id: "payment",
+      version: "0.1.0",
+      status: "available",
+      path: "modules/payment"
+    },
+    {
+      id: "draft-module",
+      version: "0.1.0",
+      status: "draft",
+      path: "modules/draft-module"
+    }
+  ];
+
+  it("passes when every available module has a release tag", () => {
+    const report = moduleReleaseTagReport(modules, [
+      "refs/tags/modules/auth/v0.1.0",
+      "modules/payment/v0.1.0"
+    ]);
+
+    expect(report.status).toBe("pass");
+    expect(report.checked).toBe(2);
+    expect(report.present).toBe(2);
+    expect(report.missingTags).toEqual([]);
+    expect(report.required.map((item) => item.tag)).toEqual([
+      "modules/auth/v0.1.0",
+      "modules/payment/v0.1.0"
+    ]);
+  });
+
+  it("reports missing tags for available modules", () => {
+    const report = moduleReleaseTagReport(modules, ["modules/auth/v0.1.0"]);
+
+    expect(report.status).toBe("fail");
+    expect(report.checked).toBe(2);
+    expect(report.present).toBe(1);
+    expect(report.missing).toBe(1);
+    expect(report.missingTags).toEqual([
+      {
+        id: "payment",
+        version: "0.1.0",
+        path: "modules/payment",
+        tag: "modules/payment/v0.1.0",
+        ref: "refs/tags/modules/payment/v0.1.0",
+        present: false
+      }
+    ]);
   });
 });

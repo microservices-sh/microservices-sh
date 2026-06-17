@@ -13,6 +13,7 @@
     "scaffold:module": "node packages/workspace-tools/src/index.js scaffold module",
     "scaffold:template": "node packages/workspace-tools/src/index.js scaffold template",
     "registry:build": "node packages/workspace-tools/src/index.js registry build",
+    "registry:check-tags": "node packages/workspace-tools/src/index.js registry check-tags",
     "sync:shims": "node packages/workspace-tools/src/index.js shims sync",
     "check:shims": "node packages/workspace-tools/src/index.js shims check",
     "discover": "node packages/workspace-tools/src/index.js discover",
