@@ -58,6 +58,15 @@ export interface ModuleContract {
   };
 }
 
+export interface ModuleSourceRef {
+  type: "git";
+  repo: string;
+  url: string;
+  tag: string;
+  ref: string;
+  path: string;
+}
+
 export interface TemplateContract {
   id: string;
   name: string;
@@ -99,6 +108,7 @@ export interface ModuleLock {
     id: string;
     version: string;
     source: string;
+    sourceRef?: ModuleSourceRef;
     checksum: string;
   } | null;
   modules: Array<{
@@ -151,7 +161,9 @@ export interface AppComposition {
 export const CONTRACT_VERSION: string;
 export function parseModuleRef(value: string, explicitVersion?: string | null): { id: string; version: string | null; raw: string };
 export function availableModuleVersions(id: string): string[];
-export function listModules(): Array<Pick<ModuleContract, "id" | "name" | "version" | "status" | "category" | "summary" | "requires"> & { mount: string; latestVersion: string; availableVersions: string[] }>;
+export function moduleReleaseTag(id: string, version: string): string;
+export function moduleSourceRef(input: string | Pick<ModuleContract, "id" | "version">, version?: string | null): ModuleSourceRef;
+export function listModules(): Array<Pick<ModuleContract, "id" | "name" | "version" | "status" | "category" | "summary" | "requires"> & { mount: string; latestVersion: string; availableVersions: string[]; sourceRef: ModuleSourceRef }>;
 export function inspectModule(id: string): ModuleContract;
 export function listTemplates(): Array<Pick<TemplateContract, "id" | "name" | "version" | "status" | "summary" | "defaultModules" | "optionalModules">>;
 export function inspectTemplate(id: string): TemplateContract;

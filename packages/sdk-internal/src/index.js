@@ -4,6 +4,7 @@ import {
   inspectTemplate as inspectContractTemplate,
   listModules as listContractModules,
   listTemplates as listContractTemplates,
+  moduleSourceRef as contractModuleSourceRef,
   parseModuleRef as parseContractModuleRef,
 } from "@microservices-sh/module-contract";
 
@@ -106,6 +107,7 @@ function availableModuleDocs() {
       resources: module.storage.map((item) => item.toUpperCase()),
       hooks: module.hooks.map((hook) => hook.name),
       events: [...module.eventsEmitted, ...module.eventsConsumed],
+      sourceRef: contractModuleSourceRef(module),
       statusNote: "Available in the generated MVP app.",
     };
   });
@@ -129,6 +131,7 @@ function moduleCatalog() {
     resources: module.resources,
     hooks: module.hooks,
     events: module.events,
+    sourceRef: module.sourceRef ?? contractModuleSourceRef(module.id, module.version),
   }));
 
   return {
@@ -1490,6 +1493,7 @@ function modulePlan(id, flags = {}) {
     module,
     requestedVersion: resolved.selector.version ?? module.version,
     availableVersions: resolved.availableVersions,
+    sourceRef: module.sourceRef ?? null,
     action: alreadyInstalled ? "already-installed" : module.status === "available" ? "install" : "planned-install",
     alreadyInstalled,
     missingDependencies,
@@ -1639,6 +1643,8 @@ function upgradePlan(id, flags = {}) {
       template: lock.template ?? null,
       source: locked.source ?? null,
       checksum: locked.checksum ?? null,
+      sourceRef: locked.sourceRef ?? null,
+      targetSourceRef: module.sourceRef ?? null,
       contractSnapshotAvailable: hasSnapshot,
     },
     diff,
@@ -2063,6 +2069,7 @@ export function planAddModule(input = {}) {
       module,
       requestedVersion: request.version ?? module.version,
       availableVersions,
+      sourceRef: module.sourceRef,
       mode: requestedMode,
       action: alreadyInstalled ? "already-installed" : module.status === "available" ? "install" : "planned-install",
       alreadyInstalled,
@@ -2082,6 +2089,7 @@ export function planAddModule(input = {}) {
         id: module.id,
         version: module.version,
         source: `registry:${module.id}@${module.version}`,
+        sourceRef: module.sourceRef,
         checksum: `sha256:preview-${module.id}-${module.version}`,
         mode: requestedMode,
         ...(requestedMode === "service" ? { worker: serviceWorker, d1: serviceD1Binding } : {}),
@@ -2321,6 +2329,8 @@ export function planModuleUpgrade(input = {}) {
         template: lock.template ?? null,
         source: locked.source ?? null,
         checksum: locked.checksum ?? null,
+        sourceRef: locked.sourceRef ?? null,
+        targetSourceRef: module.sourceRef ?? null,
         contractSnapshotAvailable: hasSnapshot,
       },
       diff,

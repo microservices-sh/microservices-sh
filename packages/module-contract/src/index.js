@@ -1,4 +1,6 @@
 const CONTRACT_VERSION = "2026-06-13";
+const MODULE_SOURCE_REPO = "microservices-sh/microservices-sh";
+const MODULE_SOURCE_URL = `https://github.com/${MODULE_SOURCE_REPO}.git`;
 
 const MODULES = Object.freeze([
   {
@@ -575,6 +577,22 @@ function moduleRefString(module) {
   return `${module.id}@${module.version}`;
 }
 
+export function moduleReleaseTag(id, version) {
+  return `modules/${id}/v${version}`;
+}
+
+export function moduleSourceRef(input, version = null) {
+  const module = typeof input === "string" ? { id: input, version } : input;
+  return {
+    type: "git",
+    repo: MODULE_SOURCE_REPO,
+    url: MODULE_SOURCE_URL,
+    tag: moduleReleaseTag(module.id, module.version),
+    ref: `refs/tags/${moduleReleaseTag(module.id, module.version)}`,
+    path: `modules/${module.id}`,
+  };
+}
+
 function resolveModuleRefs(moduleRefs) {
   const explicitVersions = new Map();
   for (const value of moduleRefs) {
@@ -642,6 +660,7 @@ export function listModules() {
     ...moduleSummary(module),
     latestVersion: module.version,
     availableVersions: availableModuleVersions(module.id),
+    sourceRef: moduleSourceRef(module),
   }));
 }
 
@@ -688,6 +707,7 @@ export function createModuleLock(modules, template = null) {
       id: module.id,
       version: module.version,
       source: `registry:${module.id}@${module.version}`,
+      sourceRef: moduleSourceRef(module),
       checksum: `sha256:preview-${module.id}-${module.version}`,
       customizationMode: "config-hooks",
       // Per-module topology. In service mode this also carries worker + d1 names.

@@ -31,7 +31,23 @@ async function withLock(version, fn) {
     `${JSON.stringify(
       {
         schemaVersion: "2026-06-13",
-        modules: [{ id: "auth", version, source: `registry:auth@${version}`, checksum: "sha256:test", contract: {} }],
+        modules: [
+          {
+            id: "auth",
+            version,
+            source: `registry:auth@${version}`,
+            sourceRef: {
+              type: "git",
+              repo: "microservices-sh/microservices-sh",
+              url: "https://github.com/microservices-sh/microservices-sh.git",
+              tag: `modules/auth/v${version}`,
+              ref: `refs/tags/modules/auth/v${version}`,
+              path: "modules/auth",
+            },
+            checksum: "sha256:test",
+            contract: {},
+          },
+        ],
         customizations: { config: true, hooks: [], overlays: [], forks: [] },
       },
       null,
@@ -62,6 +78,30 @@ describe("CLI module versioning", () => {
     expect(payload.ok).toBe(true);
     expect(payload.data.module.id).toBe("payment");
     expect(payload.data.requestedVersion).toBe("0.1.0");
+    expect(payload.data.sourceRef).toMatchObject({
+      tag: "modules/payment/v0.1.0",
+      ref: "refs/tags/modules/payment/v0.1.0",
+    });
+    expect(payload.data.lockEntry.sourceRef).toMatchObject({
+      tag: "modules/payment/v0.1.0",
+    });
+  });
+
+  it("inspects docs for versioned module refs", () => {
+    const result = runCli(["docs", "auth", "--version", "0.1.0", "--json"], process.cwd());
+    expect(result.status).toBe(0);
+    const payload = parseStdout(result);
+    expect(payload.ok).toBe(true);
+    expect(payload.data.module.sourceRef).toMatchObject({
+      tag: "modules/auth/v0.1.0",
+    });
+  });
+
+  it("rejects conflicting inline and flag versions", () => {
+    const result = runCli(["add", "auth@0.1.0", "--version", "9.9.9", "--plan", "--json"], process.cwd());
+    const payload = parseStdout(result);
+    expect(payload.ok).toBe(false);
+    expect(payload.error.code).toBe("MODULE_VERSION_CONFLICT");
   });
 
   it("plans downgrade from a project lockfile", async () => {
@@ -71,6 +111,9 @@ describe("CLI module versioning", () => {
       const payload = parseStdout(result);
       expect(payload.ok).toBe(true);
       expect(payload.data.action).toBe("downgrade-plan");
+      expect(payload.data.lockfile.targetSourceRef).toMatchObject({
+        tag: "modules/auth/v0.1.0",
+      });
     });
   });
 

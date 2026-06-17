@@ -6,6 +6,23 @@ import { pathToFileURL } from "node:url";
 
 const IGNORED_DIRS = new Set([".git", ".svelte-kit", ".wrangler", "dist", "node_modules"]);
 const FORBIDDEN_FRAMEWORK_IMPORTS = ["@sveltejs/kit", "from \"hono\"", "from 'hono'", "OpenAPIHono"];
+const MODULE_SOURCE_REPO = "microservices-sh/microservices-sh";
+const MODULE_SOURCE_URL = `https://github.com/${MODULE_SOURCE_REPO}.git`;
+
+function moduleReleaseTag(id, version) {
+  return `modules/${id}/v${version}`;
+}
+
+function moduleSourceRef(id, version) {
+  return {
+    type: "git",
+    repo: MODULE_SOURCE_REPO,
+    url: MODULE_SOURCE_URL,
+    tag: moduleReleaseTag(id, version),
+    ref: `refs/tags/${moduleReleaseTag(id, version)}`,
+    path: `modules/${id}`
+  };
+}
 
 // Normalize a module.json manifest to flat summary fields from the nested
 // `connections` block (Plan 25 §6). All modules carry `connections` as of
@@ -768,6 +785,7 @@ function lockModuleSnapshot(rootPath, moduleId) {
       id: moduleId,
       version: "0.1.0",
       source: `registry:${moduleId}@0.1.0`,
+      sourceRef: moduleSourceRef(moduleId, "0.1.0"),
       checksum: `sha256:scaffold-${moduleId}-0.1.0`,
       customizationMode: "config-hooks",
       contract: {
@@ -786,6 +804,7 @@ function lockModuleSnapshot(rootPath, moduleId) {
     id: moduleId,
     version: manifest.version || "0.1.0",
     source: `registry:${moduleId}@${manifest.version || "0.1.0"}`,
+    sourceRef: moduleSourceRef(moduleId, manifest.version || "0.1.0"),
     checksum: `sha256:scaffold-${moduleId}-${manifest.version || "0.1.0"}`,
     customizationMode: manifest.customization?.default || "config-hooks",
     contract: {
@@ -1057,6 +1076,7 @@ async function moduleRegistryEntry(rootPath, modulePath) {
     summary: manifest.summary || "",
     package: packageJson.name || `@microservices-sh/${manifest.id}`,
     path: relativeToRoot(rootPath, modulePath),
+    sourceRef: moduleSourceRef(manifest.id, manifest.version || "0.0.0"),
     manifestPath: relativeToRoot(rootPath, join(modulePath, "module.json")),
     entrypoint: manifest.entrypoint || "src/index.ts",
     runtime: manifest.runtime || {},
@@ -1096,7 +1116,7 @@ async function templateRegistryEntry(rootPath, templatePath) {
     optionalModules: manifest.modules?.optional || [],
     activeModules: moduleIdsFromTemplate(manifest),
     slots: manifest.slots || {},
-    lockModules: Array.isArray(lock.modules) ? lock.modules.map((module) => ({ id: module.id, version: module.version, source: module.source })) : [],
+    lockModules: Array.isArray(lock.modules) ? lock.modules.map((module) => ({ id: module.id, version: module.version, source: module.source, sourceRef: module.sourceRef ?? null })) : [],
     sourcePolicy: manifest.sourcePolicy || null,
     docs: {
       readme: existsSync(join(templatePath, "README.md")) ? "README.md" : null,

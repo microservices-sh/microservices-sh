@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { composeApp, inspectModule, parseModuleRef, resolveModuleIds } from "../src/index.js";
+import { composeApp, inspectModule, moduleReleaseTag, moduleSourceRef, parseModuleRef, resolveModuleIds } from "../src/index.js";
 
 describe("module version selectors", () => {
   it("parses inline module versions", () => {
@@ -31,6 +31,24 @@ describe("module version selectors", () => {
       id: "payment",
       version: "0.1.0",
       source: "registry:payment@0.1.0",
+      sourceRef: {
+        type: "git",
+        repo: "microservices-sh/microservices-sh",
+        tag: "modules/payment/v0.1.0",
+        ref: "refs/tags/modules/payment/v0.1.0",
+        path: "modules/payment",
+      },
+    });
+  });
+
+  it("derives deterministic release source refs", () => {
+    expect(moduleReleaseTag("auth", "0.1.0")).toBe("modules/auth/v0.1.0");
+    expect(moduleSourceRef("auth", "0.1.0")).toMatchObject({
+      type: "git",
+      url: "https://github.com/microservices-sh/microservices-sh.git",
+      tag: "modules/auth/v0.1.0",
+      ref: "refs/tags/modules/auth/v0.1.0",
+      path: "modules/auth",
     });
   });
 });

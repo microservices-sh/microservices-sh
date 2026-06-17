@@ -77,7 +77,7 @@ npm create microservices-app@latest my-app -- --modules auth@0.1.0,booking
 
 The current registry snapshot exposes one available version per module. If a requested version is not in that snapshot, commands return `MODULE_VERSION_NOT_FOUND` with `availableVersions` instead of silently installing the current version.
 
-Generated SvelteKit apps still vendor modules from the current source snapshot. Their local `add` command validates the requested version against the fetched module package or manifest; historical installs and rollbacks need a release-tag or registry-artifact source policy before they can apply older source automatically.
+Generated SvelteKit apps resolve versioned module source through release tags named `modules/<module-id>/v<version>`, for example `modules/payment/v0.1.0`. If the tag is unavailable, the local `add` command returns `MODULE_SOURCE_REF_NOT_FOUND` instead of silently using the current source snapshot. Unversioned adds still use the current source snapshot. A future registry-artifact URL can reuse the same source-ref shape.
 
 ## Naming
 

@@ -1,4 +1,4 @@
-import type { AppComposition, ModuleContract, TemplateContract } from "@microservices-sh/module-contract";
+import type { AppComposition, ModuleContract, ModuleSourceRef, TemplateContract } from "@microservices-sh/module-contract";
 
 export interface SdkError {
   code: string;
@@ -47,6 +47,7 @@ export interface AddModulePlan {
   module: Record<string, unknown>;
   requestedVersion: string;
   availableVersions: string[];
+  sourceRef: ModuleSourceRef;
   action: "already-installed" | "install" | "planned-install";
   alreadyInstalled: boolean;
   missingDependencies: string[];
@@ -54,6 +55,14 @@ export interface AddModulePlan {
   requiredSecrets: string[];
   requiredResources: string[];
   requiredPermissions: string[];
+  lockEntry: {
+    id: string;
+    version: string;
+    source: string;
+    sourceRef: ModuleSourceRef;
+    checksum: string;
+    mode: string;
+  };
   filesLikelyTouched: string[];
   nextSteps: string[];
 }
@@ -98,6 +107,8 @@ export interface ModuleUpgradePlan {
     template: Record<string, unknown> | null;
     source: string | null;
     checksum: string | null;
+    sourceRef?: ModuleSourceRef | null;
+    targetSourceRef?: ModuleSourceRef | null;
     contractSnapshotAvailable: boolean;
   };
   diff: Record<string, unknown>;

@@ -15,7 +15,8 @@ import {
 import { homedir, tmpdir } from "node:os";
 import { delimiter, dirname, join, relative, resolve } from "node:path";
 
-const SOURCE_REPO = "microservices-sh/microservices-sh";
+const SOURCE_REPO = process.env.MICROSERVICES_MODULE_SOURCE_REPO || "microservices-sh/microservices-sh";
+const SOURCE_URL = process.env.MICROSERVICES_MODULE_SOURCE_URL || `https://github.com/${SOURCE_REPO}.git`;
 const DEFAULT_API_URL = "https://api.microservices.sh";
 const DEFAULT_CONFIG_PATH = process.env.MICROSERVICES_CONFIG_PATH
   ? resolve(process.env.MICROSERVICES_CONFIG_PATH)
@@ -556,13 +557,69 @@ function moduleSourceVersion(src) {
   return modulePkg.version ?? moduleManifest.version ?? null;
 }
 
-function unavailableModuleVersion(id, requestedVersion, availableVersions = []) {
+function moduleReleaseTag(id, version) {
+  return `modules/${id}/v${version}`;
+}
+
+function moduleSourceRef(id, version) {
+  return {
+    type: "git",
+    repo: SOURCE_REPO,
+    url: SOURCE_URL,
+    tag: moduleReleaseTag(id, version),
+    ref: `refs/tags/${moduleReleaseTag(id, version)}`,
+    path: `modules/${id}`
+  };
+}
+
+function unavailableModuleVersion(id, requestedVersion, availableVersions = [], details = {}) {
   return fail(
     "MODULE_VERSION_NOT_FOUND",
     `Module ${id}@${requestedVersion} is not available from the current source snapshot.`,
     "Use one of the available versions or omit the version. Versioned historical installs need a registry artifact or release-tag source.",
-    { moduleId: id, requestedVersion, availableVersions }
+    { moduleId: id, requestedVersion, availableVersions, ...details }
   );
+}
+
+function cloneModuleRepository(repoDir, selector) {
+  const preferredSourceRef = selector.version ? moduleSourceRef(selector.id, selector.version) : null;
+
+  if (preferredSourceRef) {
+    try {
+      mkdirSync(repoDir, { recursive: true });
+      execFileSync("git", ["init", "-q", repoDir], { stdio: "pipe" });
+      execFileSync("git", ["-C", repoDir, "remote", "add", "origin", SOURCE_URL], { stdio: "pipe" });
+      execFileSync("git", ["-C", repoDir, "fetch", "--depth", "1", "origin", preferredSourceRef.ref], { stdio: "pipe" });
+      execFileSync("git", ["-C", repoDir, "checkout", "--detach", "FETCH_HEAD"], { stdio: "pipe" });
+      return {
+        ok: true,
+        preferredSourceRef,
+        sourceResolution: "release-tag",
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        response: fail(
+          "MODULE_SOURCE_REF_NOT_FOUND",
+          `Module source ref was not found: ${preferredSourceRef.ref}.`,
+          "Publish the module release tag, choose an available version, or omit the version to use the current source snapshot.",
+          {
+            moduleId: selector.id,
+            requestedVersion: selector.version,
+            sourceRef: preferredSourceRef,
+            reason: String(error?.message ?? error).slice(0, 240)
+          }
+        )
+      };
+    }
+  }
+
+  execFileSync("git", ["clone", "-q", "--no-tags", "--depth", "1", SOURCE_URL, repoDir], { stdio: "pipe" });
+  return {
+    ok: true,
+    preferredSourceRef,
+    sourceResolution: "current-snapshot"
+  };
 }
 
 function compareVersions(a, b) {
@@ -596,20 +653,27 @@ async function addModule(id, flags = {}) {
   if (!selector.ok) return selector.response;
 
   const tmp = mkdtempSync(join(tmpdir(), "ms-add-"));
+  const repoDir = join(tmp, "repo");
   try {
-    execFileSync("git", ["clone", "-q", "--no-tags", "--depth", "1", `https://github.com/${SOURCE_REPO}.git`, tmp], { stdio: "pipe" });
+    const sourceResolution = cloneModuleRepository(repoDir, selector);
+    if (!sourceResolution.ok) return sourceResolution.response;
 
-    const src = join(tmp, "modules", selector.id);
+    const src = join(repoDir, "modules", selector.id);
     if (!existsSync(src)) {
       return fail("MODULE_NOT_FOUND", `Unknown module: ${selector.id}.`, "Run microservices modules list, or browse modules/ in microservices-sh/microservices-sh.", { id: selector.id });
     }
 
-    const ref = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    const ref = execFileSync("git", ["-C", repoDir, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
     const integrity = integrityOf(src);
     const version = moduleSourceVersion(src);
     const availableVersions = version ? [version] : [];
+    const resolvedSourceRef = sourceResolution.preferredSourceRef ?? (version ? moduleSourceRef(selector.id, version) : null);
     if (selector.version && version !== selector.version) {
-      return unavailableModuleVersion(selector.id, selector.version, availableVersions);
+      return unavailableModuleVersion(selector.id, selector.version, availableVersions, {
+        sourceRef: sourceResolution.preferredSourceRef,
+        sourceResolution: sourceResolution.sourceResolution,
+        resolvedRef: ref
+      });
     }
 
     // --plan is read-only: report what `add` would do without touching the project.
@@ -622,13 +686,18 @@ async function addModule(id, flags = {}) {
           version,
           requestedVersion: selector.version ?? version,
           availableVersions,
+          sourceRef: resolvedSourceRef,
+          sourceResolution: sourceResolution.sourceResolution,
           source: SOURCE_REPO,
+          sourceUrl: SOURCE_URL,
           ref,
           integrity,
           wouldVendorTo: `modules/${selector.id}`,
           dependency: `"@microservices-sh/${selector.id}": "file:./modules/${selector.id}"`
         },
-        warnings: [`Plan only — nothing written. Re-run "microservices add ${selector.id}" (no --plan) to vendor it into modules/${selector.id}.`]
+        warnings: [
+          `Plan only — nothing written. Re-run "microservices add ${selector.id}" (no --plan) to vendor it into modules/${selector.id}.`
+        ]
       };
     }
 
@@ -645,8 +714,12 @@ async function addModule(id, flags = {}) {
     lockData.modules.push({
       id: selector.id,
       version,
+      source: `registry:${selector.id}@${version}`,
+      sourceRef: resolvedSourceRef,
       repo: SOURCE_REPO,
+      url: SOURCE_URL,
       ref,
+      sourceResolution: sourceResolution.sourceResolution,
       path: `modules/${selector.id}`,
       integrity
     });
@@ -659,9 +732,14 @@ async function addModule(id, flags = {}) {
         vendoredTo: `modules/${selector.id}`,
         integrity,
         version,
-        source: SOURCE_REPO
+        source: SOURCE_REPO,
+        sourceUrl: SOURCE_URL,
+        sourceRef: resolvedSourceRef,
+        sourceResolution: sourceResolution.sourceResolution
       },
-      warnings: [`Add "@microservices-sh/${selector.id}": "file:./modules/${selector.id}" to dependencies and reinstall to wire it in.`]
+      warnings: [
+        `Add "@microservices-sh/${selector.id}": "file:./modules/${selector.id}" to dependencies and reinstall to wire it in.`
+      ]
     };
   } finally {
     rmSync(tmp, { recursive: true, force: true });
@@ -699,6 +777,7 @@ function moduleUpgradePlan(id, flags = {}) {
   }
 
   const targetVersion = selector.version ?? availableVersion ?? module.version;
+  const targetSourceRef = moduleSourceRef(selector.id, targetVersion);
   const direction = versionDirection(module.version, targetVersion);
   const versionChangeAvailable = direction !== "none";
 
@@ -720,6 +799,8 @@ function moduleUpgradePlan(id, flags = {}) {
       lockfile: {
         template: lock.template,
         source: module.source ?? module.repo ?? null,
+        sourceRef: module.sourceRef ?? null,
+        targetSourceRef,
         checksum: module.checksum ?? module.integrity ?? null,
         contractSnapshotAvailable: Boolean(module.contract)
       },

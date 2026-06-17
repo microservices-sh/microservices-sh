@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkUpdates, planAddModule, planModuleUpgrade } from "../src/index.js";
+import { checkUpdates, getModuleDoc, planAddModule, planModuleUpgrade } from "../src/index.js";
 
 function lockWith(module) {
   return {
@@ -10,6 +10,14 @@ function lockWith(module) {
         version: module.version,
         source: `registry:${module.id}@${module.version}`,
         checksum: `sha256:${module.id}`,
+        sourceRef: {
+          type: "git",
+          repo: "microservices-sh/microservices-sh",
+          url: "https://github.com/microservices-sh/microservices-sh.git",
+          tag: `modules/${module.id}/v${module.version}`,
+          ref: `refs/tags/modules/${module.id}/v${module.version}`,
+          path: `modules/${module.id}`,
+        },
         contract: {
           mount: "/auth",
           resources: ["D1"],
@@ -32,6 +40,14 @@ describe("SDK module version planning", () => {
     expect(response.data.module.id).toBe("auth");
     expect(response.data.requestedVersion).toBe("0.1.0");
     expect(response.data.lockEntry.source).toBe("registry:auth@0.1.0");
+    expect(response.data.sourceRef).toMatchObject({
+      tag: "modules/auth/v0.1.0",
+      ref: "refs/tags/modules/auth/v0.1.0",
+      path: "modules/auth",
+    });
+    expect(response.data.lockEntry.sourceRef).toMatchObject({
+      tag: "modules/auth/v0.1.0",
+    });
   });
 
   it("rejects add for unavailable versions", () => {
@@ -52,6 +68,12 @@ describe("SDK module version planning", () => {
     expect(response.data.direction).toBe("downgrade");
     expect(response.data.module.currentVersion).toBe("0.2.0");
     expect(response.data.module.targetVersion).toBe("0.1.0");
+    expect(response.data.lockfile.sourceRef).toMatchObject({
+      tag: "modules/auth/v0.2.0",
+    });
+    expect(response.data.lockfile.targetSourceRef).toMatchObject({
+      tag: "modules/auth/v0.1.0",
+    });
   });
 
   it("returns no-op when the installed version matches the target", () => {
@@ -73,6 +95,14 @@ describe("SDK module version planning", () => {
       latestVersion: "0.1.0",
       direction: "downgrade",
       status: "update-available",
+    });
+  });
+
+  it("resolves docs for exact module versions", () => {
+    const response = getModuleDoc("auth@0.1.0");
+    expect(response.ok).toBe(true);
+    expect(response.data.module.sourceRef).toMatchObject({
+      tag: "modules/auth/v0.1.0",
     });
   });
 });
