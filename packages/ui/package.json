@@ -1,0 +1,25 @@
+{
+  "name": "@microservices-sh/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Canonical design-system components (web-portal look) — copied into apps shadcn-style via the msh-ui CLI.",
+  "bin": {
+    "msh-ui": "bin/ui.mjs"
+  },
+  "exports": {
+    ".": "./index.ts",
+    "./tokens.css": "./styles/tokens.css",
+    "./registry.json": "./registry.json"
+  },
+  "files": [
+    "components",
+    "styles",
+    "bin",
+    "index.ts",
+    "registry.json"
+  ],
+  "scripts": {
+    "list": "node bin/ui.mjs list"
+  }
+}

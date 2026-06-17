@@ -1,0 +1,15 @@
+{
+  "$schema": "./registry.schema.json",
+  "name": "@microservices-sh/ui",
+  "style": "web-portal",
+  "tokens": "styles/tokens.css",
+  "target": "src/lib/ui",
+  "components": [
+    { "name": "Button", "file": "components/Button.svelte", "deps": [] },
+    { "name": "Card", "file": "components/Card.svelte", "deps": [] },
+    { "name": "Badge", "file": "components/Badge.svelte", "deps": [] },
+    { "name": "Alert", "file": "components/Alert.svelte", "deps": [] },
+    { "name": "Field", "file": "components/Field.svelte", "deps": [] },
+    { "name": "Eyebrow", "file": "components/Eyebrow.svelte", "deps": [] }
+  ]
+}
