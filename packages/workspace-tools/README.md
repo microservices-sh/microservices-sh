@@ -14,6 +14,8 @@ pnpm scaffold:module -- inventory
 pnpm scaffold:template -- invoice-sveltekit --framework sveltekit --modules customer,booking
 pnpm registry:build -- --json
 pnpm registry:check-tags -- --json
+pnpm registry:tag-plan -- --json
+pnpm registry:tag-create -- --confirm create-tags
 pnpm discover -- --json
 pnpm discover -- --path templates/booking-sveltekit --json
 ```
@@ -44,11 +46,15 @@ The scaffold command writes a valid package shape, shared `check:spec` script, m
 ```bash
 pnpm registry:build -- --json
 pnpm registry:check-tags -- --json
+pnpm registry:tag-plan -- --json
+pnpm registry:tag-create -- --dry-run --json
 pnpm discover -- --path templates/booking-sveltekit --json
 ```
 
 `registry build` scans local module and template manifests and writes derived JSON under `.generated/registry`.
 
 `registry check-tags` verifies that every `available` module has a local Git release tag named `modules/<module-id>/v<version>`. Run it before publishing versioned module metadata or create-app packages so generated apps can resolve `module@version` to immutable source.
+
+`registry tag-plan` reports missing module release tags and the target commit. `registry tag-create` creates the missing local tags only when passed `--confirm create-tags`; use `--dry-run` or `tag-plan` before mutating Git refs. Pass `--ref <git-ref>` to tag a commit other than `HEAD`.
 
 `discover` is read-only. It reports available local modules/templates plus installed app modules when the target path contains `microservices.lock.json`, `microservices.config.json`, or first-party module dependencies such as `@microservices-sh/booking`. Use this output to create integration plans; do not auto-apply migrations, secrets, webhooks, Cloudflare resources, or provider side effects.

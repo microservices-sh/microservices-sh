@@ -14,6 +14,8 @@
     "scaffold:template": "node packages/workspace-tools/src/index.js scaffold template",
     "registry:build": "node packages/workspace-tools/src/index.js registry build",
     "registry:check-tags": "node packages/workspace-tools/src/index.js registry check-tags",
+    "registry:tag-plan": "node packages/workspace-tools/src/index.js registry tag-plan",
+    "registry:tag-create": "node packages/workspace-tools/src/index.js registry tag-create",
     "sync:shims": "node packages/workspace-tools/src/index.js shims sync",
     "check:shims": "node packages/workspace-tools/src/index.js shims check",
     "discover": "node packages/workspace-tools/src/index.js discover",

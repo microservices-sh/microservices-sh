@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { moduleReleaseTagReport, normalizeManifestConnections } from "../src/index.js";
+import { moduleReleaseTagPlan, moduleReleaseTagReport, normalizeManifestConnections } from "../src/index.js";
 
 describe("normalizeManifestConnections", () => {
   it("reads the nested connections block when present", () => {
@@ -103,6 +103,28 @@ describe("moduleReleaseTagReport", () => {
         tag: "modules/payment/v0.1.0",
         ref: "refs/tags/modules/payment/v0.1.0",
         present: false
+      }
+    ]);
+  });
+
+  it("plans create commands only for missing available-module tags", () => {
+    const plan = moduleReleaseTagPlan(modules, ["modules/auth/v0.1.0"], "abc123");
+
+    expect(plan.status).toBe("pending");
+    expect(plan.checked).toBe(2);
+    expect(plan.existing).toBe(1);
+    expect(plan.create).toBe(1);
+    expect(plan.tags.existing.map((item) => item.tag)).toEqual(["modules/auth/v0.1.0"]);
+    expect(plan.tags.create).toEqual([
+      {
+        id: "payment",
+        version: "0.1.0",
+        path: "modules/payment",
+        tag: "modules/payment/v0.1.0",
+        ref: "refs/tags/modules/payment/v0.1.0",
+        present: false,
+        targetRef: "abc123",
+        command: "git tag modules/payment/v0.1.0 abc123"
       }
     ]);
   });

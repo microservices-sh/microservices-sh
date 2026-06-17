@@ -122,6 +122,8 @@ Usage:
   microservices-workspace scaffold template <id>
   microservices-workspace registry build
   microservices-workspace registry check-tags
+  microservices-workspace registry tag-plan
+  microservices-workspace registry tag-create --confirm create-tags
   microservices-workspace shims sync
   microservices-workspace shims check
   microservices-workspace discover
@@ -135,6 +137,9 @@ Options:
   --framework <name>  Template framework. Default: generic
   --modules <ids>     Comma-separated required module ids for templates
   --out <path>        Output directory for generated registry files
+  --ref <git-ref>     Git commit/ref for module tag creation. Default: HEAD
+  --confirm <value>   Required for write operations such as registry tag-create
+  --dry-run           Plan write operations without changing local Git refs
   --force             Allow overwriting generated scaffold files
   --json              Print machine-readable output
 `;
@@ -151,6 +156,9 @@ function parseArgs(argv) {
     framework: "generic",
     modules: [],
     out: null,
+    ref: null,
+    confirm: null,
+    dryRun: false,
     force: false
   };
   const positionals = [];
@@ -185,6 +193,14 @@ function parseArgs(argv) {
     } else if (value === "--out") {
       flags.out = argv[index + 1] || null;
       index += 1;
+    } else if (value === "--ref") {
+      flags.ref = argv[index + 1] || null;
+      index += 1;
+    } else if (value === "--confirm") {
+      flags.confirm = argv[index + 1] || null;
+      index += 1;
+    } else if (value === "--dry-run") {
+      flags.dryRun = true;
     } else if (value === "--force") {
       flags.force = true;
     } else if (value === "--help" || value === "-h") {
@@ -1094,6 +1110,55 @@ export function moduleReleaseTagReport(modules, existingTags = []) {
   };
 }
 
+export function moduleReleaseTagPlan(modules, existingTags = [], targetRef = "HEAD") {
+  const report = moduleReleaseTagReport(modules, existingTags);
+  const create = report.missingTags.map((item) => ({
+    ...item,
+    targetRef,
+    command: `git tag ${item.tag} ${targetRef}`
+  }));
+  const existing = report.required.filter((item) => item.present);
+
+  return {
+    status: create.length === 0 ? "complete" : "pending",
+    targetRef,
+    checked: report.checked,
+    existing: existing.length,
+    create: create.length,
+    tags: {
+      existing,
+      create
+    }
+  };
+}
+
+function listModuleReleaseTags(rootPath) {
+  try {
+    return execFileSync("git", ["-C", rootPath, "tag", "--list", "modules/*"], { encoding: "utf8" })
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+  } catch (error) {
+    failCheck(
+      "registry:git-tags",
+      `Could not list local module release tags: ${error?.message || String(error)}`,
+      { root: rootPath }
+    );
+  }
+}
+
+function resolveGitCommit(rootPath, targetRef = "HEAD") {
+  try {
+    return execFileSync("git", ["-C", rootPath, "rev-parse", "--verify", `${targetRef}^{commit}`], { encoding: "utf8" }).trim();
+  } catch (error) {
+    failCheck(
+      "registry:git-ref",
+      `Could not resolve Git commit for ${targetRef}: ${error?.message || String(error)}`,
+      { root: rootPath, targetRef }
+    );
+  }
+}
+
 async function moduleRegistryEntry(rootPath, modulePath) {
   const manifest = readJson(join(modulePath, "module.json"));
   const packageJson = readJsonOptional(join(modulePath, "package.json"), {});
@@ -1232,24 +1297,72 @@ async function writeRegistryFiles(outputPath, workspace) {
 
 async function runRegistry({ scope, flags }) {
   const rootPath = findWorkspaceRoot(process.cwd());
-  if (!["build", "check-tags"].includes(scope)) {
-    failCheck("registry:scope", `Unknown registry command: ${scope}. Use "registry build" or "registry check-tags".`);
+  if (!["build", "check-tags", "tag-plan", "tag-create"].includes(scope)) {
+    failCheck("registry:scope", `Unknown registry command: ${scope}. Use "registry build", "registry check-tags", "registry tag-plan", or "registry tag-create".`);
   }
 
   const workspace = await discoverWorkspace(rootPath);
 
-  if (scope === "check-tags") {
-    let tagOutput = "";
-    try {
-      tagOutput = execFileSync("git", ["-C", rootPath, "tag", "--list", "modules/*"], { encoding: "utf8" });
-    } catch (error) {
-      failCheck(
-        "registry:git-tags",
-        `Could not list local module release tags: ${error?.message || String(error)}`,
-        { root: rootPath }
-      );
+  if (scope === "check-tags" || scope === "tag-plan" || scope === "tag-create") {
+    const existingTags = listModuleReleaseTags(rootPath);
+    const report = moduleReleaseTagReport(workspace.modules, existingTags);
+
+    if (scope === "tag-plan") {
+      const targetRef = resolveGitCommit(rootPath, flags.ref || "HEAD");
+      return {
+        registry: {
+          tagPlan: moduleReleaseTagPlan(workspace.modules, existingTags, targetRef)
+        }
+      };
     }
-    const report = moduleReleaseTagReport(workspace.modules, tagOutput.split("\n"));
+
+    if (scope === "tag-create") {
+      const targetRef = resolveGitCommit(rootPath, flags.ref || "HEAD");
+      const plan = moduleReleaseTagPlan(workspace.modules, existingTags, targetRef);
+      if (!flags.dryRun && flags.confirm !== "create-tags") {
+        failCheck(
+          "registry:tag-create-confirmation",
+          "Refusing to create module release tags without --confirm create-tags. Use registry tag-plan or registry tag-create --dry-run first.",
+          { requiredConfirm: "create-tags", targetRef, create: plan.tags.create }
+        );
+      }
+
+      const created = [];
+      if (!flags.dryRun) {
+        for (const item of plan.tags.create) {
+          try {
+            execFileSync("git", ["-C", rootPath, "tag", item.tag, targetRef], { stdio: "pipe" });
+            created.push(item);
+          } catch (error) {
+            failCheck(
+              "registry:tag-create",
+              `Could not create module release tag ${item.tag}: ${error?.message || String(error)}`,
+              { tag: item.tag, targetRef }
+            );
+          }
+        }
+      }
+
+      return {
+        registry: {
+          tagCreate: {
+            status: flags.dryRun ? "planned" : created.length > 0 ? "created" : "noop",
+            dryRun: flags.dryRun,
+            targetRef,
+            checked: plan.checked,
+            existing: plan.existing,
+            create: plan.create,
+            created: created.length,
+            tags: {
+              existing: plan.tags.existing,
+              create: plan.tags.create,
+              created
+            }
+          }
+        }
+      };
+    }
+
     if (report.status !== "pass") {
       const preview = report.missingTags.slice(0, 8).map((item) => item.tag).join(", ");
       const suffix = report.missingTags.length > 8 ? `, ... (${report.missingTags.length} total)` : "";
@@ -1493,6 +1606,23 @@ async function main() {
 
     if (data.registry.tagCheck) {
       process.stdout.write(`module release tags ok (${data.registry.tagCheck.checked} checked)\n`);
+      return;
+    }
+
+    if (data.registry.tagPlan) {
+      process.stdout.write(`module release tag plan: ${data.registry.tagPlan.create} to create, ${data.registry.tagPlan.existing} existing\n`);
+      for (const item of data.registry.tagPlan.tags.create) {
+        process.stdout.write(`create: ${item.tag} -> ${item.targetRef}\n`);
+      }
+      return;
+    }
+
+    if (data.registry.tagCreate) {
+      const result = data.registry.tagCreate;
+      process.stdout.write(`module release tags ${result.status}: ${result.created} created, ${result.existing} existing\n`);
+      for (const item of result.tags.created) {
+        process.stdout.write(`created: ${item.tag} -> ${item.targetRef}\n`);
+      }
       return;
     }
 
