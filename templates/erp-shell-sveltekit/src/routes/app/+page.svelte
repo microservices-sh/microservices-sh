@@ -16,7 +16,7 @@
     <Card>
       <Eyebrow>Almost there</Eyebrow>
       <h1>Set up your company.</h1>
-      <p>You're signed in but your company workspace isn't set up yet.</p>
+      <p class="mb-4">You're signed in but your company workspace isn't set up yet.</p>
       <Button href="/signup" variant="primary">Set up the company</Button>
     </Card>
   </main>

@@ -48,6 +48,12 @@
 		overflow: hidden;
 		cursor: pointer;
 		white-space: nowrap;
+		/* Explicit so a consumer's global `button`/`.button` element rule (e.g. an
+		   app.css that sets py-[0.7rem]) can't leak vertical padding and inflate
+		   the height — the size is owned by min-block-size below. */
+		padding-block: 0;
+		margin: 0;
+		box-sizing: border-box;
 		border: 1px solid var(--color-line-strong);
 		border-radius: var(--radius-md);
 		background: var(--color-panel);
