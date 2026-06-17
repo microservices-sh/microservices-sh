@@ -1,0 +1,18 @@
+# WordPress to EmDash Blog Template
+
+This project is a Cloudflare-native Astro + EmDash blog migration scaffold.
+
+Important files:
+
+- `astro.config.mjs`: Astro server output, Cloudflare adapter, EmDash D1/R2 config.
+- `wrangler.jsonc`: Worker, assets, observability, D1 `DB`, and R2 `MEDIA` bindings.
+- `src/live.config.ts`: EmDash live content collection loader.
+- `src/pages/blog/[slug].astro`: public post route.
+- `scripts/microservices.js`: WordPress migration lifecycle CLI (`wp probe`, `add-theme`, `analyze-theme`, `convert-theme`, `capture`, `validate-theme`, `plan`, `status`).
+- `scripts/wp-probe.mjs`: WordPress REST source probe.
+- `scripts/wp-verify.mjs`: migration readiness summary from a probe report.
+- `docs/plugin-support-matrix.md`: supported and unsupported WordPress plugin categories.
+
+Do not add secrets to files. WordPress credentials must come from `npm run microservices -- wp probe --password-prompt`, `--password-stdin`, or environment variables in trusted automation. Never put Application Passwords in command arguments, reports, docs, or source.
+
+Standard design-preserved migration requires the official EmDash Exporter plugin, `theme.zip`, `.migration/theme-analysis.json`, Astro conversion through the `wordpress-theme-to-astro` skill, screenshot capture via `wp capture --run`, generated parity via `wp diff-theme`, and `migration-reports/theme-parity.json` with score >=85 and no critical failures.

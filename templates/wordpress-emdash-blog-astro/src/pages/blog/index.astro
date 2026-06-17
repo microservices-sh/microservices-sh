@@ -1,0 +1,17 @@
+---
+import Base from "../../layouts/Base.astro";
+import PostList from "../../components/PostList.astro";
+import { getPublishedPosts } from "../../lib/posts";
+
+Astro.response.headers.set("Cache-Control", "public, max-age=300");
+
+const posts = await getPublishedPosts();
+---
+
+<Base title="Blog" canonicalPath="/blog">
+  <section class="page">
+    <p class="eyebrow">Archive</p>
+    <h1>Blog</h1>
+    <PostList posts={posts} headingLevel="h2" />
+  </section>
+</Base>

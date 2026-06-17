@@ -1,0 +1,4 @@
+interface:
+  display_name: "WordPress Theme to Astro"
+  short_description: "Rebuild WP themes as Astro"
+  default_prompt: "Use $wordpress-theme-to-astro to rebuild this WordPress theme as Astro + EmDash components with visual parity checks."

@@ -1,0 +1,24 @@
+---
+import { getEntryTerms } from "emdash";
+
+interface Props {
+  postId: string;
+}
+
+const { postId } = Astro.props;
+const categories = await getEntryTerms("posts", postId, "category");
+const tags = await getEntryTerms("posts", postId, "tag");
+---
+
+{
+  (categories.length > 0 || tags.length > 0) && (
+    <ul class="term-list" aria-label="Post terms">
+      {categories.map((term) => (
+        <li><a href={`/category/${term.slug}`}>{term.label}</a></li>
+      ))}
+      {tags.map((term) => (
+        <li><a href={`/tag/${term.slug}`}>{term.label}</a></li>
+      ))}
+    </ul>
+  )
+}

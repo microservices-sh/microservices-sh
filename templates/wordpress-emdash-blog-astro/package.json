@@ -1,0 +1,46 @@
+{
+  "name": "wordpress-emdash-blog-astro",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "deploy": "wrangler deploy",
+    "cf:types": "wrangler types",
+    "wp:probe": "node scripts/microservices.js wp probe",
+    "wp:verify": "node scripts/wp-verify.mjs",
+    "wp:migrate": "node scripts/microservices.js wp migrate",
+    "wp:plan": "node scripts/microservices.js wp plan",
+    "wp:status": "node scripts/microservices.js wp status",
+    "wp:analyze-theme": "node scripts/microservices.js wp analyze-theme",
+    "wp:convert-theme": "node scripts/microservices.js wp convert-theme",
+    "wp:capture": "node scripts/microservices.js wp capture",
+    "wp:diff-theme": "node scripts/microservices.js wp diff-theme",
+    "wp:validate-theme": "node scripts/microservices.js wp validate-theme",
+    "check:spec": "node ../../packages/workspace-tools/src/index.js check template --path .",
+    "test:cli": "node --test \"tests/*.test.mjs\"",
+    "microservices": "node scripts/microservices.js"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^13.7.0",
+    "@astrojs/react": "^5.0.7",
+    "@astrojs/rss": "^4.0.18",
+    "@emdash-cms/cloudflare": "^0.20.0",
+    "astro": "^6.4.7",
+    "emdash": "^0.20.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "wrangler": "^4.101.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "emdash": {
+    "seed": ".emdash/seed.json"
+  }
+}

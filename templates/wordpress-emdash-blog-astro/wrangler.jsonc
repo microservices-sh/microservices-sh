@@ -1,0 +1,34 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wordpress-emdash-blog-astro",
+  "compatibility_date": "2026-06-17",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "MICROSERVICES_APP_SLUG": "wordpress-emdash-blog-astro",
+    "SITE_TITLE": "Migrated Blog",
+    "SITE_DESCRIPTION": "A WordPress blog migrated to EmDash on Cloudflare."
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "wordpress-emdash-blog-astro-db",
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "wordpress-emdash-blog-astro-media"
+    }
+  ]
+}

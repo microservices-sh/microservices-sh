@@ -1,0 +1,29 @@
+---
+export const prerender = false;
+
+import Base from "../../layouts/Base.astro";
+import PostList from "../../components/PostList.astro";
+import { getEmDashCollection } from "emdash";
+import type { BlogEntry } from "../../lib/posts";
+
+const slug = Astro.params.slug || "";
+const { entries, error } = await getEmDashCollection("posts", {
+  status: "published",
+  where: { tag: slug },
+});
+
+if (error) {
+  return new Response("Failed to load tag.", { status: 500 });
+}
+
+const posts = entries as BlogEntry[];
+Astro.response.headers.set("Cache-Control", "public, max-age=300");
+---
+
+<Base title={`Tag: ${slug}`} canonicalPath={`/tag/${slug}`}>
+  <section class="page">
+    <p class="eyebrow">Tag</p>
+    <h1>{slug}</h1>
+    <PostList posts={posts} headingLevel="h2" />
+  </section>
+</Base>

@@ -1,0 +1,50 @@
+---
+export const prerender = false;
+
+import { getEmDashEntry } from "emdash";
+import { PortableText } from "emdash/ui";
+import Base from "../../layouts/Base.astro";
+import PostMeta from "../../components/PostMeta.astro";
+import { formatDate, postDate, postExcerpt, postTitle, postUrl, type BlogEntry } from "../../lib/posts";
+
+const { slug } = Astro.params;
+const { entry: post, error, isPreview } = await getEmDashEntry("posts", slug);
+
+if (error) {
+  return new Response("Failed to load post.", { status: 500 });
+}
+
+if (!post) {
+  return new Response(null, { status: 404 });
+}
+
+const typedPost = post as BlogEntry;
+const date = postDate(typedPost);
+const entryEdit = editAttrs(typedPost.edit);
+const titleEdit = editAttrs(typedPost.edit?.title);
+const contentEdit = editAttrs(typedPost.edit?.content);
+
+Astro.response.headers.set("Cache-Control", isPreview ? "private, no-store" : "public, max-age=300");
+
+function editAttrs(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+---
+
+<Base title={postTitle(typedPost)} description={postExcerpt(typedPost)} canonicalPath={postUrl(typedPost)}>
+  <section class="page article">
+    {isPreview && <p class="eyebrow">Preview</p>}
+    <article {...entryEdit}>
+      <header class="article-header">
+        <h1 {...titleEdit}>{postTitle(typedPost)}</h1>
+        <div class="meta">
+          {date && <time datetime={date.toISOString()}>{formatDate(date)}</time>}
+        </div>
+        <PostMeta postId={post.id} />
+      </header>
+      <div class="prose" {...contentEdit}>
+        <PortableText value={typedPost.data.content} />
+      </div>
+    </article>
+  </section>
+</Base>

@@ -28,6 +28,12 @@ const REPO_TEMPLATES = {
     status: "ready",
     summary: "Static editorial company landing page on Astro — refined light design, content-driven, no backend modules.",
   },
+  "wordpress-emdash-blog-astro": {
+    id: "wordpress-emdash-blog-astro",
+    name: "WordPress to EmDash Blog (Astro)",
+    status: "experimental",
+    summary: "Cloudflare Astro + EmDash template for content-only WordPress blog migrations with D1/R2 and source probing.",
+  },
   "saas-starter-sveltekit": {
     id: "saas-starter-sveltekit",
     name: "SaaS Starter SvelteKit",
@@ -292,6 +298,7 @@ Usage:
 Options:
   --template <id>              Template id. Default: booking-sveltekit
                                (booking-sveltekit = full Cloudflare SvelteKit app;
+                                wordpress-emdash-blog-astro = content-only WordPress migration;
                                 booking-business = Cloudflare Worker / Hono)
   --modules <ids>              Comma-separated extra module ids or id@version pins to enable
   --config '<json>'            Template config override
@@ -627,11 +634,36 @@ function packageScriptCommand(packageManager, script, args = []) {
 
 function nextCommands(packageManager, appName, installed, planOnlyModules = [], templateId = "booking-sveltekit") {
   const installLine = installed ? null : `${packageManager} install`;
-  const isSvelteKitTemplate = templateId === "booking-sveltekit";
   const microservices = (args) => packageScriptCommand(packageManager, "microservices", args);
-  const localSetup = isSvelteKitTemplate ? [microservices(["local", "setup"])] : [];
-  const deployPlan = isSvelteKitTemplate ? [microservices(["deploy", "run", "--plan"])] : [];
   const devCommand = packageScriptCommand(packageManager, "dev");
+
+  if (templateId === "wordpress-emdash-blog-astro") {
+    return [
+      `cd ${appName}`,
+      installLine,
+      microservices(["modules", "--json"]),
+      microservices(["wp", "migrate", "--source", "https://example.com", "--theme", "./theme.zip"]),
+      packageScriptCommand(packageManager, "wp:probe", ["--source", "https://example.com", "--out", "migration-reports/wp-source-probe.json"]),
+      packageScriptCommand(packageManager, "wp:verify", ["--report", "migration-reports/wp-source-probe.json"]),
+      microservices(["wp", "plan", "--report", "migration-reports/wp-source-probe.json"]),
+      microservices(["check", "--json"]),
+      devCommand,
+    ].filter(Boolean);
+  }
+
+  if (templateId !== "booking-sveltekit") {
+    return [
+      `cd ${appName}`,
+      installLine,
+      microservices(["modules", "--json"]),
+      microservices(["check", "--json"]),
+      devCommand,
+    ].filter(Boolean);
+  }
+
+  const localSetup = [microservices(["local", "setup"])];
+  const deployPlan = [microservices(["deploy", "run", "--plan"])];
+
   return [
     `cd ${appName}`,
     installLine,

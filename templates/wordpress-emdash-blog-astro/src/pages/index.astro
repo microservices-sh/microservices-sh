@@ -1,0 +1,34 @@
+---
+import Base from "../layouts/Base.astro";
+import PostList from "../components/PostList.astro";
+import { getPublishedPosts, postExcerpt, postTitle, postUrl } from "../lib/posts";
+import { siteDescription, siteTitle } from "../lib/site";
+
+Astro.response.headers.set("Cache-Control", "public, max-age=300");
+
+const posts = await getPublishedPosts();
+const featured = posts[0];
+const remaining = posts.slice(1, 7);
+---
+
+<Base title={siteTitle} description={siteDescription}>
+  <section class="page">
+    <div class="hero">
+      <div>
+        <p class="eyebrow">Publication</p>
+        <h1>{siteTitle}</h1>
+        <p class="lede">{siteDescription}</p>
+      </div>
+      {
+        featured && (
+          <article class="post-card">
+            <p class="eyebrow">Latest</p>
+            <h2><a href={postUrl(featured)}>{postTitle(featured)}</a></h2>
+            {postExcerpt(featured) && <p>{postExcerpt(featured)}</p>}
+          </article>
+        )
+      }
+    </div>
+    <PostList posts={remaining.length ? remaining : posts} headingLevel="h2" />
+  </section>
+</Base>

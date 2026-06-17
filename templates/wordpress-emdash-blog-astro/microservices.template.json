@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "wordpress-emdash-blog-astro",
+  "version": "0.1.0",
+  "status": "experimental",
+  "displayName": "WordPress to EmDash Blog (Astro)",
+  "category": "content-site",
+  "summary": "Cloudflare-native Astro + EmDash template for migrating WordPress blogs with EmDash Exporter content import, theme ZIP intake, source probing, redirects, RSS, sitemap, D1, and R2.",
+  "runtime": {
+    "language": "typescript",
+    "framework": "astro",
+    "adapter": "cloudflare",
+    "platform": "cloudflare-workers",
+    "entrypoint": "@astrojs/cloudflare/entrypoints/server"
+  },
+  "deployment": {
+    "defaultMode": "cloudflare-workers",
+    "byoCloudflare": "required",
+    "bindings": [
+      "DB",
+      "MEDIA",
+      "ASSETS"
+    ]
+  },
+  "modules": {
+    "required": [],
+    "optional": [
+      "forms-intake",
+      "email",
+      "audit-log"
+    ]
+  },
+  "slots": {},
+  "sourcePolicy": {
+    "templateOwns": [
+      "Astro routes",
+      "EmDash integration config",
+      "Cloudflare Worker deployment config",
+      "WordPress source probing scripts",
+      "WordPress migration plan and theme ZIP intake",
+      "migration docs and support matrix",
+      "blog UI shell"
+    ],
+    "modulesOwn": [
+      "future forms/newsletter workflows"
+    ],
+    "apiLogic": "EmDash owns CMS/admin/import endpoints; template owns public blog rendering and migration checks."
+  }
+}

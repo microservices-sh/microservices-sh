@@ -1,0 +1,15 @@
+{
+  "template": "wordpress-emdash-blog-astro",
+  "modules": [],
+  "registry": "https://microservices.sh/registry",
+  "migration": {
+    "source": "wordpress",
+    "mode": "standard-design-preserved",
+    "requires": [
+      "emdash-exporter",
+      "theme.zip"
+    ],
+    "contentOnlyFlag": "--content-only",
+    "commerce": "unsupported"
+  }
+}

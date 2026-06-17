@@ -1,0 +1,34 @@
+---
+import { formatDate, postDate, postExcerpt, postTitle, postUrl, type BlogEntry } from "../lib/posts";
+
+interface Props {
+  posts: BlogEntry[];
+  headingLevel?: "h2" | "h3";
+}
+
+const { posts, headingLevel = "h2" } = Astro.props;
+const Heading = headingLevel;
+---
+
+{
+  posts.length > 0 ? (
+    <div class="post-grid">
+      {posts.map((post) => {
+        const date = postDate(post);
+        return (
+          <article class="post-card">
+            <Heading>
+              <a href={postUrl(post)}>{postTitle(post)}</a>
+            </Heading>
+            <div class="meta">
+              {date && <time datetime={date.toISOString()}>{formatDate(date)}</time>}
+            </div>
+            {postExcerpt(post) && <p>{postExcerpt(post)}</p>}
+          </article>
+        );
+      })}
+    </div>
+  ) : (
+    <p class="empty-state">No published posts yet.</p>
+  )
+}

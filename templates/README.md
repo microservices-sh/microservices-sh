@@ -21,6 +21,7 @@ Templates may share modules and SDK code through workspace packages, but generat
 | Template | Status | Purpose |
 |----------|--------|---------|
 | `booking-sveltekit` | runnable shell | Full Cloudflare SvelteKit booking app with detached booking API/domain logic. |
+| `wordpress-emdash-blog-astro` | experimental | WordPress blog migration to Astro + EmDash on Cloudflare Workers with exporter-first content import, theme ZIP intake, D1/R2, and source probing. |
 
 ## Future Split Rule
 

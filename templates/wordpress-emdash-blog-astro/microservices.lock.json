@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "2026-06-13",
+  "generatedAt": "template-scaffold",
+  "registry": {
+    "id": "microservices.sh",
+    "contractVersion": "2026-06-13"
+  },
+  "generator": {
+    "package": "create-microservices-app",
+    "version": "0.0.0"
+  },
+  "template": {
+    "id": "wordpress-emdash-blog-astro",
+    "version": "0.1.0",
+    "source": "registry:wordpress-emdash-blog-astro@0.1.0",
+    "checksum": "sha256:scaffold-wordpress-emdash-blog-astro-0.1.0"
+  },
+  "deploy": {
+    "mode": "cloudflare-workers",
+    "bindings": [
+      "DB",
+      "MEDIA",
+      "ASSETS"
+    ]
+  },
+  "modules": [],
+  "customizations": {
+    "config": true,
+    "hooks": [],
+    "overlays": [],
+    "forks": []
+  }
+}

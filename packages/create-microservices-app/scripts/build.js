@@ -10,10 +10,11 @@ const internalAliases = new Map([
   ["@microservices-sh/module-contract", resolve(repoRoot, "packages/module-contract/src/index.js")],
 ]);
 
-const REPO_TEMPLATES = ["booking-sveltekit", "company-landing-astro", "saas-starter-sveltekit", "client-portal-sveltekit", "erp-shell-sveltekit"];
+const REPO_TEMPLATES = ["booking-sveltekit", "company-landing-astro", "wordpress-emdash-blog-astro", "saas-starter-sveltekit", "client-portal-sveltekit", "erp-shell-sveltekit"];
 const REPO_TEMPLATE_MODULES = {
   "booking-sveltekit": ["gateway", "auth", "customer", "booking", "audit-log", "email", "payment", "identity"],
   "company-landing-astro": [],
+  "wordpress-emdash-blog-astro": [],
   "saas-starter-sveltekit": ["auth", "org-team-rbac", "billing-subscriptions", "admin-shell", "audit-log", "image-generation", "ads-manager"],
   "client-portal-sveltekit": ["auth", "customer", "invoice", "file-media", "audit-log"],
   "erp-shell-sveltekit": ["auth", "identity", "org-team-rbac", "admin-shell", "audit-log", "customer", "invoice", "file-media", "jobs-workflows", "notifications-inapp"],
@@ -21,11 +22,22 @@ const REPO_TEMPLATE_MODULES = {
 const REPO_TEMPLATE_PACKAGES = {
   "booking-sveltekit": ["connection-contract"],
   "company-landing-astro": [],
+  "wordpress-emdash-blog-astro": [],
   "saas-starter-sveltekit": ["connection-contract"],
   "client-portal-sveltekit": ["connection-contract"],
   "erp-shell-sveltekit": ["connection-contract"],
 };
-const TEMPLATE_IGNORE = new Set(["node_modules", ".svelte-kit", ".astro", ".wrangler", "dist", ".DS_Store", ".git"]);
+const TEMPLATE_IGNORE = new Set([
+  "node_modules",
+  ".svelte-kit",
+  ".astro",
+  ".wrangler",
+  ".migration",
+  "migration-reports",
+  "dist",
+  ".DS_Store",
+  ".git",
+]);
 
 function includeTemplateFile(src) {
   return !src.split(/[\\/]/).some((segment) => TEMPLATE_IGNORE.has(segment));
@@ -67,7 +79,7 @@ await chmod("dist/index.js", 0o755);
 // Module source lives in this repo (modules/<id>) — vendor it into the bundled
 // template so generated apps are standalone with no remote fetch.
 const templatesOut = resolve(packageRoot, "templates");
-await rm(templatesOut, { recursive: true, force: true });
+await rm(templatesOut, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 for (const id of REPO_TEMPLATES) {
   await cp(resolve(repoRoot, "templates", id), resolve(templatesOut, id), {
     recursive: true,

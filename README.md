@@ -84,6 +84,7 @@ Compatibility and migration-specific skills:
 - [`skills/prisma-postgres-to-d1`](./skills/prisma-postgres-to-d1) - translate a Prisma + Postgres data layer to Drizzle on D1: schema, query rewrites, and data import.
 - [`skills/express-api-to-workers`](./skills/express-api-to-workers) - port an Express/Node API onto the Workers runtime behind module boundaries, covering the runtime gap (no process state, no filesystem, no native DB drivers).
 - [`skills/vercel-next-to-cloudflare`](./skills/vercel-next-to-cloudflare) - move a Vercel/Next.js app to Cloudflare: a host-level OpenNext move, or a deeper backend rebuild onto microservices.sh modules.
+- [`skills/wordpress-theme-to-astro`](./skills/wordpress-theme-to-astro) - rebuild a WordPress theme as Astro + EmDash components with screenshot-based visual parity gates.
 
 Install from the published GitHub repo with the Skills CLI:
 

@@ -1,0 +1,47 @@
+---
+import "../styles/global.css";
+import { siteDescription, siteTitle, siteUrl } from "../lib/site";
+
+interface Props {
+  title?: string;
+  description?: string;
+  canonicalPath?: string;
+}
+
+const { title, description = siteDescription, canonicalPath = Astro.url.pathname } = Astro.props;
+const pageTitle = title && title !== siteTitle ? `${title} | ${siteTitle}` : siteTitle;
+const canonical = siteUrl(canonicalPath);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" type="application/rss+xml" title={`${siteTitle} RSS`} href="/rss.xml" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <a class="skip-link" href="#content">Skip to content</a>
+      <header class="site-header">
+        <div class="site-header__inner">
+          <a class="brand" href="/">{siteTitle}</a>
+          <nav class="nav" aria-label="Primary">
+            <a href="/blog">Blog</a>
+            <a href="/rss.xml">RSS</a>
+            <a href="/_emdash/admin">Admin</a>
+          </nav>
+        </div>
+      </header>
+      <main id="content">
+        <slot />
+      </main>
+      <footer class="site-footer">
+        <span>{siteTitle}</span>
+      </footer>
+    </div>
+  </body>
+</html>
