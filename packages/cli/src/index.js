@@ -52,6 +52,12 @@ function parseArgs(argv) {
     pageUrl: null,
     url: null,
     hostname: null,
+    search: null,
+    level: null,
+    source: null,
+    eventType: null,
+    since: null,
+    before: null,
     apiKey: process.env.MICROSERVICES_API_KEY ?? process.env.MICROSERVICES_TOKEN ?? null,
     token: process.env.METRICS_TOKEN ?? null,
     environment: null,
@@ -133,6 +139,24 @@ function parseArgs(argv) {
       index += 1;
     } else if (value === "--hostname") {
       flags.hostname = argv[index + 1];
+      index += 1;
+    } else if (value === "--search" || value === "--q" || value === "--query") {
+      flags.search = argv[index + 1];
+      index += 1;
+    } else if (value === "--level") {
+      flags.level = argv[index + 1];
+      index += 1;
+    } else if (value === "--source") {
+      flags.source = argv[index + 1];
+      index += 1;
+    } else if (value === "--event-type" || value === "--eventType") {
+      flags.eventType = argv[index + 1];
+      index += 1;
+    } else if (value === "--since") {
+      flags.since = argv[index + 1];
+      index += 1;
+    } else if (value === "--before") {
+      flags.before = argv[index + 1];
       index += 1;
     } else if (value === "--api-key") {
       flags.apiKey = argv[index + 1];
@@ -323,8 +347,11 @@ Usage:
   microservices deploy plan-resources [template-id] [--mode embedded|service] [--json]
   microservices deploy provision <deployment-id> [--confirm production] [--api-url http://127.0.0.1:8787] [--json]
   microservices deploy resources <deployment-id> [--api-url http://127.0.0.1:8787] [--json]
-  microservices deploy logs <deployment-id> [--api-url http://127.0.0.1:8787] [--json]
-  microservices logs <deployment-id> [--api-url http://127.0.0.1:8787] [--json]
+  microservices deploy logs <deployment-id> [--search "..."] [--level info|warn|error] [--since 24h] [--limit 100] [--api-url http://127.0.0.1:8787] [--json]
+  microservices logs <deployment-id> [--search "..."] [--level info|warn|error] [--since 24h] [--limit 100] [--api-url http://127.0.0.1:8787] [--json]
+  microservices observe logs <deployment-id> [--search "..."] [--level debug|info|warn|error|fatal] [--source runtime|healthcheck|cloudflare_tail] [--since 24h] [--json]
+  microservices observe errors <deployment-id> [--search "..."] [--since 7d] [--json]
+  microservices errors <deployment-id> [--search "..."] [--since 7d] [--json]
   microservices metrics [--api-url https://api.microservices.sh] [--token <METRICS_TOKEN>] [--json]
 `;
 }
@@ -617,6 +644,46 @@ ${items
   })
   .join("\n")}
 `;
+}
+
+function isoTime(value) {
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toISOString() : String(value ?? "");
+}
+
+function formatObservabilityEvents(result) {
+  const events = Array.isArray(result.events) ? result.events : [];
+  if (!events.length) return "No observability events found.\n";
+  return `${events
+    .map((event) => {
+      const parts = [
+        isoTime(event.createdAt),
+        String(event.level ?? "info").toUpperCase(),
+        event.source ?? "runtime",
+        event.eventType ?? "event",
+        event.route ? `route=${event.route}` : null,
+        event.statusCode ? `status=${event.statusCode}` : null,
+      ].filter(Boolean);
+      return `${parts.join(" ")}\n  ${event.message}`;
+    })
+    .join("\n")}\n`;
+}
+
+function formatErrorGroups(result) {
+  const errors = Array.isArray(result.errors) ? result.errors : [];
+  if (!errors.length) return "No error groups found.\n";
+  return `${errors
+    .map((error) => {
+      const parts = [
+        `${error.count}x`,
+        String(error.level ?? "error").toUpperCase(),
+        error.eventType ?? "runtime.exception",
+        error.route ? `route=${error.route}` : null,
+        `last=${isoTime(error.lastSeen)}`,
+      ].filter(Boolean);
+      return `${parts.join(" ")}\n  ${error.message}\n  fingerprint: ${error.fingerprint ?? error.key}`;
+    })
+    .join("\n")}\n`;
 }
 
 function artifactDispatchNamespace(manifest, microservicesConfig) {
@@ -2525,6 +2592,37 @@ function apiUrl(baseUrl, path) {
   return `${base}${path}`;
 }
 
+function pathWithQuery(path, params) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== "") query.set(key, String(value));
+  }
+  const search = query.toString();
+  return search ? `${path}?${search}` : path;
+}
+
+function logQuery(flags) {
+  return {
+    search: flags.search,
+    level: flags.level,
+    since: flags.since,
+    before: flags.before,
+    limit: flags.limit,
+  };
+}
+
+function observabilityQuery(flags) {
+  return {
+    search: flags.search,
+    level: flags.level,
+    source: flags.source,
+    eventType: flags.eventType,
+    since: flags.since,
+    before: flags.before,
+    limit: flags.limit,
+  };
+}
+
 async function apiRequest(flags, path, options = {}) {
   const settings = await resolvedApiSettings(flags);
   const target = apiUrl(settings.apiUrl, path);
@@ -3723,13 +3821,30 @@ ${result.resources.length ? result.resources.map((item) => `- ${item.resourceTyp
     if (!deploymentId) {
       throw new Error("Missing deployment id.");
     }
-    response = await apiRequest(flags, `/deployments/${deploymentId}/logs`);
+    response = await apiRequest(flags, pathWithQuery(`/deployments/${deploymentId}/logs`, logQuery(flags)));
     return flags.json
       ? writeJson(response)
       : printApiHuman(
           response,
           (result) => `${result.logs.map((log) => `${log.level.toUpperCase()} ${log.message}`).join("\n")}\n`
         );
+  }
+
+  if (resource === "observe" && (action === "logs" || action === "events")) {
+    if (!value) {
+      throw new Error("Missing deployment id.");
+    }
+    response = await apiRequest(flags, pathWithQuery(`/deployments/${value}/observability/events`, observabilityQuery(flags)));
+    return flags.json ? writeJson(response) : printApiHuman(response, formatObservabilityEvents);
+  }
+
+  if ((resource === "observe" && action === "errors") || resource === "errors") {
+    const deploymentId = resource === "errors" ? action : value;
+    if (!deploymentId) {
+      throw new Error("Missing deployment id.");
+    }
+    response = await apiRequest(flags, pathWithQuery(`/deployments/${deploymentId}/errors`, observabilityQuery(flags)));
+    return flags.json ? writeJson(response) : printApiHuman(response, formatErrorGroups);
   }
 
   if (resource === "metrics") {
