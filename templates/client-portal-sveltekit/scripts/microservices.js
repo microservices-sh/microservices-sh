@@ -694,6 +694,10 @@ function cleanString(value) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function pathWithQuery(path, params) {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -1609,6 +1613,19 @@ async function deployResources(deploymentId, flags) {
   return apiRequest(flags, `/deployments/${deploymentId}/resources`);
 }
 
+async function deployResourceUsage(deploymentId, flags) {
+  const resolved = deploymentIdArg(deploymentId, flags);
+  if (!resolved.ok) return resolved;
+  deploymentId = resolved.data;
+
+  if (!deploymentId) {
+    return fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id returned by deploy preview.");
+  }
+  const ciAuth = requireCiApiKey(flags, "deployment resource usage");
+  if (ciAuth) return ciAuth;
+  return apiRequest(flags, `/deployments/${deploymentId}/resources/usage`);
+}
+
 async function deployLogs(deploymentId, flags) {
   const resolved = deploymentIdArg(deploymentId, flags);
   if (!resolved.ok) return resolved;
@@ -1972,6 +1989,70 @@ ${result.resources.length ? result.resources.map((item) => `- ${item.resourceTyp
 `;
 }
 
+function formatBytes(value) {
+  if (!Number.isFinite(Number(value))) return "unknown";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let size = Number(value);
+  let unit = 0;
+  while (size >= 1024 && unit < units.length - 1) {
+    size /= 1024;
+    unit += 1;
+  }
+  return `${unit === 0 ? size : size.toFixed(1)} ${units[unit]}`;
+}
+
+function formatMetricPair(metric, unit = "") {
+  if (!isRecord(metric)) return "unknown";
+  const published = metric.published ?? "unknown";
+  const uploaded = metric.uploaded ?? "unknown";
+  return `${published}${unit} published / ${uploaded}${unit} uploaded`;
+}
+
+function formatResourceUsageLine(resource) {
+  const base = `${resource.resourceType}/${resource.binding}: ${resource.status} ${resource.name}${resource.externalId ? ` (${resource.externalId})` : ""}`;
+  const usage = isRecord(resource.usage) ? resource.usage : null;
+  if (resource.resourceType === "d1" && usage) {
+    return `- ${base}
+  D1: ${formatBytes(usage.fileSizeBytes)}, tables=${usage.tableCount ?? "unknown"}, replication=${usage.readReplicationMode ?? "unknown"}`;
+  }
+  if (resource.resourceType === "r2" && usage && isRecord(usage.bucket)) {
+    return `- ${base}
+  R2: storage=${usage.bucket.storageClass ?? "unknown"}, location=${usage.bucket.location ?? "unknown"}, metrics=${usage.accountMetricsScope ?? "unknown"}`;
+  }
+  const diagnostics = isRecord(resource.diagnostics) ? resource.diagnostics : {};
+  return `- ${base}
+  ${diagnostics.reason ?? "status-only"}: ${diagnostics.message ?? "No Cloudflare usage details returned."}`;
+}
+
+function formatResourceUsage(result) {
+  const resources = Array.isArray(result.resources) ? result.resources : [];
+  const cloudflare = isRecord(result.cloudflare) ? result.cloudflare : {};
+  const cloudflareLine = cloudflare.available
+    ? `Cloudflare: configured (${cloudflare.accountId ?? "unknown account"})`
+    : `Cloudflare: not configured (${Array.isArray(cloudflare.missing) ? cloudflare.missing.join(", ") : "missing credentials"})`;
+  const totals = isRecord(result.r2AccountMetrics) && isRecord(result.r2AccountMetrics.totals)
+    ? result.r2AccountMetrics.totals
+    : null;
+  const r2Metrics = totals
+    ? `\nR2 account metrics:
+- Objects: ${formatMetricPair(totals.objects)}
+- Payload: ${formatMetricPair(totals.payloadSizeBytes, " bytes")}
+- Metadata: ${formatMetricPair(totals.metadataSizeBytes, " bytes")}
+`
+    : "";
+  const r2MetricsDiagnostic = isRecord(result.r2MetricsDiagnostics)
+    ? `\nR2 account metrics unavailable: ${result.r2MetricsDiagnostics.message ?? result.r2MetricsDiagnostics.reason}\n`
+    : "";
+
+  return `Deployment: ${result.deployment.id}
+${cloudflareLine}
+Resources:
+${resources.length ? resources.map(formatResourceUsageLine).join("\n") : "none"}
+${r2Metrics}${r2MetricsDiagnostic}Next:
+${(result.nextSteps ?? []).map((step) => `- ${step}`).join("\n")}
+`;
+}
+
 function formatCleanup(result) {
   return `Deployment: ${result.deployment.id}
 Status: ${result.deployment.status}
@@ -2096,6 +2177,7 @@ function usageAll() {
   microservices deploy upload [deployment-id] [--input deployment.json] [--plan] --confirm upload [--json]
   microservices deploy status [deployment-id] [--input deployment.json] [--json]
   microservices deploy resources [deployment-id] [--input deployment.json] [--json]
+  microservices deploy usage [deployment-id] [--input deployment.json] [--json]
   microservices deploy logs [deployment-id] [--input deployment.json] [--search "..."] [--level info|warn|error] [--since 24h] [--json]
   microservices logs <deployment-id> [--search "..."] [--level info|warn|error] [--since 24h] [--json]
   microservices observe logs <deployment-id> [--search "..."] [--level debug|info|warn|error|fatal] [--source runtime|healthcheck|cloudflare_tail] [--since 24h] [--json]
@@ -2313,6 +2395,8 @@ async function main() {
     emit(await deployStatus(value, flags), formatStatus, flags);
   } else if (resource === "deploy" && action === "resources") {
     emit(await deployResources(value, flags), formatResources, flags);
+  } else if (resource === "deploy" && (action === "usage" || action === "resource-usage" || action === "resources-usage")) {
+    emit(await deployResourceUsage(value, flags), formatResourceUsage, flags);
   } else if ((resource === "deploy" && action === "logs") || resource === "logs") {
     const deploymentId = resource === "logs" ? action : value;
     emit(await deployLogs(deploymentId, flags), formatLogs, flags);

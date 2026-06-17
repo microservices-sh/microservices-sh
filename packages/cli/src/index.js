@@ -347,6 +347,8 @@ Usage:
   microservices deploy plan-resources [template-id] [--mode embedded|service] [--json]
   microservices deploy provision <deployment-id> [--confirm production] [--api-url http://127.0.0.1:8787] [--json]
   microservices deploy resources <deployment-id> [--api-url http://127.0.0.1:8787] [--json]
+  microservices deploy usage <deployment-id> [--api-url http://127.0.0.1:8787] [--json]
+  microservices resources usage <deployment-id> [--api-url http://127.0.0.1:8787] [--json]
   microservices deploy logs <deployment-id> [--search "..."] [--level info|warn|error] [--since 24h] [--limit 100] [--api-url http://127.0.0.1:8787] [--json]
   microservices logs <deployment-id> [--search "..."] [--level info|warn|error] [--since 24h] [--limit 100] [--api-url http://127.0.0.1:8787] [--json]
   microservices observe logs <deployment-id> [--search "..."] [--level debug|info|warn|error|fatal] [--source runtime|healthcheck|cloudflare_tail] [--since 24h] [--json]
@@ -698,6 +700,70 @@ MICROSERVICES_OBSERVABILITY_TOKEN=${result.secret}
 `;
 }
 
+function formatBytes(value) {
+  if (!Number.isFinite(Number(value))) return "unknown";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let size = Number(value);
+  let unit = 0;
+  while (size >= 1024 && unit < units.length - 1) {
+    size /= 1024;
+    unit += 1;
+  }
+  return `${unit === 0 ? size : size.toFixed(1)} ${units[unit]}`;
+}
+
+function formatMetricPair(metric, unit = "") {
+  if (!isObject(metric)) return "unknown";
+  const published = metric.published ?? "unknown";
+  const uploaded = metric.uploaded ?? "unknown";
+  return `${published}${unit} published / ${uploaded}${unit} uploaded`;
+}
+
+function formatResourceUsageLine(resource) {
+  const base = `${resource.resourceType}/${resource.binding}: ${resource.status} ${resource.name}${resource.externalId ? ` (${resource.externalId})` : ""}`;
+  const usage = isObject(resource.usage) ? resource.usage : null;
+  if (resource.resourceType === "d1" && usage) {
+    return `- ${base}
+  D1: ${formatBytes(usage.fileSizeBytes)}, tables=${usage.tableCount ?? "unknown"}, replication=${usage.readReplicationMode ?? "unknown"}`;
+  }
+  if (resource.resourceType === "r2" && usage && isObject(usage.bucket)) {
+    return `- ${base}
+  R2: storage=${usage.bucket.storageClass ?? "unknown"}, location=${usage.bucket.location ?? "unknown"}, metrics=${usage.accountMetricsScope ?? "unknown"}`;
+  }
+  const diagnostics = isObject(resource.diagnostics) ? resource.diagnostics : {};
+  return `- ${base}
+  ${diagnostics.reason ?? "status-only"}: ${diagnostics.message ?? "No Cloudflare usage details returned."}`;
+}
+
+function formatDeploymentResourceUsage(result) {
+  const resources = Array.isArray(result.resources) ? result.resources : [];
+  const cloudflare = isObject(result.cloudflare) ? result.cloudflare : {};
+  const cloudflareLine = cloudflare.available
+    ? `Cloudflare: configured (${cloudflare.accountId ?? "unknown account"})`
+    : `Cloudflare: not configured (${Array.isArray(cloudflare.missing) ? cloudflare.missing.join(", ") : "missing credentials"})`;
+  const totals = isObject(result.r2AccountMetrics) && isObject(result.r2AccountMetrics.totals)
+    ? result.r2AccountMetrics.totals
+    : null;
+  const r2Metrics = totals
+    ? `\nR2 account metrics:
+- Objects: ${formatMetricPair(totals.objects)}
+- Payload: ${formatMetricPair(totals.payloadSizeBytes, " bytes")}
+- Metadata: ${formatMetricPair(totals.metadataSizeBytes, " bytes")}
+`
+    : "";
+  const r2MetricsDiagnostic = isObject(result.r2MetricsDiagnostics)
+    ? `\nR2 account metrics unavailable: ${result.r2MetricsDiagnostics.message ?? result.r2MetricsDiagnostics.reason}\n`
+    : "";
+
+  return `Deployment: ${result.deployment.id}
+${cloudflareLine}
+Resources:
+${resources.length ? resources.map(formatResourceUsageLine).join("\n") : "none"}
+${r2Metrics}${r2MetricsDiagnostic}Next:
+${(result.nextSteps ?? []).map((step) => `- ${step}`).join("\n")}
+`;
+}
+
 function artifactDispatchNamespace(manifest, microservicesConfig) {
   const manifestNamespace = optionalString(manifest.dispatchNamespace);
   if (manifestNamespace) return manifestNamespace;
@@ -977,6 +1043,12 @@ async function deploymentPipelinePlan(deploymentId, directory, flags = {}) {
     {
       id: "resources",
       command: `microservices deploy resources ${deploymentArg}${apiUrlArg}`,
+      mutates: false,
+      required: true,
+    },
+    {
+      id: "resource-usage",
+      command: `microservices deploy usage ${deploymentArg}${apiUrlArg}`,
       mutates: false,
       required: true,
     },
@@ -3701,7 +3773,7 @@ ${result.localFallback.commands.map((command) => `- ${command}`).join("\n")}
           confirmationRequired: "cleanup",
           productionConfirmationRequired: "production-cleanup",
           sideEffects: [
-            "delete managed Worker, KV, and D1 resources through the control-plane API",
+            "delete managed Worker, KV, R2, and D1 resources through the control-plane API",
             "mark deployment resources deleted",
             "disable deployment routes and status",
           ],
@@ -3826,6 +3898,18 @@ Resources:
 ${result.resources.length ? result.resources.map((item) => `- ${item.resourceType}/${item.binding}: ${item.status} ${item.name}${item.externalId ? ` (${item.externalId})` : ""}`).join("\n") : "none"}
 `
         );
+  }
+
+  if (
+    (resource === "deploy" && (action === "usage" || action === "resource-usage" || action === "resources-usage")) ||
+    (resource === "resources" && action === "usage")
+  ) {
+    const deploymentId = value;
+    if (!deploymentId) {
+      throw new Error("Missing deployment id.");
+    }
+    response = await apiRequest(flags, `/deployments/${deploymentId}/resources/usage`);
+    return flags.json ? writeJson(response) : printApiHuman(response, formatDeploymentResourceUsage);
   }
 
   if ((resource === "deploy" && action === "logs") || resource === "logs") {
