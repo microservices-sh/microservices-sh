@@ -1,6 +1,6 @@
 import type { Handle } from "@sveltejs/kit";
 import { resolveStores } from "$lib/server/stores";
-import { readSession } from "$lib/server/session";
+import { readSession, getSessionSecret } from "$lib/server/session";
 
 // Wire module stores + the session user onto locals for every request. Stores are
 // D1-backed in production and memory-backed locally. Route adapters consume only
@@ -14,7 +14,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.tableGateway = stores.tableGateway;
   event.locals.auditStore = stores.auditStore;
   event.locals.signingKeyStore = stores.signingKeyStore;
-  event.locals.user = readSession(event.cookies);
+  event.locals.user = await readSession(event.cookies, getSessionSecret(event.platform));
 
   return resolve(event);
 };

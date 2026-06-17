@@ -1,4 +1,5 @@
 import type { PageServerLoad } from "./$types";
+import { error } from "@sveltejs/kit";
 import { listRecords } from "@microservices-sh/admin-shell";
 import { adminRegistry } from "$lib/server/admin-registry";
 
@@ -7,7 +8,10 @@ import { adminRegistry } from "$lib/server/admin-registry";
 const SUPER_ADMIN_PERMISSIONS = ["*"];
 
 export const load: PageServerLoad = async ({ locals }) => {
-  const actor = { id: locals.user!.id, permissions: SUPER_ADMIN_PERMISSIONS };
+  // Defense in depth: /admin/+layout.server.ts already gates this, but re-check
+  // the verified super-admin claim before minting the wildcard actor.
+  if (!locals.user?.isSuperAdmin) throw error(403, "Super-admin access required.");
+  const actor = { id: locals.user.id, permissions: SUPER_ADMIN_PERMISSIONS };
 
   const counts = await Promise.all(
     adminRegistry.list().map(async (def) => {
