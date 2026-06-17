@@ -302,6 +302,7 @@ Common commands:
 
 Deploy and debug:
   microservices deploy preview [template-id] [--name "Studio Demo"]
+  microservices deploy inspect <deployment-id>
   microservices deploy status <deployment-id>
   microservices deploy usage <deployment-id>
   microservices logs <deployment-id> [--search "..."] [--level info|warn|error]
@@ -357,6 +358,7 @@ Usage:
   microservices deploy preview [template-id] [--name "Studio Demo"] [--config '{"appName":"Demo"}'] [--api-url http://127.0.0.1:8787] [--api-key <key>] [--json]
   microservices deploy production [template-id] --plan [--json]
   microservices deploy production [template-id] --confirm production [--name "Studio Prod"] [--api-url http://127.0.0.1:8787] [--api-key <key>] [--json]
+  microservices deploy inspect <deployment-id> [--search "..."] [--level info|warn|error] [--since 24h] [--limit 5] [--api-url http://127.0.0.1:8787] [--json]
   microservices deploy status <deployment-id> [--api-url http://127.0.0.1:8787] [--json]
   microservices deploy artifact <deployment-id> --out <dir> [--api-url http://127.0.0.1:8787] [--json]
   microservices deploy doctor [--dir <artifact-dir>] [--api-url http://127.0.0.1:8787] [--json]
@@ -807,6 +809,67 @@ Resources:
 ${resources.length ? resources.map(formatResourceUsageLine).join("\n") : "none"}
 ${r2Metrics}${r2MetricsDiagnostic}Next:
 ${(result.nextSteps ?? []).map((step) => `- ${step}`).join("\n")}
+`;
+}
+
+function formatDeploymentResourceUsageSummary(result) {
+  if (!isObject(result)) return "Resources: unavailable\n";
+  const resources = Array.isArray(result.resources) ? result.resources : [];
+  const cloudflare = isObject(result.cloudflare) ? result.cloudflare : {};
+  const r2Metrics = formatR2AccountMetrics(result.r2AccountMetrics);
+  const r2MetricsDiagnostic = formatR2MetricsDiagnostic(result.r2MetricsDiagnostics);
+  return `${formatCloudflareUsageLine(cloudflare)}
+Resources:
+${resources.length ? resources.map(formatResourceUsageLine).join("\n") : "none"}
+${r2Metrics}${r2MetricsDiagnostic}`;
+}
+
+function formatDeploymentLogSummary(logs) {
+  const items = Array.isArray(logs) ? logs : [];
+  if (!items.length) return "none";
+  return items.map((log) => `- ${isoTime(log.createdAt)} ${String(log.level ?? "info").toUpperCase()} ${log.message}`).join("\n");
+}
+
+function formatDeploymentErrorSummary(errors) {
+  const items = Array.isArray(errors) ? errors : [];
+  if (!items.length) return "none";
+  return items
+    .map((error) => {
+      const parts = [
+        `${error.count ?? 1}x`,
+        String(error.level ?? "error").toUpperCase(),
+        error.eventType ?? "runtime.exception",
+        error.route ? `route=${error.route}` : null,
+        error.lastSeen ? `last=${isoTime(error.lastSeen)}` : null,
+      ].filter(Boolean);
+      return `- ${parts.join(" ")}\n  ${error.message}`;
+    })
+    .join("\n");
+}
+
+function formatUnavailableReads(readErrors) {
+  const items = Array.isArray(readErrors) ? readErrors : [];
+  if (!items.length) return "";
+  return `\nUnavailable:
+${items.map((item) => `- ${item.label}: ${item.message}`).join("\n")}
+`;
+}
+
+function formatDeploymentInspection(result) {
+  const deployment = result.deployment ?? {};
+  const status = result.status ?? {};
+  return `Deployment: ${deployment.id ?? "unknown"}
+Status: ${deployment.status ?? "unknown"}
+Mode: ${deployment.mode ?? "unknown"}
+Preview URL: ${deployment.previewUrl ?? "not provisioned yet"}
+Artifact: ${status.artifact?.checksum ?? "unknown"}
+
+${formatDeploymentResourceUsageSummary(result.usage)}
+Latest deploy logs:
+${formatDeploymentLogSummary(result.logs)}
+
+Runtime error groups:
+${formatDeploymentErrorSummary(result.errors)}${formatUnavailableReads(result.readErrors)}
 `;
 }
 
@@ -2753,6 +2816,10 @@ function observabilityQuery(flags) {
   };
 }
 
+function inspectionLimit(flags) {
+  return flags.limit ?? 5;
+}
+
 async function apiRequest(flags, path, options = {}) {
   const settings = await resolvedApiSettings(flags);
   const target = apiUrl(settings.apiUrl, path);
@@ -2784,6 +2851,48 @@ async function apiRequest(flags, path, options = {}) {
   }
 
   return payload;
+}
+
+function readError(label, response) {
+  if (response?.ok) return null;
+  return {
+    label,
+    code: response?.error?.code ?? "UNKNOWN_ERROR",
+    message: response?.error?.message ?? `${label} unavailable.`,
+  };
+}
+
+async function inspectDeployment(deploymentId, flags) {
+  if (!deploymentId) {
+    throw new Error("Missing deployment id.");
+  }
+
+  const status = await apiRequest(flags, `/deployments/${deploymentId}`);
+  if (!status?.ok) return status;
+
+  const limit = inspectionLimit(flags);
+  const [usage, logs, errors] = await Promise.all([
+    apiRequest(flags, `/deployments/${deploymentId}/resources/usage`),
+    apiRequest(flags, pathWithQuery(`/deployments/${deploymentId}/logs`, { ...logQuery(flags), limit })),
+    apiRequest(flags, pathWithQuery(`/deployments/${deploymentId}/errors`, { ...observabilityQuery(flags), limit })),
+  ]);
+
+  return {
+    ok: true,
+    requestId: status.requestId ?? `local_${Date.now().toString(36)}`,
+    data: {
+      deployment: status.data.deployment,
+      status: status.data,
+      usage: usage?.ok ? usage.data : null,
+      logs: logs?.ok ? logs.data.logs ?? [] : [],
+      errors: errors?.ok ? errors.data.errors ?? [] : [],
+      readErrors: [
+        readError("resource usage", usage),
+        readError("deploy logs", logs),
+        readError("runtime errors", errors),
+      ].filter(Boolean),
+    },
+  };
 }
 
 function printApiHuman(response, formatter = () => "") {
@@ -3571,6 +3680,11 @@ ${plan.sideEffects.map((item) => `- ${item}`).join("\n")}
           response,
           (result) => formatPreparedDeployment(result, "Production deployment")
         );
+  }
+
+  if (resource === "deploy" && (action === "inspect" || action === "debug")) {
+    response = await inspectDeployment(value, flags);
+    return flags.json ? writeJson(response) : printApiHuman(response, formatDeploymentInspection);
   }
 
   if (resource === "deploy" && action === "status") {

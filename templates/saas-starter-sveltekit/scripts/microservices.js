@@ -1626,6 +1626,56 @@ async function deployResourceUsage(deploymentId, flags) {
   return apiRequest(flags, `/deployments/${deploymentId}/resources/usage`);
 }
 
+function inspectionLimit(flags) {
+  return flags.limit ?? 5;
+}
+
+function readError(label, response) {
+  if (response?.ok) return null;
+  return {
+    label,
+    code: response?.error?.code ?? "UNKNOWN_ERROR",
+    message: response?.error?.message ?? `${label} unavailable.`
+  };
+}
+
+async function deployInspect(deploymentId, flags) {
+  const resolved = deploymentIdArg(deploymentId, flags);
+  if (!resolved.ok) return resolved;
+  deploymentId = resolved.data;
+
+  if (!deploymentId) {
+    return fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id returned by deploy preview.");
+  }
+
+  const status = await deployStatus(deploymentId, flags);
+  if (!status.ok) return status;
+
+  const inspectFlags = { ...flags, limit: inspectionLimit(flags) };
+  const [usage, logs, errors] = await Promise.all([
+    deployResourceUsage(deploymentId, flags),
+    deployLogs(deploymentId, inspectFlags),
+    apiRequest(flags, pathWithQuery(`/deployments/${deploymentId}/errors`, observabilityQuery(inspectFlags)))
+  ]);
+
+  return {
+    ok: true,
+    requestId: status.requestId ?? `local_${Date.now().toString(36)}`,
+    data: {
+      deployment: status.data.deployment,
+      status: status.data,
+      usage: usage.ok ? usage.data : null,
+      logs: logs.ok ? logs.data.logs ?? [] : [],
+      errors: errors.ok ? errors.data.errors ?? [] : [],
+      readErrors: [
+        readError("resource usage", usage),
+        readError("deploy logs", logs),
+        readError("runtime errors", errors)
+      ].filter(Boolean)
+    }
+  };
+}
+
 async function deployLogs(deploymentId, flags) {
   const resolved = deploymentIdArg(deploymentId, flags);
   if (!resolved.ok) return resolved;
@@ -2067,6 +2117,67 @@ ${(result.nextSteps ?? []).map((step) => `- ${step}`).join("\n")}
 `;
 }
 
+function formatResourceUsageSummary(result) {
+  if (!isRecord(result)) return "Resources: unavailable\n";
+  const resources = Array.isArray(result.resources) ? result.resources : [];
+  const cloudflare = isRecord(result.cloudflare) ? result.cloudflare : {};
+  const r2Metrics = formatR2AccountMetrics(result.r2AccountMetrics);
+  const r2MetricsDiagnostic = formatR2MetricsDiagnostic(result.r2MetricsDiagnostics);
+  return `${formatCloudflareUsageLine(cloudflare)}
+Resources:
+${resources.length ? resources.map(formatResourceUsageLine).join("\n") : "none"}
+${r2Metrics}${r2MetricsDiagnostic}`;
+}
+
+function formatLogSummary(logs) {
+  const items = Array.isArray(logs) ? logs : [];
+  if (!items.length) return "none";
+  return items.map((log) => `- ${isoTime(log.createdAt)} ${String(log.level ?? "info").toUpperCase()} ${log.message}`).join("\n");
+}
+
+function formatErrorSummary(errors) {
+  const items = Array.isArray(errors) ? errors : [];
+  if (!items.length) return "none";
+  return items
+    .map((error) => {
+      const parts = [
+        `${error.count ?? 1}x`,
+        String(error.level ?? "error").toUpperCase(),
+        error.eventType ?? "runtime.exception",
+        error.route ? `route=${error.route}` : null,
+        error.lastSeen ? `last=${isoTime(error.lastSeen)}` : null
+      ].filter(Boolean);
+      return `- ${parts.join(" ")}\n  ${error.message}`;
+    })
+    .join("\n");
+}
+
+function formatUnavailableReads(readErrors) {
+  const items = Array.isArray(readErrors) ? readErrors : [];
+  if (!items.length) return "";
+  return `\nUnavailable:
+${items.map((item) => `- ${item.label}: ${item.message}`).join("\n")}
+`;
+}
+
+function formatInspection(result) {
+  const deployment = result.deployment ?? {};
+  const status = result.status ?? {};
+  return `Deployment: ${deployment.id ?? "unknown"}
+Status: ${deployment.status ?? "unknown"}
+Mode: ${deployment.mode ?? "unknown"}
+Preview URL: ${deployment.previewUrl ?? "not provisioned yet"}
+Artifact: ${status.artifact?.checksum ?? "unknown"}
+
+${formatResourceUsageSummary(result.usage)}
+Latest deploy logs:
+${formatLogSummary(result.logs)}
+
+Runtime error groups:
+${formatErrorSummary(result.errors)}${formatUnavailableReads(result.readErrors)}
+`;
+}
+
 function formatCleanup(result) {
   return `Deployment: ${result.deployment.id}
 Status: ${result.deployment.status}
@@ -2156,6 +2267,7 @@ function usage() {
   microservices local setup                      # install deps + init local D1
   microservices auth login                       # authenticate the CLI
   microservices deploy run [--plan] [--confirm deploy]   # build + managed deploy to live
+  microservices deploy inspect [deployment-id]   # status, resources, logs, and errors
 
   Common flags: [--json] [--api-url <url>] [--api-key <key>]
   More: "microservices deploy --help-all" for granular deploy/local/auth steps and BYO-Cloudflare flags.
@@ -2189,6 +2301,7 @@ function usageAll() {
   microservices deploy migrate [deployment-id] [--input deployment.json] [--plan] --confirm migrate [--json]
   microservices deploy upload-plan [deployment-id] [--input deployment.json] [--json]
   microservices deploy upload [deployment-id] [--input deployment.json] [--plan] --confirm upload [--json]
+  microservices deploy inspect [deployment-id] [--input deployment.json] [--search "..."] [--level info|warn|error] [--since 24h] [--limit 5] [--json]
   microservices deploy status [deployment-id] [--input deployment.json] [--json]
   microservices deploy resources [deployment-id] [--input deployment.json] [--json]
   microservices deploy usage [deployment-id] [--input deployment.json] [--json]
@@ -2405,6 +2518,8 @@ async function main() {
     emit(await deployUploadPlan(value, flags), formatUploadPlan, flags);
   } else if (resource === "deploy" && action === "upload") {
     emit(await deployUpload(value, flags), (data) => data.deployment ? formatUpload(data) : `Upload plan: ${data.status}\n`, flags);
+  } else if (resource === "deploy" && (action === "inspect" || action === "debug")) {
+    emit(await deployInspect(value, flags), formatInspection, flags);
   } else if (resource === "deploy" && action === "status") {
     emit(await deployStatus(value, flags), formatStatus, flags);
   } else if (resource === "deploy" && action === "resources") {
