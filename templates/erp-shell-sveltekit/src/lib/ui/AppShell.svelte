@@ -8,6 +8,10 @@
 	// with grouped nav + section titles + active dots, a sticky topbar with a
 	// built-in theme toggle, and an optional status bar. App-specific content is
 	// passed in; the structure + styling are fixed so every app matches.
+	//
+	// All internal classes are namespaced `as-*` so they can't collide with the
+	// consuming app's global CSS (a generic `.shell`/`.nav`/`.topbar` in app.css
+	// would otherwise cascade in — e.g. a centered max-width container).
 	interface NavItem {
 		href: string;
 		label: string;
@@ -55,17 +59,17 @@
 	}
 </script>
 
-<div class="shell">
-	<aside class="side">
-		<Logo href={brandHref} class="side-brand" />
+<div class="as-shell">
+	<aside class="as-side">
+		<Logo href={brandHref} class="as-side-brand" />
 
-		<nav class="nav" aria-label="Primary">
+		<nav class="as-nav" aria-label="Primary">
 			{#each nav as group, i (group.section ?? i)}
-				<div class="nav-group">
-					{#if group.section}<div class="nav-title">{group.section}</div>{/if}
+				<div class="as-nav-group">
+					{#if group.section}<div class="as-nav-title">{group.section}</div>{/if}
 					{#each group.items as item (item.href)}
 						<a href={item.href} aria-current={item.href === activeHref ? 'page' : undefined}>
-							<span class="nav-dot" aria-hidden="true"></span>{item.label}
+							<span class="as-nav-dot" aria-hidden="true"></span>{item.label}
 						</a>
 					{/each}
 				</div>
@@ -73,17 +77,17 @@
 		</nav>
 
 		{#if footer}
-			<div class="side-foot">
-				{#if footer.title}<div class="ws">{footer.title}</div>{/if}
-				{#if footer.subtitle}<div class="ws-sub">{footer.subtitle}</div>{/if}
+			<div class="as-side-foot">
+				{#if footer.title}<div class="as-ws">{footer.title}</div>{/if}
+				{#if footer.subtitle}<div class="as-ws-sub">{footer.subtitle}</div>{/if}
 			</div>
 		{/if}
 	</aside>
 
-	<div class="main">
-		<header class="topbar">
-			<div class="crumbs">{#if crumbs}{@render crumbs()}{/if}</div>
-			<div class="topbar-actions">
+	<div class="as-main">
+		<header class="as-topbar">
+			<div class="as-crumbs">{#if crumbs}{@render crumbs()}{/if}</div>
+			<div class="as-actions">
 				<Button
 					variant="ghost"
 					size="sm"
@@ -96,28 +100,30 @@
 			</div>
 		</header>
 
-		<main class="content">
+		<main class="as-content">
 			{@render children()}
 		</main>
 	</div>
 </div>
 
 {#if status}
-	<footer class="statusbar" aria-label="Status bar">
-		{#if status.role}<span class="seg branch"><span class="led" aria-hidden="true"></span>{status.role}</span>{/if}
-		{#if status.center}<span class="seg hide-sm">{status.center}</span>{/if}
-		{#if status.right}<span class="seg push">{status.right}</span>{/if}
+	<footer class="as-statusbar" aria-label="Status bar">
+		{#if status.role}<span class="as-seg as-branch"><span class="as-led" aria-hidden="true"></span>{status.role}</span>{/if}
+		{#if status.center}<span class="as-seg">{status.center}</span>{/if}
+		{#if status.right}<span class="as-seg as-push">{status.right}</span>{/if}
 	</footer>
 {/if}
 
 <style>
-	.shell {
+	.as-shell {
 		display: grid;
 		grid-template-columns: 232px minmax(0, 1fr);
 		min-block-size: 100dvh;
+		inline-size: 100%;
+		margin: 0;
 		padding-block-end: var(--statusbar-h, 0px);
 	}
-	.side {
+	.as-side {
 		display: flex;
 		flex-direction: column;
 		gap: 22px;
@@ -128,18 +134,18 @@
 		top: 0;
 		block-size: calc(100dvh - var(--statusbar-h, 0px));
 	}
-	:global(.side-brand) {
+	:global(.as-side-brand) {
 		padding-inline: 6px;
 	}
-	.nav {
+	.as-nav {
 		display: grid;
 		gap: 18px;
 	}
-	.nav-group {
+	.as-nav-group {
 		display: grid;
 		gap: 2px;
 	}
-	.nav-title {
+	.as-nav-title {
 		font-family: var(--font-mono);
 		font-size: 0.66rem;
 		text-transform: uppercase;
@@ -147,7 +153,7 @@
 		color: var(--color-ink-faint);
 		padding: 0 9px 6px;
 	}
-	.nav a {
+	.as-nav a {
 		display: flex;
 		align-items: center;
 		gap: 9px;
@@ -158,49 +164,49 @@
 		font-size: 0.875rem;
 		text-decoration: none;
 	}
-	.nav a:hover {
+	.as-nav a:hover {
 		background: var(--color-panel);
 		color: var(--color-ink);
 	}
-	.nav a[aria-current='page'] {
+	.as-nav a[aria-current='page'] {
 		color: var(--color-ink);
 		background: var(--color-panel);
 		border: 1px solid var(--color-line);
 		box-shadow: var(--shadow-sm);
 	}
-	.nav-dot {
+	.as-nav-dot {
 		inline-size: 8px;
 		aspect-ratio: 1;
 		border-radius: 2px;
 		background: var(--color-line-strong);
 	}
-	.nav a[aria-current='page'] .nav-dot {
+	.as-nav a[aria-current='page'] .as-nav-dot {
 		background: var(--color-act);
 	}
-	.side-foot {
+	.as-side-foot {
 		margin-block-start: auto;
 		padding: 10px 9px 0;
 		border-block-start: 1px solid var(--color-line);
 	}
-	.ws {
+	.as-ws {
 		font-size: 0.84rem;
 		font-weight: 500;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
-	.ws-sub {
+	.as-ws-sub {
 		font-size: 0.74rem;
 		color: var(--color-ink-faint);
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
-	.main {
+	.as-main {
 		display: flex;
 		flex-direction: column;
 		min-inline-size: 0;
 	}
-	.topbar {
+	.as-topbar {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -214,13 +220,13 @@
 		top: 0;
 		z-index: 5;
 	}
-	.crumbs {
+	.as-crumbs {
 		display: inline-flex;
 		align-items: center;
 		gap: 10px;
 		min-inline-size: 0;
 	}
-	.crumbs :global(.mono) {
+	.as-crumbs :global(.mono) {
 		font-family: var(--font-mono);
 		font-size: 0.82rem;
 		color: var(--color-ink-soft);
@@ -228,17 +234,17 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
-	.topbar-actions {
+	.as-actions {
 		display: inline-flex;
 		align-items: center;
 		gap: 12px;
 	}
-	.content {
+	.as-content {
 		padding: 32px 28px 56px;
 		max-inline-size: 1180px;
 		inline-size: 100%;
 	}
-	.statusbar {
+	.as-statusbar {
 		position: fixed;
 		inset-block-end: 0;
 		inset-inline: 0;
@@ -254,7 +260,7 @@
 		backdrop-filter: blur(8px);
 		border-block-start: 1px solid var(--color-line);
 	}
-	.statusbar .seg {
+	.as-seg {
 		display: inline-flex;
 		align-items: center;
 		gap: 7px;
@@ -262,19 +268,19 @@
 		block-size: 100%;
 		border-inline-end: 1px solid var(--color-line);
 	}
-	.statusbar .seg:first-child {
+	.as-seg:first-child {
 		padding-inline-start: 0;
 	}
-	.statusbar .seg.push {
+	.as-push {
 		margin-inline-start: auto;
 		border-inline-end: 0;
 		border-inline-start: 1px solid var(--color-line);
 		color: var(--color-ink-faint);
 	}
-	.statusbar .branch {
+	.as-branch {
 		color: var(--color-ink);
 	}
-	.led {
+	.as-led {
 		inline-size: 7px;
 		aspect-ratio: 1;
 		border-radius: 50%;
@@ -282,10 +288,10 @@
 		box-shadow: 0 0 0 3px rgba(21, 176, 121, 0.16);
 	}
 	@media (max-width: 860px) {
-		.shell {
+		.as-shell {
 			grid-template-columns: 1fr;
 		}
-		.side {
+		.as-side {
 			position: sticky;
 			inset-block-start: 0;
 			z-index: 6;
@@ -301,30 +307,30 @@
 			background: color-mix(in srgb, var(--color-paper) 88%, transparent);
 			backdrop-filter: blur(8px);
 		}
-		.side::-webkit-scrollbar {
+		.as-side::-webkit-scrollbar {
 			display: none;
 		}
-		.side :global(.side-brand) {
+		.as-side :global(.as-side-brand) {
 			flex: none;
 		}
-		.nav {
+		.as-nav {
 			display: flex;
 			flex-direction: row;
 			gap: 6px;
 		}
-		.nav-group {
+		.as-nav-group {
 			display: flex;
 			flex-direction: row;
 			gap: 6px;
 		}
-		.nav-title,
-		.side-foot {
+		.as-nav-title,
+		.as-side-foot {
 			display: none;
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.topbar,
-		.statusbar {
+		.as-topbar,
+		.as-statusbar {
 			backdrop-filter: none;
 		}
 	}
