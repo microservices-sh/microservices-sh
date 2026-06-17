@@ -10,6 +10,11 @@
     { "name": "Badge", "file": "components/Badge.svelte", "deps": [] },
     { "name": "Alert", "file": "components/Alert.svelte", "deps": [] },
     { "name": "Field", "file": "components/Field.svelte", "deps": [] },
-    { "name": "Eyebrow", "file": "components/Eyebrow.svelte", "deps": [] }
+    { "name": "Eyebrow", "file": "components/Eyebrow.svelte", "deps": [] },
+    { "name": "PageHeader", "file": "components/PageHeader.svelte", "deps": [] },
+    { "name": "Metric", "file": "components/Metric.svelte", "deps": [] },
+    { "name": "UsageBar", "file": "components/UsageBar.svelte", "deps": [] },
+    { "name": "Logo", "file": "components/Logo.svelte", "deps": [] },
+    { "name": "NavProgress", "file": "components/NavProgress.svelte", "deps": [] }
   ]
 }
