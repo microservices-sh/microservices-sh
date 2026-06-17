@@ -115,6 +115,7 @@ export interface ModuleLock {
       hooks: string[];
       events: string[];
       requires: string[];
+      secrets: string[];
     };
   }>;
   customizations: {
@@ -148,7 +149,9 @@ export interface AppComposition {
 }
 
 export const CONTRACT_VERSION: string;
-export function listModules(): Array<Pick<ModuleContract, "id" | "name" | "version" | "status" | "category" | "summary" | "requires"> & { mount: string }>;
+export function parseModuleRef(value: string, explicitVersion?: string | null): { id: string; version: string | null; raw: string };
+export function availableModuleVersions(id: string): string[];
+export function listModules(): Array<Pick<ModuleContract, "id" | "name" | "version" | "status" | "category" | "summary" | "requires"> & { mount: string; latestVersion: string; availableVersions: string[] }>;
 export function inspectModule(id: string): ModuleContract;
 export function listTemplates(): Array<Pick<TemplateContract, "id" | "name" | "version" | "status" | "summary" | "defaultModules" | "optionalModules">>;
 export function inspectTemplate(id: string): TemplateContract;

@@ -64,6 +64,8 @@ function parseArgs(argv) {
     environment: null,
     confirm: null,
     mode: null,
+    version: null,
+    to: null,
     validationMethod: null,
     cfCustomHostnameId: null,
     cfHostnameStatus: null,
@@ -176,6 +178,12 @@ function parseArgs(argv) {
     } else if (value === "--mode") {
       flags.mode = argv[index + 1];
       index += 1;
+    } else if (value === "--version") {
+      flags.version = argv[index + 1];
+      index += 1;
+    } else if (value === "--to" || value === "--target-version") {
+      flags.to = argv[index + 1];
+      index += 1;
     } else if (value === "--validation-method") {
       flags.validationMethod = argv[index + 1];
       index += 1;
@@ -229,6 +237,42 @@ function templateInput(templateId, flags) {
     modules: flags.modules ?? undefined,
     config: flags.config ?? undefined,
   };
+}
+
+async function moduleOperationInput(templateId, flags) {
+  const lockPath = join(USER_CWD, "microservices.lock.json");
+  try {
+    const lock = JSON.parse(await readFile(lockPath, "utf8"));
+    return { ok: true, input: { lock } };
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return { ok: true, input: templateInput(templateId, flags) };
+    }
+    if (error instanceof SyntaxError) {
+      return {
+        ok: false,
+        response: failResponse(
+          "LOCKFILE_INVALID",
+          `Invalid microservices lockfile at ${lockPath}.`,
+          "Fix microservices.lock.json or run outside the project directory.",
+          { path: lockPath, message: error.message }
+        ),
+      };
+    }
+    return {
+      ok: false,
+      response: failResponse(
+        "LOCKFILE_READ_FAILED",
+        `Could not read microservices lockfile at ${lockPath}.`,
+        "Check file permissions or run outside the project directory.",
+        { path: lockPath, message: error.message }
+      ),
+    };
+  }
+}
+
+function versionedModuleArg(id, version) {
+  return version && id && !String(id).includes("@") ? `${id}@${version}` : id;
 }
 
 function cliTelemetryProps(flags, extra = {}) {
@@ -328,12 +372,12 @@ Usage:
   microservices modules list [--json]
   microservices modules inspect <id> [--json]
   microservices docs [module-id] [--json]
-  microservices add <module-id> --plan [--mode embedded|service] [--json]
+  microservices add <module-id[@version]> --plan [--version <version>] [--mode embedded|service] [--json]
   microservices secrets status [--json]
   microservices updates [--json]
-  microservices upgrade <module-id> --plan [--json]
-  microservices compose [template-id] [--modules auth,customer,booking] [--config '{"appName":"Demo"}'] [--json]
-  microservices graph [template-id] [--modules auth,customer,booking] [--json]
+  microservices upgrade <module-id[@version]> --plan [--to <version>] [--json]
+  microservices compose [template-id] [--modules auth@0.1.0,customer,booking] [--config '{"appName":"Demo"}'] [--json]
+  microservices graph [template-id] [--modules auth@0.1.0,customer,booking] [--json]
   microservices validate [template-id] [--config '{"timezone":"America/New_York"}'] [--json]
   microservices generate [template-id] --out <dir> [--json]
   microservices check [template-id] [--json]
@@ -3397,12 +3441,12 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
   }
 
   if (resource === "modules" && action === "inspect") {
-    response = inspectModule(value);
+    response = inspectModule(versionedModuleArg(value, flags.version));
     return flags.json ? writeJson(response) : printHuman(response, (module) => `${module.name}\n${module.summary}\nMount: ${module.runtime.mount}\nRequires: ${module.requires.join(", ") || "none"}\nHooks: ${module.hooks.map((hook) => hook.name).join(", ")}\n`);
   }
 
   if (resource === "docs") {
-    response = action ? getModuleDoc(action) : listModuleDocs();
+    response = action ? getModuleDoc(versionedModuleArg(action, flags.version)) : listModuleDocs();
     return flags.json
       ? writeJson(response)
       : printHuman(
@@ -3434,7 +3478,16 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
         ? writeJson(response)
         : printHuman(response, () => "");
     }
-    response = planAddModule({ moduleId: action, mode: flags.mode, ...templateInput("booking-business", flags) });
+    const input = await moduleOperationInput("booking-business", flags);
+    if (!input.ok) {
+      return flags.json ? writeJson(input.response) : printHuman(input.response, () => "");
+    }
+    response = planAddModule({
+      ...input.input,
+      moduleId: action,
+      version: flags.version,
+      mode: flags.mode,
+    });
     // Intent signal: which modules users want to add after scaffolding.
     // Plan-only in the MVP, so this is "planned", not "installed".
     if (response?.ok !== false) {
@@ -3464,7 +3517,11 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
   }
 
   if (resource === "updates") {
-    response = checkUpdates(templateInput(action || "booking-business", flags));
+    const input = await moduleOperationInput(action || "booking-business", flags);
+    if (!input.ok) {
+      return flags.json ? writeJson(input.response) : printHuman(input.response, () => "");
+    }
+    response = checkUpdates(input.input);
     return flags.json
       ? writeJson(response)
       : printHuman(
@@ -3487,7 +3544,15 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
       };
       return flags.json ? writeJson(response) : printHuman(response, () => "");
     }
-    response = planModuleUpgrade({ moduleId: action, ...templateInput("booking-business", flags) });
+    const input = await moduleOperationInput("booking-business", flags);
+    if (!input.ok) {
+      return flags.json ? writeJson(input.response) : printHuman(input.response, () => "");
+    }
+    response = planModuleUpgrade({
+      ...input.input,
+      moduleId: action,
+      targetVersion: flags.to ?? flags.version,
+    });
     return flags.json
       ? writeJson(response)
       : printHuman(

@@ -495,6 +495,125 @@ function findById(items, id, kind) {
   return item;
 }
 
+export function parseModuleRef(value, explicitVersion = null) {
+  const raw = typeof value === "string" ? value.trim() : String(value ?? "").trim();
+  const at = raw.lastIndexOf("@");
+  const inline =
+    at > 0
+      ? {
+          id: raw.slice(0, at),
+          version: raw.slice(at + 1) || null,
+        }
+      : {
+          id: raw,
+          version: null,
+        };
+  const version = explicitVersion ? String(explicitVersion).trim() : inline.version;
+
+  if (inline.version && explicitVersion && inline.version !== String(explicitVersion).trim()) {
+    throw createContractError(
+      "MODULE_VERSION_CONFLICT",
+      `Conflicting versions requested for module ${inline.id}.`,
+      "Use either module@version or --version/--to, not both with different versions.",
+      { moduleId: inline.id, inlineVersion: inline.version, explicitVersion: String(explicitVersion).trim() }
+    );
+  }
+
+  return {
+    id: inline.id,
+    version,
+    raw,
+  };
+}
+
+export function availableModuleVersions(id) {
+  const versions = MODULES.filter((candidate) => candidate.id === id).map((module) => module.version);
+  if (!versions.length) {
+    throw createContractError(
+      "MODULE_NOT_FOUND",
+      `Unknown module: ${id}`,
+      'Run "modules list --json" and select one of the returned ids.',
+      { id }
+    );
+  }
+  return unique(versions);
+}
+
+function findModuleByRef(ref, explicitVersion = null) {
+  const selector = parseModuleRef(ref, explicitVersion);
+  const candidates = MODULES.filter((candidate) => candidate.id === selector.id);
+  if (!candidates.length) {
+    throw createContractError(
+      "MODULE_NOT_FOUND",
+      `Unknown module: ${selector.id}`,
+      'Run "modules list --json" and select one of the returned ids.',
+      { id: selector.id }
+    );
+  }
+
+  const module = selector.version
+    ? candidates.find((candidate) => candidate.version === selector.version)
+    : candidates[candidates.length - 1];
+  if (!module) {
+    throw createContractError(
+      "MODULE_VERSION_NOT_FOUND",
+      `Module ${selector.id}@${selector.version} is not available in this registry snapshot.`,
+      "Select one of the available versions or omit the version to use the current registry version.",
+      {
+        id: selector.id,
+        moduleId: selector.id,
+        requestedVersion: selector.version,
+        availableVersions: candidates.map((candidate) => candidate.version),
+      }
+    );
+  }
+
+  return module;
+}
+
+function moduleRefString(module) {
+  return `${module.id}@${module.version}`;
+}
+
+function resolveModuleRefs(moduleRefs) {
+  const explicitVersions = new Map();
+  for (const value of moduleRefs) {
+    const ref = parseModuleRef(value);
+    if (!ref.id || !ref.version) continue;
+    const existing = explicitVersions.get(ref.id);
+    if (existing && existing !== ref.version) {
+      throw createContractError(
+        "MODULE_VERSION_CONFLICT",
+        `Conflicting versions requested for module ${ref.id}.`,
+        "Request a single version for each module.",
+        { moduleId: ref.id, requestedVersions: [existing, ref.version] }
+      );
+    }
+    explicitVersions.set(ref.id, ref.version);
+  }
+
+  const visited = new Set();
+  const ordered = [];
+
+  function visit(value) {
+    const ref = parseModuleRef(value);
+    const version = explicitVersions.get(ref.id) ?? ref.version;
+    const module = findModuleByRef(ref.id, version);
+    if (visited.has(module.id)) return;
+    visited.add(module.id);
+    for (const requiredId of module.requires) {
+      visit(requiredId);
+    }
+    ordered.push(module);
+  }
+
+  for (const moduleRef of moduleRefs) {
+    visit(moduleRef);
+  }
+
+  return ordered;
+}
+
 function mergeConfig(base, override) {
   if (!override || typeof override !== "object" || Array.isArray(override)) {
     return clone(base);
@@ -519,11 +638,15 @@ function mergeConfig(base, override) {
 }
 
 export function listModules() {
-  return MODULES.map(moduleSummary);
+  return MODULES.map((module) => ({
+    ...moduleSummary(module),
+    latestVersion: module.version,
+    availableVersions: availableModuleVersions(module.id),
+  }));
 }
 
 export function inspectModule(id) {
-  return clone(findById(MODULES, id, "module"));
+  return clone(findModuleByRef(id));
 }
 
 export function listTemplates() {
@@ -535,24 +658,7 @@ export function inspectTemplate(id) {
 }
 
 export function resolveModuleIds(moduleIds) {
-  const visited = new Set();
-  const ordered = [];
-
-  function visit(id) {
-    if (visited.has(id)) return;
-    const module = inspectModule(id);
-    visited.add(id);
-    for (const requiredId of module.requires) {
-      visit(requiredId);
-    }
-    ordered.push(id);
-  }
-
-  for (const moduleId of moduleIds) {
-    visit(moduleId);
-  }
-
-  return ordered;
+  return resolveModuleRefs(moduleIds).map((module) => module.id);
 }
 
 export function createModuleLock(modules, template = null) {
@@ -595,6 +701,7 @@ export function createModuleLock(modules, template = null) {
         hooks: module.hooks.map((hook) => hook.name),
         events: unique([...module.eventsEmitted, ...module.eventsConsumed]),
         requires: clone(module.requires),
+        secrets: clone(module.secrets ?? []),
       },
     })),
     customizations: {
@@ -614,13 +721,13 @@ export function composeApp(input = {}) {
     ...template.defaultModules,
     ...(options.modules ?? []),
   ]);
-  const resolvedModuleIds = resolveModuleIds(requestedModules);
-  const modules = resolvedModuleIds.map(inspectModule);
+  const modules = resolveModuleRefs(requestedModules).map(clone);
+  const resolvedModuleIds = modules.map((module) => module.id);
   const config = mergeConfig(template.defaultConfig, options.config);
 
   return {
     schemaVersion: CONTRACT_VERSION,
-    compositionId: `cmp_${template.id}_${resolvedModuleIds.join("_")}`,
+    compositionId: `cmp_${template.id}_${modules.map(moduleRefString).join("_")}`,
     template: templateSummary(template),
     config,
     modules,

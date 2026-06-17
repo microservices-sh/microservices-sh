@@ -4,6 +4,7 @@ import {
   inspectTemplate as inspectContractTemplate,
   listModules as listContractModules,
   listTemplates as listContractTemplates,
+  parseModuleRef as parseContractModuleRef,
 } from "@microservices-sh/module-contract";
 
 import {
@@ -145,16 +146,80 @@ function moduleCatalog() {
   };
 }
 
-function findCatalogModule(moduleId) {
-  const module = moduleCatalog().modules.find((candidate) => candidate.id === moduleId);
-  if (!module) {
-    const error = new Error(`Unknown module: ${moduleId}`);
+function uniqueValues(values) {
+  return [...new Set(values)];
+}
+
+function parseModuleSelector(value, explicitVersion = null) {
+  try {
+    return parseContractModuleRef(String(value ?? ""), explicitVersion);
+  } catch (error) {
+    error.remediation ??= "Use module@version or pass a matching --version/--to value.";
+    throw error;
+  }
+}
+
+function catalogVersions(moduleId) {
+  return uniqueValues(moduleCatalog().modules.filter((candidate) => candidate.id === moduleId).map((module) => module.version));
+}
+
+function findCatalogModule(moduleId, explicitVersion = null) {
+  const selector = parseModuleSelector(moduleId, explicitVersion);
+  const candidates = moduleCatalog().modules.filter((candidate) => candidate.id === selector.id);
+  if (!candidates.length) {
+    const error = new Error(`Unknown module: ${selector.id}`);
     error.code = "MODULE_NOT_FOUND";
     error.remediation = "Run modules list --json and select a returned module id.";
-    error.details = { moduleId };
+    error.details = { moduleId: selector.id };
+    throw error;
+  }
+
+  const module = selector.version
+    ? candidates.find((candidate) => candidate.version === selector.version)
+    : candidates[0];
+  if (!module) {
+    const error = new Error(`Module ${selector.id}@${selector.version} is not available in this registry snapshot.`);
+    error.code = "MODULE_VERSION_NOT_FOUND";
+    error.remediation = "Select one of the available versions or omit the version to use the current registry version.";
+    error.details = {
+      moduleId: selector.id,
+      requestedVersion: selector.version,
+      availableVersions: candidates.map((candidate) => candidate.version),
+    };
     throw error;
   }
   return module;
+}
+
+function moduleRequest(options, versionKeys = ["version"]) {
+  const moduleId = options.moduleId ?? options.id;
+  const explicitVersion = versionKeys.map((key) => options[key]).find((value) => typeof value === "string" && value.trim());
+  return parseModuleSelector(moduleId, explicitVersion ?? null);
+}
+
+function parseSemver(value) {
+  const match = String(value ?? "").match(/^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/);
+  return match ? match.slice(1, 4).map((part) => Number(part)) : null;
+}
+
+function compareVersions(a, b) {
+  if (a === b) return 0;
+  const left = parseSemver(a);
+  const right = parseSemver(b);
+  if (left && right) {
+    for (let index = 0; index < 3; index += 1) {
+      if (left[index] !== right[index]) return left[index] < right[index] ? -1 : 1;
+    }
+    return 0;
+  }
+  return String(a) < String(b) ? -1 : 1;
+}
+
+function versionDirection(currentVersion, targetVersion) {
+  const comparison = compareVersions(currentVersion, targetVersion);
+  if (comparison < 0) return "upgrade";
+  if (comparison > 0) return "downgrade";
+  return "none";
 }
 
 function moduleDocMarkdown(module) {
@@ -1246,11 +1311,18 @@ function buildProjectCliJs() {
 
 	function parseArgs(argv) {
 	  const args = [];
-	  const flags = { json: false, plan: false };
+	  const flags = { json: false, plan: false, version: null, to: null };
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
     if (value === "--json") flags.json = true;
     else if (value === "--plan") flags.plan = true;
+    else if (value === "--version") {
+      flags.version = argv[index + 1] ?? null;
+      index += 1;
+    } else if (value === "--to" || value === "--target-version") {
+      flags.to = argv[index + 1] ?? null;
+      index += 1;
+    }
     else args.push(value);
   }
   return { args, flags };
@@ -1331,15 +1403,83 @@ function writeJson(value) {
   process.stdout.write(JSON.stringify(value, null, 2) + "\\n");
 }
 
-function findModule(id) {
-  return catalog().modules.find((module) => module.id === id);
+function parseModuleSelector(value, explicitVersion = null) {
+  const raw = String(value ?? "").trim();
+  const at = raw.lastIndexOf("@");
+  const selector = at > 0
+    ? { id: raw.slice(0, at), version: raw.slice(at + 1) || null }
+    : { id: raw, version: null };
+  const flagVersion = explicitVersion ? String(explicitVersion).trim() : null;
+  if (selector.version && flagVersion && selector.version !== flagVersion) {
+    return {
+      ok: false,
+      response: fail("Conflicting module versions.", "Use either module@version or --version/--to, not both with different versions.", {
+        moduleId: selector.id,
+        inlineVersion: selector.version,
+        explicitVersion: flagVersion,
+      }),
+    };
+  }
+  return { ok: true, id: selector.id, version: flagVersion ?? selector.version };
 }
 
-function modulePlan(id) {
-  const module = findModule(id);
-  if (!module) {
-    return fail("Unknown module.", "Run pnpm microservices modules list --json and pick a returned id.", { id });
+function resolveModule(id, explicitVersion = null) {
+  const selector = parseModuleSelector(id, explicitVersion);
+  if (!selector.ok) return selector;
+  const candidates = catalog().modules.filter((module) => module.id === selector.id);
+  if (!candidates.length) {
+    return {
+      ok: false,
+      response: fail("Unknown module.", "Run pnpm microservices modules list --json and pick a returned id.", { id: selector.id }),
+    };
   }
+  const module = selector.version
+    ? candidates.find((candidate) => candidate.version === selector.version)
+    : candidates[candidates.length - 1];
+  if (!module) {
+    return {
+      ok: false,
+      response: fail("Requested module version is not available.", "Use one of the available versions or omit the version.", {
+        moduleId: selector.id,
+        requestedVersion: selector.version,
+        availableVersions: candidates.map((candidate) => candidate.version),
+      }),
+    };
+  }
+  return { ok: true, module, selector: { id: selector.id, version: selector.version }, availableVersions: candidates.map((candidate) => candidate.version) };
+}
+
+function compareVersions(a, b) {
+  if (a === b) return 0;
+  const left = String(a ?? "").match(/^(\\d+)\\.(\\d+)\\.(\\d+)(?:[-+].*)?$/);
+  const right = String(b ?? "").match(/^(\\d+)\\.(\\d+)\\.(\\d+)(?:[-+].*)?$/);
+  if (left && right) {
+    for (let index = 1; index <= 3; index += 1) {
+      const l = Number(left[index]);
+      const r = Number(right[index]);
+      if (l !== r) return l < r ? -1 : 1;
+    }
+    return 0;
+  }
+  return String(a) < String(b) ? -1 : 1;
+}
+
+function versionDirection(currentVersion, targetVersion) {
+  const comparison = compareVersions(currentVersion, targetVersion);
+  if (comparison < 0) return "upgrade";
+  if (comparison > 0) return "downgrade";
+  return "none";
+}
+
+function findModule(id, explicitVersion = null) {
+  const result = resolveModule(id, explicitVersion);
+  return result.ok ? result.module : null;
+}
+
+function modulePlan(id, flags = {}) {
+  const resolved = resolveModule(id, flags.version);
+  if (!resolved.ok) return resolved.response;
+  const module = resolved.module;
   const lock = lockfile();
   const installed = new Set((lock.modules ?? []).map((item) => item.id));
   const missingDependencies = (module.requires ?? []).filter((item) => !installed.has(item));
@@ -1348,6 +1488,8 @@ function modulePlan(id) {
 
   return ok({
     module,
+    requestedVersion: resolved.selector.version ?? module.version,
+    availableVersions: resolved.availableVersions,
     action: alreadyInstalled ? "already-installed" : module.status === "available" ? "install" : "planned-install",
     alreadyInstalled,
     missingDependencies,
@@ -1420,22 +1562,22 @@ function filesForUpgrade(module, diff) {
   return Array.from(files);
 }
 
-function upgradePlan(id) {
-  const module = findModule(id);
-  if (!module) {
-    return fail("Unknown module.", "Run pnpm microservices modules list --json and pick a returned id.", { id });
-  }
+function upgradePlan(id, flags = {}) {
+  const resolved = resolveModule(id, flags.to ?? flags.version);
+  if (!resolved.ok) return resolved.response;
+  const module = resolved.module;
 
   const lock = lockfile();
-  const locked = (lock.modules ?? []).find((item) => item.id === id);
+  const locked = (lock.modules ?? []).find((item) => item.id === resolved.selector.id);
   if (!locked) {
-    return fail("Module is not installed.", "Run pnpm microservices modules list --json, then plan an upgrade for an installed module.", { id });
+    return fail("Module is not installed.", "Run pnpm microservices modules list --json, then plan an upgrade for an installed module.", { id: resolved.selector.id });
   }
 
   const hasSnapshot = Boolean(locked.contract && typeof locked.contract === "object");
   const currentContract = locked.contract ?? {};
   const nextContract = targetContract(module);
-  const upgradeAvailable = locked.version !== module.version;
+  const direction = versionDirection(locked.version, module.version);
+  const versionChangeAvailable = direction !== "none";
   const diff = {
     mount: hasSnapshot && currentContract.mount !== nextContract.mount
       ? { from: currentContract.mount ?? null, to: nextContract.mount }
@@ -1446,9 +1588,9 @@ function upgradePlan(id) {
     events: stringDiff(currentContract.events, nextContract.events, hasSnapshot),
     requires: stringDiff(currentContract.requires, nextContract.requires, hasSnapshot),
     secrets: {
-      added: upgradeAvailable ? nextContract.secrets : [],
+      added: versionChangeAvailable ? nextContract.secrets : [],
       removed: [],
-      unchanged: upgradeAvailable ? [] : nextContract.secrets,
+      unchanged: versionChangeAvailable ? [] : nextContract.secrets,
       snapshotAvailable: false,
     },
   };
@@ -1464,10 +1606,10 @@ function upgradePlan(id) {
   const changesResources = diff.resources.added.length > 0 || diff.resources.removed.length > 0;
   const changesPermissions = diff.permissions.added.length > 0 || diff.permissions.removed.length > 0;
   const changesSecrets = diff.secrets.added.length > 0 || diff.secrets.removed.length > 0;
-  const approvalRequired = upgradeAvailable && (
+  const approvalRequired = versionChangeAvailable && (
     module.approvalRisk === "high" || changesSecrets || changesResources || changesPermissions || hasForks || hasOverlays
   );
-  const risk = !upgradeAvailable
+  const risk = !versionChangeAvailable
     ? "low"
     : approvalRequired || hasForks
       ? "high"
@@ -1482,9 +1624,13 @@ function upgradePlan(id) {
       status: module.status,
       currentVersion: locked.version,
       targetVersion: module.version,
+      requestedVersion: resolved.selector.version ?? module.version,
+      availableVersions: resolved.availableVersions,
     },
-    action: upgradeAvailable ? "upgrade-plan" : "no-op",
-    upgradeAvailable,
+    action: direction === "none" ? "no-op" : direction + "-plan",
+    direction,
+    upgradeAvailable: versionChangeAvailable,
+    versionChangeAvailable,
     approvalRequired,
     risk,
     lockfile: {
@@ -1497,7 +1643,7 @@ function upgradePlan(id) {
     },
     diff,
     customizationImpact,
-    filesLikelyTouched: upgradeAvailable ? filesForUpgrade(module, diff) : [],
+    filesLikelyTouched: versionChangeAvailable ? filesForUpgrade(module, diff) : [],
     permissionGate: {
       required: approvalRequired,
       reasons: [
@@ -1509,16 +1655,16 @@ function upgradePlan(id) {
         hasForks ? "forked module requires manual merge review" : null,
       ].filter(Boolean),
     },
-    nextSteps: upgradeAvailable
+    nextSteps: versionChangeAvailable
       ? [
           "Review this plan with the user before modifying source.",
-          "Create a branch or patch for the upgrade.",
+          "Create a branch or patch for the " + direction + ".",
           "Review hook, overlay, and fork impacts before applying generated changes.",
           "Run pnpm microservices check --json and pnpm typecheck after applying.",
           "Deploy preview only after approval for resources, migrations, webhooks, or secrets.",
         ]
       : [
-          "No upgrade is available from the current registry snapshot.",
+          "The installed module already matches the requested registry version.",
           "Run microservices updates --json later to check again.",
         ],
   });
@@ -1537,11 +1683,14 @@ function updates() {
       unavailable.push({ id: locked.id, currentVersion: locked.version, reason: "No matching catalog module." });
       continue;
     }
+    const direction = versionDirection(locked.version, registryModule.version);
     current.push({
       id: locked.id,
       currentVersion: locked.version,
       latestVersion: registryModule.version,
-      status: locked.version === registryModule.version ? "current" : "update-available",
+      availableVersions: modules.filter((module) => module.id === locked.id).map((module) => module.version),
+      direction,
+      status: direction === "none" ? "current" : "update-available",
     });
   }
 
@@ -1603,12 +1752,12 @@ function usage() {
   return "microservices project CLI\\n\\n" +
     "Usage:\\n" +
     "  pnpm microservices modules list [--json]\\n" +
-    "  pnpm microservices modules inspect <id> [--json]\\n" +
-    "  pnpm microservices docs <id> [--json]\\n" +
-    "  pnpm microservices add <id> --plan [--json]\\n" +
+    "  pnpm microservices modules inspect <id[@version]> [--version x] [--json]\\n" +
+    "  pnpm microservices docs <id[@version]> [--version x] [--json]\\n" +
+    "  pnpm microservices add <id[@version]> --plan [--version x] [--json]\\n" +
     "  pnpm microservices secrets status [--json]\\n" +
     "  pnpm microservices updates [--json]\\n" +
-    "  pnpm microservices upgrade <id> --plan [--json]\\n" +
+    "  pnpm microservices upgrade <id[@version]> --plan [--to x] [--json]\\n" +
     "  pnpm microservices check [--json]\\n" +
     "  pnpm microservices dev\\n";
 }
@@ -1625,18 +1774,18 @@ let response;
 	  flags.json ? writeJson(response) : process.stdout.write(response.data.map((module) => module.id + " (" + module.status + ") - " + module.summary).join("\\n") + "\\n");
 	} else if (resource === "modules" && action === "inspect") {
 	  telemetryNotice(flags.json);
-	  const module = findModule(value);
-	  response = module ? ok(module) : fail("Unknown module.", "Run modules list --json and pick a returned id.", { id: value });
-	  flags.json ? writeJson(response) : process.stdout.write(response.ok ? module.name + "\\n" + module.summary + "\\nMount: " + module.mount + "\\nStatus: " + module.status + "\\n" : "Error: " + response.error.message + "\\n");
+	  const resolved = resolveModule(value, flags.version);
+	  response = resolved.ok ? ok(resolved.module) : resolved.response;
+	  flags.json ? writeJson(response) : process.stdout.write(response.ok ? response.data.name + "\\n" + response.data.summary + "\\nMount: " + response.data.mount + "\\nStatus: " + response.data.status + "\\n" : "Error: " + response.error.message + "\\n");
 	} else if (resource === "docs") {
 	  telemetryNotice(flags.json);
-	  const module = findModule(action);
-	  if (!module) {
-	    response = fail("Unknown module.", "Run modules list --json and pick a returned id.", { id: action });
-  } else if (!existsSync(module.docPath)) {
-    response = fail("Module doc is missing.", "Regenerate the app or check docs/modules/catalog.json.", { path: module.docPath });
+	  const resolved = resolveModule(action, flags.version);
+	  if (!resolved.ok) {
+	    response = resolved.response;
+  } else if (!existsSync(resolved.module.docPath)) {
+    response = fail("Module doc is missing.", "Regenerate the app or check docs/modules/catalog.json.", { path: resolved.module.docPath });
   } else {
-    response = ok({ id: module.id, path: module.docPath, markdown: readFileSync(module.docPath, "utf8") });
+    response = ok({ id: resolved.module.id, path: resolved.module.docPath, markdown: readFileSync(resolved.module.docPath, "utf8") });
 	  }
 	  flags.json ? writeJson(response) : process.stdout.write(response.ok ? response.data.markdown : "Error: " + response.error.message + "\\n");
 	} else if (resource === "add") {
@@ -1644,7 +1793,7 @@ let response;
 	  if (!flags.plan) {
 	    response = fail("Add requires --plan in the MVP scaffold.", "Run pnpm microservices add <module-id> --plan --json.", { id: action });
 	  } else {
-	    response = modulePlan(action);
+	    response = modulePlan(action, flags);
 	  }
 	  if (response.ok) {
 	    await track("module_add_planned", telemetryProps(flags, { moduleId: action ?? null }));
@@ -1665,7 +1814,7 @@ let response;
 	  if (!flags.plan) {
 	    response = fail("Upgrade requires --plan in the MVP scaffold.", "Run pnpm microservices upgrade <module-id> --plan --json.", { id: action });
 	  } else {
-    response = upgradePlan(action);
+    response = upgradePlan(action, flags);
 	  }
 	  flags.json ? writeJson(response) : process.stdout.write(response.ok ? "Upgrade plan for " + response.data.module.id + ": " + response.data.action + "\\nApproval required: " + response.data.approvalRequired + "\\nRisk: " + response.data.risk + "\\n" : "Error: " + response.error.message + "\\n");
 	} else if (resource === "check") {
@@ -1838,8 +1987,8 @@ function filesForUpgrade(module, diff) {
 export function planAddModule(input = {}) {
   return capture(() => {
     const options = typeof input === "string" ? { moduleId: input } : input;
-    const moduleId = options.moduleId ?? options.id;
-    if (!moduleId) {
+    const request = moduleRequest(options, ["version", "targetVersion", "to"]);
+    if (!request.id) {
       const error = new Error("Missing module id.");
       error.code = "MODULE_ID_REQUIRED";
       error.remediation = "Pass a module id such as payment-stripe.";
@@ -1854,10 +2003,11 @@ export function planAddModule(input = {}) {
       throw error;
     }
 
-    const module = findCatalogModule(moduleId);
+    const module = findCatalogModule(request.id, request.version);
     const installed = new Set(lockedModuleIds(options));
     const alreadyInstalled = installed.has(module.id);
     const missingDependencies = module.requires.filter((id) => !installed.has(id));
+    const availableVersions = catalogVersions(module.id);
 
     // In service mode each module is its own Worker with its own D1; callers
     // reach it via a service binding (plans/24). Worker/D1 names use deploy-time
@@ -1911,6 +2061,8 @@ export function planAddModule(input = {}) {
 
     return {
       module,
+      requestedVersion: request.version ?? module.version,
+      availableVersions,
       mode: requestedMode,
       action: alreadyInstalled ? "already-installed" : module.status === "available" ? "install" : "planned-install",
       alreadyInstalled,
@@ -1929,6 +2081,8 @@ export function planAddModule(input = {}) {
       lockEntry: {
         id: module.id,
         version: module.version,
+        source: `registry:${module.id}@${module.version}`,
+        checksum: `sha256:preview-${module.id}-${module.version}`,
         mode: requestedMode,
         ...(requestedMode === "service" ? { worker: serviceWorker, d1: serviceD1Binding } : {}),
       },
@@ -2035,21 +2189,29 @@ export function getSecretsStatus(input = {}) {
 export function checkUpdates(input = {}) {
   return capture(() => {
     const lock = moduleLock(input);
-    const byId = new Map(moduleCatalog().modules.map((module) => [module.id, module]));
+    const modulesById = new Map();
+    for (const module of moduleCatalog().modules) {
+      if (!modulesById.has(module.id)) modulesById.set(module.id, []);
+      modulesById.get(module.id).push(module);
+    }
     const current = [];
     const unavailable = [];
 
     for (const locked of lock.modules ?? []) {
-      const module = byId.get(locked.id);
-      if (!module) {
+      const candidates = modulesById.get(locked.id) ?? [];
+      if (!candidates.length) {
         unavailable.push({ id: locked.id, currentVersion: locked.version, reason: "No matching catalog module." });
         continue;
       }
+      const module = candidates[0];
+      const direction = versionDirection(locked.version, module.version);
       current.push({
         id: locked.id,
         currentVersion: locked.version,
         latestVersion: module.version,
-        status: locked.version === module.version ? "current" : "update-available",
+        availableVersions: uniqueValues(candidates.map((candidate) => candidate.version)),
+        direction,
+        status: direction === "none" ? "current" : "update-available",
       });
     }
 
@@ -2073,8 +2235,8 @@ export function checkUpdates(input = {}) {
 export function planModuleUpgrade(input = {}) {
   return capture(() => {
     const options = typeof input === "string" ? { moduleId: input } : input;
-    const moduleId = options.moduleId ?? options.id;
-    if (!moduleId) {
+    const request = moduleRequest(options, ["targetVersion", "to", "version"]);
+    if (!request.id) {
       const error = new Error("Missing module id.");
       error.code = "MODULE_ID_REQUIRED";
       error.remediation = "Pass a module id such as booking.";
@@ -2082,20 +2244,21 @@ export function planModuleUpgrade(input = {}) {
     }
 
     const lock = moduleLock(options);
-    const locked = (lock.modules ?? []).find((module) => module.id === moduleId);
+    const locked = (lock.modules ?? []).find((module) => module.id === request.id);
     if (!locked) {
-      const error = new Error(`Module is not installed: ${moduleId}`);
+      const error = new Error(`Module is not installed: ${request.id}`);
       error.code = "MODULE_NOT_INSTALLED";
       error.remediation = "Run microservices modules list --json, then plan an upgrade for an installed module.";
-      error.details = { moduleId };
+      error.details = { moduleId: request.id };
       throw error;
     }
 
-    const module = findCatalogModule(moduleId);
+    const module = findCatalogModule(request.id, request.version);
     const hasSnapshot = Boolean(locked.contract && typeof locked.contract === "object");
     const currentContract = locked.contract ?? {};
     const nextContract = targetContract(module);
-    const upgradeAvailable = locked.version !== module.version;
+    const direction = versionDirection(locked.version, module.version);
+    const versionChangeAvailable = direction !== "none";
     const diff = {
       mount:
         hasSnapshot && currentContract.mount !== nextContract.mount
@@ -2107,9 +2270,9 @@ export function planModuleUpgrade(input = {}) {
       events: stringDiff(currentContract.events, nextContract.events, hasSnapshot),
       requires: stringDiff(currentContract.requires, nextContract.requires, hasSnapshot),
       secrets: {
-        added: upgradeAvailable ? nextContract.secrets : [],
+        added: versionChangeAvailable ? nextContract.secrets : [],
         removed: [],
-        unchanged: upgradeAvailable ? [] : nextContract.secrets,
+        unchanged: versionChangeAvailable ? [] : nextContract.secrets,
         snapshotAvailable: false,
       },
     };
@@ -2126,9 +2289,9 @@ export function planModuleUpgrade(input = {}) {
     const changesPermissions = diff.permissions.added.length > 0 || diff.permissions.removed.length > 0;
     const changesSecrets = diff.secrets.added.length > 0 || diff.secrets.removed.length > 0;
     const approvalRequired =
-      upgradeAvailable &&
+      versionChangeAvailable &&
       (module.approvalRisk === "high" || changesSecrets || changesResources || changesPermissions || hasForks || hasOverlays);
-    const risk = !upgradeAvailable
+    const risk = !versionChangeAvailable
       ? "low"
       : approvalRequired || hasForks
         ? "high"
@@ -2143,9 +2306,13 @@ export function planModuleUpgrade(input = {}) {
         status: module.status,
         currentVersion: locked.version,
         targetVersion: module.version,
+        requestedVersion: request.version ?? module.version,
+        availableVersions: catalogVersions(module.id),
       },
-      action: upgradeAvailable ? "upgrade-plan" : "no-op",
-      upgradeAvailable,
+      action: direction === "none" ? "no-op" : `${direction}-plan`,
+      direction,
+      upgradeAvailable: versionChangeAvailable,
+      versionChangeAvailable,
       approvalRequired,
       risk,
       lockfile: {
@@ -2158,7 +2325,7 @@ export function planModuleUpgrade(input = {}) {
       },
       diff,
       customizationImpact,
-      filesLikelyTouched: upgradeAvailable ? filesForUpgrade(module, diff) : [],
+      filesLikelyTouched: versionChangeAvailable ? filesForUpgrade(module, diff) : [],
       permissionGate: {
         required: approvalRequired,
         reasons: [
@@ -2170,16 +2337,16 @@ export function planModuleUpgrade(input = {}) {
           hasForks ? "forked module requires manual merge review" : null,
         ].filter(Boolean),
       },
-      nextSteps: upgradeAvailable
+      nextSteps: versionChangeAvailable
         ? [
             "Review this plan with the user before modifying source.",
-            "Create a branch or patch for the upgrade.",
+            `Create a branch or patch for the ${direction}.`,
             "Review hook, overlay, and fork impacts before applying generated changes.",
             "Run pnpm microservices check --json and pnpm typecheck after applying.",
             "Deploy preview only after approval for resources, migrations, webhooks, or secrets.",
           ]
         : [
-            "No upgrade is available from the current registry snapshot.",
+            "The installed module already matches the requested registry version.",
             "Run microservices updates --json later to check again.",
           ],
     };

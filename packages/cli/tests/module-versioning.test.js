@@ -1,0 +1,85 @@
+import { spawnSync } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+
+const testDir = dirname(fileURLToPath(import.meta.url));
+const cliPath = resolve(testDir, "../src/index.js");
+
+function runCli(args, cwd) {
+  return spawnSync(process.execPath, [cliPath, ...args], {
+    cwd,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      INIT_CWD: cwd,
+      MICROSERVICES_TELEMETRY: "0",
+    },
+  });
+}
+
+function parseStdout(result) {
+  return JSON.parse(result.stdout);
+}
+
+async function withLock(version, fn) {
+  const root = await mkdtemp(join(tmpdir(), "microservices-cli-versioning-"));
+  await writeFile(
+    join(root, "microservices.lock.json"),
+    `${JSON.stringify(
+      {
+        schemaVersion: "2026-06-13",
+        modules: [{ id: "auth", version, source: `registry:auth@${version}`, checksum: "sha256:test", contract: {} }],
+        customizations: { config: true, hooks: [], overlays: [], forks: [] },
+      },
+      null,
+      2
+    )}\n`,
+    "utf8"
+  );
+  try {
+    return await fn(root);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}
+
+describe("CLI module versioning", () => {
+  it("inspects versioned module refs", () => {
+    const result = runCli(["modules", "inspect", "auth@0.1.0", "--json"], process.cwd());
+    expect(result.status).toBe(0);
+    const payload = parseStdout(result);
+    expect(payload.ok).toBe(true);
+    expect(payload.data).toMatchObject({ id: "auth", version: "0.1.0" });
+  });
+
+  it("plans add with a version flag", () => {
+    const result = runCli(["add", "payment", "--version", "0.1.0", "--plan", "--json"], process.cwd());
+    expect(result.status).toBe(0);
+    const payload = parseStdout(result);
+    expect(payload.ok).toBe(true);
+    expect(payload.data.module.id).toBe("payment");
+    expect(payload.data.requestedVersion).toBe("0.1.0");
+  });
+
+  it("plans downgrade from a project lockfile", async () => {
+    await withLock("0.2.0", async (root) => {
+      const result = runCli(["upgrade", "auth", "--to", "0.1.0", "--plan", "--json"], root);
+      expect(result.status).toBe(0);
+      const payload = parseStdout(result);
+      expect(payload.ok).toBe(true);
+      expect(payload.data.action).toBe("downgrade-plan");
+    });
+  });
+
+  it("rejects unavailable target versions", async () => {
+    await withLock("0.1.0", async (root) => {
+      const result = runCli(["upgrade", "auth", "--to", "9.9.9", "--plan", "--json"], root);
+      const payload = parseStdout(result);
+      expect(payload.ok).toBe(false);
+      expect(payload.error.code).toBe("MODULE_VERSION_NOT_FOUND");
+    });
+  });
+});

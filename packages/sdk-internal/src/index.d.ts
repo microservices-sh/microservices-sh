@@ -45,6 +45,8 @@ export interface ModuleDoc {
 
 export interface AddModulePlan {
   module: Record<string, unknown>;
+  requestedVersion: string;
+  availableVersions: string[];
   action: "already-installed" | "install" | "planned-install";
   alreadyInstalled: boolean;
   missingDependencies: string[];
@@ -68,9 +70,9 @@ export interface UpdateCheck {
   schemaVersion: string | null;
   registryVersion: string;
   template: Record<string, unknown> | null;
-  current: Array<{ id: string; currentVersion: string; latestVersion: string; status: "current" | "update-available" }>;
-  available: Array<{ id: string; currentVersion: string; latestVersion: string; status: "update-available" }>;
-  unavailable: Array<{ id: string; currentVersion: string; reason: string }>;
+  current: Array<{ id: string; currentVersion: string; latestVersion: string; availableVersions: string[]; direction: "upgrade" | "downgrade" | "none"; status: "current" | "update-available" }>;
+  available: Array<{ id: string; currentVersion: string; latestVersion: string; availableVersions: string[]; direction: "upgrade" | "downgrade"; status: "update-available" }>;
+  unavailable: Array<{ id: string; currentVersion: string; reason: string; availableVersions?: string[] }>;
   policy: Record<string, unknown>;
 }
 
@@ -81,9 +83,13 @@ export interface ModuleUpgradePlan {
     status: string;
     currentVersion: string;
     targetVersion: string;
+    requestedVersion: string;
+    availableVersions: string[];
   };
-  action: "upgrade-plan" | "no-op";
+  action: "upgrade-plan" | "downgrade-plan" | "no-op";
+  direction: "upgrade" | "downgrade" | "none";
   upgradeAvailable: boolean;
+  versionChangeAvailable: boolean;
   approvalRequired: boolean;
   risk: "low" | "medium" | "high";
   lockfile: {

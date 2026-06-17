@@ -212,6 +212,8 @@ function parseArgs(argv) {
     before: null,
     limit: null,
     mode: null,
+    version: null,
+    to: null,
     ci: process.env.CI === "true",
     wait: false,
     noBuild: false,
@@ -315,6 +317,14 @@ function parseArgs(argv) {
     } else if (value === "--mode") {
       const parsed = flagValue(index, value);
       flags.mode = parsed.value;
+      index = parsed.index;
+    } else if (value === "--version") {
+      const parsed = flagValue(index, value);
+      flags.version = parsed.value;
+      index = parsed.index;
+    } else if (value === "--to" || value === "--target-version") {
+      const parsed = flagValue(index, value);
+      flags.to = parsed.value;
       index = parsed.index;
     } else if (value === "--ci") {
       flags.ci = true;
@@ -519,43 +529,110 @@ function integrityOf(root) {
   return `sha256-${createHash("sha256").update(manifestText).digest("hex")}`;
 }
 
+function parseModuleSelector(value, explicitVersion = null, flagName = "--version") {
+  const raw = String(value ?? "").trim();
+  const at = raw.lastIndexOf("@");
+  const selector = at > 0
+    ? { id: raw.slice(0, at), version: raw.slice(at + 1) || null }
+    : { id: raw, version: null };
+  const flagVersion = explicitVersion ? String(explicitVersion).trim() : null;
+  if (selector.version && flagVersion && selector.version !== flagVersion) {
+    return {
+      ok: false,
+      response: fail(
+        "MODULE_VERSION_CONFLICT",
+        `Conflicting versions requested for module ${selector.id}.`,
+        `Use either module@version or ${flagName}, not both with different versions.`,
+        { moduleId: selector.id, inlineVersion: selector.version, explicitVersion: flagVersion }
+      )
+    };
+  }
+  return { ok: true, id: selector.id, version: flagVersion ?? selector.version };
+}
+
+function moduleSourceVersion(src) {
+  const modulePkg = readJson(join(src, "package.json"), {});
+  const moduleManifest = readJson(join(src, "module.json"), {});
+  return modulePkg.version ?? moduleManifest.version ?? null;
+}
+
+function unavailableModuleVersion(id, requestedVersion, availableVersions = []) {
+  return fail(
+    "MODULE_VERSION_NOT_FOUND",
+    `Module ${id}@${requestedVersion} is not available from the current source snapshot.`,
+    "Use one of the available versions or omit the version. Versioned historical installs need a registry artifact or release-tag source.",
+    { moduleId: id, requestedVersion, availableVersions }
+  );
+}
+
+function compareVersions(a, b) {
+  if (a === b) return 0;
+  const left = String(a ?? "").match(/^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/);
+  const right = String(b ?? "").match(/^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/);
+  if (left && right) {
+    for (let index = 1; index <= 3; index += 1) {
+      const l = Number(left[index]);
+      const r = Number(right[index]);
+      if (l !== r) return l < r ? -1 : 1;
+    }
+    return 0;
+  }
+  return String(a) < String(b) ? -1 : 1;
+}
+
+function versionDirection(currentVersion, targetVersion) {
+  const comparison = compareVersions(currentVersion, targetVersion);
+  if (comparison < 0) return "upgrade";
+  if (comparison > 0) return "downgrade";
+  return "none";
+}
+
 async function addModule(id, flags = {}) {
   if (!id) {
     return fail("MODULE_ID_REQUIRED", "Missing module id.", "Run microservices add <module-id>.");
   }
 
+  const selector = parseModuleSelector(id, flags.version, "--version");
+  if (!selector.ok) return selector.response;
+
   const tmp = mkdtempSync(join(tmpdir(), "ms-add-"));
   try {
     execFileSync("git", ["clone", "-q", "--no-tags", "--depth", "1", `https://github.com/${SOURCE_REPO}.git`, tmp], { stdio: "pipe" });
 
-    const src = join(tmp, "modules", id);
+    const src = join(tmp, "modules", selector.id);
     if (!existsSync(src)) {
-      return fail("MODULE_NOT_FOUND", `Unknown module: ${id}.`, "Run microservices modules list, or browse modules/ in microservices-sh/microservices-sh.", { id });
+      return fail("MODULE_NOT_FOUND", `Unknown module: ${selector.id}.`, "Run microservices modules list, or browse modules/ in microservices-sh/microservices-sh.", { id: selector.id });
     }
 
     const ref = execFileSync("git", ["-C", tmp, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
     const integrity = integrityOf(src);
-    const modulePkg = readJson(join(src, "package.json"), {});
+    const version = moduleSourceVersion(src);
+    const availableVersions = version ? [version] : [];
+    if (selector.version && version !== selector.version) {
+      return unavailableModuleVersion(selector.id, selector.version, availableVersions);
+    }
 
     // --plan is read-only: report what `add` would do without touching the project.
     if (flags.plan) {
       return {
         ok: true,
         data: {
-          id,
+          id: selector.id,
           plan: true,
-          version: modulePkg.version ?? null,
+          version,
+          requestedVersion: selector.version ?? version,
+          availableVersions,
           source: SOURCE_REPO,
           ref,
           integrity,
-          wouldVendorTo: `modules/${id}`,
-          dependency: `"@microservices-sh/${id}": "file:./modules/${id}"`
+          wouldVendorTo: `modules/${selector.id}`,
+          dependency: `"@microservices-sh/${selector.id}": "file:./modules/${selector.id}"`
         },
-        warnings: [`Plan only — nothing written. Re-run "microservices add ${id}" (no --plan) to vendor it into modules/${id}.`]
+        warnings: [`Plan only — nothing written. Re-run "microservices add ${selector.id}" (no --plan) to vendor it into modules/${selector.id}.`]
       };
     }
 
-    const dest = resolve("modules", id);
+    const dest = resolve("modules", selector.id);
     mkdirSync(dest, { recursive: true });
     cpSync(src, dest, {
       recursive: true,
@@ -564,13 +641,13 @@ async function addModule(id, flags = {}) {
 
     const lockPath = "microservices.lock.json";
     const lockData = readJson(lockPath, { modules: [] });
-    lockData.modules = (lockData.modules ?? []).filter((module) => module.id !== id);
+    lockData.modules = (lockData.modules ?? []).filter((module) => module.id !== selector.id);
     lockData.modules.push({
-      id,
-      version: modulePkg.version ?? null,
+      id: selector.id,
+      version,
       repo: SOURCE_REPO,
       ref,
-      path: `modules/${id}`,
+      path: `modules/${selector.id}`,
       integrity
     });
     writeJsonFile(lockPath, lockData);
@@ -578,17 +655,86 @@ async function addModule(id, flags = {}) {
     return {
       ok: true,
       data: {
-        id,
-        vendoredTo: `modules/${id}`,
+        id: selector.id,
+        vendoredTo: `modules/${selector.id}`,
         integrity,
-        version: modulePkg.version ?? null,
+        version,
         source: SOURCE_REPO
       },
-      warnings: [`Add "@microservices-sh/${id}": "file:./modules/${id}" to dependencies and reinstall to wire it in.`]
+      warnings: [`Add "@microservices-sh/${selector.id}": "file:./modules/${selector.id}" to dependencies and reinstall to wire it in.`]
     };
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
+}
+
+function localModuleVersion(id) {
+  const moduleDir = resolve("modules", id);
+  if (!existsSync(moduleDir)) return null;
+  return moduleSourceVersion(moduleDir);
+}
+
+function moduleUpgradePlan(id, flags = {}) {
+  if (!id) {
+    return fail("MODULE_ID_REQUIRED", "Missing module id.", "Run microservices upgrade <module-id> --plan.");
+  }
+
+  const selector = parseModuleSelector(id, flags.to ?? flags.version, flags.to ? "--to" : "--version");
+  if (!selector.ok) return selector.response;
+
+  const module = (lock.modules ?? []).find((item) => item.id === selector.id);
+  if (!module) {
+    return fail(
+      "MODULE_NOT_INSTALLED",
+      "Module not installed.",
+      "Run microservices modules list to see installed modules.",
+      { moduleId: selector.id }
+    );
+  }
+
+  const availableVersion = localModuleVersion(selector.id) ?? module.version ?? null;
+  const availableVersions = availableVersion ? [availableVersion] : [];
+  if (selector.version && availableVersion !== selector.version) {
+    return unavailableModuleVersion(selector.id, selector.version, availableVersions);
+  }
+
+  const targetVersion = selector.version ?? availableVersion ?? module.version;
+  const direction = versionDirection(module.version, targetVersion);
+  const versionChangeAvailable = direction !== "none";
+
+  return {
+    ok: true,
+    data: {
+      module: {
+        id: module.id,
+        currentVersion: module.version,
+        targetVersion,
+        requestedVersion: selector.version ?? targetVersion,
+        availableVersions
+      },
+      action: direction === "none" ? "no-op" : `${direction}-plan`,
+      direction,
+      upgradeAvailable: versionChangeAvailable,
+      versionChangeAvailable,
+      approvalRequired: false,
+      lockfile: {
+        template: lock.template,
+        source: module.source ?? module.repo ?? null,
+        checksum: module.checksum ?? module.integrity ?? null,
+        contractSnapshotAvailable: Boolean(module.contract)
+      },
+      nextSteps: versionChangeAvailable
+        ? [
+            `Review this ${direction} plan before modifying source.`,
+            "Apply module source changes only from a verified registry artifact or release ref.",
+            "Run microservices check --json and the app typecheck after applying."
+          ]
+        : [
+            "The installed module already matches the requested version.",
+            "Run microservices updates --json later to check again."
+          ]
+    }
+  };
 }
 
 function checkResponse() {
@@ -2259,9 +2405,9 @@ ${latestLogs.length ? latestLogs.map((log) => `- ${log.level.toUpperCase()} ${lo
 function usage() {
   return `client-portal-sveltekit microservices commands:
   microservices modules list                     # list installed modules
-  microservices add <id>                         # vendor a module into this app
+  microservices add <id[@version]>               # vendor a module into this app
   microservices docs <id>                        # show a module's agent docs
-  microservices upgrade <id> [--plan]            # upgrade a module
+  microservices upgrade <id[@version]> [--to x] [--plan]  # upgrade or downgrade a module
   microservices check                            # verify the app against its contract
   microservices local dev [--host <h>] [--port <p>]   # run the app locally
   microservices local setup                      # install deps + init local D1
@@ -2281,9 +2427,9 @@ function usageAll() {
     BYO-Cloudflare config fields (or individual --cloudflare-* flags):
       {"auth":"oauth|api-token","accountId":"...","zoneId":"...","previewBaseDomain":"...","connectionId":"...","apiToken":"..."}
   microservices modules list [--json]
-  microservices add <id> [--json]
+  microservices add <id[@version]> [--version x] [--json]
   microservices docs <id> [--json]
-  microservices upgrade <id> [--plan] [--json]
+  microservices upgrade <id[@version]> [--to x] [--plan] [--json]
   microservices check [--json]
   microservices local setup [--json]
   microservices local verify [--json]
@@ -2357,7 +2503,7 @@ async function main() {
     // Read-only: report what would be vendored. No telemetry (not an install).
     let response;
     try {
-      response = await addModule(action, { plan: true });
+      response = await addModule(action, { plan: true, version: flags.version });
     } catch (error) {
       response = fail(
         "MODULE_ADD_PLAN_FAILED",
@@ -2372,7 +2518,7 @@ async function main() {
     await track("module_install_started", workspaceTelemetryProps(flags, { moduleId: action ?? null }));
     let response;
     try {
-      response = await addModule(action);
+      response = await addModule(action, { version: flags.version });
     } catch (error) {
       response = fail(
         "MODULE_INSTALL_FAILED",
@@ -2405,36 +2551,10 @@ async function main() {
       : `Usage: microservices docs <module-id>. Run "microservices modules list" to list installed modules.`;
     emit({ ok: true, data: { id: action ?? null, content } }, (data) => `${data.content}\n`, flags);
   } else if (resource === "upgrade") {
-    const moduleId = action;
-    const module = (lock.modules ?? []).find((item) => item.id === moduleId);
+    const response = moduleUpgradePlan(action, flags);
     emit(
-      {
-        ok: Boolean(module),
-        data: module
-          ? {
-              module: {
-                id: module.id,
-                currentVersion: module.version,
-                targetVersion: module.version
-              },
-              action: "no-op",
-              upgradeAvailable: false,
-              approvalRequired: false,
-              lockfile: {
-                template: lock.template,
-                contractSnapshotAvailable: Boolean(module.contract)
-              }
-            }
-          : null,
-        error: module
-          ? undefined
-          : {
-              code: "MODULE_NOT_INSTALLED",
-              message: "Module not installed.",
-              remediation: "Run microservices modules list to see installed modules."
-            }
-      },
-      (data) => `${data.module.id} is already at ${data.module.currentVersion}; no upgrade available.\n`,
+      response,
+      (data) => `${data.module.id}: ${data.module.currentVersion} -> ${data.module.targetVersion} (${data.action})\n`,
       flags
     );
   } else if (resource === "check") {

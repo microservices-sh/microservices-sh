@@ -293,7 +293,7 @@ Options:
   --template <id>              Template id. Default: booking-sveltekit
                                (booking-sveltekit = full Cloudflare SvelteKit app;
                                 booking-business = Cloudflare Worker / Hono)
-  --modules <ids>              Comma-separated extra module ids to enable
+  --modules <ids>              Comma-separated extra module ids or id@version pins to enable
   --config '<json>'            Template config override
   --git-repo <url>             Initialize git and add origin remote
   --no-git                     Skip git setup
@@ -343,6 +343,18 @@ function csv(value) {
   const text = String(value ?? "").trim();
   if (!text || /^(default|template-defaults|none|no|skip)$/i.test(text)) return [];
   return text.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function parseModuleSelector(value) {
+  const raw = String(value ?? "").trim();
+  const at = raw.lastIndexOf("@");
+  return at > 0
+    ? { id: raw.slice(0, at), version: raw.slice(at + 1) || null, raw }
+    : { id: raw, version: null, raw };
+}
+
+function moduleSelectorText(selector) {
+  return selector.version ? `${selector.id}@${selector.version}` : selector.id;
 }
 
 function choiceText(choice) {
@@ -470,11 +482,57 @@ function moduleSelection(moduleIds) {
 
   const modules = listModules();
   const docs = listModuleDocs();
-  const available = modules.ok ? modules.data.map((module) => module.id) : [];
-  const known = docs.ok ? docs.data.map((module) => module.id) : available;
-  const generationModules = moduleIds.filter((moduleId) => available.includes(moduleId));
-  const planOnlyModules = moduleIds.filter((moduleId) => known.includes(moduleId) && !available.includes(moduleId));
-  const unknown = moduleIds.filter((moduleId) => !known.includes(moduleId));
+  const availableModules = modules.ok ? modules.data : [];
+  const knownModules = docs.ok ? docs.data : availableModules;
+  const availableById = new Map(availableModules.map((module) => [module.id, module]));
+  const knownById = new Map(knownModules.map((module) => [module.id, module]));
+  const available = availableModules.map((module) => module.id);
+  const known = knownModules.map((module) => module.id);
+  const generationModules = [];
+  const planOnlyModules = [];
+  const unknown = [];
+  const unavailableVersions = [];
+
+  for (const selector of moduleIds.map(parseModuleSelector)) {
+    const availableModule = availableById.get(selector.id);
+    const knownModule = knownById.get(selector.id);
+    if (!knownModule) {
+      unknown.push(selector.raw);
+      continue;
+    }
+
+    const availableVersions =
+      availableModule?.availableVersions ??
+      (availableModule?.version ? [availableModule.version] : knownModule.version ? [knownModule.version] : []);
+    if (selector.version && availableVersions.length && !availableVersions.includes(selector.version)) {
+      unavailableVersions.push({
+        moduleId: selector.id,
+        requestedVersion: selector.version,
+        availableVersions,
+      });
+      continue;
+    }
+
+    if (availableModule) {
+      generationModules.push(moduleSelectorText(selector));
+    } else {
+      planOnlyModules.push(moduleSelectorText(selector));
+    }
+  }
+
+  if (unavailableVersions.length) {
+    return {
+      ok: false,
+      response: fail(
+        "MODULE_VERSION_NOT_FOUND",
+        `Requested module version is not available: ${unavailableVersions
+          .map((item) => `${item.moduleId}@${item.requestedVersion}`)
+          .join(", ")}`,
+        "Use an available version from modules list, or omit the version to use the current registry version.",
+        { requested: moduleIds, unavailableVersions }
+      ),
+    };
+  }
 
   if (!unknown.length) {
     return {
