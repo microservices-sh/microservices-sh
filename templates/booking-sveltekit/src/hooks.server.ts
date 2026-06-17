@@ -1,4 +1,4 @@
-import type { Handle } from "@sveltejs/kit";
+import type { Handle, HandleServerError } from "@sveltejs/kit";
 import { json } from "@sveltejs/kit";
 import { dev } from "$app/environment";
 import {
@@ -19,6 +19,7 @@ import { createMemoryApiKeyStore } from "@microservices-sh/gateway/adapters/memo
 import { createKvRateLimitStore } from "@microservices-sh/gateway/adapters/kv-rate-limit";
 import { createMemoryRateLimitStore } from "@microservices-sh/gateway/adapters/memory-rate-limit";
 import { createLocalTokenMinter } from "@microservices-sh/gateway/adapters/token-minter";
+import { reportRuntimeError } from "$lib/server/observability";
 
 // Memory fallbacks for local dev without D1/KV. Singletons so state persists
 // across requests in a dev session.
@@ -99,4 +100,9 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
 
   return resolve(event);
+};
+
+export const handleError: HandleServerError = ({ error, event, status, message }) => {
+  reportRuntimeError(error, event, { status, message });
+  return { message };
 };

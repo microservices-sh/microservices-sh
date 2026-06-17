@@ -30,6 +30,8 @@
     }
   ],
   "vars": {
+    "MICROSERVICES_DEPLOYMENT_ID": "",
+    "MICROSERVICES_OBSERVABILITY_URL": "https://api.microservices.sh",
     "MICROSERVICES_TEMPLATE_ID": "booking-sveltekit"
   }
   // To enable the one-time /api/auth/bootstrap route, set a shared secret:

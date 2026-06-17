@@ -26,6 +26,8 @@
     }
   ],
   "vars": {
+    "MICROSERVICES_DEPLOYMENT_ID": "",
+    "MICROSERVICES_OBSERVABILITY_URL": "https://api.microservices.sh",
     "MICROSERVICES_TEMPLATE_ID": "client-portal-sveltekit",
     "MICROSERVICES_TENANT_ID": "demo-tenant"
   }

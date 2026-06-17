@@ -11,10 +11,15 @@ import type { JobStore } from "@microservices-sh/jobs-workflows/ports";
 declare global {
   namespace App {
     interface Platform {
+      context?: ExecutionContext;
       env?: {
         DB?: D1Database;
         MEDIA_BUCKET?: R2Bucket;
+        MICROSERVICES_DEPLOYMENT_ID?: string;
+        MICROSERVICES_OBSERVABILITY_TOKEN?: string;
+        MICROSERVICES_OBSERVABILITY_URL?: string;
         MICROSERVICES_TEMPLATE_ID?: string;
+        MICROSERVICES_WORKER_NAME?: string;
       };
     }
 

@@ -26,6 +26,8 @@
     }
   ],
   "vars": {
+    "MICROSERVICES_DEPLOYMENT_ID": "",
+    "MICROSERVICES_OBSERVABILITY_URL": "https://api.microservices.sh",
     "MICROSERVICES_TEMPLATE_ID": "erp-shell-sveltekit"
   }
 }

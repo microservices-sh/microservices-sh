@@ -8,11 +8,16 @@ import type { TokenClaims } from "@microservices-sh/auth/types";
 declare global {
   namespace App {
     interface Platform {
+      context?: ExecutionContext;
       env?: {
         DB?: D1Database;
         MEDIA_BUCKET?: R2Bucket;
+        MICROSERVICES_DEPLOYMENT_ID?: string;
+        MICROSERVICES_OBSERVABILITY_TOKEN?: string;
+        MICROSERVICES_OBSERVABILITY_URL?: string;
         MICROSERVICES_TEMPLATE_ID?: string;
         MICROSERVICES_TENANT_ID?: string;
+        MICROSERVICES_WORKER_NAME?: string;
       };
     }
 

@@ -1,4 +1,4 @@
-import type { Handle } from "@sveltejs/kit";
+import type { Handle, HandleServerError } from "@sveltejs/kit";
 import { dev } from "$app/environment";
 import { createD1CustomerRepository } from "@microservices-sh/customer/adapters/d1";
 import { createMemoryCustomerRepository } from "@microservices-sh/customer/adapters/memory";
@@ -13,6 +13,7 @@ import { createMemoryAuditEventStore } from "@microservices-sh/audit-log/adapter
 import { createD1SigningKeyStore } from "@microservices-sh/auth/adapters/d1";
 import { createMemorySigningKeyStore } from "@microservices-sh/auth/adapters/memory";
 import { seedDemoData } from "$lib/server/demo";
+import { reportRuntimeError } from "$lib/server/observability";
 
 // Memory fallbacks for local dev without D1/R2. Singletons so seeded demo state
 // persists across requests in a dev session.
@@ -89,4 +90,9 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
 
   return resolve(event);
+};
+
+export const handleError: HandleServerError = ({ error, event, status, message }) => {
+  reportRuntimeError(error, event, { status, message });
+  return { message };
 };

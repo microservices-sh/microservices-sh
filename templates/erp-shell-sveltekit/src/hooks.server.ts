@@ -1,7 +1,8 @@
-import type { Handle } from "@sveltejs/kit";
+import type { Handle, HandleServerError } from "@sveltejs/kit";
 import { resolveStores, memoryStores } from "$lib/server/stores";
 import { readSession, getSessionSecret } from "$lib/server/session";
 import { seedDemoData } from "$lib/server/demo";
+import { reportRuntimeError } from "$lib/server/observability";
 
 // Wire module stores + the session user onto locals for every request. Stores are
 // D1/R2-backed in production and memory-backed locally. Route adapters consume
@@ -40,4 +41,9 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
 
   return resolve(event);
+};
+
+export const handleError: HandleServerError = ({ error, event, status, message }) => {
+  reportRuntimeError(error, event, { status, message });
+  return { message };
 };

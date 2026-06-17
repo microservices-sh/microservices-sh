@@ -7,11 +7,16 @@ import type { ApiKeyStore, RateLimitStore, TokenMinter } from "@microservices-sh
 declare global {
   namespace App {
     interface Platform {
+      context?: ExecutionContext;
       env?: {
         DB?: D1Database;
         CACHE_KV?: KVNamespace;
         RATE_LIMIT_KV?: KVNamespace;
+        MICROSERVICES_DEPLOYMENT_ID?: string;
+        MICROSERVICES_OBSERVABILITY_TOKEN?: string;
+        MICROSERVICES_OBSERVABILITY_URL?: string;
         MICROSERVICES_TEMPLATE_ID?: string;
+        MICROSERVICES_WORKER_NAME?: string;
         /** Shared secret gating the one-time /api/auth/bootstrap route. */
         BOOTSTRAP_TOKEN?: string;
         /** Optional bearer token gating scheduled endpoints (/api/holds/expire, /api/cron/run). */

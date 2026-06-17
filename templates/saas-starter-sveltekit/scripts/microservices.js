@@ -204,6 +204,13 @@ function parseArgs(argv) {
     actor: process.env.USER ?? "agent",
     name: null,
     projectId: null,
+    search: null,
+    level: null,
+    source: null,
+    eventType: null,
+    since: null,
+    before: null,
+    limit: null,
     mode: null,
     ci: process.env.CI === "true",
     wait: false,
@@ -276,6 +283,34 @@ function parseArgs(argv) {
     } else if (value === "--project-id") {
       const parsed = flagValue(index, value);
       flags.projectId = parsed.value;
+      index = parsed.index;
+    } else if (value === "--search" || value === "--q" || value === "--query") {
+      const parsed = flagValue(index, value);
+      flags.search = parsed.value;
+      index = parsed.index;
+    } else if (value === "--level") {
+      const parsed = flagValue(index, value);
+      flags.level = parsed.value;
+      index = parsed.index;
+    } else if (value === "--source") {
+      const parsed = flagValue(index, value);
+      flags.source = parsed.value;
+      index = parsed.index;
+    } else if (value === "--event-type" || value === "--eventType") {
+      const parsed = flagValue(index, value);
+      flags.eventType = parsed.value;
+      index = parsed.index;
+    } else if (value === "--since") {
+      const parsed = flagValue(index, value);
+      flags.since = parsed.value;
+      index = parsed.index;
+    } else if (value === "--before") {
+      const parsed = flagValue(index, value);
+      flags.before = parsed.value;
+      index = parsed.index;
+    } else if (value === "--limit") {
+      const parsed = flagValue(index, value);
+      flags.limit = parsed.value;
       index = parsed.index;
     } else if (value === "--mode") {
       const parsed = flagValue(index, value);
@@ -657,6 +692,37 @@ function requireCiApiKey(flags, action) {
 
 function cleanString(value) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function pathWithQuery(path, params) {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    const normalized = cleanString(value);
+    if (normalized) search.set(key, normalized);
+  }
+  const query = search.toString();
+  return query ? `${path}?${query}` : path;
+}
+
+function logQuery(flags) {
+  return {
+    q: flags.search,
+    level: flags.level,
+    since: flags.since,
+    limit: flags.limit
+  };
+}
+
+function observabilityQuery(flags) {
+  return {
+    q: flags.search,
+    level: flags.level,
+    source: flags.source,
+    eventType: flags.eventType,
+    since: flags.since,
+    before: flags.before,
+    limit: flags.limit
+  };
 }
 
 const MANAGED_DEPLOY_TARGETS = new Set(["managed", "microservices"]);
@@ -1553,7 +1619,7 @@ async function deployLogs(deploymentId, flags) {
   }
   const ciAuth = requireCiApiKey(flags, "deployment logs");
   if (ciAuth) return ciAuth;
-  return apiRequest(flags, `/deployments/${deploymentId}/logs`);
+  return apiRequest(flags, pathWithQuery(`/deployments/${deploymentId}/logs`, logQuery(flags)));
 }
 
 async function deployFollow(deploymentId, flags) {
@@ -1915,7 +1981,60 @@ ${result.cleanup.length ? result.cleanup.map((item) => `- ${item.resource.resour
 }
 
 function formatLogs(result) {
-  return `${result.logs.map((log) => `${log.level.toUpperCase()} ${log.message}`).join("\n")}\n`;
+  const logs = Array.isArray(result.logs) ? result.logs : [];
+  if (!logs.length) return "No deployment logs found.\n";
+  return `${logs.map((log) => `${log.level.toUpperCase()} ${log.message}`).join("\n")}\n`;
+}
+
+function isoTime(value) {
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toISOString() : String(value ?? "");
+}
+
+function formatObservabilityEvents(result) {
+  const events = Array.isArray(result.events) ? result.events : [];
+  if (!events.length) return "No observability events found.\n";
+  return `${events
+    .map((event) => {
+      const parts = [
+        isoTime(event.createdAt),
+        String(event.level ?? "info").toUpperCase(),
+        event.source ?? "runtime",
+        event.eventType ?? "event",
+        event.route ? `route=${event.route}` : null,
+        event.statusCode ? `status=${event.statusCode}` : null
+      ].filter(Boolean);
+      return `${parts.join(" ")}\n  ${event.message}`;
+    })
+    .join("\n")}\n`;
+}
+
+function formatErrorGroups(result) {
+  const errors = Array.isArray(result.errors) ? result.errors : [];
+  if (!errors.length) return "No error groups found.\n";
+  return `${errors
+    .map((error) => {
+      const parts = [
+        `${error.count}x`,
+        String(error.level ?? "error").toUpperCase(),
+        error.eventType ?? "runtime.exception",
+        error.route ? `route=${error.route}` : null,
+        `last=${isoTime(error.lastSeen)}`
+      ].filter(Boolean);
+      return `${parts.join(" ")}\n  ${error.message}\n  fingerprint: ${error.fingerprint ?? error.key}`;
+    })
+    .join("\n")}\n`;
+}
+
+function formatObservabilityToken(result) {
+  return `Observability token created
+Name: ${result.name}
+Prefix: ${result.prefix}
+Scopes: ${(result.scopes ?? []).join(", ")}
+
+Set this secret in the app environment:
+MICROSERVICES_OBSERVABILITY_TOKEN=${result.secret}
+`;
 }
 
 function formatFollow(result) {
@@ -1977,7 +2096,12 @@ function usageAll() {
   microservices deploy upload [deployment-id] [--input deployment.json] [--plan] --confirm upload [--json]
   microservices deploy status [deployment-id] [--input deployment.json] [--json]
   microservices deploy resources [deployment-id] [--input deployment.json] [--json]
-  microservices deploy logs [deployment-id] [--input deployment.json] [--json]
+  microservices deploy logs [deployment-id] [--input deployment.json] [--search "..."] [--level info|warn|error] [--since 24h] [--json]
+  microservices logs <deployment-id> [--search "..."] [--level info|warn|error] [--since 24h] [--json]
+  microservices observe logs <deployment-id> [--search "..."] [--level debug|info|warn|error|fatal] [--source runtime|healthcheck|cloudflare_tail] [--since 24h] [--json]
+  microservices observe errors <deployment-id> [--search "..."] [--since 7d] [--json]
+  microservices observe token create [--name "Runtime reporter"] [--json]
+  microservices errors <deployment-id> [--search "..."] [--since 7d] [--json]
   microservices deploy follow [deployment-id] [--input deployment.json] [--timeout 10m] [--json]
   microservices deploy activate [deployment-id] [--input deployment.json] --url <managed-url> [--mode dispatch-uploaded] [--json]
   microservices deploy disable [deployment-id] [--input deployment.json] --confirm disable [--json]
@@ -2192,6 +2316,33 @@ async function main() {
   } else if ((resource === "deploy" && action === "logs") || resource === "logs") {
     const deploymentId = resource === "logs" ? action : value;
     emit(await deployLogs(deploymentId, flags), formatLogs, flags);
+  } else if (resource === "observe" && (action === "logs" || action === "events")) {
+    if (!value) {
+      emit(fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id returned by deploy preview."), null, flags);
+      return;
+    }
+    emit(await apiRequest(flags, pathWithQuery(`/deployments/${value}/observability/events`, observabilityQuery(flags))), formatObservabilityEvents, flags);
+  } else if (resource === "observe" && (action === "token" || action === "tokens")) {
+    const tokenAction = value ?? "create";
+    if (tokenAction !== "create") {
+      emit(fail("UNKNOWN_OBSERVE_TOKEN_ACTION", "Unknown observe token action.", "Use microservices observe token create."), null, flags);
+      return;
+    }
+    emit(
+      await apiRequest(flags, "/observability/tokens", {
+        method: "POST",
+        body: JSON.stringify({ name: flags.name ?? "Runtime observability reporter" })
+      }),
+      formatObservabilityToken,
+      flags
+    );
+  } else if ((resource === "observe" && action === "errors") || resource === "errors") {
+    const deploymentId = resource === "errors" ? action : value;
+    if (!deploymentId) {
+      emit(fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id returned by deploy preview."), null, flags);
+      return;
+    }
+    emit(await apiRequest(flags, pathWithQuery(`/deployments/${deploymentId}/errors`, observabilityQuery(flags))), formatErrorGroups, flags);
   } else if (resource === "deploy" && action === "follow") {
     emit(await deployFollow(value, flags), formatFollow, flags);
   } else if (resource === "deploy" && action === "activate") {

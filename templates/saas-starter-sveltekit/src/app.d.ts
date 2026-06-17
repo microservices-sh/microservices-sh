@@ -7,9 +7,14 @@ import type { SigningKeyStore } from "@microservices-sh/auth/ports";
 declare global {
   namespace App {
     interface Platform {
+      context?: ExecutionContext;
       env?: {
         DB?: D1Database;
+        MICROSERVICES_DEPLOYMENT_ID?: string;
+        MICROSERVICES_OBSERVABILITY_TOKEN?: string;
+        MICROSERVICES_OBSERVABILITY_URL?: string;
         MICROSERVICES_TEMPLATE_ID?: string;
+        MICROSERVICES_WORKER_NAME?: string;
       };
     }
 

@@ -351,6 +351,7 @@ Usage:
   microservices logs <deployment-id> [--search "..."] [--level info|warn|error] [--since 24h] [--limit 100] [--api-url http://127.0.0.1:8787] [--json]
   microservices observe logs <deployment-id> [--search "..."] [--level debug|info|warn|error|fatal] [--source runtime|healthcheck|cloudflare_tail] [--since 24h] [--json]
   microservices observe errors <deployment-id> [--search "..."] [--since 7d] [--json]
+  microservices observe token create [--name "Runtime reporter"] [--json]
   microservices errors <deployment-id> [--search "..."] [--since 7d] [--json]
   microservices metrics [--api-url https://api.microservices.sh] [--token <METRICS_TOKEN>] [--json]
 `;
@@ -684,6 +685,17 @@ function formatErrorGroups(result) {
       return `${parts.join(" ")}\n  ${error.message}\n  fingerprint: ${error.fingerprint ?? error.key}`;
     })
     .join("\n")}\n`;
+}
+
+function formatObservabilityToken(result) {
+  return `Observability token created
+Name: ${result.name}
+Prefix: ${result.prefix}
+Scopes: ${(result.scopes ?? []).join(", ")}
+
+Set this secret in the app environment:
+MICROSERVICES_OBSERVABILITY_TOKEN=${result.secret}
+`;
 }
 
 function artifactDispatchNamespace(manifest, microservicesConfig) {
@@ -3836,6 +3848,18 @@ ${result.resources.length ? result.resources.map((item) => `- ${item.resourceTyp
     }
     response = await apiRequest(flags, pathWithQuery(`/deployments/${value}/observability/events`, observabilityQuery(flags)));
     return flags.json ? writeJson(response) : printApiHuman(response, formatObservabilityEvents);
+  }
+
+  if (resource === "observe" && (action === "token" || action === "tokens")) {
+    const tokenAction = value ?? "create";
+    if (tokenAction !== "create") {
+      throw new Error("Unknown observe token action. Use `microservices observe token create`.");
+    }
+    response = await apiRequest(flags, "/observability/tokens", {
+      method: "POST",
+      body: JSON.stringify({ name: flags.name ?? "Runtime observability reporter" }),
+    });
+    return flags.json ? writeJson(response) : printApiHuman(response, formatObservabilityToken);
   }
 
   if ((resource === "observe" && action === "errors") || resource === "errors") {
