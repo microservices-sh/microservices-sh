@@ -109,36 +109,35 @@ function cmdInit(dir) {
   console.log(`✓ tokens.css → ${uiDir(dir)}\n  Import it once in your app.css:  @import "$lib/ui/tokens.css";`);
 }
 
-function cmdAdd(dir, names) {
-  if (names.length === 0) throw new Error("add: name a component, e.g. 'msh-ui add Button'");
-  const comps = resolveWithDeps(names);
+// Copy tokens + font + the given components and rewrite the manifest/barrel.
+// Shared by add and sync (which differ only in how `comps` is derived).
+function materialize(dir, comps) {
   copyTokens(dir);
   ensureFontLink(dir);
   copyComponents(dir, comps);
   const manifest = readManifest(dir);
-  const set = new Set([...manifest.components, ...comps.map((c) => c.name)]);
-  manifest.style = registry.style;
-  manifest.components = [...set].sort();
-  writeManifest(dir, manifest);
-  writeBarrel(dir, manifest.components);
-  console.log(`✓ added ${comps.map((c) => c.name).join(", ")} → ${uiDir(dir)}`);
-  console.log(`  import { ${comps.map((c) => c.name).join(", ")} } from "$lib/ui";`);
-}
-
-function cmdSync(dir) {
-  const manifest = readManifest(dir);
-  if (manifest.components.length === 0) {
-    console.log("Nothing to sync — run 'msh-ui add <Name>' first.");
-    return;
-  }
-  const comps = resolveWithDeps(manifest.components);
-  copyTokens(dir);
-  ensureFontLink(dir);
-  copyComponents(dir, comps);
   manifest.style = registry.style;
   manifest.components = comps.map((c) => c.name).sort();
   writeManifest(dir, manifest);
   writeBarrel(dir, manifest.components);
+}
+
+function cmdAdd(dir, names) {
+  if (names.length === 0) throw new Error("add: name a component, e.g. 'msh-ui add Button'");
+  const existing = readManifest(dir).components;
+  materialize(dir, resolveWithDeps([...existing, ...names]));
+  console.log(`✓ added ${names.join(", ")} → ${uiDir(dir)}`);
+  console.log(`  import { ${names.join(", ")} } from "$lib/ui";`);
+}
+
+function cmdSync(dir) {
+  const { components } = readManifest(dir);
+  if (components.length === 0) {
+    console.log("Nothing to sync — run 'msh-ui add <Name>' first.");
+    return;
+  }
+  const comps = resolveWithDeps(components);
+  materialize(dir, comps);
   console.log(`✓ synced ${comps.length} component(s) + tokens → ${uiDir(dir)}`);
 }
 
