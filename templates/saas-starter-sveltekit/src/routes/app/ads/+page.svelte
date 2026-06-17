@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Panel, StatusMessage, Eyebrow, Badge } from "$lib/components";
+  import { Button, Card, Alert, Eyebrow, Badge } from "$lib/ui";
 
   let { data, form } = $props();
 
@@ -17,26 +17,28 @@
 
   {#if !data.entitled}
     <!-- 402 subscribe state -->
-    <Panel as="div" style="text-align:center; padding:40px;">
-      <h2>Subscribe to Ads</h2>
-      <p>{data.reason}</p>
-      <p style="font-size:28px; font-weight:700; margin:12px 0;">$1.90<span style="font-size:14px; font-weight:400;">/mo</span></p>
-      <p>Cross-platform monitoring (Meta, Google), daily snapshots, and anomaly alerts.</p>
-      <Button href="/app/billing" style="display:inline-block; margin-top:12px;">Subscribe →</Button>
-    </Panel>
+    <Card>
+      <div style="text-align:center; padding:40px;">
+        <h2>Subscribe to Ads</h2>
+        <p>{data.reason}</p>
+        <p style="font-size:28px; font-weight:700; margin:12px 0;">$1.90<span style="font-size:14px; font-weight:400;">/mo</span></p>
+        <p>Cross-platform monitoring (Meta, Google), daily snapshots, and anomaly alerts.</p>
+        <Button href="/app/billing" variant="primary" style="display:inline-block; margin-top:12px;">Subscribe →</Button>
+      </div>
+    </Card>
   {:else}
     {#if form?.error}
-      <StatusMessage variant="error">{form.error}</StatusMessage>
+      <Alert tone="error">{form.error}</Alert>
     {:else if form?.seeded}
-      <StatusMessage>Loaded demo data — {form.alerts} alert(s) raised.</StatusMessage>
+      <Alert tone="success">Loaded demo data — {form.alerts} alert(s) raised.</Alert>
     {:else if form?.connected}
-      <StatusMessage>Demo account connected.</StatusMessage>
+      <Alert tone="success">Demo account connected.</Alert>
     {/if}
 
     <div class="content-grid mt-6">
       <div>
         <!-- Summary -->
-        <Panel as="div">
+        <Card>
           <h2>Last 7 days</h2>
           <div style="display:flex; gap:24px; flex-wrap:wrap;">
             <div><strong style="font-size:22px;">{fmtMoney(totalSpend)}</strong><p>Spend</p></div>
@@ -47,18 +49,18 @@
             {#if data.connections.length === 0}
               <form method="POST" action="?/connect">
                 <input type="hidden" name="orgId" value={data.activeOrgId} />
-                <Button type="submit">Connect ad account</Button>
+                <Button type="submit" variant="primary">Connect ad account</Button>
               </form>
             {/if}
             <form method="POST" action="?/seedDemo">
               <input type="hidden" name="orgId" value={data.activeOrgId} />
-              <Button type="submit" variant="secondary">Load demo data</Button>
+              <Button type="submit" variant="ghost">Load demo data</Button>
             </form>
           </div>
-        </Panel>
+        </Card>
 
         <!-- Campaigns -->
-        <Panel as="div" class="mt-6">
+        <Card class="mt-6">
           <h2>Campaigns</h2>
           {#if (data.campaigns ?? []).length === 0}
             <p>No campaigns yet. Connect an account or load demo data.</p>
@@ -79,11 +81,11 @@
               </tbody>
             </table>
           {/if}
-        </Panel>
+        </Card>
       </div>
 
       <!-- Alerts -->
-      <Panel as="div">
+      <Card>
         <h2>Alerts</h2>
         {#if (data.alerts ?? []).length === 0}
           <p>No alerts. Anomalies (spend/CPC spikes, zero-conversion spend) appear here.</p>
@@ -98,7 +100,7 @@
             {/each}
           </ul>
         {/if}
-      </Panel>
+      </Card>
     </div>
   {/if}
 </main>

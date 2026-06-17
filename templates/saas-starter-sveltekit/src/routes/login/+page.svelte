@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Field, Panel, StatusMessage, Eyebrow } from "$lib/components";
+  import { Button, Field, Card, Alert, Eyebrow } from "$lib/ui";
 
   let { form } = $props();
 </script>
@@ -19,18 +19,18 @@
       </p>
     </section>
 
-    <Panel>
+    <Card>
       <h2>Log in</h2>
       {#if form?.error}
-        <StatusMessage variant="error" live>{form.error}</StatusMessage>
+        <Alert tone="error">{form.error}</Alert>
       {/if}
       <form method="POST">
         <Field label="Work email" id="email">
           <input id="email" name="email" type="email" autocomplete="email" required value={form?.values?.email ?? ""} />
         </Field>
-        <Button type="submit">Continue</Button>
+        <Button type="submit" variant="primary">Continue</Button>
       </form>
       <p class="mt-4 text-[0.9rem]">No account yet? <a href="/signup">Create an organization</a>.</p>
-    </Panel>
+    </Card>
   </div>
 </main>

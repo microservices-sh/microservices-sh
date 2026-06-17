@@ -1,0 +1,135 @@
+/* ============================================================
+   @microservices-sh/ui — design tokens (canonical)
+   Source of truth: web-portal billing portal look.
+   Framework-agnostic: plain :root CSS custom properties (NOT Tailwind
+   @theme), so the copy-in components work in any Svelte/Vite toolchain
+   without depending on utility-class generation. Light is default;
+   add data-theme="dark" on <html> for dark mode.
+
+   FONTS: this file intentionally does NOT @import the IBM Plex webfonts — a
+   nested @import breaks ordering when imported after `@import "tailwindcss"`.
+   Load the font in app.html <head> (the msh-ui CLI does this on `init`/`add`):
+     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+   Falls back to system sans/mono if absent.
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+
+  /* slate ink ramp */
+  --color-ink: #1a1f36;
+  --color-ink-soft: #3c4257;
+  --color-ink-faint: #8792a2;
+
+  /* surfaces */
+  --color-paper: #f6f9fc;
+  --color-paper-2: #eef2f7;
+  --color-panel: #ffffff;
+  --color-panel-subtle: #f7fafc;
+  --color-line: #e6ebf1;
+  --color-line-strong: #d6dce5;
+
+  /* brand signal green (neon = live state); light-mode action green */
+  --color-signal: #38ff88;
+  --color-act: #0c8f5a;
+  --color-act-hover: #0a7a4b;
+  --color-act-press: #086338;
+
+  /* status accents + soft fills */
+  --color-green: #15b079;
+  --color-green-dark: #0e8a5f;
+  --color-green-soft: #d8f6e8;
+  --color-cyan: #4dd8ff;
+  --color-cyan-soft: #e8f9ff;
+  --color-amber: #bb5504;
+  --color-amber-soft: #fdf2da;
+  --color-red: #df1b41;
+  --color-red-soft: #fce8ec;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --shadow-sm: 0 1px 1px rgba(50, 50, 93, 0.04), 0 1px 2px rgba(50, 50, 93, 0.04);
+  --shadow-card: 0 2px 5px -1px rgba(50, 50, 93, 0.1), 0 1px 3px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 13px 27px -5px rgba(50, 50, 93, 0.12), 0 8px 16px -8px rgba(0, 0, 0, 0.16);
+
+  --signal-ink: #04130a;
+  --signal-glow: rgba(56, 255, 136, 0.45);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --focus-ring: 0 0 0 3px rgba(12, 143, 90, 0.22);
+
+  /* page background wash (brand-tinted) */
+  --bg-wash: radial-gradient(120% 70% at 100% 0%, rgba(12, 143, 90, 0.035), transparent 55%);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-ink: #e7ecf5;
+  --color-ink-soft: #aab4c9;
+  --color-ink-faint: #6d7892;
+
+  --color-paper: #0a0f1c;
+  --color-paper-2: #0e1424;
+  --color-panel: #141b2d;
+  --color-panel-subtle: #0f1626;
+  --color-line: #232c40;
+  --color-line-strong: #303b54;
+
+  /* on dark surfaces the signal green is the brand; action green brightens */
+  --color-act: #18b86e;
+  --color-act-hover: #22d07f;
+  --color-act-press: #129a5b;
+
+  --color-green: #2bd08a;
+  --color-green-dark: #34e597;
+  --color-green-soft: #0f2a20;
+  --color-cyan: #5fdcff;
+  --color-cyan-soft: #08222d;
+  --color-amber: #e8a13a;
+  --color-amber-soft: #2a1e08;
+  --color-red: #ff5774;
+  --color-red-soft: #2c0f16;
+
+  --shadow-sm: 0 1px 1px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-card: 0 2px 6px -1px rgba(0, 0, 0, 0.45), 0 1px 3px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 30px -6px rgba(0, 0, 0, 0.6), 0 8px 16px -8px rgba(0, 0, 0, 0.5);
+
+  --focus-ring: 0 0 0 3px rgba(56, 255, 136, 0.3);
+  --bg-wash: radial-gradient(120% 70% at 100% 0%, rgba(56, 255, 136, 0.06), transparent 55%);
+}
+
+/* Optional base layer — apps may import this for the canonical look.
+   Reads only the tokens above, so it follows light/dark automatically. */
+@layer msh-base {
+  html {
+    background: var(--color-paper);
+    scroll-behavior: smooth;
+  }
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'tnum' 1, 'ss02' 1;
+    accent-color: var(--color-act);
+    background: var(--bg-wash), var(--color-paper);
+    background-attachment: fixed;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-green-dark);
+    outline-offset: 2px;
+    box-shadow: var(--focus-ring);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+}

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { statusBadgeVariant, formatMoney } from "$lib/status";
-  import { Button, Panel, Eyebrow, Badge } from "$lib/components";
+  import { Button, Card, Eyebrow, Badge } from "$lib/ui";
   let { data } = $props();
 </script>
 
@@ -15,17 +15,17 @@
       <h1>{data.invoice.number ?? "Draft invoice"}</h1>
       <p>
         {formatMoney(data.invoice.totalCents, data.invoice.currency)} ·
-        <Badge variant={statusBadgeVariant(data.invoice.status)}>{data.invoice.status}</Badge>
+        <Badge tone={statusBadgeVariant(data.invoice.status)}>{data.invoice.status}</Badge>
       </p>
-      <p><Button href="/portal/invoices" variant="secondary">Back to invoices</Button></p>
+      <p><Button href="/portal/invoices" variant="ghost">Back to invoices</Button></p>
     </section>
 
-    <Panel>
+    <Card>
       <h2>Summary</h2>
       <dl class="detail-list">
         <div>
           <dt>Status</dt>
-          <dd><Badge variant={statusBadgeVariant(data.invoice.status)}>{data.invoice.status}</Badge></dd>
+          <dd><Badge tone={statusBadgeVariant(data.invoice.status)}>{data.invoice.status}</Badge></dd>
         </div>
         <div>
           <dt>Subtotal</dt>
@@ -60,9 +60,9 @@
           <dd><code>{data.invoice.id}</code></dd>
         </div>
       </dl>
-    </Panel>
+    </Card>
 
-    <Panel>
+    <Card>
       <h2>Line items</h2>
       {#if data.lineItems.length === 0}
         <p>No line items.</p>
@@ -79,13 +79,13 @@
           {/each}
         </ul>
       {/if}
-    </Panel>
+    </Card>
 
     {#if data.invoice.notes}
-      <Panel>
+      <Card>
         <h2>Notes</h2>
         <p>{data.invoice.notes}</p>
-      </Panel>
+      </Card>
     {/if}
   </div>
 </main>

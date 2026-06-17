@@ -1,7 +1,7 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
   import { statusBadgeVariant } from "$lib/status";
-  import { Button, Field, Panel, StatusMessage, Eyebrow, Badge } from "$lib/components";
+  import { Button, Field, Card, Alert, Eyebrow, Badge } from "$lib/ui";
   let { data, form } = $props();
 </script>
 
@@ -19,26 +19,26 @@
         a tenant-scoped ticket is reserved, the bytes are stored, then the upload is
         verified and recorded.
       </p>
-      <p><Button href="/portal" variant="secondary">Back to dashboard</Button></p>
+      <p><Button href="/portal" variant="ghost">Back to dashboard</Button></p>
 
       {#if form?.uploaded}
-        <StatusMessage>Uploaded <strong>{form.uploaded}</strong>.</StatusMessage>
+        <Alert tone="success">Uploaded <strong>{form.uploaded}</strong>.</Alert>
       {:else if form?.error}
-        <StatusMessage variant="error">{form.error}</StatusMessage>
+        <Alert tone="error">{form.error}</Alert>
       {/if}
 
-      <Panel class="mt-6">
+      <Card class="mt-6">
         <h2>Upload a document</h2>
         <form method="POST" action="?/upload" enctype="multipart/form-data" use:enhance>
           <Field label="File (PDF, PNG, or JPEG)" id="file">
             <input id="file" name="file" type="file" accept="application/pdf,image/png,image/jpeg" required />
           </Field>
-          <Button>Upload</Button>
+          <Button type="submit" variant="primary">Upload</Button>
         </form>
-      </Panel>
+      </Card>
     </section>
 
-    <Panel>
+    <Card>
       <h2>All documents</h2>
       {#if data.files.length === 0}
         <p>No documents yet.</p>
@@ -50,11 +50,11 @@
                 <strong>{file.originalName}</strong>
                 <p>{file.contentType} · {Math.ceil(file.bytes / 1024)} KB · {new Date(file.createdAt).toLocaleDateString()}</p>
               </div>
-              <Badge variant={statusBadgeVariant(file.status)}>{file.status}</Badge>
+              <Badge tone={statusBadgeVariant(file.status)}>{file.status}</Badge>
             </li>
           {/each}
         </ul>
       {/if}
-    </Panel>
+    </Card>
   </div>
 </main>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Panel, Eyebrow } from "$lib/components";
+  import { Button, Card, Eyebrow } from "$lib/ui";
   let { data } = $props();
 </script>
 
@@ -25,7 +25,7 @@
       {/if}
     </section>
 
-    <Panel>
+    <Card>
       <h2>Choose a session</h2>
       <form method="POST">
         <fieldset>
@@ -39,8 +39,8 @@
             Staff — sees the admin side
           </label>
         </fieldset>
-        <Button>Sign in</Button>
+        <Button type="submit" variant="primary">Sign in</Button>
       </form>
-    </Panel>
+    </Card>
   </div>
 </main>

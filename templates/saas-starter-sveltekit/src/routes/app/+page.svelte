@@ -1,6 +1,6 @@
 <script lang="ts">
   import { statusBadgeVariant } from "$lib/status";
-  import { Button, Panel, StatusMessage, Eyebrow, Badge } from "$lib/components";
+  import { Button, Card, Alert, Eyebrow, Badge } from "$lib/ui";
 
   let { data } = $props();
 </script>
@@ -11,12 +11,12 @@
 
 {#if data.onboarding}
   <main class="section">
-    <Panel>
+    <Card>
       <Eyebrow>Almost there</Eyebrow>
       <h1>Create your first organization.</h1>
       <p>You're signed in but not a member of any organization yet.</p>
-      <Button href="/signup">Create an organization</Button>
-    </Panel>
+      <Button href="/signup" variant="primary">Create an organization</Button>
+    </Card>
   </main>
 {:else}
   <main class="section">
@@ -36,17 +36,17 @@
       <div class="stat-card">
         <span>Subscription</span>
         {#if data.subscription}
-          <Badge variant={statusBadgeVariant(data.subscription.status)}>{data.subscription.status}</Badge>
+          <Badge tone={statusBadgeVariant(data.subscription.status)}>{data.subscription.status}</Badge>
         {:else}
-          <Badge variant="muted">none</Badge>
+          <Badge tone="neutral">none</Badge>
         {/if}
       </div>
     </div>
 
     {#if !data.subscription}
-      <StatusMessage>No active subscription. <a href="/app/billing">Choose a plan</a> to unlock paid features.</StatusMessage>
+      <Alert tone="success">No active subscription. <a href="/app/billing">Choose a plan</a> to unlock paid features.</Alert>
     {:else if !data.subscription.hasAccess}
-      <StatusMessage variant="error">Subscription is {data.subscription.status}. Paid features are gated until it returns to good standing.</StatusMessage>
+      <Alert tone="error">Subscription is {data.subscription.status}. Paid features are gated until it returns to good standing.</Alert>
     {/if}
   </main>
 {/if}

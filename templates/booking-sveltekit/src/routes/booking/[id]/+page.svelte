@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Panel, StatusMessage, Eyebrow, Badge } from "$lib/components";
+  import { Button, Card, Alert, Eyebrow, Badge } from "$lib/ui";
 
   let { data, form } = $props();
 
@@ -12,28 +12,28 @@
 </script>
 
 <main class="section">
-  <Panel>
+  <Card>
     <Eyebrow>{cancelled ? "Cancelled" : "Confirmed"}</Eyebrow>
     <h1>{cancelled ? "Booking cancelled." : "Booking saved."}</h1>
     <p>
       {data.booking.customerName} — {data.booking.serviceName} at {fmt(data.booking.startsAt)}.
     </p>
-    <StatusMessage>Reference: {data.booking.id}</StatusMessage>
+    <Alert tone="success">Reference: {data.booking.id}</Alert>
 
     {#if form?.error}
-      <Badge variant="danger">{form.error}</Badge>
+      <Badge tone="bad">{form.error}</Badge>
     {/if}
 
     <div class="field-grid" style="margin-top:1rem">
-      <Button href="/book" variant="secondary">Create another booking</Button>
+      <Button href="/book" variant="ghost">Create another booking</Button>
       {#if !cancelled && data.cancel.allowed}
         <form method="POST" action="?/cancel">
           <input type="hidden" name="t" value={data.manageToken} />
-          <Button>Cancel booking</Button>
+          <Button type="submit" variant="primary">Cancel booking</Button>
         </form>
       {:else if !cancelled && data.cancel.reason}
-        <Badge variant="muted">{data.cancel.reason}</Badge>
+        <Badge tone="neutral">{data.cancel.reason}</Badge>
       {/if}
     </div>
-  </Panel>
+  </Card>
 </main>

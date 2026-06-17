@@ -1,0 +1,11 @@
+{
+  "style": "web-portal",
+  "components": [
+    "Alert",
+    "Badge",
+    "Button",
+    "Card",
+    "Eyebrow",
+    "Field"
+  ]
+}

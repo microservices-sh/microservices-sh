@@ -1,6 +1,6 @@
 <script lang="ts">
   import { statusBadgeVariant } from "$lib/status";
-  import { Button, Panel, Eyebrow, Badge } from "$lib/components";
+  import { Button, Card, Eyebrow, Badge } from "$lib/ui";
   import Icon from "$lib/components/Icon.svelte";
   let { data } = $props();
 
@@ -17,12 +17,12 @@
       <h1>Bookings.</h1>
       <p>Review scheduled bookings and inspect the module-owned records that agents can safely extend.</p>
       <p>
-        <Button href="/admin/calendar" variant="secondary"><Icon name="calendar" /> Calendar view</Button>
-        <Button href="/admin" variant="secondary">Overview</Button>
+        <Button href="/admin/calendar" variant="ghost"><Icon name="calendar" /> Calendar view</Button>
+        <Button href="/admin" variant="ghost">Overview</Button>
       </p>
     </section>
 
-    <Panel>
+    <Card>
       <h2>All bookings</h2>
 
       <form method="GET" class="filter-bar">
@@ -36,7 +36,7 @@
             <option value={s} selected={s === data.status}>{s}</option>
           {/each}
         </select>
-        <Button variant="secondary">Filter</Button>
+        <Button type="submit" variant="ghost">Filter</Button>
       </form>
 
       <p class="filter-count">
@@ -53,12 +53,12 @@
                 <a href={`/admin/bookings/${booking.id}`}><strong>{booking.customerName}</strong></a>
                 <p>{booking.serviceName} · {fmt(booking.startsAt)}</p>
               </div>
-              <Badge variant={statusBadgeVariant(booking.status)}>{booking.status}</Badge>
+              <Badge tone={statusBadgeVariant(booking.status)}>{booking.status}</Badge>
             </li>
           {/each}
         </ul>
       {/if}
-    </Panel>
+    </Card>
   </div>
 </main>
 

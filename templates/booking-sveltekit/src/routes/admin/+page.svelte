@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Panel, Eyebrow } from "$lib/components";
+  import { Button, Card, Eyebrow } from "$lib/ui";
 
   let { data } = $props();
 </script>
@@ -10,7 +10,7 @@
       <Eyebrow>Admin</Eyebrow>
       <h1>Booking operations.</h1>
       <form method="POST" action="/logout">
-        <Button variant="secondary">Log out</Button>
+        <Button type="submit" variant="ghost">Log out</Button>
       </form>
       <p>
         This admin surface stays intentionally compact for the MVP. The richer admin shell
@@ -28,7 +28,7 @@
       </div>
     </section>
 
-    <Panel>
+    <Card>
       <h2>Recent bookings</h2>
       {#if data.bookings.length === 0}
         <p>No bookings yet.</p>
@@ -43,10 +43,10 @@
           {/each}
         </ul>
       {/if}
-      <p><Button href="/admin/bookings" variant="secondary">View all bookings</Button></p>
-    </Panel>
+      <p><Button href="/admin/bookings" variant="ghost">View all bookings</Button></p>
+    </Card>
 
-    <Panel>
+    <Card>
       <h2>Recent customers</h2>
       {#if data.customers.length === 0}
         <p>No customers yet.</p>
@@ -61,7 +61,7 @@
           {/each}
         </ul>
       {/if}
-      <p><Button href="/admin/customers" variant="secondary">View all customers</Button></p>
-    </Panel>
+      <p><Button href="/admin/customers" variant="ghost">View all customers</Button></p>
+    </Card>
   </div>
 </main>

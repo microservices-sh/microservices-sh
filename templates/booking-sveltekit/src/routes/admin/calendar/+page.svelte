@@ -1,6 +1,6 @@
 <script lang="ts">
   import { statusBadgeVariant } from "$lib/status";
-  import { Button, Eyebrow, Badge } from "$lib/components";
+  import { Button, Eyebrow, Badge } from "$lib/ui";
   import Icon from "$lib/components/Icon.svelte";
   let { data } = $props();
 
@@ -21,9 +21,9 @@
       <h1>Calendar.</h1>
     </div>
     <nav class="cal-nav" aria-label="Week navigation">
-      <Button href={`/admin/calendar?start=${data.prev}`} variant="secondary" aria-label="Previous week"><Icon name="chevron-left" /></Button>
-      <Button href="/admin/calendar" variant="secondary">This week</Button>
-      <Button href={`/admin/calendar?start=${data.next}`} variant="secondary" aria-label="Next week"><Icon name="chevron-right" /></Button>
+      <Button href={`/admin/calendar?start=${data.prev}`} variant="ghost" aria-label="Previous week"><Icon name="chevron-left" /></Button>
+      <Button href="/admin/calendar" variant="ghost">This week</Button>
+      <Button href={`/admin/calendar?start=${data.next}`} variant="ghost" aria-label="Next week"><Icon name="chevron-right" /></Button>
     </nav>
   </div>
   <p class="cal-tz">Times shown in {data.timezone}</p>
@@ -43,7 +43,7 @@
               <span class="cal-event__time"><Icon name="clock" size={13} /> {time(b.startsAt)}</span>
               <span class="cal-event__who">{b.customerName}</span>
               <span class="cal-event__svc">{b.serviceName}</span>
-              <Badge variant={statusBadgeVariant(b.status)}>{b.status}</Badge>
+              <Badge tone={statusBadgeVariant(b.status)}>{b.status}</Badge>
             </a>
           {/each}
         {/if}
@@ -51,7 +51,7 @@
     {/each}
   </div>
 
-  <p style="margin-top:1.5rem"><Button href="/admin" variant="secondary"><Icon name="chevron-left" /> Overview</Button></p>
+  <p style="margin-top:1.5rem"><Button href="/admin" variant="ghost"><Icon name="chevron-left" /> Overview</Button></p>
 </main>
 
 <style>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { statusBadgeVariant, formatMoney } from "$lib/status";
-  import { Button, Panel, Eyebrow, Badge } from "$lib/components";
+  import { Button, Card, Eyebrow, Badge } from "$lib/ui";
   let { data } = $props();
 </script>
 
@@ -34,7 +34,7 @@
       </div>
     </section>
 
-    <Panel>
+    <Card>
       <h2>Recent invoices</h2>
       {#if data.invoices.length === 0}
         <p>No invoices yet.</p>
@@ -48,15 +48,15 @@
                 </a>
                 <p>{formatMoney(invoice.totalCents, invoice.currency)}</p>
               </div>
-              <Badge variant={statusBadgeVariant(invoice.status)}>{invoice.status}</Badge>
+              <Badge tone={statusBadgeVariant(invoice.status)}>{invoice.status}</Badge>
             </li>
           {/each}
         </ul>
       {/if}
-      <p><Button href="/portal/invoices" variant="secondary">View all invoices</Button></p>
-    </Panel>
+      <p><Button href="/portal/invoices" variant="ghost">View all invoices</Button></p>
+    </Card>
 
-    <Panel>
+    <Card>
       <h2>Recent documents</h2>
       {#if data.files.length === 0}
         <p>No documents yet.</p>
@@ -68,12 +68,12 @@
                 <strong>{file.originalName}</strong>
                 <p>{file.contentType} · {Math.ceil(file.bytes / 1024)} KB</p>
               </div>
-              <Badge variant={statusBadgeVariant(file.status)}>{file.status}</Badge>
+              <Badge tone={statusBadgeVariant(file.status)}>{file.status}</Badge>
             </li>
           {/each}
         </ul>
       {/if}
-      <p><Button href="/portal/files" variant="secondary">View all files</Button></p>
-    </Panel>
+      <p><Button href="/portal/files" variant="ghost">View all files</Button></p>
+    </Card>
   </div>
 </main>

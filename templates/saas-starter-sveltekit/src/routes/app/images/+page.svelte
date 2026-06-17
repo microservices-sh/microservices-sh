@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Field, Panel, StatusMessage, Eyebrow, Badge } from "$lib/components";
+  import { Button, Field, Card, Alert, Eyebrow, Badge } from "$lib/ui";
 
   let { data, form } = $props();
 
@@ -16,15 +16,15 @@
   <p>Generate images from a prompt. Powered by the <code>@microservices-sh/image-generation</code> module (kie.ai / Gemini / GPT-image). With no provider keys configured, a deterministic stub provider is used so the flow works locally.</p>
 
   {#if form?.error}
-    <StatusMessage variant="error" live>{form.error}</StatusMessage>
+    <Alert tone="error">{form.error}</Alert>
   {:else if form?.generated}
-    <StatusMessage>Image generated.</StatusMessage>
+    <Alert tone="success">Image generated.</Alert>
   {:else if form?.deleted}
-    <StatusMessage>Image deleted.</StatusMessage>
+    <Alert tone="success">Image deleted.</Alert>
   {/if}
 
   <div class="content-grid mt-6">
-    <Panel>
+    <Card>
       <h2>Generate</h2>
       <form method="POST" action="?/generate">
         <Field label="Prompt" id="prompt">
@@ -40,11 +40,11 @@
         <Field label="Negative prompt (optional)" id="negativePrompt">
           <input id="negativePrompt" name="negativePrompt" placeholder="blurry, low quality" />
         </Field>
-        <Button type="submit">Generate</Button>
+        <Button type="submit" variant="primary">Generate</Button>
       </form>
-    </Panel>
+    </Card>
 
-    <Panel>
+    <Card>
       <h2>Your images</h2>
       {#if data.images.length === 0}
         <p>No images yet. Generate your first one.</p>
@@ -65,6 +65,6 @@
           {/each}
         </ul>
       {/if}
-    </Panel>
+    </Card>
   </div>
 </main>

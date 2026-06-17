@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Field, Panel, Eyebrow } from "$lib/components";
+  import { Button, Field, Card, Eyebrow } from "$lib/ui";
 
   let { data } = $props();
 
@@ -17,14 +17,16 @@
 <h1>{data.resource}</h1>
 <p>{data.total} record{data.total === 1 ? "" : "s"} across all organizations.</p>
 
-<Panel as="form" method="GET">
-  <Field label="Search" id="q">
-    <input id="q" name="q" value={data.search} placeholder="Search…" />
-  </Field>
-  <Button type="submit" variant="secondary">Search</Button>
-</Panel>
+<Card>
+  <form method="GET">
+    <Field label="Search" id="q">
+      <input id="q" name="q" value={data.search} placeholder="Search…" />
+    </Field>
+    <Button type="submit" variant="ghost">Search</Button>
+  </form>
+</Card>
 
-<Panel class="mt-6">
+<Card class="mt-6">
   {#if data.rows.length > 0}
     <ul class="list" role="list">
       {#each data.rows as row}
@@ -40,4 +42,4 @@
   {:else}
     <p>No records found.</p>
   {/if}
-</Panel>
+</Card>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Field, Panel, StatusMessage, Eyebrow, Badge } from "$lib/components";
+  import { Button, Field, Card, Alert, Eyebrow, Badge } from "$lib/ui";
 
   let { data, form } = $props();
 
@@ -16,15 +16,15 @@
   <p>Members, roles, and invites are scoped to your active organization and gated by your role.</p>
 
   {#if form?.error}
-    <StatusMessage variant="error" live>{form.error}</StatusMessage>
+    <Alert tone="error">{form.error}</Alert>
   {:else if form?.invited}
-    <StatusMessage>Invitation sent. Share this accept link: <code>/app/team/accept?token={form.token}</code></StatusMessage>
+    <Alert tone="success">Invitation sent. Share this accept link: <code>/app/team/accept?token={form.token}</code></Alert>
   {:else if form?.roleChanged}
-    <StatusMessage>Role updated.</StatusMessage>
+    <Alert tone="success">Role updated.</Alert>
   {/if}
 
   <div class="content-grid mt-6">
-    <Panel>
+    <Card>
       <h2>Members</h2>
       <ul class="list" role="list">
         {#each data.members as member}
@@ -42,7 +42,7 @@
                     <option value={role.id} selected={role.id === member.roleId}>{role.name}</option>
                   {/each}
                 </select>
-                <Button type="submit" variant="secondary">Update</Button>
+                <Button type="submit" variant="ghost">Update</Button>
               </form>
             {/if}
           </li>
@@ -59,9 +59,9 @@
           {/each}
         </ul>
       {/if}
-    </Panel>
+    </Card>
 
-    <Panel>
+    <Card>
       <h2>Invite a member</h2>
       {#if data.canManage}
         <form method="POST" action="?/invite">
@@ -76,11 +76,11 @@
               {/each}
             </select>
           </Field>
-          <Button type="submit">Send invitation</Button>
+          <Button type="submit" variant="primary">Send invitation</Button>
         </form>
       {:else}
         <p>You need the <code>member.manage</code> permission to invite teammates.</p>
       {/if}
-    </Panel>
+    </Card>
   </div>
 </main>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Panel, Eyebrow } from "$lib/components";
+  import { Button, Card, Eyebrow } from "$lib/ui";
 
   let { data } = $props();
 </script>
@@ -10,10 +10,10 @@
       <Eyebrow>Customer detail</Eyebrow>
       <h1>{data.customer.name}</h1>
       <p>{data.customer.email}</p>
-      <p><Button href="/admin/customers" variant="secondary">Back to customers</Button></p>
+      <p><Button href="/admin/customers" variant="ghost">Back to customers</Button></p>
     </section>
 
-    <Panel>
+    <Card>
       <h2>Profile</h2>
       <dl class="detail-list">
         <div>
@@ -37,9 +37,9 @@
           <dd><code>{data.customer.id}</code></dd>
         </div>
       </dl>
-    </Panel>
+    </Card>
 
-    <Panel>
+    <Card>
       <h2>Bookings</h2>
       {#if data.bookings.length === 0}
         <p>No bookings for this customer.</p>
@@ -54,6 +54,6 @@
           {/each}
         </ul>
       {/if}
-    </Panel>
+    </Card>
   </div>
 </main>

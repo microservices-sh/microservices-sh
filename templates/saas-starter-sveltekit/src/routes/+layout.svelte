@@ -1,9 +1,21 @@
 <script lang="ts">
   import "../app.css";
   import { page } from "$app/stores";
-  import { Button } from "$lib/components";
+  import { Button } from "$lib/ui";
 
   let { data, children } = $props();
+
+  let isDark = $state(false);
+  $effect(() => {
+    isDark = document.documentElement.dataset.theme === "dark";
+  });
+
+  function toggleTheme() {
+    const n = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = n;
+    localStorage.setItem("theme", n);
+    isDark = n === "dark";
+  }
 
   const isActive = (href: string, path: string) =>
     href === path || (href !== "/" && path.startsWith(href));
@@ -57,9 +69,19 @@
 
       {#if data.user}
         <form method="POST" action="/logout">
-          <Button type="submit" variant="secondary">Log out</Button>
+          <Button type="submit" variant="ghost">Log out</Button>
         </form>
       {/if}
+
+      <Button
+        variant="ghost"
+        size="sm"
+        aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+        aria-pressed={isDark}
+        onclick={toggleTheme}
+      >
+        {isDark ? "☀" : "☾"}
+      </Button>
     </nav>
   </header>
 

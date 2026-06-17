@@ -1,6 +1,7 @@
 <script lang="ts">
   import "../app.css";
   import { page } from "$app/stores";
+  import { Button } from "$lib/ui";
 
   let { children, data } = $props();
   const brand = $derived(data?.settings?.name ?? "Booking");
@@ -15,6 +16,22 @@
 
   const isActive = (href: string, path: string) =>
     href === path || (href !== "/" && path.startsWith(href));
+
+  let theme = $state<"light" | "dark">("light");
+
+  $effect(() => {
+    theme = (document.documentElement.dataset.theme as "light" | "dark") ?? "light";
+  });
+
+  function toggleTheme() {
+    theme = theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem("theme", theme);
+    } catch (e) {
+      /* ignore */
+    }
+  }
 </script>
 
 <div class="shell">
@@ -32,6 +49,14 @@
           {link.label}
         </a>
       {/each}
+      <Button
+        variant="ghost"
+        size="sm"
+        aria-label="Toggle dark mode"
+        onclick={toggleTheme}
+      >
+        {theme === "dark" ? "☀" : "☾"}
+      </Button>
     </nav>
   </header>
 

@@ -1,28 +1,29 @@
-import type { BadgeVariant } from "./components/types";
-
 /**
- * Maps an invoice / file status to a Badge variant.
- * default (accent) = open/active · warn = draft/pending · danger = void/deleted ·
- * muted = paid/archived. Edit the buckets to match your own vocabulary.
+ * Maps an invoice / file status to a kit Badge tone.
+ * bad = overdue/void/cancelled/failed · warn = pending/sent/draft/processing ·
+ * good = paid/complete · neutral = everything else. Edit the buckets to match
+ * your own vocabulary.
  */
-export function statusBadgeVariant(status: string | null | undefined): BadgeVariant {
+export function statusBadgeVariant(status: string | null | undefined): string {
   switch ((status ?? "").toLowerCase()) {
+    case "overdue":
     case "void":
     case "voided":
-    case "deleted":
     case "cancelled":
     case "canceled":
-      return "danger";
-    case "draft":
+    case "failed":
+      return "bad";
     case "pending":
-    case "awaiting":
+    case "sent":
+    case "draft":
+    case "processing":
       return "warn";
     case "paid":
+    case "complete":
     case "completed":
-    case "archived":
-      return "muted";
+      return "good";
     default:
-      return "default";
+      return "neutral";
   }
 }
 

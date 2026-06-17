@@ -1,6 +1,6 @@
 <script lang="ts">
   import { statusBadgeVariant } from "$lib/status";
-  import { Button, Field, Panel, Eyebrow, Badge } from "$lib/components";
+  import { Button, Field, Card, Eyebrow, Badge } from "$lib/ui";
   let { data, form } = $props();
 
   const fmt = (iso: string) =>
@@ -18,15 +18,15 @@
       <Eyebrow>Booking detail</Eyebrow>
       <h1>{data.booking.customerName}</h1>
       <p>{data.booking.serviceName} at {fmt(data.booking.startsAt)}.</p>
-      <p><Button href="/admin/bookings" variant="secondary">Back to bookings</Button></p>
+      <p><Button href="/admin/bookings" variant="ghost">Back to bookings</Button></p>
     </section>
 
-    <Panel>
+    <Card>
       <h2>Record</h2>
       <dl class="detail-list">
         <div>
           <dt>Status</dt>
-          <dd><Badge variant={statusBadgeVariant(isCancelled ? "cancelled" : data.booking.status)}>{isCancelled ? "cancelled" : data.booking.status}</Badge></dd>
+          <dd><Badge tone={statusBadgeVariant(isCancelled ? "cancelled" : data.booking.status)}>{isCancelled ? "cancelled" : data.booking.status}</Badge></dd>
         </div>
         <div>
           <dt>Customer</dt>
@@ -49,13 +49,13 @@
           <dd><code>{data.booking.id}</code></dd>
         </div>
       </dl>
-    </Panel>
+    </Card>
 
     {#if !isCancelled}
-      <Panel>
+      <Card>
         <h2>Manage</h2>
         {#if form?.error}
-          <Badge variant="danger">{form.error}</Badge>
+          <Badge tone="bad">{form.error}</Badge>
         {/if}
 
         <h3>Reschedule</h3>
@@ -63,7 +63,7 @@
           <Field label="New date" id="date">
             <input type="date" id="date" name="date" value={data.rescheduleDate ?? ""} />
           </Field>
-          <Button variant="secondary">Find times</Button>
+          <Button type="submit" variant="ghost">Find times</Button>
         </form>
 
         {#if data.rescheduleDate}
@@ -80,23 +80,23 @@
                   {/each}
                 </div>
               </fieldset>
-              <Button>Move booking</Button>
+              <Button type="submit" variant="primary">Move booking</Button>
             </form>
           {:else}
-            <Badge variant="muted">No open times on {data.rescheduleDate}.</Badge>
+            <Badge tone="neutral">No open times on {data.rescheduleDate}.</Badge>
           {/if}
         {/if}
 
         <h3 style="margin-top:1.5rem">Cancel</h3>
         <form method="POST" action="?/cancel">
-          <Button>Cancel booking</Button>
+          <Button type="submit" variant="primary">Cancel booking</Button>
         </form>
-      </Panel>
+      </Card>
     {/if}
 
-    <Panel>
+    <Card>
       <h2>Notes</h2>
       <p>{data.booking.notes || "No notes captured."}</p>
-    </Panel>
+    </Card>
   </div>
 </main>

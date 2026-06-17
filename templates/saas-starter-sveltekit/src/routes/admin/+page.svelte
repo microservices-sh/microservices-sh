@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Eyebrow } from "$lib/components";
+  import { Eyebrow } from "$lib/ui";
 
   let { data } = $props();
 </script>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Panel, Eyebrow, Badge } from "$lib/components";
+  import { Card, Eyebrow, Badge } from "$lib/ui";
 
   let { data } = $props();
 </script>
@@ -14,7 +14,7 @@
   <p>Settings, your effective permissions, and recent org activity.</p>
 
   <div class="content-grid mt-6">
-    <Panel>
+    <Card>
       <h2>Organization</h2>
       <dl class="detail-list">
         <div><dt>Name</dt><dd>{data.org.name}</dd></div>
@@ -28,12 +28,12 @@
         {#each data.permissions as permission}
           <Badge>{permission}</Badge>
         {:else}
-          <Badge variant="muted">none</Badge>
+          <Badge tone="neutral">none</Badge>
         {/each}
       </div>
-    </Panel>
+    </Card>
 
-    <Panel>
+    <Card>
       <h2>Recent activity</h2>
       {#if data.activity.length > 0}
         <ul class="list" role="list">
@@ -47,6 +47,6 @@
       {:else}
         <p>No recorded activity yet.</p>
       {/if}
-    </Panel>
+    </Card>
   </div>
 </main>

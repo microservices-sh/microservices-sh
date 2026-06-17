@@ -1,6 +1,6 @@
 <script lang="ts">
   import { statusBadgeVariant, formatMoney } from "$lib/status";
-  import { Button, Panel, Eyebrow, Badge } from "$lib/components";
+  import { Button, Card, Eyebrow, Badge } from "$lib/ui";
   let { data } = $props();
 </script>
 
@@ -34,7 +34,7 @@
       </div>
     </section>
 
-    <Panel>
+    <Card>
       <h2>Recent invoices</h2>
       {#if data.recentInvoices.length === 0}
         <p>No invoices yet.</p>
@@ -46,15 +46,15 @@
                 <strong>{invoice.number ?? "Draft"}</strong>
                 <p>{invoice.customerName} · {formatMoney(invoice.totalCents, invoice.currency)}</p>
               </div>
-              <Badge variant={statusBadgeVariant(invoice.status)}>{invoice.status}</Badge>
+              <Badge tone={statusBadgeVariant(invoice.status)}>{invoice.status}</Badge>
             </li>
           {/each}
         </ul>
       {/if}
-      <p><Button href="/admin/invoices" variant="secondary">View all invoices</Button></p>
-    </Panel>
+      <p><Button href="/admin/invoices" variant="ghost">View all invoices</Button></p>
+    </Card>
 
-    <Panel>
+    <Card>
       <h2>Recent activity</h2>
       {#if data.events.length === 0}
         <p>No audit events yet.</p>
@@ -68,6 +68,6 @@
           {/each}
         </ul>
       {/if}
-    </Panel>
+    </Card>
   </div>
 </main>

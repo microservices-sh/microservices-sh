@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Field, Panel, StatusMessage, Eyebrow } from "$lib/components";
+  import { Button, Field, Card, Alert, Eyebrow } from "$lib/ui";
 
   let { form } = $props();
 </script>
@@ -19,10 +19,10 @@
       </p>
     </section>
 
-    <Panel>
+    <Card>
       <h2>New organization</h2>
       {#if form?.error}
-        <StatusMessage variant="error" live>{form.error}</StatusMessage>
+        <Alert tone="error">{form.error}</Alert>
       {/if}
       <form method="POST">
         <Field label="Your work email" id="email">
@@ -34,9 +34,9 @@
         <Field label="URL slug (optional)" id="slug">
           <input id="slug" name="slug" placeholder="acme-inc" value={form?.values?.slug ?? ""} />
         </Field>
-        <Button type="submit">Create organization</Button>
+        <Button type="submit" variant="primary">Create organization</Button>
       </form>
       <p class="mt-4 text-[0.9rem]">Already have an account? <a href="/login">Log in</a>.</p>
-    </Panel>
+    </Card>
   </div>
 </main>

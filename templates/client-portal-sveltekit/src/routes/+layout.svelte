@@ -1,8 +1,25 @@
 <script lang="ts">
   import "../app.css";
   import { page } from "$app/stores";
+  import { Button } from "$lib/ui";
 
   let { data, children } = $props();
+
+  let theme = $state("light");
+
+  $effect(() => {
+    theme = document.documentElement.dataset.theme ?? "light";
+  });
+
+  function toggleTheme() {
+    theme = theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem("theme", theme);
+    } catch (e) {
+      // ignore (private mode / no storage)
+    }
+  }
 
   const customerLinks = [
     { href: "/portal", label: "Dashboard" },
@@ -42,6 +59,14 @@
       {:else}
         <a href="/admin?role=staff">Staff view</a>
       {/if}
+      <Button
+        variant="ghost"
+        size="sm"
+        aria-label="Toggle dark mode"
+        onclick={toggleTheme}
+      >
+        {theme === "dark" ? "☀" : "☾"}
+      </Button>
     </nav>
   </header>
 

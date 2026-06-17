@@ -1,57 +1,65 @@
 @import "tailwindcss";
+@import "$lib/ui/tokens.css";
 
 /* ============================================================
    Booking template — design system (Tailwind v4, CSS-first)
 
-   HOW TO RE-THEME
-   Edit the tokens in the @theme block below. Everything — buttons,
-   panels, fields, nav, pills — reads from these. Change --color-accent
-   to rebrand the whole app; change --font-display / --font-sans to
-   restyle type. Utilities (bg-accent, text-muted, rounded-card, …) are
-   generated from these tokens, so you can also tweak any element inline
-   with Tailwind classes. See THEMING.md.
+   Re-skinned to the canonical @microservices-sh/ui kit (web-portal look)
+   with light + dark mode. Everything — buttons, panels, fields, nav,
+   pills — reads from the @theme tokens below; change --color-accent to
+   rebrand. The :root[data-theme="dark"] block recolors the same tokens
+   for dark mode. See THEMING.md.
    ============================================================ */
 
 @theme {
-  /* — surfaces — */
-  --color-bg: #f5f6f6;
+  --color-bg: #f6f9fc;
   --color-surface: #ffffff;
-  --color-surface-2: #f8faf9;
-  --color-line: #e6e9e8;
-  --color-line-strong: #d3d8d6;
+  --color-surface-2: #f7fafc;
+  --color-line: #e6ebf1;
+  --color-line-strong: #d6dce5;
+  --color-ink: #1a1f36;
+  --color-muted: #5b6873;
+  --color-accent: #0c8f5a;
+  --color-accent-strong: #0a7a4b;
+  --color-accent-soft: #d8f6e8;
+  --color-accent-line: #bfe3d5;
+  --color-accent-contrast: #ffffff;
+  --color-danger: #df1b41;
+  --color-danger-soft: #fce8ec;
+  --color-warning: #bb5504;
+  --color-warning-soft: #fdf2da;
+  --color-success: #0e8a5f;
+  --color-success-soft: #d8f6e8;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --shadow-sm: 0 1px 1px rgba(50,50,93,0.04), 0 1px 2px rgba(50,50,93,0.04);
+  --shadow-card: 0 2px 5px -1px rgba(50,50,93,0.1), 0 1px 3px -1px rgba(0,0,0,0.06);
+  --shadow-pop: 0 13px 27px -5px rgba(50,50,93,0.12), 0 8px 16px -8px rgba(0,0,0,0.16);
+}
 
-  /* — text — */
-  --color-ink: #15201c;
-  --color-muted: #5b6863;
-
-  /* — brand accent (change this one to rebrand) — */
-  --color-accent: #146c54;
-  --color-accent-strong: #0e5341;
-  --color-accent-soft: #e9f4f0;
-  --color-accent-line: #c2e2d8;
-  --color-accent-contrast: #f4fbf8;
-
-  /* — semantic state — */
-  --color-danger: #b1431d;
-  --color-danger-soft: #faece5;
-  --color-warning: #8a5a00;
-  --color-warning-soft: #fbf1dc;
-  --color-success: #146c54;
-  --color-success-soft: #e9f4f0;
-
-  /* — type — */
-  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-
-  /* — radius — */
-  --radius-card: 14px;
-  --radius-control: 9px;
-
-  /* — shadow — */
-  --shadow-sm: 0 1px 2px rgba(16, 32, 28, 0.05);
-  --shadow-card: 0 1px 2px rgba(16, 32, 28, 0.04);
-  --shadow-pop: 0 18px 40px -24px rgba(16, 32, 28, 0.4);
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #0a0f1c;
+  --color-surface: #141b2d;
+  --color-surface-2: #0f1626;
+  --color-line: #232c40;
+  --color-line-strong: #303b54;
+  --color-ink: #e7ecf5;
+  --color-muted: #aab4c9;
+  --color-accent: #18b86e;
+  --color-accent-strong: #22d07f;
+  --color-accent-soft: #0f2a20;
+  --color-accent-line: #2e3850;
+  --color-accent-contrast: #04130a;
+  --color-danger: #ff5774;
+  --color-danger-soft: #2c0f16;
+  --color-warning: #e8a13a;
+  --color-warning-soft: #2a1e08;
+  --color-success: #34e597;
+  --color-success-soft: #0f2a20;
 }
 
 /* ── Base ──────────────────────────────────── */

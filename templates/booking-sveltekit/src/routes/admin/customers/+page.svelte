@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Panel, Eyebrow } from "$lib/components";
+  import { Button, Card, Eyebrow } from "$lib/ui";
 
   let { data } = $props();
 </script>
@@ -10,10 +10,10 @@
       <Eyebrow>Admin</Eyebrow>
       <h1>Customers.</h1>
       <p>Review customer records created by the booking flow through the customer module.</p>
-      <p><Button href="/admin" variant="secondary">Back to overview</Button></p>
+      <p><Button href="/admin" variant="ghost">Back to overview</Button></p>
     </section>
 
-    <Panel>
+    <Card>
       <h2>All customers</h2>
       {#if data.customers.length === 0}
         <p>No customers yet.</p>
@@ -30,6 +30,6 @@
           {/each}
         </ul>
       {/if}
-    </Panel>
+    </Card>
   </div>
 </main>

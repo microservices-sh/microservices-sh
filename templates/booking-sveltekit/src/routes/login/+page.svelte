@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Field } from "$lib/components";
+  import { Button, Field } from "$lib/ui";
 
   let email = $state("");
   let code = $state("");
@@ -42,13 +42,13 @@
   {#if step === "email"}
     <form onsubmit={requestCode}>
       <Field label="Email" id="email"><input id="email" type="email" bind:value={email} required autocomplete="email" /></Field>
-      <Button disabled={busy}>Send code</Button>
+      <Button type="submit" variant="primary" disabled={busy}>Send code</Button>
     </form>
   {:else}
     <p>We emailed a sign-in code to <strong>{email}</strong>.</p>
     <form onsubmit={verifyCode}>
       <Field label="Code" id="code"><input id="code" inputmode="numeric" bind:value={code} required autocomplete="one-time-code" /></Field>
-      <Button disabled={busy}>Verify</Button>
+      <Button type="submit" variant="primary" disabled={busy}>Verify</Button>
     </form>
   {/if}
   {#if error}<p class="error" role="alert">{error}</p>{/if}

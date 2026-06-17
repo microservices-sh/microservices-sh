@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Field, Panel, StatusMessage, Eyebrow } from "$lib/components";
+  import { Button, Field, Card, Alert, Eyebrow } from "$lib/ui";
 
   let { data, form } = $props();
 
@@ -21,27 +21,29 @@
         booking behavior runs through detached module use cases.
       </p>
 
-      <Panel as="form" method="GET" action="/book">
-        <div class="field-grid">
-          <Field label="Service" id="serviceId">
-            <select id="serviceId" name="serviceId">
-              {#each data.services as service}
-                <option value={service.id} selected={service.id === data.serviceId}>{service.name}</option>
-              {/each}
-            </select>
-          </Field>
-          <Field label="Date" id="date">
-            <input id="date" name="date" type="date" value={data.date} required />
-          </Field>
-        </div>
-        <Button variant="secondary">Refresh availability</Button>
-      </Panel>
+      <Card>
+        <form method="GET" action="/book">
+          <div class="field-grid">
+            <Field label="Service" id="serviceId">
+              <select id="serviceId" name="serviceId">
+                {#each data.services as service}
+                  <option value={service.id} selected={service.id === data.serviceId}>{service.name}</option>
+                {/each}
+              </select>
+            </Field>
+            <Field label="Date" id="date">
+              <input id="date" name="date" type="date" value={data.date} required />
+            </Field>
+          </div>
+          <Button type="submit" variant="ghost">Refresh availability</Button>
+        </form>
+      </Card>
     </section>
 
-    <Panel>
+    <Card>
       <h2>Confirm booking</h2>
       {#if form?.error}
-        <StatusMessage variant="error" live>Booking could not be created. Check the fields and try again.</StatusMessage>
+        <Alert tone="error">Booking could not be created. Check the fields and try again.</Alert>
       {/if}
       <form method="POST">
         <input type="hidden" name="serviceId" value={data.serviceId} />
@@ -79,8 +81,8 @@
         <Field label="Notes" id="notes">
           <textarea id="notes" name="notes" rows="4"></textarea>
         </Field>
-        <Button>Confirm booking</Button>
+        <Button type="submit" variant="primary">Confirm booking</Button>
       </form>
-    </Panel>
+    </Card>
   </div>
 </main>
