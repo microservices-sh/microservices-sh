@@ -404,6 +404,8 @@ importers:
         specifier: workspace:*
         version: link:../module-contract
 
+  packages/ui: {}
+
   packages/workspace-tools: {}
 
   templates/booking-sveltekit:
@@ -536,6 +538,73 @@ importers:
       astro:
         specifier: ^6.4.6
         version: 6.4.6(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.62.0)(tsx@4.22.4)
+
+  templates/erp-shell-sveltekit:
+    dependencies:
+      '@microservices-sh/admin-shell':
+        specifier: workspace:*
+        version: link:../../modules/admin-shell
+      '@microservices-sh/audit-log':
+        specifier: workspace:*
+        version: link:../../modules/audit-log
+      '@microservices-sh/auth':
+        specifier: workspace:*
+        version: link:../../modules/auth
+      '@microservices-sh/customer':
+        specifier: workspace:*
+        version: link:../../modules/customer
+      '@microservices-sh/file-media':
+        specifier: workspace:*
+        version: link:../../modules/file-media
+      '@microservices-sh/identity':
+        specifier: workspace:*
+        version: link:../../modules/identity
+      '@microservices-sh/invoice':
+        specifier: workspace:*
+        version: link:../../modules/invoice
+      '@microservices-sh/jobs-workflows':
+        specifier: workspace:*
+        version: link:../../modules/jobs-workflows
+      '@microservices-sh/notifications-inapp':
+        specifier: workspace:*
+        version: link:../../modules/notifications-inapp
+      '@microservices-sh/org-team-rbac':
+        specifier: workspace:*
+        version: link:../../modules/org-team-rbac
+      '@sveltejs/adapter-cloudflare':
+        specifier: ^7.2.4
+        version: 7.2.8(@sveltejs/kit@2.65.1(@sveltejs/vite-plugin-svelte@4.0.4(svelte@5.56.3)(vite@5.4.21(lightningcss@1.32.0)))(svelte@5.56.3)(typescript@5.9.3)(vite@5.4.21(lightningcss@1.32.0)))(wrangler@4.100.0(@cloudflare/workers-types@4.20260613.1))
+      '@sveltejs/kit':
+        specifier: ^2.9.0
+        version: 2.65.1(@sveltejs/vite-plugin-svelte@4.0.4(svelte@5.56.3)(vite@5.4.21(lightningcss@1.32.0)))(svelte@5.56.3)(typescript@5.9.3)(vite@5.4.21(lightningcss@1.32.0))
+      svelte:
+        specifier: ^5.0.0
+        version: 5.56.3
+      vite:
+        specifier: ^5.0.0
+        version: 5.4.21(lightningcss@1.32.0)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250109.0
+        version: 4.20260613.1
+      '@sveltejs/vite-plugin-svelte':
+        specifier: ^4.0.4
+        version: 4.0.4(svelte@5.56.3)(vite@5.4.21(lightningcss@1.32.0))
+      '@tailwindcss/vite':
+        specifier: ^4.1.13
+        version: 4.3.1(vite@5.4.21(lightningcss@1.32.0))
+      tailwindcss:
+        specifier: ^4.1.13
+        version: 4.3.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      wrangler:
+        specifier: ^4.58.0
+        version: 4.100.0(@cloudflare/workers-types@4.20260613.1)
 
   templates/saas-starter-sveltekit:
     dependencies:
