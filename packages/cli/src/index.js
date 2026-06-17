@@ -719,8 +719,13 @@ function formatMetricPair(metric, unit = "") {
   return `${published}${unit} published / ${uploaded}${unit} uploaded`;
 }
 
+function formatResourceIdentity(resource) {
+  const externalId = resource.externalId ? ` (${resource.externalId})` : "";
+  return `${resource.resourceType}/${resource.binding}: ${resource.status} ${resource.name}${externalId}`;
+}
+
 function formatResourceUsageLine(resource) {
-  const base = `${resource.resourceType}/${resource.binding}: ${resource.status} ${resource.name}${resource.externalId ? ` (${resource.externalId})` : ""}`;
+  const base = formatResourceIdentity(resource);
   const usage = isObject(resource.usage) ? resource.usage : null;
   if (resource.resourceType === "d1" && usage) {
     return `- ${base}
@@ -735,28 +740,37 @@ function formatResourceUsageLine(resource) {
   ${diagnostics.reason ?? "status-only"}: ${diagnostics.message ?? "No Cloudflare usage details returned."}`;
 }
 
-function formatDeploymentResourceUsage(result) {
-  const resources = Array.isArray(result.resources) ? result.resources : [];
-  const cloudflare = isObject(result.cloudflare) ? result.cloudflare : {};
-  const cloudflareLine = cloudflare.available
-    ? `Cloudflare: configured (${cloudflare.accountId ?? "unknown account"})`
-    : `Cloudflare: not configured (${Array.isArray(cloudflare.missing) ? cloudflare.missing.join(", ") : "missing credentials"})`;
-  const totals = isObject(result.r2AccountMetrics) && isObject(result.r2AccountMetrics.totals)
-    ? result.r2AccountMetrics.totals
-    : null;
-  const r2Metrics = totals
-    ? `\nR2 account metrics:
+function formatCloudflareUsageLine(cloudflare) {
+  if (cloudflare.available) {
+    return `Cloudflare: configured (${cloudflare.accountId ?? "unknown account"})`;
+  }
+  const missing = Array.isArray(cloudflare.missing) ? cloudflare.missing.join(", ") : "missing credentials";
+  return `Cloudflare: not configured (${missing})`;
+}
+
+function formatR2AccountMetrics(metrics) {
+  if (!isObject(metrics) || !isObject(metrics.totals)) return "";
+  const totals = metrics.totals;
+  return `\nR2 account metrics:
 - Objects: ${formatMetricPair(totals.objects)}
 - Payload: ${formatMetricPair(totals.payloadSizeBytes, " bytes")}
 - Metadata: ${formatMetricPair(totals.metadataSizeBytes, " bytes")}
-`
-    : "";
-  const r2MetricsDiagnostic = isObject(result.r2MetricsDiagnostics)
-    ? `\nR2 account metrics unavailable: ${result.r2MetricsDiagnostics.message ?? result.r2MetricsDiagnostics.reason}\n`
-    : "";
+`;
+}
+
+function formatR2MetricsDiagnostic(diagnostics) {
+  if (!isObject(diagnostics)) return "";
+  return `\nR2 account metrics unavailable: ${diagnostics.message ?? diagnostics.reason}\n`;
+}
+
+function formatDeploymentResourceUsage(result) {
+  const resources = Array.isArray(result.resources) ? result.resources : [];
+  const cloudflare = isObject(result.cloudflare) ? result.cloudflare : {};
+  const r2Metrics = formatR2AccountMetrics(result.r2AccountMetrics);
+  const r2MetricsDiagnostic = formatR2MetricsDiagnostic(result.r2MetricsDiagnostics);
 
   return `Deployment: ${result.deployment.id}
-${cloudflareLine}
+${formatCloudflareUsageLine(cloudflare)}
 Resources:
 ${resources.length ? resources.map(formatResourceUsageLine).join("\n") : "none"}
 ${r2Metrics}${r2MetricsDiagnostic}Next:
