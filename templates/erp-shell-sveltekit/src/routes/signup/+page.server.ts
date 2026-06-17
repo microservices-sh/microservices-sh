@@ -1,9 +1,29 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
-import { createOrganization } from "@microservices-sh/org-team-rbac";
+import { createOrganization, inviteMember } from "@microservices-sh/org-team-rbac";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { writeSession, userIdForEmail, getSessionSecret } from "$lib/server/session";
 import { rememberCompanyOrg } from "$lib/server/org-context";
+
+interface SetupInvite {
+  email: string;
+  role: "admin" | "member";
+}
+
+// Parse the wizard's invites payload defensively — only keep well-formed rows.
+function parseInvites(raw: string): SetupInvite[] {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((i): i is SetupInvite =>
+        !!i && typeof (i as SetupInvite).email === "string" && /.+@.+\..+/.test((i as SetupInvite).email))
+      .map((i) => ({ email: i.email.trim().toLowerCase(), role: i.role === "admin" ? "admin" : "member" }))
+      .slice(0, 25);
+  } catch {
+    return [];
+  }
+}
 
 // One-time company setup. In a single-company ERP this is NOT a public tenant
 // funnel: it creates the one company org and makes the first user its owner.
@@ -49,13 +69,34 @@ export const actions: Actions = {
       return fail(result.status, { error: result.error?.message ?? "Could not create the company.", values });
     }
 
+    const orgId = result.data.id;
     await recordEvent(
-      { eventName: "org.created", actorId: userId, entityType: "organization", entityId: result.data.id, source: "setup", payload: { slug: result.data.slug } },
+      { eventName: "org.created", actorId: userId, entityType: "organization", entityId: orgId, source: "setup", payload: { slug: result.data.slug } },
       { auditStore: locals.auditStore }
     );
 
+    // Optional: send the wizard's team invitations. Resolve the seeded role ids
+    // by name (admin/member). Best-effort — a bad invite never fails setup; the
+    // owner can re-invite from Team. The org already exists at this point.
+    const invites = parseInvites(String(formData.get("invites") ?? "[]"));
+    if (invites.length > 0) {
+      const roles = await locals.rbacStore.listRoles(orgId);
+      const roleId = (name: string) => roles.find((r) => r.name === name)?.id;
+      for (const invite of invites) {
+        const rid = roleId(invite.role);
+        if (!rid) continue;
+        const res = await inviteMember({ orgId, email: invite.email, roleId: rid }, { store: locals.rbacStore });
+        if (res.ok) {
+          await recordEvent(
+            { eventName: "member.invited", actorId: userId, entityType: "organization", entityId: orgId, source: "setup", payload: { invitationId: res.data.id } },
+            { auditStore: locals.auditStore }
+          );
+        }
+      }
+    }
+
     await writeSession(cookies, { id: userId, email }, getSessionSecret(platform));
-    rememberCompanyOrg(cookies, result.data.id);
+    rememberCompanyOrg(cookies, orgId);
 
     throw redirect(303, "/app");
   }
