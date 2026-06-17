@@ -4,9 +4,9 @@
 [![CI](https://github.com/microservices-sh/microservices-sh/actions/workflows/ci.yml/badge.svg)](https://github.com/microservices-sh/microservices-sh/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/node/v/create-microservices-app.svg)](https://nodejs.org)
 
-Cloudflare SaaS starter and app generator for teams building with AI coding agents.
+Production foundations for AI-built apps on Cloudflare.
 
-Start from a working Workers, D1, and SvelteKit app with source-visible, contract-checked modules. Your coding agent can inspect the docs, plan changes, run checks, and deploy when you are ready. Local generation does not require a microservices.sh account or a Cloudflare account.
+For developers using Claude Code, Cursor, Codex, or another coding agent on Cloudflare: start from working Workers, D1, and SvelteKit apps with source-visible, contract-checked modules for the dangerous production 30% — auth, identity, payments, webhooks, email, audit logs, tenant boundaries, and deploy checks. Your coding agent can inspect the docs, plan changes, run checks, and deploy when you are ready. Local generation does not require a microservices.sh account or a Cloudflare account.
 
 ```bash
 pnpm create microservices-app@latest studio-booking --template booking-sveltekit
@@ -26,8 +26,8 @@ npm create microservices-app@latest studio-booking -- --template booking-sveltek
 
 ## What You Get
 
-- A real Cloudflare SvelteKit booking app with public booking flow and admin screens.
-- Source-visible modules for gateway, auth, customer, booking, and audit log.
+- A real Cloudflare SvelteKit booking app with public booking flow, login, payments, and admin screens.
+- Source-visible modules for gateway, auth, identity, customer, booking, audit log, and payment, with email/admin/webhooks available as optional additions.
 - D1 migrations, Wrangler config, local dev commands, and HTTP smoke checks.
 - `microservices.lock.json` to pin module versions and make upgrades reviewable.
 - LLM-readable docs under `docs/` so Claude, Codex, Cursor, or another agent can inspect before editing.
@@ -48,7 +48,7 @@ The goal is not to hide generated code behind a platform. The generated project 
 
 | Use case | Why this repo helps |
 |----------|---------------------|
-| Solo founder or small business app | Start from a working booking/customer foundation instead of rebuilding auth, data, migrations, and admin flow from scratch. |
+| Technical founder or small business app | Start from a working booking/customer/payment foundation instead of rebuilding auth, data, migrations, and admin flow from scratch. |
 | Agency or fractional CTO delivery | Reuse a known production foundation across clients while keeping every generated app inspectable and owned by the client. |
 | AI-assisted development | Give your agent stable module contracts, docs, checks, and upgrade plans instead of asking it to invent infrastructure ad hoc. |
 | Internal tools and operations portals | Compose common business primitives such as auth, customers, booking, audit logs, email, and payments into Cloudflare-native apps. |
@@ -61,6 +61,7 @@ This is probably not the right fit if you want a no-code builder, a black-box ho
 - Module docs are generated into the app so the agent can inspect local contracts before editing.
 - `microservices.lock.json` pins module versions so upgrades are explicit and reviewable.
 - Project commands expose `check`, `add --plan`, `upgrade --plan`, smoke tests, and deploy plans as agent-friendly CLI surfaces.
+- Module installs are version-pinned so downgrade/upgrade proposals are explicit instead of hidden in generated code.
 - Secrets, migrations, provider actions, and managed deploys stay approval-gated.
 
 ## Agent Skill
