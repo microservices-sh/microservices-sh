@@ -2,7 +2,7 @@ import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { createOrganization } from "@microservices-sh/org-team-rbac";
 import { recordEvent } from "@microservices-sh/audit-log";
-import { writeSession, userIdForEmail, isSuperAdminEmail } from "$lib/server/session";
+import { writeSession, userIdForEmail, getSessionSecret } from "$lib/server/session";
 import { rememberCompanyOrg } from "$lib/server/org-context";
 
 // One-time company setup. In a single-company ERP this is NOT a public tenant
@@ -22,7 +22,7 @@ function slugify(value: string): string {
 }
 
 export const actions: Actions = {
-  default: async ({ request, cookies, locals }) => {
+  default: async ({ request, cookies, locals, platform }) => {
     const formData = await request.formData();
     const email = String(formData.get("email") ?? "").trim().toLowerCase();
     const orgName = String(formData.get("orgName") ?? "").trim();
@@ -54,7 +54,7 @@ export const actions: Actions = {
       { auditStore: locals.auditStore }
     );
 
-    writeSession(cookies, { id: userId, email, isSuperAdmin: isSuperAdminEmail(email) });
+    await writeSession(cookies, { id: userId, email }, getSessionSecret(platform));
     rememberCompanyOrg(cookies, result.data.id);
 
     throw redirect(303, "/app");

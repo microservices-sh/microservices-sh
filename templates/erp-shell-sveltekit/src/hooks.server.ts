@@ -1,6 +1,6 @@
 import type { Handle } from "@sveltejs/kit";
 import { resolveStores, memoryStores } from "$lib/server/stores";
-import { readSession } from "$lib/server/session";
+import { readSession, getSessionSecret } from "$lib/server/session";
 import { seedDemoData } from "$lib/server/demo";
 
 // Wire module stores + the session user onto locals for every request. Stores are
@@ -23,7 +23,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.objectStorage = stores.objectStorage;
   event.locals.notificationStore = stores.notificationStore;
   event.locals.jobStore = stores.jobStore;
-  event.locals.user = readSession(event.cookies);
+  event.locals.user = await readSession(event.cookies, getSessionSecret(event.platform));
 
   // Local demo: seed the in-memory stores so customers/invoices/files render
   // real, module-produced data without D1/R2. No-op when DB is present.
