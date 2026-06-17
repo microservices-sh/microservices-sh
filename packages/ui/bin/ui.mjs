@@ -48,6 +48,21 @@ function copyTokens(dir) {
   copyFileSync(join(SRC_ROOT, registry.tokens), join(uiDir(dir), "tokens.css"));
 }
 
+const FONT_LINK =
+  '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />';
+
+// Ensure the IBM Plex webfont is loaded (tokens.css deliberately doesn't @import
+// it — see that file's header). Idempotent: skips if already present.
+function ensureFontLink(dir) {
+  const appHtml = join(dir, "src", "app.html");
+  if (!existsSync(appHtml)) return;
+  const html = readFileSync(appHtml, "utf8");
+  if (html.includes("IBM+Plex")) return;
+  if (!html.includes("</head>")) return;
+  writeFileSync(appHtml, html.replace("</head>", `\t${FONT_LINK}\n\t</head>`));
+  console.log("  + IBM Plex <link> added to src/app.html");
+}
+
 // Resolve a component + its declared deps, transitively, deduped in order.
 function resolveWithDeps(names) {
   const out = [];
@@ -88,6 +103,7 @@ function cmdList() {
 
 function cmdInit(dir) {
   copyTokens(dir);
+  ensureFontLink(dir);
   const manifest = readManifest(dir);
   writeManifest(dir, manifest);
   console.log(`✓ tokens.css → ${uiDir(dir)}\n  Import it once in your app.css:  @import "$lib/ui/tokens.css";`);
@@ -97,6 +113,7 @@ function cmdAdd(dir, names) {
   if (names.length === 0) throw new Error("add: name a component, e.g. 'msh-ui add Button'");
   const comps = resolveWithDeps(names);
   copyTokens(dir);
+  ensureFontLink(dir);
   copyComponents(dir, comps);
   const manifest = readManifest(dir);
   const set = new Set([...manifest.components, ...comps.map((c) => c.name)]);
@@ -116,6 +133,7 @@ function cmdSync(dir) {
   }
   const comps = resolveWithDeps(manifest.components);
   copyTokens(dir);
+  ensureFontLink(dir);
   copyComponents(dir, comps);
   manifest.style = registry.style;
   manifest.components = comps.map((c) => c.name).sort();

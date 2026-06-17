@@ -5,8 +5,13 @@
    @theme), so the copy-in components work in any Svelte/Vite toolchain
    without depending on utility-class generation. Light is default;
    add data-theme="dark" on <html> for dark mode.
+
+   FONTS: this file intentionally does NOT @import the IBM Plex webfonts — a
+   nested @import breaks ordering when imported after `@import "tailwindcss"`.
+   Load the font in app.html <head> (the msh-ui CLI does this on `init`/`add`):
+     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+   Falls back to system sans/mono if absent.
    ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
 :root {
   color-scheme: light;
