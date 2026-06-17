@@ -22,6 +22,10 @@ const DEFAULT_CONFIG_PATH = process.env.MICROSERVICES_CONFIG_PATH
   ? resolve(process.env.MICROSERVICES_CONFIG_PATH)
   : join(process.env.MICROSERVICES_CONFIG_DIR || join(homedir(), ".microservices"), "config.json");
 const IGNORE = new Set(["node_modules", "dist", ".svelte-kit", ".wrangler", ".git"]);
+const FIRST_PARTY_SCOPE = "@microservices-sh/";
+const BUNDLED_PACKAGES = new Map([
+  ["connection-contract", "connection-contract"]
+]);
 const TELEMETRY_API_URL = process.env.MICROSERVICES_API_URL || DEFAULT_API_URL;
 const TELEMETRY_TIMEOUT_MS = 1500;
 const TELEMETRY_NOTICE_MARKER = join(dirname(DEFAULT_CONFIG_PATH), ".telemetry-notice");
@@ -572,6 +576,30 @@ function moduleSourceRef(id, version) {
   };
 }
 
+function rewriteFirstPartyDependencySet(dependencies, modulePrefix = "..", packagePrefix = "../../packages") {
+  if (!dependencies || typeof dependencies !== "object") return;
+  for (const name of Object.keys(dependencies)) {
+    if (!name.startsWith(FIRST_PARTY_SCOPE)) continue;
+    const id = name.slice(FIRST_PARTY_SCOPE.length);
+    if (BUNDLED_PACKAGES.has(id)) {
+      dependencies[name] = `file:${packagePrefix}/${BUNDLED_PACKAGES.get(id)}`;
+    } else {
+      dependencies[name] = `file:${modulePrefix}/${id}`;
+    }
+  }
+}
+
+function normalizeVendoredModulePackage(moduleDir) {
+  const packagePath = join(moduleDir, "package.json");
+  if (!existsSync(packagePath)) return;
+  const pkg = readJson(packagePath, null);
+  if (!pkg || typeof pkg !== "object") return;
+  for (const group of ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"]) {
+    rewriteFirstPartyDependencySet(pkg[group]);
+  }
+  writeJsonFile(packagePath, pkg);
+}
+
 function unavailableModuleVersion(id, requestedVersion, availableVersions = [], details = {}) {
   return fail(
     "MODULE_VERSION_NOT_FOUND",
@@ -622,6 +650,77 @@ function cloneModuleRepository(repoDir, selector) {
   };
 }
 
+function resolveModuleSource(selector, tmpPrefix = "ms-module-") {
+  const tmp = mkdtempSync(join(tmpdir(), tmpPrefix));
+  const repoDir = join(tmp, "repo");
+  const cleanup = () => rmSync(tmp, { recursive: true, force: true });
+
+  try {
+    const sourceResolution = cloneModuleRepository(repoDir, selector);
+    if (!sourceResolution.ok) {
+      cleanup();
+      return sourceResolution;
+    }
+
+    const src = join(repoDir, "modules", selector.id);
+    if (!existsSync(src)) {
+      cleanup();
+      return {
+        ok: false,
+        response: fail(
+          "MODULE_NOT_FOUND",
+          `Unknown module: ${selector.id}.`,
+          "Run microservices modules list, or browse modules/ in microservices-sh/microservices-sh.",
+          { id: selector.id }
+        )
+      };
+    }
+
+    normalizeVendoredModulePackage(src);
+    const ref = execFileSync("git", ["-C", repoDir, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    const integrity = integrityOf(src);
+    const version = moduleSourceVersion(src);
+    const availableVersions = version ? [version] : [];
+    const resolvedSourceRef = sourceResolution.preferredSourceRef ?? (version ? moduleSourceRef(selector.id, version) : null);
+    if (selector.version && version !== selector.version) {
+      cleanup();
+      return {
+        ok: false,
+        response: unavailableModuleVersion(selector.id, selector.version, availableVersions, {
+          sourceRef: sourceResolution.preferredSourceRef,
+          sourceResolution: sourceResolution.sourceResolution,
+          resolvedRef: ref
+        })
+      };
+    }
+
+    return {
+      ok: true,
+      tmp,
+      repoDir,
+      src,
+      ref,
+      integrity,
+      version,
+      availableVersions,
+      resolvedSourceRef,
+      sourceResolution: sourceResolution.sourceResolution,
+      cleanup
+    };
+  } catch (error) {
+    cleanup();
+    return {
+      ok: false,
+      response: fail(
+        "MODULE_SOURCE_UNAVAILABLE",
+        `Could not resolve module source for ${selector.id}.`,
+        "Confirm git is installed, network access is available, and the module source repository is reachable.",
+        { moduleId: selector.id, requestedVersion: selector.version ?? null, reason: String(error?.message ?? error).slice(0, 240) }
+      )
+    };
+  }
+}
+
 function compareVersions(a, b) {
   if (a === b) return 0;
   const left = String(a ?? "").match(/^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/);
@@ -652,30 +751,10 @@ async function addModule(id, flags = {}) {
   const selector = parseModuleSelector(id, flags.version, "--version");
   if (!selector.ok) return selector.response;
 
-  const tmp = mkdtempSync(join(tmpdir(), "ms-add-"));
-  const repoDir = join(tmp, "repo");
+  const source = resolveModuleSource(selector, "ms-add-");
+  if (!source.ok) return source.response;
+
   try {
-    const sourceResolution = cloneModuleRepository(repoDir, selector);
-    if (!sourceResolution.ok) return sourceResolution.response;
-
-    const src = join(repoDir, "modules", selector.id);
-    if (!existsSync(src)) {
-      return fail("MODULE_NOT_FOUND", `Unknown module: ${selector.id}.`, "Run microservices modules list, or browse modules/ in microservices-sh/microservices-sh.", { id: selector.id });
-    }
-
-    const ref = execFileSync("git", ["-C", repoDir, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-    const integrity = integrityOf(src);
-    const version = moduleSourceVersion(src);
-    const availableVersions = version ? [version] : [];
-    const resolvedSourceRef = sourceResolution.preferredSourceRef ?? (version ? moduleSourceRef(selector.id, version) : null);
-    if (selector.version && version !== selector.version) {
-      return unavailableModuleVersion(selector.id, selector.version, availableVersions, {
-        sourceRef: sourceResolution.preferredSourceRef,
-        sourceResolution: sourceResolution.sourceResolution,
-        resolvedRef: ref
-      });
-    }
-
     // --plan is read-only: report what `add` would do without touching the project.
     if (flags.plan) {
       return {
@@ -683,15 +762,15 @@ async function addModule(id, flags = {}) {
         data: {
           id: selector.id,
           plan: true,
-          version,
-          requestedVersion: selector.version ?? version,
-          availableVersions,
-          sourceRef: resolvedSourceRef,
-          sourceResolution: sourceResolution.sourceResolution,
+          version: source.version,
+          requestedVersion: selector.version ?? source.version,
+          availableVersions: source.availableVersions,
+          sourceRef: source.resolvedSourceRef,
+          sourceResolution: source.sourceResolution,
           source: SOURCE_REPO,
           sourceUrl: SOURCE_URL,
-          ref,
-          integrity,
+          ref: source.ref,
+          integrity: source.integrity,
           wouldVendorTo: `modules/${selector.id}`,
           dependency: `"@microservices-sh/${selector.id}": "file:./modules/${selector.id}"`
         },
@@ -703,25 +782,26 @@ async function addModule(id, flags = {}) {
 
     const dest = resolve("modules", selector.id);
     mkdirSync(dest, { recursive: true });
-    cpSync(src, dest, {
+    cpSync(source.src, dest, {
       recursive: true,
       filter: (source) => !source.split(/[\\/]/).some((part) => IGNORE.has(part))
     });
+    normalizeVendoredModulePackage(dest);
 
     const lockPath = "microservices.lock.json";
     const lockData = readJson(lockPath, { modules: [] });
     lockData.modules = (lockData.modules ?? []).filter((module) => module.id !== selector.id);
     lockData.modules.push({
       id: selector.id,
-      version,
-      source: `registry:${selector.id}@${version}`,
-      sourceRef: resolvedSourceRef,
+      version: source.version,
+      source: `registry:${selector.id}@${source.version}`,
+      sourceRef: source.resolvedSourceRef,
       repo: SOURCE_REPO,
       url: SOURCE_URL,
-      ref,
-      sourceResolution: sourceResolution.sourceResolution,
+      ref: source.ref,
+      sourceResolution: source.sourceResolution,
       path: `modules/${selector.id}`,
-      integrity
+      integrity: source.integrity
     });
     writeJsonFile(lockPath, lockData);
 
@@ -730,19 +810,19 @@ async function addModule(id, flags = {}) {
       data: {
         id: selector.id,
         vendoredTo: `modules/${selector.id}`,
-        integrity,
-        version,
+        integrity: source.integrity,
+        version: source.version,
         source: SOURCE_REPO,
         sourceUrl: SOURCE_URL,
-        sourceRef: resolvedSourceRef,
-        sourceResolution: sourceResolution.sourceResolution
+        sourceRef: source.resolvedSourceRef,
+        sourceResolution: source.sourceResolution
       },
       warnings: [
         `Add "@microservices-sh/${selector.id}": "file:./modules/${selector.id}" to dependencies and reinstall to wire it in.`
       ]
     };
   } finally {
-    rmSync(tmp, { recursive: true, force: true });
+    source.cleanup();
   }
 }
 
@@ -750,6 +830,67 @@ function localModuleVersion(id) {
   const moduleDir = resolve("modules", id);
   if (!existsSync(moduleDir)) return null;
   return moduleSourceVersion(moduleDir);
+}
+
+function moduleLockEntryFromSource(id, source, existing = {}) {
+  const entry = {
+    ...existing,
+    id,
+    version: source.version,
+    source: `registry:${id}@${source.version}`,
+    sourceRef: source.resolvedSourceRef,
+    repo: SOURCE_REPO,
+    url: SOURCE_URL,
+    ref: source.ref,
+    sourceResolution: source.sourceResolution,
+    path: `modules/${id}`,
+    integrity: source.integrity
+  };
+  delete entry.checksum;
+  return entry;
+}
+
+function moduleLocalChangeCheck(id, module, flags = {}) {
+  const dest = resolve("modules", id);
+  if (!existsSync(dest)) {
+    return {
+      ok: false,
+      response: fail(
+        "MODULE_SOURCE_MISSING",
+        `Module ${id} is listed in the lockfile but modules/${id} is missing.`,
+        `Run microservices add ${id}@${module.version} to restore it, or remove the stale lockfile entry.`,
+        { moduleId: id, path: `modules/${id}` }
+      )
+    };
+  }
+
+  const currentIntegrity = integrityOf(dest);
+  const expectedIntegrity = module.integrity ?? module.checksum ?? null;
+  if (expectedIntegrity && currentIntegrity !== expectedIntegrity && flags.confirm !== "overwrite") {
+    return {
+      ok: false,
+      response: fail(
+        "MODULE_LOCAL_CHANGES",
+        `Local changes were detected in modules/${id}.`,
+        `Review or commit your changes, then rerun with --confirm overwrite if replacing modules/${id} is intended.`,
+        {
+          moduleId: id,
+          path: `modules/${id}`,
+          expectedIntegrity,
+          currentIntegrity,
+          confirmationRequired: "overwrite"
+        }
+      )
+    };
+  }
+
+  return {
+    ok: true,
+    currentIntegrity,
+    expectedIntegrity,
+    guarded: Boolean(expectedIntegrity),
+    overwrittenLocalChanges: Boolean(expectedIntegrity && currentIntegrity !== expectedIntegrity && flags.confirm === "overwrite")
+  };
 }
 
 function moduleUpgradePlan(id, flags = {}) {
@@ -770,52 +911,138 @@ function moduleUpgradePlan(id, flags = {}) {
     );
   }
 
-  const availableVersion = localModuleVersion(selector.id) ?? module.version ?? null;
-  const availableVersions = availableVersion ? [availableVersion] : [];
-  if (selector.version && availableVersion !== selector.version) {
-    return unavailableModuleVersion(selector.id, selector.version, availableVersions);
+  const source = resolveModuleSource(selector, "ms-upgrade-plan-");
+  if (!source.ok) return source.response;
+
+  try {
+    const targetVersion = selector.version ?? source.version ?? module.version;
+    const targetSourceRef = source.resolvedSourceRef ?? moduleSourceRef(selector.id, targetVersion);
+    const direction = versionDirection(module.version, targetVersion);
+    const versionChangeAvailable = direction !== "none";
+
+    return {
+      ok: true,
+      data: {
+        module: {
+          id: module.id,
+          currentVersion: module.version,
+          targetVersion,
+          requestedVersion: selector.version ?? targetVersion,
+          availableVersions: source.availableVersions
+        },
+        action: direction === "none" ? "no-op" : `${direction}-plan`,
+        direction,
+        upgradeAvailable: versionChangeAvailable,
+        versionChangeAvailable,
+        approvalRequired: false,
+        sourceResolution: source.sourceResolution,
+        lockfile: {
+          template: lock.template,
+          source: module.source ?? module.repo ?? null,
+          sourceRef: module.sourceRef ?? null,
+          targetSourceRef,
+          targetRef: source.ref,
+          targetIntegrity: source.integrity,
+          checksum: module.checksum ?? module.integrity ?? null,
+          contractSnapshotAvailable: Boolean(module.contract)
+        },
+        nextSteps: versionChangeAvailable
+          ? [
+              `Review this ${direction} plan before modifying source.`,
+              `Run microservices upgrade ${selector.id}${selector.version ? ` --to ${selector.version}` : ""} --json to replace modules/${selector.id}.`,
+              "Run microservices check --json and the app typecheck after applying."
+            ]
+          : [
+              "The installed module already matches the requested version.",
+              "Run microservices updates --json later to check again."
+            ]
+      }
+    };
+  } finally {
+    source.cleanup();
+  }
+}
+
+function applyModuleUpgrade(id, flags = {}) {
+  if (!id) {
+    return fail("MODULE_ID_REQUIRED", "Missing module id.", "Run microservices upgrade <module-id> [--to <version>].");
   }
 
-  const targetVersion = selector.version ?? availableVersion ?? module.version;
-  const targetSourceRef = moduleSourceRef(selector.id, targetVersion);
-  const direction = versionDirection(module.version, targetVersion);
-  const versionChangeAvailable = direction !== "none";
+  const selector = parseModuleSelector(id, flags.to ?? flags.version, flags.to ? "--to" : "--version");
+  if (!selector.ok) return selector.response;
 
-  return {
-    ok: true,
-    data: {
-      module: {
-        id: module.id,
+  const module = (lock.modules ?? []).find((item) => item.id === selector.id);
+  if (!module) {
+    return fail(
+      "MODULE_NOT_INSTALLED",
+      "Module not installed.",
+      "Run microservices modules list to see installed modules.",
+      { moduleId: selector.id }
+    );
+  }
+
+  const source = resolveModuleSource(selector, "ms-upgrade-");
+  if (!source.ok) return source.response;
+
+  try {
+    const localCheck = moduleLocalChangeCheck(selector.id, module, flags);
+    if (!localCheck.ok) return localCheck.response;
+
+    const targetVersion = selector.version ?? source.version ?? module.version;
+    const direction = versionDirection(module.version, targetVersion);
+    const dest = resolve("modules", selector.id);
+    rmSync(dest, { recursive: true, force: true });
+    mkdirSync(dirname(dest), { recursive: true });
+    cpSync(source.src, dest, {
+      recursive: true,
+      filter: (sourcePath) => !sourcePath.split(/[\\/]/).some((part) => IGNORE.has(part))
+    });
+    normalizeVendoredModulePackage(dest);
+
+    const lockPath = "microservices.lock.json";
+    const lockData = readJson(lockPath, { modules: [] });
+    const modules = Array.isArray(lockData.modules) ? lockData.modules : [];
+    const existingIndex = modules.findIndex((item) => item.id === selector.id);
+    const existing = existingIndex >= 0 ? modules[existingIndex] : module;
+    const nextEntry = moduleLockEntryFromSource(selector.id, source, existing);
+    if (existingIndex >= 0) modules[existingIndex] = nextEntry;
+    else modules.push(nextEntry);
+    lockData.modules = modules;
+    writeJsonFile(lockPath, lockData);
+
+    const warnings = [
+      "Run microservices check --json and the app typecheck after applying module source changes."
+    ];
+    if (!localCheck.guarded) {
+      warnings.unshift(`No prior integrity was recorded for modules/${selector.id}; local-change protection was limited.`);
+    }
+    if (localCheck.overwrittenLocalChanges) {
+      warnings.unshift(`Replaced local changes in modules/${selector.id} because --confirm overwrite was provided.`);
+    }
+
+    return {
+      ok: true,
+      data: {
+        id: selector.id,
+        action: direction === "none" ? "reinstall" : direction,
+        direction,
         currentVersion: module.version,
         targetVersion,
         requestedVersion: selector.version ?? targetVersion,
-        availableVersions
+        vendoredTo: `modules/${selector.id}`,
+        integrity: source.integrity,
+        previousIntegrity: localCheck.currentIntegrity,
+        source: SOURCE_REPO,
+        sourceUrl: SOURCE_URL,
+        sourceRef: source.resolvedSourceRef,
+        sourceResolution: source.sourceResolution,
+        ref: source.ref
       },
-      action: direction === "none" ? "no-op" : `${direction}-plan`,
-      direction,
-      upgradeAvailable: versionChangeAvailable,
-      versionChangeAvailable,
-      approvalRequired: false,
-      lockfile: {
-        template: lock.template,
-        source: module.source ?? module.repo ?? null,
-        sourceRef: module.sourceRef ?? null,
-        targetSourceRef,
-        checksum: module.checksum ?? module.integrity ?? null,
-        contractSnapshotAvailable: Boolean(module.contract)
-      },
-      nextSteps: versionChangeAvailable
-        ? [
-            `Review this ${direction} plan before modifying source.`,
-            "Apply module source changes only from a verified registry artifact or release ref.",
-            "Run microservices check --json and the app typecheck after applying."
-          ]
-        : [
-            "The installed module already matches the requested version.",
-            "Run microservices updates --json later to check again."
-          ]
-    }
-  };
+      warnings
+    };
+  } finally {
+    source.cleanup();
+  }
 }
 
 function checkResponse() {
@@ -2632,10 +2859,15 @@ async function main() {
       : `Usage: microservices docs <module-id>. Run "microservices modules list" to list installed modules.`;
     emit({ ok: true, data: { id: action ?? null, content } }, (data) => `${data.content}\n`, flags);
   } else if (resource === "upgrade") {
-    const response = moduleUpgradePlan(action, flags);
+    const response = flags.plan ? moduleUpgradePlan(action, flags) : applyModuleUpgrade(action, flags);
     emit(
       response,
-      (data) => `${data.module.id}: ${data.module.currentVersion} -> ${data.module.targetVersion} (${data.action})\n`,
+      (data) => {
+        const moduleId = data.module?.id ?? data.id;
+        const currentVersion = data.module?.currentVersion ?? data.currentVersion;
+        const targetVersion = data.module?.targetVersion ?? data.targetVersion;
+        return `${moduleId}: ${currentVersion} -> ${targetVersion} (${data.action})\n`;
+      },
       flags
     );
   } else if (resource === "check") {
