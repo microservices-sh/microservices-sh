@@ -35,6 +35,7 @@ function parseArgs(argv) {
   const args = [];
   const flags = {
     json: false,
+    helpAll: false,
     out: null,
     modules: null,
     config: null,
@@ -83,6 +84,8 @@ function parseArgs(argv) {
     const value = argv[index];
     if (value === "--") {
       continue;
+    } else if (value === "--help-all") {
+      flags.helpAll = true;
     } else if (value === "--json") {
       flags.json = true;
     } else if (value === "--out") {
@@ -287,6 +290,35 @@ function printHuman(response, formatter) {
 }
 
 function usage() {
+  return `microservices.sh CLI
+
+Common commands:
+  microservices auth login [--api-url https://api.microservices.sh]
+  microservices auth status
+  microservices billing status [--api-key <key>]
+  microservices usage [--api-key <key>]
+  microservices generate [template-id] --out <dir>
+  microservices check [template-id]
+
+Deploy and debug:
+  microservices deploy preview [template-id] [--name "Studio Demo"]
+  microservices deploy status <deployment-id>
+  microservices deploy usage <deployment-id>
+  microservices logs <deployment-id> [--search "..."] [--level info|warn|error]
+  microservices observe logs <deployment-id> [--search "..."] [--level error]
+  microservices observe errors <deployment-id> [--search "..."]
+
+Explore:
+  microservices templates list
+  microservices modules list
+  microservices docs [module-id]
+
+Use --json for machine-readable output.
+Run "microservices help all" or "microservices --help-all" for every command.
+`;
+}
+
+function usageAll() {
   return `microservices.sh CLI
 
 Usage:
@@ -2885,6 +2917,11 @@ async function main() {
   const { args, flags } = parseArgs(process.argv.slice(2));
   const [resource, action, value] = args;
   let response;
+
+  if (flags.helpAll || resource === "help-all" || (resource === "help" && action === "all")) {
+    process.stdout.write(usageAll());
+    return;
+  }
 
   if (!resource || resource === "help" || resource === "--help" || resource === "-h") {
     process.stdout.write(usage());
