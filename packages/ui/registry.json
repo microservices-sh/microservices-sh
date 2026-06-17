@@ -15,6 +15,7 @@
     { "name": "Metric", "file": "components/Metric.svelte", "deps": [] },
     { "name": "UsageBar", "file": "components/UsageBar.svelte", "deps": [] },
     { "name": "Logo", "file": "components/Logo.svelte", "deps": [] },
-    { "name": "NavProgress", "file": "components/NavProgress.svelte", "deps": [] }
+    { "name": "NavProgress", "file": "components/NavProgress.svelte", "deps": [] },
+    { "name": "AppShell", "file": "components/AppShell.svelte", "deps": ["Logo", "Button"] }
   ]
 }

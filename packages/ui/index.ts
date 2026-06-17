@@ -13,3 +13,4 @@ export { default as Metric } from "./components/Metric.svelte";
 export { default as UsageBar } from "./components/UsageBar.svelte";
 export { default as Logo } from "./components/Logo.svelte";
 export { default as NavProgress } from "./components/NavProgress.svelte";
+export { default as AppShell } from "./components/AppShell.svelte";

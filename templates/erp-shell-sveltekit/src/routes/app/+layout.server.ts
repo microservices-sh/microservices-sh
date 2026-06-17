@@ -12,10 +12,12 @@ export const load: LayoutServerLoad = async ({ locals, cookies }) => {
   if (!locals.user) throw redirect(303, "/login");
 
   const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
-  const nav = buildNav();
+  const nav = buildNav({ superAdmin: locals.user.isSuperAdmin });
+
+  const user = { email: locals.user.email, isSuperAdmin: locals.user.isSuperAdmin };
 
   if (!org) {
-    return { activeOrgId: null, activeOrg: null, permissions: [] as string[], nav };
+    return { activeOrgId: null, activeOrg: null, permissions: [] as string[], nav, user };
   }
 
   const permissions = await resolvePermissions(org.id, locals.user.id, { store: locals.rbacStore });
@@ -24,6 +26,7 @@ export const load: LayoutServerLoad = async ({ locals, cookies }) => {
     activeOrgId: org.id,
     activeOrg: { id: org.id, name: org.name, slug: org.slug },
     permissions,
-    nav
+    nav,
+    user
   };
 };

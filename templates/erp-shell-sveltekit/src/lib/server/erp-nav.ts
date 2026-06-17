@@ -11,53 +11,66 @@ import lockfile from "../../../microservices.lock.json";
 //
 // Infra modules (auth, identity, audit-log, jobs-workflows, notifications-inapp,
 // gateway, idempotency, webhook-delivery) have no nav entry: they power the shell
-// but expose no operational surface a user navigates to. They simply have no
-// entry in NAV_BY_MODULE below, so they are filtered out.
+// but expose no operational surface a user navigates to.
 
-export interface NavEntry {
-  /** Module id this entry is derived from (matches lock modules[].id). */
-  moduleId: string;
-  label: string;
+export interface NavItem {
   href: string;
-  /** Single-glyph icon rendered in the sidebar (kit-styled, no icon dep). */
-  icon: string;
+  label: string;
+}
+export interface NavGroup {
+  section?: string;
+  items: NavItem[];
 }
 
 export interface LockModule {
   id: string;
-  contract?: {
-    mount?: string;
-    permissions?: string[];
-    requires?: string[];
-  };
+  contract?: { mount?: string; permissions?: string[]; requires?: string[] };
 }
 
-// User-facing modules → sidebar metadata. A module id present here AND installed
-// (in the lock) gets a sidebar entry. Order here defines sidebar order.
-const NAV_BY_MODULE: Record<string, Omit<NavEntry, "moduleId">> = {
-  customer: { label: "Customers", href: "/app/customers", icon: "◷" },
-  invoice: { label: "Invoices", href: "/app/invoices", icon: "▤" },
-  "file-media": { label: "Files", href: "/app/files", icon: "▢" },
-  "org-team-rbac": { label: "Team", href: "/app/team", icon: "◍" }
+// User-facing modules → sidebar metadata, grouped to match the web-portal/admin
+// chrome (section title + items). A module is shown only if it is BOTH listed
+// here AND installed (in the lock). Order here defines sidebar order.
+const MODULE_NAV: Record<string, NavItem> = {
+  customer: { label: "Customers", href: "/app/customers" },
+  invoice: { label: "Invoices", href: "/app/invoices" },
+  "file-media": { label: "Files", href: "/app/files" },
+  "org-team-rbac": { label: "Team", href: "/app/team" }
 };
 
-// Static entries the shell always shows regardless of module set: the dashboard
-// (the shell itself) and settings (org profile + activity).
-const SHELL_HOME: NavEntry = { moduleId: "__shell__", label: "Dashboard", href: "/app", icon: "▣" };
-const SHELL_SETTINGS: NavEntry = { moduleId: "__shell__", label: "Settings", href: "/app/settings", icon: "⚙" };
+// Which modules belong to which sidebar group (operational vs organization).
+const OPERATIONS = ["customer", "invoice", "file-media"];
+const ORGANIZATION = ["org-team-rbac"];
 
 function installedModuleIds(): Set<string> {
   const modules = (lockfile.modules ?? []) as LockModule[];
   return new Set(modules.map((module) => module.id));
 }
 
-// Build the sidebar nav from the installed module set. Dashboard first, then one
-// entry per installed user-facing module (in NAV_BY_MODULE order), Settings last.
-export function buildNav(): NavEntry[] {
-  const installed = installedModuleIds();
-  const moduleEntries: NavEntry[] = Object.entries(NAV_BY_MODULE)
-    .filter(([moduleId]) => installed.has(moduleId))
-    .map(([moduleId, meta]) => ({ moduleId, ...meta }));
+function itemsFor(moduleIds: string[], installed: Set<string>): NavItem[] {
+  return moduleIds.filter((id) => installed.has(id) && MODULE_NAV[id]).map((id) => MODULE_NAV[id]);
+}
 
-  return [SHELL_HOME, ...moduleEntries, SHELL_SETTINGS];
+// Build the grouped sidebar nav from the installed module set. Dashboard is
+// always present; Settings always under Organization; Admin console only for
+// super-admins. Empty groups are dropped.
+export function buildNav(opts: { superAdmin?: boolean } = {}): NavGroup[] {
+  const installed = installedModuleIds();
+
+  const operations: NavGroup = {
+    section: "Operations",
+    items: [{ label: "Dashboard", href: "/app" }, ...itemsFor(OPERATIONS, installed)]
+  };
+
+  const organization: NavGroup = {
+    section: "Organization",
+    items: [...itemsFor(ORGANIZATION, installed), { label: "Settings", href: "/app/settings" }]
+  };
+
+  const groups: NavGroup[] = [operations, organization];
+
+  if (opts.superAdmin) {
+    groups.push({ section: "System", items: [{ label: "Admin console", href: "/admin" }] });
+  }
+
+  return groups.filter((g) => g.items.length > 0);
 }

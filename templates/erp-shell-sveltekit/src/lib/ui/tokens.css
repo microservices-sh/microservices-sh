@@ -62,6 +62,7 @@
   --signal-glow: rgba(56, 255, 136, 0.45);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --focus-ring: 0 0 0 3px rgba(12, 143, 90, 0.22);
+  --statusbar-h: 30px;
 
   /* page background wash (brand-tinted) */
   --bg-wash: radial-gradient(120% 70% at 100% 0%, rgba(12, 143, 90, 0.035), transparent 55%);
