@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "2026-06-13",
+  "template": "erp-shell-sveltekit",
+  "business": {
+    "name": "Acme Operations",
+    "timezone": "UTC",
+    "currency": "USD"
+  },
+  "org": {
+    "defaultRoles": ["owner", "admin", "member"],
+    "invitationTtlDays": 7
+  },
+  "theme": {
+    "primaryColor": "#4f46e5",
+    "surface": "#ffffff",
+    "radius": "14px"
+  }
+}
