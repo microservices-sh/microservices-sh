@@ -8,6 +8,7 @@ export { getForm } from "./use-cases/get-form";
 export { updateForm } from "./use-cases/update-form";
 export { submitForm } from "./use-cases/submit-form";
 export { listSubmissions } from "./use-cases/list-submissions";
+export { listForms } from "./use-cases/list-forms";
 export { validateSubmission, validateAttachment } from "./validate-submission";
 export { createD1FormStore } from "./adapters/d1-form-store";
 export { createMemoryFormStore } from "./adapters/memory-form-store";

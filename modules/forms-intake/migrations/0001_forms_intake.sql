@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS form_submissions (
   id TEXT PRIMARY KEY,
   form_id TEXT NOT NULL,
   tenant_id TEXT NOT NULL,
-  values TEXT NOT NULL,             -- JSON object: active field id -> value
+  "values" TEXT NOT NULL,           -- JSON object: active field id -> value ("values" is reserved)
   attachments TEXT NOT NULL,        -- JSON array of AttachmentRef (references only)
   idempotency_key TEXT,             -- optional client dedup key (nullable)
   submitted_at TEXT NOT NULL

@@ -31,7 +31,9 @@ function rowToSubmission(row: Record<string, unknown>): FormSubmission {
 }
 
 const FORM_COLS = "id, tenant_id, name, status, fields, require_turnstile, version, created_at, updated_at";
-const SUB_COLS = "id, form_id, tenant_id, values, attachments, idempotency_key, submitted_at";
+// "values" is a SQL reserved word — must be quoted in column lists (works for
+// both the SELECT projection and the INSERT column list).
+const SUB_COLS = 'id, form_id, tenant_id, "values", attachments, idempotency_key, submitted_at';
 
 export function createD1FormStore(db: D1Database): FormStore {
   return {
