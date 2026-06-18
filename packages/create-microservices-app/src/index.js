@@ -46,6 +46,12 @@ const REPO_TEMPLATES = {
     status: "ready",
     summary: "Cloudflare SvelteKit client portal — customers see their own invoices and files, with auth, customer, and audit-log.",
   },
+  "dot-ai-os": {
+    id: "dot-ai-os",
+    name: "DOT AI OS",
+    status: "draft",
+    summary: "Cloudflare SvelteKit operator OS — task board, focus plan, calendar context, daily review, knowledge/content pipelines, AI team routing, files, team roles, and module-backed work surfaces.",
+  },
   "erp-shell-sveltekit": {
     id: "erp-shell-sveltekit",
     name: "ERP Shell SvelteKit",
@@ -60,6 +66,7 @@ const BUNDLED_MODULES = [
   "auth",
   "billing-subscriptions",
   "booking",
+  "calendar-google",
   "customer",
   "email",
   "file-media",
@@ -323,6 +330,7 @@ Usage:
 Options:
   --template <id>              Template id. Default: booking-sveltekit
                                (booking-sveltekit = full Cloudflare SvelteKit app;
+                                dot-ai-os = agent-native operator workspace;
                                 wordpress-emdash-blog-astro = content-only WordPress migration;
                                 booking-business = Cloudflare Worker / Hono)
   --modules <ids>              Comma-separated extra module ids or id@version pins to enable

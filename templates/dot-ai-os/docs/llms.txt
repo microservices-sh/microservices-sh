@@ -1,0 +1,69 @@
+# DOT AI OS LLM Guide
+
+Purpose: guide agents implementing or customizing the `dot-ai-os` template: an
+agent-native operator workspace on Cloudflare SvelteKit with module-backed
+identity, RBAC, audit, file, contact, work-packet, and support surfaces plus
+template-owned starter workflows adapted from Jimmy Dashboard OS.
+
+## Read First
+
+- `microservices.template.json`
+- `microservices.config.json`
+- `microservices.lock.json`
+- `README.agent.md`
+- `docs/api-boundary.md`
+
+## Modules
+
+- `auth` — signing keys and token verification
+- `identity` — email-code login/session primitives
+- `org-team-rbac` — workspace org, memberships, roles, invitations, authorize
+- `admin-shell` — super-admin table gateway over module tables
+- `audit-log` — append-only event trail
+- `customer` — contacts and stakeholder records
+- `invoice` — work packets/value tracking in this starter
+- `support-ticket` — support inbox/open loops
+- `file-media` — file metadata and R2 object storage
+- `jobs-workflows` — async job slot
+- `notifications-inapp` — in-app notification slot
+
+## Architecture Rule
+
+SvelteKit route files are adapters. Domain/API logic lives in detached module use
+cases. Template-owned workflow pages (`/app/tasks`, `/app/focus`,
+`/app/calendar`, `/app/review`, `/app/knowledge`, `/app/content`,
+`/app/ai-team`) use `src/lib/os-data.ts` sample data and should stay thin until a
+dedicated module or documented D1 table owns their data.
+
+```txt
+src/routes/signup/+page.server.ts          -> createOrganization
+src/routes/app/+layout.server.ts           -> resolvePermissions gate
+src/routes/app/team/+page.server.ts        -> inviteMember / updateMemberRole
+src/routes/app/customers/+page.server.ts   -> listCustomers / upsertCustomer
+src/routes/app/invoices/+page.server.ts    -> listInvoices / createInvoice
+src/routes/app/files/+page.server.ts       -> listFiles / createUploadTicket
+src/routes/admin/[resource]/+page.server.ts -> listRecords
+```
+
+## Approval Gates
+
+Require user approval before changing:
+
+- secrets
+- remote migrations
+- calendar OAuth or write-back
+- Hermes ingestion or Obsidian export
+- payment/email provider behavior
+- Cloudflare resources
+- remote deployments
+- forked module internals
+- AI-provider calls or prompt pipelines
+
+Local baseline commands may apply the checked-in D1 migrations to Wrangler's
+local database:
+
+```bash
+pnpm microservices local migrate
+pnpm microservices local dev
+pnpm microservices local smoke
+```

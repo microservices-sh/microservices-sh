@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 30
+Phase 32
 
 ## Phases
 
@@ -218,6 +218,21 @@ Phase 30
 - [x] Add explicit remote D1 migration/backfill for existing deployed control-plane tables. (`migrations/0001_auth_workspace.sql` ALTERs all 6 control-plane tables `ADD COLUMN workspace_id DEFAULT 'ws_internal'`; `db:migrate:remote` script added.)
 - [x] Add first-owner bootstrap/API-key creation route or admin command. (`scripts/bootstrap-owner.js` + `pnpm bootstrap:owner[:remote]`; prints raw key once, stores hash only.)
 - [x] Add CLI profile/workspace/key-management behavior. (Already in `packages/cli`: `auth login` device-code flow with poll/slow_down handling, `auth login --api-key`, `auth status`/`whoami`/`logout`, token persisted to `~/.microservices/config.json`; plus `billing`/`usage`. Note: lives in `packages/cli`, not `apps/cli`.)
+
+### Phase 31: DOT AI OS Template
+- [x] Confirm create-app template behavior: users should create with `--template dot-ai-os`, not pass `--framework` or `--modules`.
+- [x] Start `templates/dot-ai-os` from the existing Cloudflare SvelteKit product-template skeleton.
+- [x] Rebrand manifest, lockfile, package, config, docs, and visible app screens to DOT AI OS.
+- [x] Register `dot-ai-os` in the create package repo-template allowlists and build copy lists.
+- [x] Validate template spec, create-package build, app build, create-local generation, generated-app check, and create-package tests.
+- **Status:** complete
+
+### Phase 32: DOT AI OS Upstream-Informed Revamp
+- [x] Inspect `jimmylau-DOTAI/jimmy-dashboard-OS` for product surfaces, route structure, data assumptions, and UI patterns.
+- [x] Map useful upstream concepts onto Cloudflare-native microservices.sh modules without importing Vercel/Supabase coupling.
+- [x] Revamp `templates/dot-ai-os` routes, content, docs, and checks around the selected operator OS workflows.
+- [x] Validate template spec, app build, create-local generation, generated-app check, and relevant package tests.
+- **Status:** complete
 
 ### Phase 25: Agentic Cloudflare Migration Prompt Orchestrator
 - [x] Add CLI commands that generate a deterministic Cloudflare migration checklist and agent prompt for existing projects.

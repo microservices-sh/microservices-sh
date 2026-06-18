@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "2026-06-13",
+  "template": "dot-ai-os",
+  "business": {
+    "name": "DOT AI Workspace",
+    "timezone": "UTC",
+    "currency": "USD"
+  },
+  "org": {
+    "defaultRoles": ["owner", "admin", "member"],
+    "invitationTtlDays": 7
+  },
+  "theme": {
+    "primaryColor": "#0c8f5a",
+    "surface": "#ffffff",
+    "radius": "12px"
+  }
+}

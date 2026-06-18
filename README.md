@@ -43,6 +43,7 @@ The goal is not to hide generated code behind a platform. The generated project 
 |---------|----------|----------|
 | `booking-sveltekit` | Service businesses, appointment products, agency demos | Public booking flow, admin screens, auth, customers, booking, audit log, D1 |
 | `saas-starter-sveltekit` | Multi-tenant B2B SaaS apps | Org signup, team RBAC, subscriptions, admin shell, audit log |
+| `dot-ai-os` | Agent-native operator workspaces | Tasks, focus plan, calendar, review, knowledge/content pipelines, AI team, contacts, files, support, team RBAC |
 | `client-portal-sveltekit` | Customer portals and account areas | Customer auth, invoices, files, audit log |
 | `booking-business` | Lower-level Workers/Hono generation | API-first booking baseline generated from module contracts |
 
@@ -246,6 +247,7 @@ modules/
 templates/
   booking-sveltekit/         Full-app booking template (default)
   saas-starter-sveltekit/    Multi-tenant B2B SaaS starter
+  dot-ai-os/                 Agent-native operator workspace
   client-portal-sveltekit/   Customer portal (invoices, files)
   company-landing-astro/     Static Astro landing page
 docs/

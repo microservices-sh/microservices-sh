@@ -118,3 +118,23 @@
 - D1 docs describe serverless SQL databases queryable from Workers and Pages, with SQLite semantics and isolation-friendly database creation.
 - Durable Objects docs describe stateful applications, strongly consistent storage, unique object identity, and coordination among clients.
 - MCP docs describe MCP as an open standard for connecting AI applications to external systems, including tools and workflows, with support across clients such as Claude, ChatGPT, VS Code, and Cursor.
+
+## DOT AI OS Template Findings
+- `create-microservices-app` has three template modes: repo-style bundled templates, procedural SDK templates, and framework starters from `frameworks.json`.
+- `dot-ai-os` should be a repo-style bundled product template, not a framework starter; users should run `--template dot-ai-os` only.
+- Repo-style templates are hardcoded in `packages/create-microservices-app/src/index.js#REPO_TEMPLATES` and copied by `packages/create-microservices-app/scripts/build.js#REPO_TEMPLATES`.
+- The build script must copy every local module that appears in the template package dependencies after dependency rewriting, or generated apps will reference missing `file:./modules/<id>` packages.
+- `calendar-google` exists as a module and is now listed in the create CLI `BUNDLED_MODULES` allowlist so `dot-ai-os` can advertise it as a planned optional integration.
+- Modern web guidance retrieved for the dashboard implementation emphasized semantic forms, visible labels, focus-visible states, stable grid/flex layouts, `100dvh` over brittle viewport units, and avoiding unnecessary offscreen rendering work above the fold.
+
+## DOT AI OS Revamp Findings
+- Modern web guidance search for the revamp surfaced `css-layout` as the most directly relevant guide for the dense operator dashboard/app-shell work. `fluid-scaling` may be useful for container-bound panes, but font sizes should not scale with viewport width in this repo's design rules.
+- Current worktree has unrelated dirty changes in promotion docs, org-team-rbac, and ERP shell team/signup routes. Treat those as user/other-agent changes and avoid modifying them during the `dot-ai-os` revamp unless they block verification.
+- Upstream `/tmp/jimmy-dashboard-OS` is aligned with `origin/main` at commit `705f287` ("Add Agent OS team dashboard").
+- Current upstream stack is Vite + React + Express + SQLite, with Vercel/Railway deployment artifacts and a Supabase schema/export path. The revamp should port product concepts, not server/runtime coupling.
+- Upstream product scope: Tasks, Calendar, Focus Plan / today's schedule, Daily Unlock / Review, AI task intake, AI Focus Plan / Daily Review rewrites, local persistence, inbox import, Google Calendar read/sync, Knowledge URL import, Hermes token ingestion, and Obsidian-ready markdown export.
+- Upstream design direction is "Clear Workbench": calm, direct, dense, readable, familiar product UI. Avoid decorative focus modes, landing-page composition, oversized hero cards, nested-card complexity, black showcase panels, and novelty interactions.
+- Upstream key UX anchor: the timeline/day plan remains stable while secondary panels collapse or disclose progressively.
+- Revamp decision: adapt the upstream product surfaces into a Cloudflare-native microservices.sh template, not a direct Vercel/Supabase/Express/SQLite port. The template keeps durable provider behavior behind modules and explicit approval gates.
+- `templates/dot-ai-os/src/lib/os-data.ts` now owns starter UI contract data only. Production task/content/knowledge persistence should move into a module use case or a documented D1 table before real external ingestion/write-back is enabled.
+- The revamp validation passed template spec checks, SvelteKit app build, create-package build, local generated-app creation, generated-app contract checks, create-package tests, whitespace checks, and CSS guard searches.

@@ -1,0 +1,71 @@
+import type { Actions, PageServerLoad } from "./$types";
+import { fail, redirect } from "@sveltejs/kit";
+import { listMembers, inviteMember, updateMemberRole, authorize } from "@microservices-sh/org-team-rbac";
+import { recordEvent } from "@microservices-sh/audit-log";
+import { requireOrgPermission } from "$lib/server/org-context";
+
+export const load: PageServerLoad = async ({ locals, cookies, parent }) => {
+  const { activeOrgId } = await parent();
+  if (!activeOrgId || !locals.user) throw redirect(303, "/app");
+
+  // Reading the roster only needs org.read; managing members needs member.manage.
+  const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "org.read", locals.rbacStore);
+
+  const [members, roles, invitations] = await Promise.all([
+    listMembers(activeOrgId, { store: locals.rbacStore }),
+    locals.rbacStore.listRoles(activeOrgId),
+    locals.rbacStore.listInvitations(activeOrgId)
+  ]);
+
+  return {
+    canManage: permissions.includes("*") || permissions.includes("member.manage"),
+    members: members.data.members,
+    roles: roles.map((role) => ({ id: role.id, name: role.name })),
+    invitations: invitations
+      .filter((inv) => inv.status === "pending")
+      .map((inv) => ({ id: inv.id, email: inv.email, token: inv.token, expiresAt: inv.expiresAt }))
+  };
+};
+
+async function gateManage(locals: App.Locals, orgId: string) {
+  return authorize(orgId, locals.user!.id, "member.manage", { store: locals.rbacStore });
+}
+
+export const actions: Actions = {
+  invite: async ({ request, locals, cookies }) => {
+    void cookies;
+    const form = await request.formData();
+    const orgId = String(form.get("orgId") ?? "");
+    if (!locals.user || !(await gateManage(locals, orgId)).ok) return fail(403, { error: "You do not have permission to invite members." });
+
+    const result = await inviteMember(
+      { orgId, email: String(form.get("email") ?? ""), roleId: String(form.get("roleId") ?? "") },
+      { store: locals.rbacStore }
+    );
+    if (!result.ok) return fail(result.status, { error: result.error?.message ?? "Invite failed." });
+
+    await recordEvent(
+      { eventName: "member.invited", actorId: locals.user.id, entityType: "organization", entityId: orgId, source: "team", payload: { invitationId: result.data.id } },
+      { auditStore: locals.auditStore }
+    );
+    return { ok: true, invited: true, token: result.data.token };
+  },
+
+  changeRole: async ({ request, locals }) => {
+    const form = await request.formData();
+    const orgId = String(form.get("orgId") ?? "");
+    if (!locals.user || !(await gateManage(locals, orgId)).ok) return fail(403, { error: "You do not have permission to change roles." });
+
+    const result = await updateMemberRole(
+      { orgId, userId: String(form.get("userId") ?? ""), roleId: String(form.get("roleId") ?? "") },
+      { store: locals.rbacStore }
+    );
+    if (!result.ok) return fail(result.status, { error: result.error?.message ?? "Role change failed." });
+
+    await recordEvent(
+      { eventName: "role.updated", actorId: locals.user.id, entityType: "membership", entityId: result.data.userId, source: "team", payload: { roleId: result.data.roleId } },
+      { auditStore: locals.auditStore }
+    );
+    return { ok: true, roleChanged: true };
+  }
+};

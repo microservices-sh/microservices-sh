@@ -218,6 +218,72 @@
 ## Latest Verification Results
 | Test | Expected | Actual | Status |
 |------|----------|--------|--------|
+
+## Session: 2026-06-18
+
+### Phase 31: DOT AI OS Template
+- **Status:** complete
+- Actions taken:
+  - Checked create-app CLI behavior and confirmed `dot-ai-os` belongs in repo-style template registration, not `frameworks.json`.
+  - Ran modern-web-guidance search/retrieval for dashboard UI forms, CSS/layout, and performance guidance.
+  - Copied the `erp-shell-sveltekit` source skeleton into `templates/dot-ai-os` without generated `.svelte-kit`, `.wrangler`, `dist`, or `node_modules` folders.
+  - Rebranded the template manifest, package metadata, config, content schema, app shell, docs, and visible route copy to DOT AI OS.
+  - Added DOT AI OS workspace routes for focus planning, daily review, and knowledge log.
+  - Registered `dot-ai-os` in `create-microservices-app` repo-template metadata/build lists and added `calendar-google` to the bundled module allowlist.
+  - Updated root, template, and create-package template listings.
+- Files created/modified so far:
+  - `templates/dot-ai-os/`
+  - `README.md`
+  - `templates/README.md`
+  - `packages/create-microservices-app/README.md`
+  - `packages/create-microservices-app/src/index.js`
+  - `packages/create-microservices-app/scripts/build.js`
+  - `packages/create-microservices-app/dist/index.js`
+  - `pnpm-lock.yaml`
+  - `task_plan.md`
+  - `findings.md`
+  - `progress.md`
+
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm spec:check -- template templates/dot-ai-os` | DOT AI OS template spec passes | Passed | Pass |
+| `pnpm --filter @microservices-sh/template-dot-ai-os build:app` | DOT AI OS SvelteKit build passes | Passed | Pass |
+| `pnpm --dir packages/create-microservices-app build` | Create package bundle includes `dot-ai-os` | Passed | Pass |
+| `pnpm create:local -- dot-ai-os-check --template dot-ai-os --dir /tmp --no-install --no-git --json` | Local create path writes the template | Passed, wrote `/tmp/dot-ai-os-check` | Pass |
+| `pnpm --dir /tmp/dot-ai-os-check microservices check --json` | Generated app contract checks pass | Passed | Pass |
+| `pnpm --filter create-microservices-app test` | Create package tests pass | 15/15 passed | Pass |
+
+### Phase 32: DOT AI OS Upstream-Informed Revamp
+- **Status:** complete
+- Actions taken:
+  - Loaded planning, frontend, modern-web, and Cloudflare guidance.
+  - Re-read planning files and ran the planning session catchup script.
+  - Refreshed `/tmp/jimmy-dashboard-OS` and inspected the upstream Vite/React/Express/SQLite app, product docs, data files, and UI direction.
+  - Mapped upstream product concepts onto the Cloudflare/microservices.sh template boundary instead of copying the upstream backend/runtime assumptions.
+  - Added `src/lib/os-data.ts` as template-owned sample UI contract data for tasks, focus plan, calendar events, knowledge stages, content stages, AI workers, and review signals.
+  - Reworked the DOT AI OS workbench into a Clear Workbench-style operator dashboard with Today, Tasks, Focus plan, Calendar, Daily review, Knowledge log, Content pipeline, and AI team routes.
+  - Updated template docs, agent docs, API-boundary notes, template metadata, CLI listing copy, and template contract checks for the upstream-informed surfaces.
+  - Removed generated `.svelte-kit` and `node_modules` artifacts from `templates/dot-ai-os` after validation.
+
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm spec:check -- template templates/dot-ai-os` | DOT AI OS template spec passes | Passed | Pass |
+| `pnpm --filter @microservices-sh/template-dot-ai-os build:app` | DOT AI OS app build passes | Passed | Pass |
+| `pnpm --dir packages/create-microservices-app build` | Create package bundle includes updated `dot-ai-os` | Passed | Pass |
+| `pnpm create:local -- dot-ai-os-revamp-check --template dot-ai-os --dir /tmp --no-install --no-git --json` | Local create path writes updated template | Passed, wrote `/tmp/dot-ai-os-revamp-check` | Pass |
+| `pnpm --dir /tmp/dot-ai-os-revamp-check microservices check --json` | Generated DOT AI OS project checks pass | Passed | Pass |
+| `pnpm --filter create-microservices-app test` | Create package tests pass | 15/15 passed | Pass |
+| `git diff --check` | No whitespace errors | Passed with no output | Pass |
+| CSS/design guard search | No viewport-scaled fonts or negative tracking in `templates/dot-ai-os/src` | No matches | Pass |
+  - Ran modern-web-guidance search for dense operator-dashboard layout patterns; `css-layout` is the relevant guide to retrieve.
+  - Observed unrelated dirty worktree changes outside `dot-ai-os`; these will be preserved.
+  - Retrieved `css-layout` guidance: use grid for page skeletons, flex for rows/toolbars, container queries for component-local adaptation, and stable scroll containers for dense panes.
+  - Verified upstream clone `/tmp/jimmy-dashboard-OS` is aligned with `origin/main` at commit `705f287`.
+  - Read upstream README, PRODUCT, DESIGN, package metadata, and file map to extract product scope and design constraints.
+- Files created/modified so far:
+  - `task_plan.md`
+  - `findings.md`
+  - `progress.md`
 | `pnpm install --offline` | Workspace links update without network downloads | Completed with no downloads | Pass |
 | `pnpm cli -- templates list --json` | Returns booking-business template | Returned stable SDK envelope | Pass |
 | `pnpm cli -- modules list --json` | Returns Auth, Customer, Booking | Returned all three modules | Pass |

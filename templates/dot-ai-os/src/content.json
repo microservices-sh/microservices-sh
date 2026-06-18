@@ -1,0 +1,15 @@
+{
+  "hero": {
+    "eyebrow": "DOT AI OS",
+    "headline": "Run the day from one agent OS.",
+    "lead": "DOT AI OS gives operators a focused workspace for tasks, daily planning, review, knowledge capture, files, team roles, and agent-assisted work.",
+    "primaryCta": { "label": "Open the app", "href": "/app" },
+    "secondaryCta": { "label": "Log in", "href": "/login" }
+  },
+  "panel": {
+    "eyebrow": "What's inside",
+    "title": "Operator workbench, module-backed",
+    "body": "A single workspace with RBAC, audit trail, file storage, contacts, work packets, and placeholders for calendar and AI provider modules.",
+    "features": ["Focus plan", "Daily review", "Knowledge log", "Files and contacts", "Audit trail"]
+  }
+}
