@@ -12,6 +12,12 @@ export const createOrganizationInputSchema = z.object({
   ownerUserId: z.string().min(1)
 });
 
+export const updateOrganizationInputSchema = z.object({
+  orgId: z.string().min(1),
+  name: z.string().min(1).max(120),
+  slug
+});
+
 export const inviteMemberInputSchema = z.object({
   orgId: z.string().min(1),
   email: z.email(),
@@ -36,6 +42,7 @@ export const createRoleInputSchema = z.object({
 });
 
 export type CreateOrganizationInput = z.infer<typeof createOrganizationInputSchema>;
+export type UpdateOrganizationInput = z.infer<typeof updateOrganizationInputSchema>;
 export type InviteMemberInput = z.infer<typeof inviteMemberInputSchema>;
 export type AcceptInvitationInput = z.infer<typeof acceptInvitationInputSchema>;
 export type UpdateMemberRoleInput = z.infer<typeof updateMemberRoleInputSchema>;

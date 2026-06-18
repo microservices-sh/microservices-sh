@@ -4,6 +4,7 @@ export { events } from "./events";
 export { permissions } from "./permissions";
 export { resources } from "./resources";
 export { createOrganization } from "./use-cases/create-organization";
+export { updateOrganization } from "./use-cases/update-organization";
 export { inviteMember } from "./use-cases/invite-member";
 export { acceptInvitation } from "./use-cases/accept-invitation";
 export { updateMemberRole } from "./use-cases/update-member-role";

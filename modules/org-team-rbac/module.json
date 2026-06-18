@@ -27,7 +27,7 @@
       "calls": []
     },
     "events": {
-      "emits": ["org.created", "member.invited", "member.joined", "member.removed", "role.updated"],
+      "emits": ["org.created", "org.updated", "member.invited", "member.joined", "member.removed", "role.updated"],
       "consumes": []
     },
     "hookPoints": {
