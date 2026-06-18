@@ -5,26 +5,27 @@ company organization (no multi-tenant funnel, no org switcher). Operational
 modules — customers, invoices, files, team — plug into a left-sidebar app shell.
 Customization is split across a few well-defined surfaces; edit the right one.
 
-## App shell & lock-driven sidebar → `src/lib/server/erp-nav.ts`
+## Selectively enabling module UI → see `docs/module-ui-playbook.md`
 
-The left sidebar in `src/routes/app/+layout.svelte` is **derived from the
-installed module set**, not hardcoded.
+**Read `docs/module-ui-playbook.md` before adding or toggling a module's UI.**
+It is the authoritative guide; the summary:
 
-- `microservices.lock.json#modules[]` is the source of truth for what is
-  installed. Each entry carries `contract.mount` / `permissions` / `requires`.
-- `src/lib/server/erp-nav.ts` imports the lockfile, maps user-facing module ids
-  to `{ label, href, icon }` (the `NAV_BY_MODULE` table), and filters to the
-  intersection of *installed* and *user-facing*. `/app/+layout.server.ts` calls
-  `buildNav()` and the layout renders `data.nav`.
-- Install/remove a module (the normal flow updates the lock) and its sidebar
-  entry appears/disappears automatically — no layout edit needed.
-- **Infra modules get no nav entry**: `auth`, `identity`, `audit-log`,
-  `jobs-workflows`, `notifications-inapp`, `gateway`, `idempotency`,
-  `webhook-delivery`. They power the shell but expose no surface to navigate to,
-  so they simply have no key in `NAV_BY_MODULE`.
+- The left sidebar (`src/routes/app/+layout.svelte`) is **derived from the ENABLED
+  module set**, not hardcoded. `src/lib/server/erp-nav.ts` maps user-facing module
+  ids to nav metadata (`MODULE_NAV`) and shows only those that are enabled.
+- **Installed** = present in `microservices.lock.json` (vendored + wired).
+  **Enabled** = surfaced here, resolved by `src/lib/server/modules.ts` from
+  `ENABLED_MODULES` env → `src/lib/modules.config.ts` → all installed.
+- `requireModule(id, platform)` in each module route's `load` returns 404 when the
+  module is disabled, so turning a module off (omit it in `modules.config.ts`)
+  hides the nav entry **and** blocks the routes — not just cosmetic.
+- **Infra modules get no nav entry** (`auth`, `identity`, `email`, `gateway`,
+  `audit-log`, `jobs-workflows`, `idempotency`, `webhook-delivery`): they power the
+  shell but expose no user surface.
 
-To surface a newly installed module: add one row to `NAV_BY_MODULE` keyed by its
-module id, then add a route under `src/routes/app/<section>`.
+To surface a module: add a `MODULE_NAV` row + a route under `src/routes/app/<section>`
+(call `requireModule(...)` first). The existing pages (`customers`, `invoices`,
+`notifications`) are reference samples to copy and adapt — full recipe in the playbook.
 
 ## Module wiring → `src/lib/server/stores.ts` + `src/hooks.server.ts`
 

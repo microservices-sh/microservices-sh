@@ -41,8 +41,13 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/lib/server/erp-nav.ts",
-    ["microservices.lock.json", "buildNav"],
-    "Sidebar nav is derived from the installed module set in the lockfile."
+    ["enabledModuleIds", "buildNav"],
+    "Sidebar nav is derived from the enabled module set."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/modules.ts",
+    ["microservices.lock.json", "ENABLED_MODULES", "requireModule"],
+    "Module enablement reads the lockfile + ENABLED_MODULES and guards routes with requireModule."
   );
   assertFileIncludesAll(
     "src/routes/admin/[resource]/+page.server.ts",

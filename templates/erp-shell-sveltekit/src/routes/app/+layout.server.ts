@@ -13,7 +13,7 @@ export const load: LayoutServerLoad = async ({ locals, cookies, platform }) => {
   if (!locals.user) throw redirect(303, "/login");
 
   const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
-  const nav = buildNav({ superAdmin: locals.user.isSuperAdmin });
+  const nav = buildNav({ superAdmin: locals.user.isSuperAdmin, platform });
 
   const user = { email: locals.user.email, isSuperAdmin: locals.user.isSuperAdmin };
 

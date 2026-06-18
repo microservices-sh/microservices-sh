@@ -3,8 +3,10 @@ import { fail, redirect } from "@sveltejs/kit";
 import { listFiles, createUploadTicket, completeUpload } from "@microservices-sh/file-media";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { requireOrgPermission } from "$lib/server/org-context";
+import { requireModule } from "$lib/server/modules";
 
-export const load: PageServerLoad = async ({ locals, cookies, parent }) => {
+export const load: PageServerLoad = async ({ locals, cookies, parent, platform }) => {
+  requireModule("file-media", platform);
   const { activeOrgId } = await parent();
   if (!activeOrgId || !locals.user) throw redirect(303, "/app");
 

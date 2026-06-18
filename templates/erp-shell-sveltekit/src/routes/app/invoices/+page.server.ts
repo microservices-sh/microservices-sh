@@ -4,6 +4,7 @@ import { listInvoices, createInvoice, issueInvoice, recordPayment } from "@micro
 import { listCustomers } from "@microservices-sh/customer";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { requireOrgPermission } from "$lib/server/org-context";
+import { requireModule } from "$lib/server/modules";
 
 interface LineRow {
   description: string;
@@ -39,7 +40,8 @@ function parseLineItems(raw: string): LineRow[] {
   }
 }
 
-export const load: PageServerLoad = async ({ locals, cookies, parent }) => {
+export const load: PageServerLoad = async ({ locals, cookies, parent, platform }) => {
+  requireModule("invoice", platform);
   const { activeOrgId } = await parent();
   if (!activeOrgId || !locals.user) throw redirect(303, "/app");
 
