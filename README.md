@@ -1,6 +1,8 @@
 # microservices.sh
 
 [![npm version](https://img.shields.io/npm/v/create-microservices-app.svg)](https://www.npmjs.com/package/create-microservices-app)
+[![MCP package](https://img.shields.io/npm/v/%40microservices-sh%2Fmcp?label=MCP)](https://www.npmjs.com/package/@microservices-sh/mcp)
+[![Official MCP Registry](https://img.shields.io/badge/MCP%20Registry-sh.microservices%2Fmcp-1f6feb)](https://registry.modelcontextprotocol.io/v0.1/servers?search=sh.microservices/mcp)
 [![CI](https://github.com/microservices-sh/microservices-sh/actions/workflows/ci.yml/badge.svg)](https://github.com/microservices-sh/microservices-sh/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/node/v/create-microservices-app.svg)](https://nodejs.org)
 
@@ -63,6 +65,29 @@ This is probably not the right fit if you want a no-code builder, a black-box ho
 - Project commands expose `check`, `add --plan`, `upgrade --plan`, smoke tests, and deploy plans as agent-friendly CLI surfaces.
 - Module installs are version-pinned so downgrade/upgrade proposals are explicit instead of hidden in generated code.
 - Secrets, migrations, provider actions, and managed deploys stay approval-gated.
+
+## CLI And MCP
+
+Use the generated project CLI when you want direct terminal control inside an app:
+
+```bash
+pnpm microservices modules list --json
+pnpm microservices docs booking
+pnpm microservices check --json
+pnpm microservices deploy run --plan
+```
+
+Use the MCP server when you want Claude, Codex, Cursor, or another MCP client to inspect modules, compose app plans, run checks, and create confirmation-gated deploy plans.
+
+```bash
+npx -y @microservices-sh/mcp
+```
+
+The MCP server is published as [`@microservices-sh/mcp`](https://www.npmjs.com/package/@microservices-sh/mcp) and listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=sh.microservices/mcp) as `sh.microservices/mcp`. The hosted Streamable HTTP endpoint is:
+
+```text
+https://api.microservices.sh/mcp
+```
 
 ## Agent Skill
 
