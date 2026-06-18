@@ -80,3 +80,6 @@ jobs:
           # Control-plane upload shape — loaded by loadPrebuiltArtifact() per deploy.
           npx wrangler r2 object put "$R2_ARTIFACTS_BUCKET/$TEMPLATE/${ver}.payload.json" \
             --file "$RUNNER_TEMP/artifact/payload.json" --remote
+          # latest pointer — loadPrebuiltArtifact() falls back here when no version is given.
+          npx wrangler r2 object put "$R2_ARTIFACTS_BUCKET/$TEMPLATE/latest.payload.json" \
+            --file "$RUNNER_TEMP/artifact/payload.json" --remote
