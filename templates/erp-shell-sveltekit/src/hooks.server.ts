@@ -64,6 +64,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.imageProviders = imageProviders;
   event.locals.adsStore = stores.adsStore;
   event.locals.formStore = stores.formStore;
+  event.locals.bookingRepository = stores.bookingRepository;
   event.locals.user = await getCurrentUser(event.cookies, {
     accountStore: stores.accountStore,
     sessionStore: stores.sessionStore

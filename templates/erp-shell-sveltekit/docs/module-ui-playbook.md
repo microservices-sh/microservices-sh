@@ -93,4 +93,5 @@ The reference page is deliberately generic. When customizing:
 | image-generation | Images — prompt + gallery (bytes served by `[id]/+server.ts`) | ✅ `app/images` |
 | ads-manager | Ads — connections + alerts (live insights need the upstream connector) | ✅ `app/ads` |
 | forms-intake | Forms — define forms + review submissions (public submit is a separate surface) | ✅ `app/forms` |
+| booking | Bookings — schedule list + cancel (create needs seeded services) | ✅ `app/bookings` |
 | auth, identity, email, gateway, audit-log, admin-shell, jobs-workflows, idempotency, webhook-delivery | infra | — no user UI by design |

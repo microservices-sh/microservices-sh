@@ -324,6 +324,19 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  modules/operator-work:
+    dependencies:
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250109.0
+        version: 4.20260613.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   modules/org-team-rbac:
     dependencies:
       '@microservices-sh/connection-contract':
@@ -590,6 +603,9 @@ importers:
       '@microservices-sh/notifications-inapp':
         specifier: workspace:*
         version: link:../../modules/notifications-inapp
+      '@microservices-sh/operator-work':
+        specifier: workspace:*
+        version: link:../../modules/operator-work
       '@microservices-sh/org-team-rbac':
         specifier: workspace:*
         version: link:../../modules/org-team-rbac
@@ -648,6 +664,9 @@ importers:
       '@microservices-sh/billing-subscriptions':
         specifier: workspace:*
         version: link:../../modules/billing-subscriptions
+      '@microservices-sh/booking':
+        specifier: workspace:*
+        version: link:../../modules/booking
       '@microservices-sh/customer':
         specifier: workspace:*
         version: link:../../modules/customer

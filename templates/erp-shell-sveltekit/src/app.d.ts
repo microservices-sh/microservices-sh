@@ -16,6 +16,7 @@ import type { ImageStore, ObjectStorage as ImageObjectStorage } from "@microserv
 import type { ProviderRegistry } from "@microservices-sh/image-generation";
 import type { AdsStore } from "@microservices-sh/ads-manager/ports";
 import type { FormStore } from "@microservices-sh/forms-intake/ports";
+import type { BookingRepository } from "@microservices-sh/booking/ports";
 
 declare global {
   namespace App {
@@ -72,6 +73,7 @@ declare global {
       imageProviders: ProviderRegistry;
       adsStore: AdsStore;
       formStore: FormStore;
+      bookingRepository: BookingRepository;
       // The signed-in principal, resolved from the session store each request.
       // isSuperAdmin is derived from the account's isAdmin flag, never the cookie.
       user: { id: string; email: string; isSuperAdmin: boolean } | null;

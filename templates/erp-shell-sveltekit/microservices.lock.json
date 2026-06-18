@@ -247,6 +247,24 @@
       }
     },
     {
+      "id": "booking",
+      "version": "0.1.0",
+      "source": "registry:booking@0.1.0",
+      "checksum": "sha256:preview-booking-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/bookings",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["booking.read", "booking.write", "booking.admin", "booking.extend", "booking.observe"],
+        "rpc": [],
+        "hooks": [],
+        "events": ["booking.created", "booking.confirmed", "booking.cancelled"],
+        "requires": ["customer"]
+      }
+    },
+    {
       "id": "file-media",
       "version": "0.1.0",
       "source": "registry:file-media@0.1.0",

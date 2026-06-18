@@ -30,6 +30,7 @@
     "@microservices-sh/ads-manager": "workspace:*",
     "@microservices-sh/audit-log": "workspace:*",
     "@microservices-sh/auth": "workspace:*",
+    "@microservices-sh/booking": "workspace:*",
     "@microservices-sh/billing-subscriptions": "workspace:*",
     "@microservices-sh/customer": "workspace:*",
     "@microservices-sh/email": "workspace:*",

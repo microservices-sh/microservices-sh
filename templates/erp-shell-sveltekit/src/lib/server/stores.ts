@@ -45,6 +45,9 @@ import type { AdsStore } from "@microservices-sh/ads-manager/ports";
 import { createD1FormStore } from "@microservices-sh/forms-intake/adapters/d1";
 import { createMemoryFormStore } from "@microservices-sh/forms-intake/adapters/memory";
 import type { FormStore } from "@microservices-sh/forms-intake/ports";
+import { createD1BookingRepository } from "@microservices-sh/booking/adapters/d1";
+import { createMemoryBookingRepository } from "@microservices-sh/booking/adapters/memory";
+import type { BookingRepository } from "@microservices-sh/booking/ports";
 
 import type { RbacStore } from "@microservices-sh/org-team-rbac/ports";
 import type { TableGateway } from "@microservices-sh/admin-shell/ports";
@@ -80,6 +83,7 @@ const memoryBillingStore = createMemoryBillingStore();
 const memoryImageStore = createMemoryImageStore();
 const memoryAdsStore = createMemoryAdsStore();
 const memoryFormStore = createMemoryFormStore();
+const memoryBookingRepository = createMemoryBookingRepository();
 
 export interface ServerStores {
   rbacStore: RbacStore;
@@ -102,6 +106,7 @@ export interface ServerStores {
   imageStore: ImageStore;
   adsStore: AdsStore;
   formStore: FormStore;
+  bookingRepository: BookingRepository;
 }
 
 // The platform bindings as declared on App.Platform — referenced via the platform
@@ -133,7 +138,8 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     billingStore: db ? createD1BillingStore(db) : memoryBillingStore,
     imageStore: db ? createD1ImageStore(db) : memoryImageStore,
     adsStore: db ? createD1AdsStore(db) : memoryAdsStore,
-    formStore: db ? createD1FormStore(db) : memoryFormStore
+    formStore: db ? createD1FormStore(db) : memoryFormStore,
+    bookingRepository: db ? createD1BookingRepository(db) : memoryBookingRepository
   };
 }
 
