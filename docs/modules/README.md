@@ -55,6 +55,7 @@ Future MCP/CLI tools should expose the same content through:
 | Module | Status | Purpose |
 |--------|--------|---------|
 | [`auth`](./auth.md) | Available | EdDSA service-token mint/verify, scope checks, and JWKS for inter-service auth. |
+| [`identity`](./identity.md) | Available | Passwordless email-code login, server-side sessions, and scoped service-token bridging through auth. |
 | [`gateway`](./gateway.md) | Available | Public trust boundary: API-key auth, rate limiting, scope narrowing, token exchange via auth. |
 | [`customer`](./customer.md) | Available | Customer profiles, tags, consent fields, and customer events. |
 | [`booking`](./booking.md) | Available | Service booking, availability, cancellation, and booking events. |
