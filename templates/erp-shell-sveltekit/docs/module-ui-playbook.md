@@ -92,5 +92,5 @@ The reference page is deliberately generic. When customizing:
 | billing-subscriptions | Billing — plans + subscriptions | ✅ `app/billing` |
 | image-generation | Images — prompt + gallery (bytes served by `[id]/+server.ts`) | ✅ `app/images` |
 | ads-manager | Ads — connections + alerts (live insights need the upstream connector) | ✅ `app/ads` |
-| forms-intake | Intake forms — submissions | ⬜ to author |
+| forms-intake | Forms — define forms + review submissions (public submit is a separate surface) | ✅ `app/forms` |
 | auth, identity, email, gateway, audit-log, admin-shell, jobs-workflows, idempotency, webhook-delivery | infra | — no user UI by design |

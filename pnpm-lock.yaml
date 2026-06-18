@@ -657,6 +657,9 @@ importers:
       '@microservices-sh/file-media':
         specifier: workspace:*
         version: link:../../modules/file-media
+      '@microservices-sh/forms-intake':
+        specifier: workspace:*
+        version: link:../../modules/forms-intake
       '@microservices-sh/gateway':
         specifier: workspace:*
         version: link:../../modules/gateway

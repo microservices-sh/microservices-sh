@@ -229,6 +229,24 @@
       }
     },
     {
+      "id": "forms-intake",
+      "version": "0.1.0",
+      "source": "registry:forms-intake@0.1.0",
+      "checksum": "sha256:preview-forms-intake-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/forms",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["forms-intake.read", "forms-intake.write", "forms-intake.admin", "forms-intake.extend", "forms-intake.observe"],
+        "rpc": [],
+        "hooks": [],
+        "events": ["forms-intake.form_created", "forms-intake.form_updated", "forms-intake.submission_received", "forms-intake.submission_rejected"],
+        "requires": []
+      }
+    },
+    {
       "id": "file-media",
       "version": "0.1.0",
       "source": "registry:file-media@0.1.0",

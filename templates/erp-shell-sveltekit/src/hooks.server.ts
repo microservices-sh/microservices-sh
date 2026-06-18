@@ -63,6 +63,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   if (Object.keys(imageProviders).length === 0) imageProviders["kie-ai"] = createMemoryImageProvider();
   event.locals.imageProviders = imageProviders;
   event.locals.adsStore = stores.adsStore;
+  event.locals.formStore = stores.formStore;
   event.locals.user = await getCurrentUser(event.cookies, {
     accountStore: stores.accountStore,
     sessionStore: stores.sessionStore
