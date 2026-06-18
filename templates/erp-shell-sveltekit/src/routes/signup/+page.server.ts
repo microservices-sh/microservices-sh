@@ -3,7 +3,7 @@ import { fail, redirect } from "@sveltejs/kit";
 import { createOrganization, inviteMember } from "@microservices-sh/org-team-rbac";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { writeSession, userIdForEmail, getSessionSecret } from "$lib/server/session";
-import { rememberCompanyOrg } from "$lib/server/org-context";
+import { rememberCompanyOrg, loadCompanyContext } from "$lib/server/org-context";
 
 interface SetupInvite {
   email: string;
@@ -28,8 +28,16 @@ function parseInvites(raw: string): SetupInvite[] {
 // One-time company setup. In a single-company ERP this is NOT a public tenant
 // funnel: it creates the one company org and makes the first user its owner.
 // After setup, /app routes employees straight into the shell.
-export const load: PageServerLoad = async ({ locals }) => {
-  if (locals.user) throw redirect(303, "/app");
+export const load: PageServerLoad = async ({ locals, cookies }) => {
+  // A signed-in employee who ALREADY belongs to a company doesn't need setup —
+  // send them into the shell. But a signed-in user WITHOUT a company org is
+  // exactly who this page is for: the /app onboarding CTA ("Set up the company")
+  // links here. Bouncing on `locals.user` alone created a dead loop
+  // (/app → /signup → redirect → /app), so only redirect when an org resolves.
+  if (locals.user) {
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (org) throw redirect(303, "/app");
+  }
   return {};
 };
 
