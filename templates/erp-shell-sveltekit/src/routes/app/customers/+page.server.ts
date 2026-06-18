@@ -2,7 +2,7 @@ import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { listCustomers, upsertCustomer } from "@microservices-sh/customer";
 import { recordEvent } from "@microservices-sh/audit-log";
-import { requireOrgPermission } from "$lib/server/org-context";
+import { requireOrgPermission, loadCompanyContext } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 
 export const load: PageServerLoad = async ({ locals, cookies, parent, platform }) => {
@@ -27,9 +27,12 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
 };
 
 export const actions: Actions = {
-  create: async ({ request, locals, cookies, parent }) => {
-    const { activeOrgId } = await parent();
-    if (!activeOrgId || !locals.user) return fail(403, { error: "Not signed in to a company." });
+  create: async ({ request, locals, cookies }) => {
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    // parent() is unavailable in actions — derive the company from the session.
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    const activeOrgId = org.id;
 
     // Write gate: creating customers requires member.manage in the company org.
     await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);

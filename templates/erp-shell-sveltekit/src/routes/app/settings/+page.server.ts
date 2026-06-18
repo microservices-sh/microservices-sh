@@ -2,7 +2,7 @@ import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { updateOrganization } from "@microservices-sh/org-team-rbac";
 import { listEvents, recordEvent } from "@microservices-sh/audit-log";
-import { requireOrgPermission } from "$lib/server/org-context";
+import { requireOrgPermission, loadCompanyContext } from "$lib/server/org-context";
 
 function slugify(value: string): string {
   return value
@@ -35,9 +35,11 @@ export const actions: Actions = {
   // Rename the company / change its workspace slug via the org-team-rbac use case
   // (the route never touches the store adapter directly). Slug uniqueness and
   // validation live in the module; here we just gate, shape, and audit.
-  rename: async ({ request, locals, cookies, parent }) => {
-    const { activeOrgId } = await parent();
-    if (!activeOrgId || !locals.user) return fail(403, { error: "Not signed in to a company." });
+  rename: async ({ request, locals, cookies }) => {
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    const activeOrgId = org.id;
 
     await requireOrgPermission(cookies, locals.user.id, activeOrgId, "org.manage", locals.rbacStore);
 

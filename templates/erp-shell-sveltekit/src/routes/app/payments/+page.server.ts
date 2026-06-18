@@ -3,7 +3,7 @@ import { fail, redirect } from "@sveltejs/kit";
 import { listPayments, refundPayment } from "@microservices-sh/payment";
 import { listCustomers } from "@microservices-sh/customer";
 import { recordEvent } from "@microservices-sh/audit-log";
-import { requireOrgPermission } from "$lib/server/org-context";
+import { requireOrgPermission, loadCompanyContext } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 
 // Reference UI for @microservices-sh/payment. Payments are recorded by the
@@ -41,9 +41,11 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
 export const actions: Actions = {
   // Refund a payment by intent id: the use-case asks the gateway to refund, then
   // marks the record refunded (409 if already refunded). member.manage-gated.
-  refund: async ({ request, locals, cookies, parent }) => {
-    const { activeOrgId } = await parent();
-    if (!activeOrgId || !locals.user) return fail(403, { error: "Not signed in to a company." });
+  refund: async ({ request, locals, cookies }) => {
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    const activeOrgId = org.id;
 
     await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
 

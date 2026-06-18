@@ -2,7 +2,7 @@ import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { listTickets, createTicket, getTicket, updateTicket } from "@microservices-sh/support-ticket";
 import { recordEvent } from "@microservices-sh/audit-log";
-import { requireOrgPermission } from "$lib/server/org-context";
+import { requireOrgPermission, loadCompanyContext } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 
 export const load: PageServerLoad = async ({ locals, cookies, parent, platform }) => {
@@ -28,9 +28,11 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
 };
 
 export const actions: Actions = {
-  create: async ({ request, locals, cookies, parent }) => {
-    const { activeOrgId } = await parent();
-    if (!activeOrgId || !locals.user) return fail(403, { error: "Not signed in to a company." });
+  create: async ({ request, locals, cookies }) => {
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    const activeOrgId = org.id;
 
     // Write gate: opening tickets requires member.manage in the company org.
     await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
@@ -71,9 +73,11 @@ export const actions: Actions = {
     return { ok: true, created: true };
   },
 
-  updateStatus: async ({ request, locals, cookies, parent }) => {
-    const { activeOrgId } = await parent();
-    if (!activeOrgId || !locals.user) return fail(403, { error: "Not signed in to a company." });
+  updateStatus: async ({ request, locals, cookies }) => {
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    const activeOrgId = org.id;
 
     // Write gate: changing ticket status requires member.manage in the company org.
     await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);

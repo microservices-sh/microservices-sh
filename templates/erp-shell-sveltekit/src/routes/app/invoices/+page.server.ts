@@ -3,7 +3,7 @@ import { fail, redirect } from "@sveltejs/kit";
 import { listInvoices, createInvoice, issueInvoice, recordPayment } from "@microservices-sh/invoice";
 import { listCustomers } from "@microservices-sh/customer";
 import { recordEvent } from "@microservices-sh/audit-log";
-import { requireOrgPermission } from "$lib/server/org-context";
+import { requireOrgPermission, loadCompanyContext } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 
 interface LineRow {
@@ -77,9 +77,11 @@ export const actions: Actions = {
   // Create a draft with its line items and issue it in one step: drafts are an
   // internal staging state, so the ERP's "New invoice" simply issues. Numbers
   // are allocated atomically by the module's NumberAllocator at issue time.
-  create: async ({ request, locals, cookies, parent }) => {
-    const { activeOrgId } = await parent();
-    if (!activeOrgId || !locals.user) return fail(403, { error: "Not signed in to a company." });
+  create: async ({ request, locals, cookies }) => {
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    const activeOrgId = org.id;
 
     // Write gate: issuing invoices requires member.manage in the company org.
     await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
@@ -130,9 +132,11 @@ export const actions: Actions = {
   // Record a payment against an open invoice. The module flips status to "paid"
   // once the balance is fully covered (and emits invoice.paid), so a full-amount
   // payment marks it settled and drops it out of "Outstanding" on the dashboard.
-  payment: async ({ request, locals, cookies, parent }) => {
-    const { activeOrgId } = await parent();
-    if (!activeOrgId || !locals.user) return fail(403, { error: "Not signed in to a company." });
+  payment: async ({ request, locals, cookies }) => {
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    const activeOrgId = org.id;
 
     await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
 
