@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { moduleReleaseTagPlan, moduleReleaseTagReport, normalizeManifestConnections } from "../src/index.js";
+import {
+  moduleReleaseTagPlan,
+  moduleReleaseTagReport,
+  normalizeInteractiveMetadata,
+  normalizeManifestConnections,
+  normalizeSkillMetadata
+} from "../src/index.js";
 
 describe("normalizeManifestConnections", () => {
   it("reads the nested connections block when present", () => {
@@ -43,6 +49,39 @@ describe("normalizeManifestConnections", () => {
       requires: [], optional: [], emits: [], consumes: [], events: [], hooks: [],
       rpc: { exposes: [], calls: [] }
     });
+  });
+});
+
+describe("setup metadata normalizers", () => {
+  it("keeps supported interactive setup metadata", () => {
+    const n = normalizeInteractiveMetadata({
+      schema: "setup.schema.json",
+      command: "pnpm microservices setup email",
+      mode: "module-setup",
+      stores: { secrets: "runtime-secret-store" },
+      ignored: true
+    });
+
+    expect(n).toEqual({
+      schema: "setup.schema.json",
+      command: "pnpm microservices setup email",
+      mode: "module-setup",
+      stores: { secrets: "runtime-secret-store" }
+    });
+  });
+
+  it("normalizes skill ids and richer skill metadata", () => {
+    const n = normalizeSkillMetadata([
+      "company-web-design",
+      { id: "email-service-setup", recommendedFor: ["provider-setup", "sender-domain"] },
+      { id: "Invalid Skill", recommendedFor: ["ignored"] },
+      null
+    ]);
+
+    expect(n).toEqual([
+      { id: "company-web-design", recommendedFor: [] },
+      { id: "email-service-setup", recommendedFor: ["provider-setup", "sender-domain"] }
+    ]);
   });
 });
 

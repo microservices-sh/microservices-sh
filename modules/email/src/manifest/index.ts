@@ -42,6 +42,10 @@ export const manifest = {
       "host": "*.execute-api.amazonaws.com"
     }
   ],
+  "secrets": [
+    "RESEND_API_KEY",
+    "EMAIL_SERVICE_API_KEY"
+  ],
   "permissions": [
     "email.read",
     "email.write",
@@ -83,6 +87,21 @@ export const manifest = {
       "fork"
     ]
   },
+  "interactive": {
+    "schema": "setup.schema.json",
+    "command": "pnpm microservices setup email",
+    "mode": "module-setup",
+    "stores": {
+      "config": "microservices.config.json",
+      "secrets": "runtime-secret-store"
+    }
+  },
+  "skills": [
+    {
+      "id": "microservices-provider-setup",
+      "recommendedFor": ["provider-setup", "sender-domain", "deliverability"]
+    }
+  ],
   "approval": {
     "risk": "medium",
     "requiresApprovalFor": [

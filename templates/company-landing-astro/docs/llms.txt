@@ -10,6 +10,8 @@ database, no modules.
   `runtime.framework: astro`, `modules.required: []`)
 - `microservices.config.json` — `modules: []`, registry URL
 - `microservices.lock.json` — empty `modules` (this template uses none)
+- `intake.schema.json` — short wizard/agent intake for company facts, products,
+  contact details, brand accent, and asset paths
 - `content.schema.json` — the content contract (JSON Schema, draft 2020-12),
   including the `x-microservices` envelope (write target + verify command)
 - `CLAUDE.md` / `README.agent.md` — the customization playbook
@@ -26,6 +28,7 @@ read from that JSON — do not edit them for content changes.
 ```txt
 src/content.json          customer-editable content (hero, features, process,
                             pricing, theme.accent) — the single source of truth
+intake.schema.json        short setup/intake contract for wizards and agents
 content.schema.json       contract: types, maxLength, minItems/maxItems, x-hint
 src/                      Astro pages/components/layouts (render content; no data)
 src/site.config.ts        types content.json — do not edit

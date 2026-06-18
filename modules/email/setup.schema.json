@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://microservices.sh/schemas/email/setup.schema.json",
+  "title": "Email Module Setup",
+  "description": "Interactive setup contract for configuring the email module provider and sender identity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["provider", "fromEmail"],
+  "properties": {
+    "provider": {
+      "type": "string",
+      "enum": ["resend", "stacksuite"],
+      "default": "resend",
+      "title": "Email provider",
+      "x-store": "config",
+      "x-prompt": "Which email provider should this app use?"
+    },
+    "fromEmail": {
+      "type": "string",
+      "format": "email",
+      "title": "Default sender email",
+      "x-store": "config",
+      "x-prompt": "What sender email should transactional messages use?"
+    },
+    "replyToEmail": {
+      "type": "string",
+      "format": "email",
+      "title": "Reply-to email",
+      "x-store": "config"
+    },
+    "resendApiKey": {
+      "type": "string",
+      "title": "Resend API key",
+      "x-store": "secret",
+      "x-secret-name": "RESEND_API_KEY",
+      "x-provider": "resend",
+      "x-sensitive": true
+    },
+    "emailServiceApiKey": {
+      "type": "string",
+      "title": "StackSuite Email Service API key",
+      "x-store": "secret",
+      "x-secret-name": "EMAIL_SERVICE_API_KEY",
+      "x-provider": "stacksuite",
+      "x-sensitive": true
+    },
+    "senderDomainVerified": {
+      "type": "boolean",
+      "default": false,
+      "title": "Sender domain verified",
+      "x-store": "checklist"
+    }
+  },
+  "x-microservices": {
+    "writesConfig": "microservices.config.json",
+    "writesSecrets": "runtime-secret-store",
+    "approvalRequiredFor": ["secret-write", "provider-side-effect", "sender-domain-change"],
+    "verify": "pnpm microservices secrets status && pnpm microservices check --json",
+    "checklist": [
+      "Verify the sender domain with the chosen provider.",
+      "Confirm DNS records before sending production email.",
+      "Send a test message in non-production before enabling customer email."
+    ]
+  }
+}

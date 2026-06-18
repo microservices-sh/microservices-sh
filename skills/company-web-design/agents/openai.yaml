@@ -1,0 +1,4 @@
+interface:
+  display_name: "Company Web Design"
+  short_description: "Turn company facts into websites"
+  default_prompt: "Use $company-web-design to turn these company details and assets into a polished company landing page."

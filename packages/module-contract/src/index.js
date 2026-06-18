@@ -534,6 +534,8 @@ function moduleSummary(module) {
     summary: module.summary,
     requires: clone(module.requires),
     mount: module.runtime.mount,
+    ...(module.interactive ? { interactive: clone(module.interactive) } : {}),
+    ...(module.skills ? { skills: clone(module.skills) } : {}),
   };
 }
 
@@ -546,6 +548,8 @@ function templateSummary(template) {
     summary: template.summary,
     defaultModules: clone(template.defaultModules),
     optionalModules: clone(template.optionalModules),
+    ...(template.interactive ? { interactive: clone(template.interactive) } : {}),
+    ...(template.skills ? { skills: clone(template.skills) } : {}),
   };
 }
 

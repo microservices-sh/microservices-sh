@@ -11,6 +11,8 @@ edit one file: `src/content.json`. Everything else renders from it.
 ## Key Files
 
 - `astro.config.mjs` — static config; set `site` to the production origin.
+- `intake.schema.json` — short wizard/agent intake for company facts, offerings,
+  contact details, and asset paths.
 - `src/content.json` — the single source of truth for all copy + `theme.accent`.
 - `content.schema.json` — the content contract (JSON Schema, draft 2020-12) with
   per-field `x-hint` and an `x-microservices` envelope (write target + verify).
@@ -31,7 +33,8 @@ node ../../packages/workspace-tools/src/index.js check template --path .
 ## Rules
 
 1. Read `microservices.template.json`, `microservices.lock.json`,
-   `content.schema.json`, and `docs/llms.txt` before editing.
+   `intake.schema.json`, `content.schema.json`, and `docs/llms.txt` before
+   editing.
 2. Edit `src/content.json` only for content. Keep it valid against
    `content.schema.json` (`additionalProperties: false`).
 3. Keep it static. Do not add an SSR adapter, server, API routes, database, or

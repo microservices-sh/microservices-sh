@@ -4,9 +4,10 @@ A static, editorial company landing page. Refined light design, content-driven, 
 
 ## Make it yours
 
-1. **Content** — edit `src/site.config.ts`. Company name, nav, hero, features, process, pricing, testimonial, FAQ, footer all live there. You should rarely touch the components.
-2. **Theme** — edit `src/styles/tokens.css`. Swap the accent, fonts, and surfaces to rebrand the whole site from one file.
-3. **Fonts** — Fraunces (display) + Hanken Grotesk (body) + IBM Plex Mono (labels), loaded in `src/layouts/Base.astro`. Replace the Google Fonts link + `--font-*` tokens to change them.
+1. **Interactive intake** — answer the short fields in `intake.schema.json` when using a setup wizard or agent.
+2. **Content** — edit `src/content.json`. Company name, nav, hero, features, process, pricing, testimonial, FAQ, footer, and the brand accent all live there. You should rarely touch the components.
+3. **Theme** — advanced visual changes live in `src/styles/tokens.css`; for normal branding, change `theme.accent` in `src/content.json`.
+4. **Fonts** — Fraunces (display) + Hanken Grotesk (body) + IBM Plex Mono (labels), loaded in `src/layouts/Base.astro`. Replace the Google Fonts link + `--font-*` tokens to change them.
 
 ## Run
 

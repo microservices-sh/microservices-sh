@@ -108,6 +108,8 @@ function availableModuleDocs() {
       hooks: module.hooks.map((hook) => hook.name),
       events: [...module.eventsEmitted, ...module.eventsConsumed],
       sourceRef: contractModuleSourceRef(module),
+      interactive: module.interactive ?? null,
+      skills: module.skills ?? [],
       statusNote: "Available in the generated MVP app.",
     };
   });
@@ -131,6 +133,8 @@ function moduleCatalog() {
     resources: module.resources,
     hooks: module.hooks,
     events: module.events,
+    interactive: module.interactive ?? null,
+    skills: module.skills ?? [],
     sourceRef: module.sourceRef ?? contractModuleSourceRef(module.id, module.version),
   }));
 
@@ -1897,6 +1901,8 @@ export function listModuleDocs() {
       docPath: module.docPath,
       summary: module.summary,
       approvalRisk: module.approvalRisk,
+      interactive: module.interactive ?? null,
+      skills: module.skills ?? [],
     }))
   );
 }

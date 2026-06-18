@@ -364,6 +364,79 @@ function hasD1Resource(manifest) {
   return Array.isArray(manifest.resources) && manifest.resources.some((resource) => resource.type === "d1");
 }
 
+function isSafeRelativePath(value) {
+  return typeof value === "string" && value.length > 0 && !isAbsolute(value) && !value.split(/[\\/]/).includes("..");
+}
+
+export function normalizeInteractiveMetadata(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const schema = typeof value.schema === "string" ? value.schema : null;
+  const command = typeof value.command === "string" ? value.command : null;
+  const mode = typeof value.mode === "string" ? value.mode : null;
+  const stores = value.stores && typeof value.stores === "object" && !Array.isArray(value.stores)
+    ? value.stores
+    : null;
+
+  return {
+    ...(schema ? { schema } : {}),
+    ...(command ? { command } : {}),
+    ...(mode ? { mode } : {}),
+    ...(stores ? { stores } : {})
+  };
+}
+
+export function normalizeSkillMetadata(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((skill) => {
+      if (typeof skill === "string") return { id: skill, recommendedFor: [] };
+      if (!skill || typeof skill !== "object" || Array.isArray(skill)) return null;
+      return {
+        id: typeof skill.id === "string" ? skill.id : "",
+        recommendedFor: Array.isArray(skill.recommendedFor)
+          ? skill.recommendedFor.filter((item) => typeof item === "string")
+          : []
+      };
+    })
+    .filter((skill) => skill && /^[a-z][a-z0-9-]*[a-z0-9]$/.test(skill.id));
+}
+
+function assertInteractionMetadata(checks, targetPath, manifest, label) {
+  const interactive = normalizeInteractiveMetadata(manifest.interactive);
+  const skills = normalizeSkillMetadata(manifest.skills);
+
+  if (manifest.interactive === undefined) {
+    record(checks, `${label}:interactive:optional`, `${label} has no interactive setup metadata.`);
+  } else {
+    assertCheck(
+      checks,
+      `${label}:interactive:shape`,
+      Boolean(interactive && (interactive.schema || interactive.command)),
+      `${label} interactive metadata declares a schema or command.`
+    );
+
+    if (interactive?.schema) {
+      assertCheck(
+        checks,
+        `${label}:interactive:schema-path`,
+        isSafeRelativePath(interactive.schema) && existsSync(join(targetPath, interactive.schema)),
+        `${label} interactive schema exists at ${interactive.schema}.`
+      );
+    }
+  }
+
+  if (manifest.skills === undefined) {
+    record(checks, `${label}:skills:optional`, `${label} has no recommended skill metadata.`);
+  } else {
+    assertCheck(
+      checks,
+      `${label}:skills:shape`,
+      skills.length === manifest.skills.length,
+      `${label} recommended skills are valid skill ids or skill metadata objects.`
+    );
+  }
+}
+
 async function hasSqlMigration(targetPath) {
   const migrationsPath = join(targetPath, "migrations");
   if (!existsSync(migrationsPath)) return false;
@@ -518,6 +591,7 @@ async function checkModule(targetPath, rootPath) {
   assertCheck(checks, "module:package-name", packageJson.name === expectedPackageName, `Package name is ${expectedPackageName}.`);
   assertCheck(checks, "module:entrypoint", existsSync(join(targetPath, entrypoint)), `Module entrypoint exists at ${entrypoint}.`);
   assertCheck(checks, "module:check-script", packageHasScript(packageJson, "check:spec", "workspace-tools"), "Module check:spec uses the shared workspace checker.");
+  assertInteractionMetadata(checks, targetPath, manifest, "module");
 
   for (const [exportName, exportPath] of Object.entries(MODULE_REQUIRED_EXPORTS)) {
     const expected = exportPath === "entrypoint" ? normalizeExportPath(entrypoint) : exportPath;
@@ -572,6 +646,7 @@ async function checkTemplate(targetPath, rootPath) {
   assertCheck(checks, "template:id", typeof manifest.id === "string" && manifest.id.length > 0, "Template manifest has an id.");
   assertCheck(checks, "template:lock-id", lock.template?.id === manifest.id, `Lockfile template id matches ${manifest.id}.`);
   assertCheck(checks, "template:check-script", packageHasScript(packageJson, "check:spec", "workspace-tools"), "Template check:spec uses the shared workspace checker.");
+  assertInteractionMetadata(checks, targetPath, manifest, "template");
 
   if (manifest.runtime?.framework === "sveltekit") {
     assertRequiredFiles(checks, targetPath, SVELTEKIT_REQUIRED_FILES, "sveltekit template");
@@ -1192,6 +1267,8 @@ async function moduleRegistryEntry(rootPath, modulePath) {
     hooks: connections.hooks,
     events: connections.events,
     secrets: manifest.secrets || [],
+    interactive: normalizeInteractiveMetadata(manifest.interactive),
+    skills: normalizeSkillMetadata(manifest.skills),
     approval: manifest.approval || null,
     customization: manifest.customization || null,
     docs,
@@ -1220,6 +1297,8 @@ async function templateRegistryEntry(rootPath, templatePath) {
     optionalModules: manifest.modules?.optional || [],
     activeModules: moduleIdsFromTemplate(manifest),
     slots: manifest.slots || {},
+    interactive: normalizeInteractiveMetadata(manifest.interactive),
+    skills: normalizeSkillMetadata(manifest.skills),
     lockModules: Array.isArray(lock.modules) ? lock.modules.map((module) => ({ id: module.id, version: module.version, source: module.source, sourceRef: module.sourceRef ?? null })) : [],
     sourcePolicy: manifest.sourcePolicy || null,
     docs: {
@@ -1444,7 +1523,9 @@ function discoverApp(targetPath, workspace) {
       permissions: registryModule?.permissions || locked.contract?.permissions || [],
       resources: registryModule?.resources || locked.contract?.resources || [],
       hooks: registryModule?.hooks || locked.contract?.hooks || [],
-      secrets: registryModule?.secrets || []
+      secrets: registryModule?.secrets || [],
+      interactive: registryModule?.interactive || null,
+      skills: registryModule?.skills || []
     };
   });
 

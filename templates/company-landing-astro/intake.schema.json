@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://microservices.sh/schemas/company-landing-astro/intake.schema.json",
+  "title": "Company Landing Intake",
+  "description": "Short interactive intake used to generate src/content.json for the company landing template.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["company", "description", "targetCustomer", "offerings", "contact"],
+  "properties": {
+    "company": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 40,
+      "title": "Company name",
+      "x-prompt": "What is the company name?"
+    },
+    "domain": {
+      "type": "string",
+      "format": "uri",
+      "title": "Website domain",
+      "x-prompt": "What production domain should the site use?"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "title": "Company description",
+      "x-prompt": "In one or two sentences, what does the company do?"
+    },
+    "targetCustomer": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "title": "Target customer",
+      "x-prompt": "Who is this company for?"
+    },
+    "offerings": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 6,
+      "title": "Products or services",
+      "x-prompt": "List the main products or services.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "description"],
+        "properties": {
+          "name": { "type": "string", "maxLength": 60 },
+          "description": { "type": "string", "maxLength": 220 }
+        }
+      }
+    },
+    "proof": {
+      "type": "array",
+      "maxItems": 6,
+      "title": "Proof points",
+      "x-prompt": "Add client names, metrics, awards, or trust signals.",
+      "items": { "type": "string", "maxLength": 120 }
+    },
+    "pricingPreference": {
+      "type": "string",
+      "enum": ["show-prices", "starting-at", "contact-only"],
+      "default": "contact-only",
+      "title": "Pricing style"
+    },
+    "brand": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "accent": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Brand accent color"
+        },
+        "logoPath": {
+          "type": "string",
+          "title": "Logo file path"
+        },
+        "imagePaths": {
+          "type": "array",
+          "maxItems": 8,
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "contact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["email"],
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "Contact email"
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 40,
+          "title": "Contact phone"
+        },
+        "location": {
+          "type": "string",
+          "maxLength": 80,
+          "title": "Location"
+        }
+      }
+    }
+  }
+}

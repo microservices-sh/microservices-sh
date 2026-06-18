@@ -14,6 +14,7 @@ import {
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { delimiter, dirname, join, relative, resolve } from "node:path";
+import { createInterface } from "node:readline/promises";
 
 const SOURCE_REPO = process.env.MICROSERVICES_MODULE_SOURCE_REPO || "microservices-sh/microservices-sh";
 const SOURCE_URL = process.env.MICROSERVICES_MODULE_SOURCE_URL || `https://github.com/${SOURCE_REPO}.git`;
@@ -1150,6 +1151,682 @@ function cleanString(value) {
 
 function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function safeSetupRelativePath(value) {
+  const normalized = cleanString(value)?.replaceAll("\\", "/").replace(/^\.\/+/, "");
+  if (!normalized || normalized.startsWith("/") || normalized.includes("\0")) return null;
+  const parts = normalized.split("/").filter(Boolean);
+  if (!parts.length || parts.some((part) => part === "." || part === "..")) return null;
+  if (parts.some((part) => [".git", ".wrangler", "node_modules"].includes(part))) return null;
+  if (parts.some((part) => part === ".env" || part.startsWith(".env."))) return null;
+  return parts.join("/");
+}
+
+function getPathValue(value, path) {
+  let cursor = value;
+  for (const part of path) {
+    if (!isRecord(cursor) && !Array.isArray(cursor)) return undefined;
+    cursor = cursor[part];
+  }
+  return cursor;
+}
+
+function setPathValue(target, path, value) {
+  let cursor = target;
+  for (const [index, part] of path.entries()) {
+    if (index === path.length - 1) {
+      cursor[part] = value;
+      return target;
+    }
+    if (!isRecord(cursor[part])) cursor[part] = {};
+    cursor = cursor[part];
+  }
+  return target;
+}
+
+function presentSetupValue(value) {
+  if (value === undefined || value === null) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  return true;
+}
+
+function mergeRecords(base, patch) {
+  const next = isRecord(base) ? { ...base } : {};
+  for (const [key, value] of Object.entries(patch)) {
+    next[key] = isRecord(value) && isRecord(next[key]) ? mergeRecords(next[key], value) : value;
+  }
+  return next;
+}
+
+function setupDefaultStore(target) {
+  return target.kind === "template" && isRecord(target.interactive?.stores) && target.interactive.stores.content
+    ? "content"
+    : "config";
+}
+
+function schemaType(schema) {
+  if (Array.isArray(schema?.type)) return schema.type.find((value) => value !== "null") ?? schema.type[0] ?? null;
+  return schema?.type ?? (schema?.enum ? "string" : null);
+}
+
+function setupSchemaFields(schema, parentPath = [], parentRequired = true, defaultStore = "config") {
+  if (!isRecord(schema?.properties)) return [];
+
+  const required = new Set(Array.isArray(schema.required) ? schema.required : []);
+  const fields = [];
+
+  for (const [name, definition] of Object.entries(schema.properties)) {
+    if (!isRecord(definition)) continue;
+
+    const path = [...parentPath, name];
+    const type = schemaType(definition);
+    const isRequired = parentRequired && required.has(name);
+
+    if (type === "object" && isRecord(definition.properties)) {
+      fields.push(...setupSchemaFields(definition, path, isRequired, defaultStore));
+      continue;
+    }
+
+    fields.push({
+      path,
+      id: path.join("."),
+      title: cleanString(definition.title) ?? path.join("."),
+      prompt: cleanString(definition["x-prompt"]) ?? `Enter ${cleanString(definition.title) ?? path.join(".")}`,
+      type: type ?? "string",
+      required: isRequired,
+      enum: Array.isArray(definition.enum) ? definition.enum : null,
+      default: definition.default,
+      store: cleanString(definition["x-store"]) ?? defaultStore,
+      secretName: cleanString(definition["x-secret-name"]),
+      provider: cleanString(definition["x-provider"]),
+      sensitive: Boolean(definition["x-sensitive"]),
+      pattern: cleanString(definition.pattern),
+      format: cleanString(definition.format),
+      minItems: Number.isInteger(definition.minItems) ? definition.minItems : null,
+      maxItems: Number.isInteger(definition.maxItems) ? definition.maxItems : null,
+      itemType: schemaType(definition.items ?? {})
+    });
+  }
+
+  return fields;
+}
+
+function setupFieldSummary(field) {
+  return {
+    path: field.id,
+    title: field.title,
+    type: field.type,
+    required: field.required,
+    store: field.store,
+    enum: field.enum ?? undefined,
+    secretName: field.secretName ?? undefined,
+    provider: field.provider ?? undefined,
+    sensitive: field.sensitive || field.store === "secret" ? true : undefined
+  };
+}
+
+function setupFieldSummaries(fields, store) {
+  return fields.filter((field) => field.store === store).map(setupFieldSummary);
+}
+
+function setupDeclaredWrites(target) {
+  const writes = [];
+
+  if (target.kind === "template" && isRecord(target.interactive?.stores) && target.interactive.stores.content) {
+    writes.push({ type: "content", path: target.interactive.stores.content });
+  }
+
+  if (target.kind === "module" && isRecord(target.interactive?.stores) && target.interactive.stores.config) {
+    writes.push({ type: "config", path: target.interactive.stores.config, namespace: `modules.${target.id}` });
+  }
+
+  return writes;
+}
+
+function resolveSetupTarget(id) {
+  const requested = cleanString(id);
+  const templateId = cleanString(manifest.id) ?? cleanString(lock.template) ?? "erp-shell-sveltekit";
+  if (!requested || requested === "template" || requested === templateId) {
+    return {
+      ok: true,
+      data: {
+        kind: "template",
+        id: templateId,
+        manifest,
+        interactive: isRecord(manifest.interactive) ? manifest.interactive : null,
+        skills: Array.isArray(manifest.skills) ? manifest.skills : [],
+        baseDir: ".",
+        manifestPath: "microservices.template.json"
+      }
+    };
+  }
+
+  const modulePath = join("modules", requested, "module.json");
+  if (existsSync(modulePath)) {
+    const moduleManifest = readJson(modulePath, {});
+    return {
+      ok: true,
+      data: {
+        kind: "module",
+        id: cleanString(moduleManifest.id) ?? requested,
+        manifest: moduleManifest,
+        interactive: isRecord(moduleManifest.interactive) ? moduleManifest.interactive : null,
+        skills: Array.isArray(moduleManifest.skills) ? moduleManifest.skills : [],
+        baseDir: join("modules", requested),
+        manifestPath: modulePath
+      }
+    };
+  }
+
+  const locked = (lock.modules ?? []).find((module) => module?.id === requested);
+  return fail(
+    "SETUP_TARGET_NOT_FOUND",
+    locked ? `Module "${requested}" is installed but its local manifest is missing.` : `No setup target found for "${requested ?? ""}".`,
+    locked ? `Re-run microservices add ${requested}, then run setup again.` : "Run microservices modules list, or omit the id to set up the current template.",
+    { target: requested, installedModules: (lock.modules ?? []).map((module) => module.id).filter(Boolean) }
+  );
+}
+
+function loadSetupSchema(target) {
+  if (!target.interactive) {
+    return fail(
+      "SETUP_NOT_AVAILABLE",
+      `${target.kind} "${target.id}" does not declare interactive setup.`,
+      "Choose a module/template with an interactive schema, or add interactive.schema to its manifest.",
+      { target: target.id, manifestPath: target.manifestPath }
+    );
+  }
+
+  const schemaRel = safeSetupRelativePath(target.interactive.schema);
+  if (!schemaRel) {
+    return fail(
+      "SETUP_SCHEMA_MISSING",
+      `${target.kind} "${target.id}" does not declare a valid interactive schema path.`,
+      "Add interactive.schema with a safe relative JSON schema path.",
+      { target: target.id, interactive: target.interactive }
+    );
+  }
+
+  const schemaPath = join(target.baseDir, schemaRel);
+  if (!existsSync(schemaPath)) {
+    return fail(
+      "SETUP_SCHEMA_NOT_FOUND",
+      `Interactive setup schema not found: ${schemaPath}.`,
+      "Restore the schema file or update interactive.schema in the manifest.",
+      { target: target.id, schemaPath }
+    );
+  }
+
+  try {
+    return { ok: true, data: { schema: readJson(schemaPath, {}), schemaPath } };
+  } catch (error) {
+    return fail(
+      "SETUP_SCHEMA_INVALID",
+      `Could not parse setup schema: ${schemaPath}.`,
+      "Fix the schema JSON and retry.",
+      { target: target.id, schemaPath, cause: error.message }
+    );
+  }
+}
+
+function setupPlanData(target, schema, schemaPath) {
+  const defaultStore = setupDefaultStore(target);
+  const fields = setupSchemaFields(schema, [], true, defaultStore);
+  const checklist = Array.isArray(schema["x-microservices"]?.checklist) ? schema["x-microservices"].checklist : [];
+
+  return {
+    status: "planned",
+    target: { kind: target.kind, id: target.id },
+    command: target.interactive?.command ?? `microservices setup ${target.id}`,
+    mode: target.interactive?.mode ?? null,
+    schema: schemaPath,
+    fields: {
+      content: setupFieldSummaries(fields, "content"),
+      config: setupFieldSummaries(fields, "config"),
+      secrets: setupFieldSummaries(fields, "secret"),
+      checklist: setupFieldSummaries(fields, "checklist")
+    },
+    writes: setupDeclaredWrites(target),
+    skills: target.skills,
+    checklist,
+    nextSteps: setupNextSteps(target, schema, fields)
+  };
+}
+
+function setupNextSteps(target, schema, fields) {
+  const steps = [];
+  if (!target.interactive?.schema) steps.push("Add an interactive setup schema to this target.");
+  const secretNames = fields.filter((field) => field.store === "secret").map((field) => field.secretName ?? field.id);
+  for (const secretName of secretNames) steps.push(`Store ${secretName} in your runtime secret store.`);
+
+  if (schema["x-microservices"]?.verify) {
+    steps.push(`Verify with: ${schema["x-microservices"].verify}`);
+  } else {
+    steps.push("Run microservices check --json.");
+  }
+
+  return steps;
+}
+
+function readSetupInput(flags) {
+  if (!flags.input) return { ok: true, data: null };
+
+  try {
+    const payload = readJson(resolve(flags.input), null);
+    const data = isRecord(payload?.data?.input) ? payload.data.input : payload;
+    if (!isRecord(data)) {
+      return fail(
+        "SETUP_INPUT_INVALID",
+        "Setup input JSON must be an object.",
+        "Pass a JSON object matching the setup schema.",
+        { input: flags.input }
+      );
+    }
+    return { ok: true, data };
+  } catch (error) {
+    return fail(
+      "SETUP_INPUT_INVALID",
+      "Could not read setup input JSON.",
+      "Pass a valid JSON file with --input setup.json.",
+      { input: flags.input, cause: error.message }
+    );
+  }
+}
+
+function parseSetupAnswer(value, field) {
+  const text = String(value ?? "").trim();
+  if (!text) return field.default;
+
+  if (field.type === "boolean") {
+    const lower = text.toLowerCase();
+    if (["1", "true", "yes", "y", "on"].includes(lower)) return true;
+    if (["0", "false", "no", "n", "off"].includes(lower)) return false;
+    return Boolean(text);
+  }
+
+  if (field.type === "integer") {
+    const number = Number.parseInt(text, 10);
+    return Number.isFinite(number) ? number : text;
+  }
+
+  if (field.type === "number") {
+    const number = Number(text);
+    return Number.isFinite(number) ? number : text;
+  }
+
+  if (field.type === "array") {
+    if (text.startsWith("[")) return JSON.parse(text);
+    const items = text.split(",").map((item) => item.trim()).filter(Boolean);
+    if (field.itemType === "object") {
+      return items.map((item) => {
+        const [name, ...rest] = item.split(":");
+        const description = rest.join(":").trim() || name.trim();
+        return { name: name.trim(), description };
+      });
+    }
+    return items;
+  }
+
+  if (text.startsWith("{") || text.startsWith("[")) return JSON.parse(text);
+  return text;
+}
+
+async function promptForSetupInput(target, schema) {
+  const defaultStore = setupDefaultStore(target);
+  const fields = setupSchemaFields(schema, [], true, defaultStore).filter((field) => field.store !== "secret");
+  const input = {};
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+  try {
+    process.stdout.write(`${target.id} setup\n`);
+    for (const field of fields) {
+      const choices = field.enum?.length ? ` (${field.enum.join("/")})` : "";
+      const defaultText = field.default !== undefined ? ` [${field.default}]` : "";
+      const requiredText = field.required && field.default === undefined ? " *" : "";
+      const answer = await rl.question(`${field.prompt}${choices}${defaultText}${requiredText}: `);
+      try {
+        const parsed = parseSetupAnswer(answer, field);
+        if (parsed !== undefined) setPathValue(input, field.path, parsed);
+      } catch (error) {
+        return fail(
+          "SETUP_PROMPT_VALUE_INVALID",
+          `Invalid value for ${field.id}.`,
+          "For arrays/objects, enter valid JSON or a comma-separated list.",
+          { field: field.id, cause: error.message }
+        );
+      }
+    }
+  } finally {
+    rl.close();
+  }
+
+  return { ok: true, data: input };
+}
+
+function canPromptForSetup(flags) {
+  return process.stdin.isTTY && process.stdout.isTTY && !flags.json && !flags.ci;
+}
+
+async function collectSetupInput(target, schema, schemaPath, flags) {
+  if (flags.input) return readSetupInput(flags);
+  if (canPromptForSetup(flags)) return promptForSetupInput(target, schema);
+
+  return fail(
+    "SETUP_INPUT_REQUIRED",
+    "Interactive setup needs input.",
+    "Run in an interactive terminal or pass --input setup.json.",
+    { target: target.id, schema: schemaPath }
+  );
+}
+
+function validateSetupInput(schema, input, target) {
+  const defaultStore = setupDefaultStore(target);
+  const fields = setupSchemaFields(schema, [], true, defaultStore);
+  const missing = [];
+  const invalid = [];
+
+  for (const field of fields) {
+    const value = getPathValue(input, field.path);
+    if (field.required && !presentSetupValue(value)) {
+      missing.push(field.id);
+      continue;
+    }
+    if (!presentSetupValue(value)) continue;
+    if (field.enum && !field.enum.includes(value)) invalid.push({ path: field.id, expected: field.enum, actual: value });
+    if (field.type === "array") {
+      if (!Array.isArray(value)) invalid.push({ path: field.id, expected: "array", actual: typeof value });
+      else if (field.minItems !== null && value.length < field.minItems) invalid.push({ path: field.id, expected: `at least ${field.minItems} item(s)`, actual: value.length });
+      else if (field.maxItems !== null && value.length > field.maxItems) invalid.push({ path: field.id, expected: `at most ${field.maxItems} item(s)`, actual: value.length });
+    }
+    if (field.type === "boolean" && typeof value !== "boolean") invalid.push({ path: field.id, expected: "boolean", actual: typeof value });
+    if (field.pattern && typeof value === "string" && !new RegExp(field.pattern).test(value)) {
+      invalid.push({ path: field.id, expected: field.pattern, actual: value });
+    }
+  }
+
+  if (missing.length || invalid.length) {
+    return fail(
+      "SETUP_INPUT_INVALID",
+      "Setup input does not match the interactive schema.",
+      "Fill the required fields and retry.",
+      { missing, invalid }
+    );
+  }
+
+  return { ok: true, data: input };
+}
+
+function setupStoredValues(schema, input, target, store) {
+  const fields = setupSchemaFields(schema, [], true, setupDefaultStore(target));
+  const values = {};
+  for (const field of fields) {
+    if (field.store !== store) continue;
+    const value = getPathValue(input, field.path);
+    if (presentSetupValue(value)) setPathValue(values, field.path, value);
+  }
+  return values;
+}
+
+function setupSecrets(schema, input, target) {
+  const fields = setupSchemaFields(schema, [], true, setupDefaultStore(target)).filter((field) => field.store === "secret");
+  return fields.map((field) => ({
+    field: field.id,
+    name: field.secretName ?? field.id,
+    provider: field.provider ?? null,
+    providedInInput: presentSetupValue(getPathValue(input, field.path)),
+    written: false
+  }));
+}
+
+function truncateText(value, max) {
+  const text = cleanString(value);
+  if (!text) return null;
+  if (text.length <= max) return text;
+  return `${text.slice(0, Math.max(0, max - 3)).trimEnd()}...`;
+}
+
+function validHexColor(value) {
+  return typeof value === "string" && /^#[0-9a-fA-F]{6}$/.test(value);
+}
+
+function normalizedOfferings(value, fallback = []) {
+  const raw = Array.isArray(value) ? value : [];
+  const items = raw
+    .map((item) => {
+      if (typeof item === "string") {
+        const [name, ...rest] = item.split(":");
+        return { name: cleanString(name), description: cleanString(rest.join(":")) ?? cleanString(name) };
+      }
+      if (!isRecord(item)) return null;
+      return { name: cleanString(item.name), description: cleanString(item.description) ?? cleanString(item.name) };
+    })
+    .filter((item) => item?.name && item?.description);
+
+  if (items.length) return items;
+
+  return fallback
+    .map((item) => ({ name: cleanString(item.title), description: cleanString(item.body) ?? cleanString(item.title) }))
+    .filter((item) => item.name && item.description);
+}
+
+function companyLandingPricingPlans(pricingPreference, existing, ctaHref) {
+  if (pricingPreference !== "contact-only") return existing.pricing?.plans ?? [];
+
+  return [
+    { name: "Starter", price: "Let's talk", unit: "", bestFor: "Focused first step", features: ["Clear scope", "Fast turnaround", "Direct contact"], cta: { label: "Get started", href: ctaHref }, featured: false },
+    { name: "Partner", price: "Custom", unit: "", bestFor: "Ongoing work", features: ["Roadmap support", "Regular delivery", "Priority help"], cta: { label: "Start a conversation", href: ctaHref }, featured: true },
+    { name: "Enterprise", price: "Tailored", unit: "", bestFor: "Larger needs", features: ["Scoped program", "Stakeholder reviews", "Launch support"], cta: { label: "Contact us", href: ctaHref }, featured: false }
+  ];
+}
+
+function companyLandingContentFromIntake(input, existing = {}) {
+  const contact = isRecord(input.contact) ? input.contact : {};
+  const brand = isRecord(input.brand) ? input.brand : {};
+  const company = truncateText(input.company, 40) ?? existing.company ?? "Company";
+  const description = truncateText(input.description, 200) ?? existing.description ?? `${company} helps customers get important work done.`;
+  const targetCustomer = truncateText(input.targetCustomer, 80) ?? "teams that need dependable help";
+  const offerings = normalizedOfferings(input.offerings, existing.features?.items ?? []).slice(0, 3);
+  while (offerings.length < 3) {
+    offerings.push({ name: ["Plan", "Build", "Support"][offerings.length], description: description });
+  }
+
+  const proof = Array.isArray(input.proof) ? input.proof.map((item) => truncateText(item, 40)).filter(Boolean) : [];
+  const logoProof = proof.map((item) => truncateText(item, 24)).filter(Boolean);
+  const email = cleanString(contact.email);
+  const ctaHref = email ? `mailto:${email}` : existing.cta?.primary?.href ?? "#";
+  const location = cleanString(contact.location);
+  const accent = validHexColor(brand.accent) ? brand.accent : existing.theme?.accent ?? "#c14b27";
+  const icons = ["engineering", "design", "performance"];
+  const logoItems = logoProof.length >= 3 ? logoProof.slice(0, 6) : existing.logos?.items ?? ["Customers", "Partners", "Teams"];
+  const pricingPreference = cleanString(input.pricingPreference) ?? "contact-only";
+  const pricingPlans = companyLandingPricingPlans(pricingPreference, existing, ctaHref);
+
+  return {
+    ...existing,
+    company,
+    domain: cleanString(input.domain) ?? existing.domain ?? "https://example.com",
+    description,
+    theme: { ...(existing.theme ?? {}), accent },
+    hero: {
+      ...(existing.hero ?? {}),
+      eyebrow: truncateText(location ? `${location} - ${company}` : company, 40) ?? company,
+      titleLead: "Built for",
+      titleEmphasis: truncateText(targetCustomer, 40) ?? "ambitious teams",
+      titleTail: "that need clarity.",
+      lead: truncateText(description, 240) ?? description,
+      primary: { label: "Get in touch", href: ctaHref },
+      secondary: { label: "See services", href: "#features" },
+      note: truncateText(proof[0] ? `Trusted signal: ${proof[0]}` : `Practical help from ${company}.`, 80) ?? `Practical help from ${company}.`
+    },
+    logos: {
+      ...(existing.logos ?? {}),
+      label: proof.length >= 3 ? "Proof points" : existing.logos?.label ?? "Working with",
+      items: logoItems
+    },
+    features: {
+      ...(existing.features ?? {}),
+      eyebrow: "What we do",
+      title: "Services shaped around your work.",
+      items: offerings.map((offering, index) => ({
+        title: truncateText(offering.name, 40) ?? `Offering ${index + 1}`,
+        body: truncateText(offering.description, 180) ?? description,
+        icon: icons[index] ?? "engineering"
+      }))
+    },
+    process: {
+      ...(existing.process ?? {}),
+      intro: truncateText(`We keep the work clear from first conversation to launch for ${targetCustomer}.`, 200) ?? existing.process?.intro
+    },
+    pricing: {
+      ...(existing.pricing ?? {}),
+      title: pricingPreference === "contact-only" ? "Pricing matched to the work." : existing.pricing?.title ?? "Simple, fair pricing.",
+      intro: pricingPreference === "contact-only"
+        ? "Share what you need and we will recommend the right starting point."
+        : existing.pricing?.intro ?? "Pick a shape that fits.",
+      plans: pricingPlans.length ? pricingPlans : existing.pricing?.plans
+    },
+    cta: {
+      ...(existing.cta ?? {}),
+      title: truncateText(`Ready to talk to ${company}?`, 60) ?? "Ready to talk?",
+      body: truncateText(`Tell us what you are trying to build, improve, or launch. ${company} will respond with a clear next step.`, 180) ?? description,
+      primary: { label: "Contact us", href: ctaHref },
+      secondary: { label: "Review services", href: "#features" }
+    },
+    footer: {
+      ...(existing.footer ?? {}),
+      groups: (existing.footer?.groups ?? []).map((group) => {
+        if (group?.title !== "Company" || !Array.isArray(group.links)) return group;
+        return {
+          ...group,
+          links: group.links.map((link) => link?.label === "Contact" ? { ...link, href: ctaHref } : link)
+        };
+      }),
+      copyright: company
+    }
+  };
+}
+
+function applySetup(target, schema, input) {
+  const written = [];
+  const checklistValues = setupStoredValues(schema, input, target, "checklist");
+
+  if (target.kind === "template" && target.id === "company-landing-astro" && target.interactive?.stores?.content) {
+    const contentPath = safeSetupRelativePath(target.interactive.stores.content);
+    if (!contentPath) {
+      return fail("SETUP_STORE_INVALID", "Template content store path is invalid.", "Fix interactive.stores.content in the template manifest.");
+    }
+    const existing = readJson(contentPath, {});
+    const content = companyLandingContentFromIntake(input, existing);
+    writeJsonFile(contentPath, content);
+    written.push({ type: "content", path: contentPath });
+  } else if (target.kind === "module") {
+    const configValues = setupStoredValues(schema, input, target, "config");
+    if (Object.keys(configValues).length) {
+      const configPath = "microservices.config.json";
+      const config = readJson(configPath, {});
+      const modules = isRecord(config.modules) ? config.modules : {};
+      const existing = isRecord(modules[target.id]) ? modules[target.id] : {};
+      writeJsonFile(configPath, {
+        ...config,
+        modules: {
+          ...modules,
+          [target.id]: mergeRecords(existing, configValues)
+        }
+      });
+      written.push({ type: "config", path: configPath, namespace: `modules.${target.id}` });
+    }
+  } else {
+    const configValues = setupStoredValues(schema, input, target, "config");
+    const contentValues = setupStoredValues(schema, input, target, "content");
+    const values = Object.keys(contentValues).length ? contentValues : configValues;
+    if (Object.keys(values).length) {
+      const configPath = "microservices.config.json";
+      const config = readJson(configPath, {});
+      writeJsonFile(configPath, {
+        ...config,
+        setup: {
+          ...(isRecord(config.setup) ? config.setup : {}),
+          [target.id]: values
+        }
+      });
+      written.push({ type: "config", path: configPath, namespace: `setup.${target.id}` });
+    }
+  }
+
+  return {
+    ok: true,
+    data: {
+      written,
+      checklistValues,
+      secrets: setupSecrets(schema, input, target)
+    }
+  };
+}
+
+async function setupResponse(id, flags) {
+  const targetResponse = resolveSetupTarget(id);
+  if (!targetResponse.ok) return targetResponse;
+
+  const target = targetResponse.data;
+  const schemaResponse = loadSetupSchema(target);
+  if (!schemaResponse.ok) return schemaResponse;
+
+  const { schema, schemaPath } = schemaResponse.data;
+  const plan = setupPlanData(target, schema, schemaPath);
+  if (flags.plan) return { ok: true, data: plan };
+
+  const inputResponse = await collectSetupInput(target, schema, schemaPath, flags);
+  if (!inputResponse.ok) return inputResponse;
+
+  const validation = validateSetupInput(schema, inputResponse.data, target);
+  if (!validation.ok) return validation;
+
+  const applied = applySetup(target, schema, inputResponse.data);
+  if (!applied.ok) return applied;
+
+  const secretWarnings = applied.data.secrets
+    .filter((secret) => secret.providedInInput)
+    .map((secret) => `${secret.name} was provided in input but was not written; store it in the runtime secret store.`);
+
+  return {
+    ok: true,
+    data: {
+      ...plan,
+      status: "configured",
+      written: applied.data.written,
+      secrets: applied.data.secrets,
+      checklistValues: applied.data.checklistValues
+    },
+    warnings: secretWarnings
+  };
+}
+
+function formatSetupResult(data) {
+  const lines = [`${data.target.id}: ${data.status}`];
+  if (data.schema) lines.push(`Schema: ${data.schema}`);
+  if (data.written?.length) {
+    lines.push("Written:");
+    for (const item of data.written) lines.push(`- ${item.type}: ${item.path}${item.namespace ? ` (${item.namespace})` : ""}`);
+  }
+  if (data.secrets?.length) {
+    lines.push("Secrets:");
+    for (const secret of data.secrets) lines.push(`- ${secret.name}: store separately${secret.provider ? ` (${secret.provider})` : ""}`);
+  }
+  if (data.skills?.length) {
+    lines.push("Suggested skills:");
+    for (const skill of data.skills) lines.push(`- ${typeof skill === "string" ? skill : skill.id}`);
+  }
+  if (data.checklist?.length) {
+    lines.push("Checklist:");
+    for (const item of data.checklist) lines.push(`- ${item}`);
+  }
+  if (data.nextSteps?.length) {
+    lines.push("Next:");
+    for (const step of data.nextSteps) lines.push(`- ${step}`);
+  }
+  return `${lines.join("\n")}\n`;
 }
 
 function pathWithQuery(path, params) {
@@ -2715,6 +3392,7 @@ function usage() {
   microservices modules list                     # list installed modules
   microservices add <id[@version]>               # vendor a module into this app
   microservices docs <id>                        # show a module's agent docs
+  microservices setup [id] [--input setup.json]  # guided template/module setup
   microservices upgrade <id[@version]> [--to x] [--plan]  # upgrade or downgrade a module
   microservices check                            # verify the app against its contract
   microservices local dev [--host <h>] [--port <p>]   # run the app locally
@@ -2737,6 +3415,7 @@ function usageAll() {
   microservices modules list [--json]
   microservices add <id[@version]> [--version x] [--json]
   microservices docs <id> [--json]
+  microservices setup [id] [--input setup.json] [--plan] [--json]
   microservices upgrade <id[@version]> [--to x] [--plan] [--json]
   microservices check [--json]
   microservices local setup [--json]
@@ -2858,6 +3537,20 @@ async function main() {
           : `No docs found for module "${action}". Run "microservices modules list" to see installed modules.`)
       : `Usage: microservices docs <module-id>. Run "microservices modules list" to list installed modules.`;
     emit({ ok: true, data: { id: action ?? null, content } }, (data) => `${data.content}\n`, flags);
+  } else if (resource === "setup") {
+    const startedAt = Date.now();
+    const response = await setupResponse(action, flags);
+    await trackResponse(
+      "interactive_setup_completed",
+      "interactive_setup_failed",
+      response,
+      workspaceTelemetryProps(flags, {
+        target: action ?? manifest.id ?? null,
+        plan: flags.plan,
+        durationMs: durationMs(startedAt)
+      })
+    );
+    emit(response, formatSetupResult, flags);
   } else if (resource === "upgrade") {
     const response = flags.plan ? moduleUpgradePlan(action, flags) : applyModuleUpgrade(action, flags);
     emit(

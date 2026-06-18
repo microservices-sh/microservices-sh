@@ -14,7 +14,7 @@ interface Props {
 }
 
 const { title = `${site.company} — ${site.hero.titleEmphasis}`, description = site.description } = Astro.props;
-const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://example.com").toString();
+const canonical = new URL(Astro.url.pathname, site.domain).toString();
 
 const jsonLd = {
   "@context": "https://schema.org",

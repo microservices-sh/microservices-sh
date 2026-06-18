@@ -27,6 +27,18 @@ export interface ModuleConnections {
   provides: { hooks: Array<{ target: string; handler: string; order: number }> };
 }
 
+export interface InteractiveSetupContract {
+  schema?: string;
+  command?: string;
+  mode?: string;
+  stores?: Record<string, unknown>;
+}
+
+export interface SkillRecommendation {
+  id: string;
+  recommendedFor?: string[];
+}
+
 export interface ModuleContract {
   id: string;
   name: string;
@@ -44,6 +56,8 @@ export interface ModuleContract {
   permissions: string[];
   secrets?: string[];
   approvalRisk?: "low" | "medium" | "high";
+  interactive?: InteractiveSetupContract;
+  skills?: SkillRecommendation[];
   rpc: Array<{ method: string; scope?: string | null; public: boolean }>;
   hooks: ModuleHook[];
   /** Nested connection surface; optional during the phase 2→3 migration window. */
@@ -87,6 +101,8 @@ export interface TemplateContract {
   };
   defaultConfig: Record<string, unknown>;
   successCriteria: string[];
+  interactive?: InteractiveSetupContract;
+  skills?: SkillRecommendation[];
 }
 
 export interface CompositionInput {
@@ -168,9 +184,9 @@ export function parseModuleRef(value: string, explicitVersion?: string | null): 
 export function availableModuleVersions(id: string): string[];
 export function moduleReleaseTag(id: string, version: string): string;
 export function moduleSourceRef(input: string | Pick<ModuleContract, "id" | "version">, version?: string | null): ModuleSourceRef;
-export function listModules(): Array<Pick<ModuleContract, "id" | "name" | "version" | "status" | "category" | "summary" | "requires"> & { mount: string; latestVersion: string; availableVersions: string[]; sourceRef: ModuleSourceRef }>;
+export function listModules(): Array<Pick<ModuleContract, "id" | "name" | "version" | "status" | "category" | "summary" | "requires" | "interactive" | "skills"> & { mount: string; latestVersion: string; availableVersions: string[]; sourceRef: ModuleSourceRef }>;
 export function inspectModule(id: string): ModuleContract;
-export function listTemplates(): Array<Pick<TemplateContract, "id" | "name" | "version" | "status" | "summary" | "defaultModules" | "optionalModules">>;
+export function listTemplates(): Array<Pick<TemplateContract, "id" | "name" | "version" | "status" | "summary" | "defaultModules" | "optionalModules" | "interactive" | "skills">>;
 export function inspectTemplate(id: string): TemplateContract;
 export function resolveModuleIds(moduleIds: string[]): string[];
 export function createModuleLock(modules: ModuleContract[], template?: TemplateContract | null): ModuleLock;

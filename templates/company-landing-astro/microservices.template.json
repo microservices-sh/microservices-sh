@@ -21,6 +21,25 @@
     "required": [],
     "optional": []
   },
+  "interactive": {
+    "schema": "intake.schema.json",
+    "command": "pnpm microservices setup company-landing-astro",
+    "mode": "template-intake",
+    "stores": {
+      "content": "src/content.json",
+      "assets": "public/"
+    }
+  },
+  "skills": [
+    {
+      "id": "company-web-design",
+      "recommendedFor": ["messy-company-input", "brand-copy", "asset-selection"]
+    },
+    {
+      "id": "frontend-design",
+      "recommendedFor": ["layout-refresh", "visual-polish"]
+    }
+  ],
   "slots": {},
   "sourcePolicy": {
     "templateOwns": [
