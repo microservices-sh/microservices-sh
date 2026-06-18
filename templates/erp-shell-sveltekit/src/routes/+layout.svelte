@@ -1,7 +1,7 @@
 <script lang="ts">
   import "../app.css";
   import { page } from "$app/stores";
-  import { Button } from "$lib/ui";
+  import { Button, Logo } from "$lib/ui";
 
   let { data, children } = $props();
 
@@ -27,10 +27,7 @@
 {:else}
   <div class="shell">
     <header class="topbar">
-      <a class="brand" href={data.user ? "/app" : "/login"}>
-        <span class="brand-mark">erp</span>
-        <span>ERP Shell</span>
-      </a>
+      <Logo href={data.user ? "/app" : "/login"} />
 
       <nav class="nav" aria-label="Primary">
         {#if data.user}

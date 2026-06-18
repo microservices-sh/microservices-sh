@@ -1,7 +1,7 @@
 <script lang="ts">
   import "../app.css";
   import { page } from "$app/stores";
-  import { Button } from "$lib/ui";
+  import { Button, Logo } from "$lib/ui";
 
   let { data, children } = $props();
 
@@ -42,7 +42,7 @@
 <div class="shell">
   <header class="topbar">
     <a class="brand" href={data.user ? "/app" : "/"}>
-      <span class="brand-mark">ms</span>
+      <Logo withWordmark={false} href={null} height={26} />
       <span>SaaS Starter</span>
     </a>
 

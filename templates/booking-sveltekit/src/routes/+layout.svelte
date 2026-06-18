@@ -1,7 +1,7 @@
 <script lang="ts">
   import "../app.css";
   import { page } from "$app/stores";
-  import { Button } from "$lib/ui";
+  import { Button, Logo } from "$lib/ui";
 
   let { children, data } = $props();
   const brand = $derived(data?.settings?.name ?? "Booking");
@@ -37,7 +37,7 @@
 <div class="shell">
   <header class="topbar">
     <a class="brand" href="/">
-      <span class="brand-mark">ms</span>
+      <Logo withWordmark={false} href={null} height={26} />
       <span>{brand}</span>
     </a>
     <nav class="nav" aria-label="Primary">
