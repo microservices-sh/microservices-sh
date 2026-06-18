@@ -1,6 +1,6 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
-import { listInvoices, createInvoice, issueInvoice } from "@microservices-sh/invoice";
+import { listInvoices, createInvoice, issueInvoice, recordPayment } from "@microservices-sh/invoice";
 import { listCustomers } from "@microservices-sh/customer";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { requireOrgPermission } from "$lib/server/org-context";
@@ -123,5 +123,42 @@ export const actions: Actions = {
     );
 
     return { ok: true, number: issued.data.number };
+  },
+
+  // Record a payment against an open invoice. The module flips status to "paid"
+  // once the balance is fully covered (and emits invoice.paid), so a full-amount
+  // payment marks it settled and drops it out of "Outstanding" on the dashboard.
+  payment: async ({ request, locals, cookies, parent }) => {
+    const { activeOrgId } = await parent();
+    if (!activeOrgId || !locals.user) return fail(403, { error: "Not signed in to a company." });
+
+    await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const invoiceId = String(form.get("invoiceId") ?? "").trim();
+    const amount = Number(form.get("amount"));
+    const amountCents = Number.isFinite(amount) ? Math.round(amount * 100) : 0;
+
+    if (!invoiceId) return fail(400, { error: "Missing invoice." });
+    if (amountCents <= 0) return fail(400, { error: "Enter a payment amount greater than zero." });
+
+    const result = await recordPayment({ invoiceId, amountCents }, { invoiceStore: locals.invoiceStore });
+    if (!result.ok || !result.data) {
+      return fail(result.status ?? 400, { error: result.error?.message ?? "Could not record the payment." });
+    }
+
+    await recordEvent(
+      {
+        eventName: "invoice.payment_recorded",
+        actorId: locals.user.id,
+        entityType: "invoice",
+        entityId: invoiceId,
+        source: "app/invoices",
+        payload: { amountCents, status: result.data.status }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { ok: true, paymentRecorded: true, paid: result.data.status === "paid" };
   }
 };

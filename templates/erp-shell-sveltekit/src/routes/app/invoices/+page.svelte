@@ -61,6 +61,28 @@
   );
   const totalCents = $derived(subtotalCents + taxCents);
   const canSubmit = $derived(Boolean(customerId) && payload.length > 0 && !submitting);
+
+  // ── Record-payment state (per open invoice row) ────────────────────────────
+  let payingId = $state<string | null>(null);
+  let payAmount = $state("");
+  let paySubmitting = $state(false);
+
+  function togglePay(invoice: { id: string; outstandingCents: number }) {
+    if (payingId === invoice.id) {
+      payingId = null;
+    } else {
+      payingId = invoice.id;
+      payAmount = (invoice.outstandingCents / 100).toFixed(2);
+    }
+  }
+  function payEnhance() {
+    paySubmitting = true;
+    return async ({ result, update }: { result: { type: string }; update: () => Promise<void> }) => {
+      paySubmitting = false;
+      if (result.type === "success") payingId = null;
+      await update();
+    };
+  }
 </script>
 
 <svelte:head>
@@ -72,7 +94,9 @@
   <h1>Invoices</h1>
   <p>Issue and track invoices for your company, powered by the invoice module.</p>
 
-  {#if form?.ok}
+  {#if form?.paymentRecorded}
+    <Alert tone="success">{form.paid ? "Payment recorded — invoice marked paid." : "Payment recorded."}</Alert>
+  {:else if form?.number}
     <Alert tone="success">Invoice {form.number} issued.</Alert>
   {:else if form?.error}
     <Alert tone="error">{form.error}</Alert>
@@ -84,12 +108,29 @@
       {#if data.invoices.length > 0}
         <ul class="list" role="list">
           {#each data.invoices as invoice}
-            <li class="list-item row-item">
-              <span><strong>{invoice.number}</strong> · {invoice.customer}</span>
-              <span class="nav" style="align-items: center;">
-                <Badge tone={tone(invoice.status)}>{invoice.status}</Badge>
-                <span>{money(invoice.totalCents, invoice.currency)}</span>
-              </span>
+            <li class="list-item inv-row">
+              <div class="row-item">
+                <span><strong>{invoice.number}</strong> · {invoice.customer}</span>
+                <span class="nav" style="align-items: center;">
+                  <Badge tone={tone(invoice.status)}>{invoice.status}</Badge>
+                  <span>{money(invoice.totalCents, invoice.currency)}</span>
+                  {#if data.canManage && invoice.status === "open"}
+                    <Button type="button" variant="ghost" size="sm" onclick={() => togglePay(invoice)}>
+                      {payingId === invoice.id ? "Cancel" : "Record payment"}
+                    </Button>
+                  {/if}
+                </span>
+              </div>
+              {#if payingId === invoice.id}
+                <form class="inv-pay" method="POST" action="?/payment" use:enhance={payEnhance}>
+                  <input type="hidden" name="invoiceId" value={invoice.id} />
+                  <span class="inv-pay-out">Outstanding {money(invoice.outstandingCents, invoice.currency)}</span>
+                  <input class="inv-num" name="amount" type="number" min="0.01" step="0.01" bind:value={payAmount} aria-label="Payment amount" />
+                  <Button type="submit" variant="primary" size="sm" disabled={paySubmitting}>
+                    {paySubmitting ? "Recording…" : "Record"}
+                  </Button>
+                </form>
+              {/if}
             </li>
           {/each}
         </ul>
@@ -193,6 +234,27 @@
     margin-block-start: 8px;
     color: var(--color-act);
     font-weight: 500;
+  }
+
+  .inv-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .inv-pay {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-block: 8px 2px;
+    border-block-start: 1px dashed var(--color-line);
+  }
+  .inv-pay-out {
+    margin-inline-end: auto;
+    font-size: 0.8rem;
+    color: var(--color-ink-soft);
+  }
+  .inv-pay .inv-num {
+    max-inline-size: 130px;
   }
 
   .inv-lines {
