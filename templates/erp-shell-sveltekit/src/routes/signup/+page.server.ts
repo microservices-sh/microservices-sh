@@ -39,6 +39,11 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
     const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
     if (org) throw redirect(303, "/app");
   }
+  // First-run ONLY: setup provisions the single company + its owner without an
+  // email round-trip, so it must be closed once the company exists — otherwise
+  // anyone could bootstrap a second org / a session for an unverified email.
+  // After setup, returning users sign in through the real /login code flow.
+  if (await locals.rbacStore.anyOrganizationExists()) throw redirect(303, "/login");
   return {};
 };
 
@@ -52,6 +57,10 @@ function slugify(value: string): string {
 
 export const actions: Actions = {
   default: async ({ request, cookies, locals, platform }) => {
+    // First-run gate (mirrors load): never create a second company, and never
+    // mint a session for an unverified email once setup is done.
+    if (await locals.rbacStore.anyOrganizationExists()) throw redirect(303, "/login");
+
     const formData = await request.formData();
     const email = String(formData.get("email") ?? "").trim().toLowerCase();
     const orgName = String(formData.get("orgName") ?? "").trim();

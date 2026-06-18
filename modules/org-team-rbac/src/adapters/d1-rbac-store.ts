@@ -32,6 +32,10 @@ export function createD1RbacStore(db: D1Database): RbacStore {
       await db.prepare("UPDATE organizations SET name = ?, slug = ?, status = ?, updated_at = ? WHERE id = ?")
         .bind(org.name, org.slug, org.status, org.updatedAt, org.id).run();
     },
+    async anyOrganizationExists() {
+      const r = await db.prepare("SELECT 1 FROM organizations LIMIT 1").first();
+      return r != null;
+    },
 
     async insertRole(role) {
       await db.prepare("INSERT INTO roles (id, org_id, name, permissions) VALUES (?, ?, ?, ?)")

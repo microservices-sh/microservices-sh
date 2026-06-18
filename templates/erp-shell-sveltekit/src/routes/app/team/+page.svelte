@@ -35,7 +35,6 @@
             </div>
             {#if data.canManage}
               <form method="POST" action="?/changeRole" class="flex items-center gap-2">
-                <input type="hidden" name="orgId" value={data.activeOrgId ?? ""} />
                 <input type="hidden" name="userId" value={member.userId} />
                 <select name="roleId" aria-label="Change role">
                   {#each data.roles as role}
@@ -65,7 +64,6 @@
       <h2>Invite a member</h2>
       {#if data.canManage}
         <form method="POST" action="?/invite">
-          <input type="hidden" name="orgId" value={data.activeOrgId ?? ""} />
           <Field label="Email" id="email">
             <input id="email" name="email" type="email" autocomplete="off" required />
           </Field>

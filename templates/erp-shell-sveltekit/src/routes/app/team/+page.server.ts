@@ -2,7 +2,7 @@ import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { listMembers, inviteMember, updateMemberRole, authorize } from "@microservices-sh/org-team-rbac";
 import { recordEvent } from "@microservices-sh/audit-log";
-import { requireOrgPermission } from "$lib/server/org-context";
+import { requireOrgPermission, loadCompanyContext } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 
 export const load: PageServerLoad = async ({ locals, cookies, parent, platform }) => {
@@ -35,10 +35,13 @@ async function gateManage(locals: App.Locals, orgId: string) {
 
 export const actions: Actions = {
   invite: async ({ request, locals, cookies }) => {
-    void cookies;
+    if (!locals.user) return fail(403, { error: "Not signed in." });
+    // Derive the org from the session-bound company context (membership-revalidated),
+    // NOT from the form — a client-supplied orgId must never be trusted.
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org || !(await gateManage(locals, org.id)).ok) return fail(403, { error: "You do not have permission to invite members." });
+    const orgId = org.id;
     const form = await request.formData();
-    const orgId = String(form.get("orgId") ?? "");
-    if (!locals.user || !(await gateManage(locals, orgId)).ok) return fail(403, { error: "You do not have permission to invite members." });
 
     const result = await inviteMember(
       { orgId, email: String(form.get("email") ?? ""), roleId: String(form.get("roleId") ?? "") },
@@ -53,10 +56,12 @@ export const actions: Actions = {
     return { ok: true, invited: true, token: result.data.token };
   },
 
-  changeRole: async ({ request, locals }) => {
+  changeRole: async ({ request, locals, cookies }) => {
+    if (!locals.user) return fail(403, { error: "Not signed in." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org || !(await gateManage(locals, org.id)).ok) return fail(403, { error: "You do not have permission to change roles." });
+    const orgId = org.id;
     const form = await request.formData();
-    const orgId = String(form.get("orgId") ?? "");
-    if (!locals.user || !(await gateManage(locals, orgId)).ok) return fail(403, { error: "You do not have permission to change roles." });
 
     const result = await updateMemberRole(
       { orgId, userId: String(form.get("userId") ?? ""), roleId: String(form.get("roleId") ?? "") },

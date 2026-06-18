@@ -7,6 +7,9 @@ export interface RbacStore {
   getOrg(id: string): Promise<Organization | null>;
   getOrgBySlug(slug: string): Promise<Organization | null>;
   updateOrg(org: Organization): Promise<void>;
+  // True once any organization exists — lets a single-company app gate its
+  // one-time first-run setup (close /signup after the company is created).
+  anyOrganizationExists(): Promise<boolean>;
 
   insertRole(role: Role): Promise<void>;
   getRole(id: string): Promise<Role | null>;
