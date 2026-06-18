@@ -339,7 +339,7 @@ function usage() {
 Common commands:
   microservices auth login [--api-url https://api.microservices.sh]
   microservices auth status
-  microservices billing status [--api-key <key>]
+  microservices account billing status [--api-key <key>]
   microservices usage [--api-key <key>]
   microservices generate [template-id] --out <dir>
   microservices check [template-id]
@@ -386,9 +386,12 @@ Usage:
   microservices auth status [--json]
   microservices auth whoami [--json]
   microservices auth logout [--json]
-  microservices billing plans [--api-url https://api.microservices.sh] [--json]
-  microservices billing status [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
-  microservices billing usage [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices account billing plans [--api-url https://api.microservices.sh] [--json]
+  microservices account billing status [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices account billing usage [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices billing plans [--api-url https://api.microservices.sh] [--json]  # alias for account billing
+  microservices billing status [--api-url https://api.microservices.sh] [--api-key <key>] [--json]  # alias for account billing
+  microservices billing usage [--api-url https://api.microservices.sh] [--api-key <key>] [--json]  # alias for account billing
   microservices usage [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices support ticket [--subject "..."] [--description "..."] [--category bug|feature_request|account|billing|general|other] [--priority critical|high|medium|low] [--email owner@example.com] [--project-id <id>] [--deployment-id <id>] [--url <page-url>] [--json]
   microservices support tickets [--limit 25] [--json]
@@ -725,6 +728,44 @@ ${items
   })
   .join("\n")}
 `;
+}
+
+function unknownAccountBillingCommand(action, legacyAlias = false) {
+  if (legacyAlias) {
+    return failResponse(
+      "UNKNOWN_BILLING_COMMAND",
+      `Unknown billing command: ${action}.`,
+      "Use `microservices billing plans`, `microservices billing status`, or `microservices billing usage`.",
+      { command: action }
+    );
+  }
+
+  return failResponse(
+    "UNKNOWN_ACCOUNT_BILLING_COMMAND",
+    `Unknown account billing command: ${action}.`,
+    "Use `microservices account billing plans`, `microservices account billing status`, or `microservices account billing usage`.",
+    { command: action }
+  );
+}
+
+async function handleAccountBilling(flags, action, options = {}) {
+  if (!action || action === "status") {
+    const response = await apiRequest(flags, "/billing/status");
+    return flags.json ? writeJson(response) : printApiHuman(response, formatBillingStatus);
+  }
+
+  if (action === "plans" || action === "plan") {
+    const response = await apiRequest(flags, "/billing/plans");
+    return flags.json ? writeJson(response) : printApiHuman(response, formatBillingPlans);
+  }
+
+  if (action === "usage") {
+    const response = await apiRequest(flags, "/usage");
+    return flags.json ? writeJson(response) : printApiHuman(response, formatUsageStatus);
+  }
+
+  const response = unknownAccountBillingCommand(action, Boolean(options.legacyAlias));
+  return flags.json ? writeJson(response) : printHuman(response, () => "");
 }
 
 function isoTime(value) {
@@ -3293,29 +3334,12 @@ API:       ${result.apiUrl}
         );
   }
 
+  if (resource === "account" && action === "billing") {
+    return handleAccountBilling(flags, value);
+  }
+
   if (resource === "billing") {
-    if (!action || action === "status") {
-      response = await apiRequest(flags, "/billing/status");
-      return flags.json ? writeJson(response) : printApiHuman(response, formatBillingStatus);
-    }
-
-    if (action === "plans" || action === "plan") {
-      response = await apiRequest(flags, "/billing/plans");
-      return flags.json ? writeJson(response) : printApiHuman(response, formatBillingPlans);
-    }
-
-    if (action === "usage") {
-      response = await apiRequest(flags, "/usage");
-      return flags.json ? writeJson(response) : printApiHuman(response, formatUsageStatus);
-    }
-
-    response = failResponse(
-      "UNKNOWN_BILLING_COMMAND",
-      `Unknown billing command: ${action}.`,
-      "Use `microservices billing plans`, `microservices billing status`, or `microservices billing usage`.",
-      { command: action }
-    );
-    return flags.json ? writeJson(response) : printHuman(response, () => "");
+    return handleAccountBilling(flags, action, { legacyAlias: true });
   }
 
   if (resource === "usage") {

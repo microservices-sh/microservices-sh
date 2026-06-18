@@ -289,6 +289,71 @@ const MODULES = Object.freeze([
     },
   },
   {
+    id: "billing-subscriptions",
+    name: "Billing & Subscriptions",
+    version: "0.1.0",
+    status: "available",
+    category: "provider",
+    approvalRisk: "high",
+    summary:
+      "Recurring plans and subscription state on top of Stripe: a complete status state machine, idempotent webhook application, plan changes, metered usage, and dunning hooks.",
+    requires: [],
+    optional: ["payment", "org-team-rbac", "jobs-workflows", "audit-log"],
+    storage: ["d1"],
+    runtime: {
+      framework: "hono",
+      mount: "/billing",
+      bindings: ["DB"],
+    },
+    eventsEmitted: [
+      "subscription.started",
+      "subscription.activated",
+      "subscription.past_due",
+      "subscription.canceled",
+      "subscription.plan_changed",
+    ],
+    eventsConsumed: [],
+    permissions: [
+      "billing.read",
+      "billing.write",
+      "billing.admin",
+      "billing-subscriptions.extend",
+      "billing-subscriptions.observe",
+    ],
+    rpc: [
+      { method: "startSubscription", scope: "billing.write", public: false },
+      { method: "applyStripeEvent", scope: "billing.write", public: false },
+    ],
+    hooks: [
+      {
+        name: "beforeSubscriptionChange",
+        timing: "pre",
+        purpose: "Guard or adjust a subscription transition before it is persisted.",
+      },
+      {
+        name: "onSubscriptionActivated",
+        timing: "post",
+        purpose: "Observe activation to grant access, notify users, or update downstream records.",
+      },
+      {
+        name: "onSubscriptionPastDue",
+        timing: "post",
+        purpose: "Observe past-due transitions to start dunning or restrict risky operations.",
+      },
+    ],
+    customization: {
+      config: ["plans", "trialDays", "usageMeters", "dunning"],
+      hooks: ["beforeSubscriptionChange", "onSubscriptionActivated", "onSubscriptionPastDue"],
+      forkable: true,
+    },
+    quality: {
+      tests: { unit: true, integration: true, fixtures: true },
+      agentDocs: true,
+      migrations: true,
+      upgradeNotes: true,
+    },
+  },
+  {
     id: "idempotency",
     name: "Idempotency",
     version: "0.1.0",

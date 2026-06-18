@@ -57,6 +57,15 @@ describe("SDK module version planning", () => {
     expect(response.error.details.availableVersions).toContain("0.1.0");
   });
 
+  it("approval-gates generated SaaS subscription billing", () => {
+    const response = planAddModule({ moduleId: "billing-subscriptions@0.1.0", installedModules: [] });
+    expect(response.ok).toBe(true);
+    expect(response.data.module.id).toBe("billing-subscriptions");
+    expect(response.data.module.approvalRisk).toBe("high");
+    expect(response.data.approvalRequired).toBe(true);
+    expect(response.data.missingDependencies).toEqual([]);
+  });
+
   it("plans a downgrade when the lockfile is ahead of the requested registry target", () => {
     const response = planModuleUpgrade({
       moduleId: "auth",

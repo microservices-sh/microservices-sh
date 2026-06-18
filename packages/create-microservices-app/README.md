@@ -82,6 +82,7 @@ Explore and evolve the project at any time:
 ```bash
 pnpm microservices modules list --json
 pnpm microservices add payment --plan --json
+pnpm microservices add billing-subscriptions --plan --json
 pnpm microservices upgrade booking --plan --json
 pnpm microservices check --json
 pnpm microservices updates --json

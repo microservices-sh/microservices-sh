@@ -1,6 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { composeApp, inspectModule, moduleReleaseTag, moduleSourceRef, parseModuleRef, resolveModuleIds } from "../src/index.js";
 
+const BILLING_SUBSCRIPTION_PERMISSIONS = [
+  "billing.read",
+  "billing.write",
+  "billing.admin",
+  "billing-subscriptions.extend",
+  "billing-subscriptions.observe",
+];
+
+const BILLING_SUBSCRIPTION_EVENTS = [
+  "subscription.started",
+  "subscription.activated",
+  "subscription.past_due",
+  "subscription.canceled",
+  "subscription.plan_changed",
+];
+
 describe("module version selectors", () => {
   it("parses inline module versions", () => {
     expect(parseModuleRef("auth@0.1.0")).toEqual({
@@ -23,6 +39,35 @@ describe("module version selectors", () => {
 
   it("uses explicit pins while resolving dependencies", () => {
     expect(resolveModuleIds(["payment@0.1.0"])).toEqual(["auth", "customer", "payment"]);
+  });
+
+  it("models subscription billing as a provider-backed customer app module", () => {
+    expect(resolveModuleIds(["billing-subscriptions@0.1.0"])).toEqual(["billing-subscriptions"]);
+    expect(inspectModule("billing-subscriptions@0.1.0")).toMatchObject({
+      id: "billing-subscriptions",
+      category: "provider",
+      approvalRisk: "high",
+      requires: [],
+      optional: ["payment", "org-team-rbac", "jobs-workflows", "audit-log"],
+      runtime: { mount: "/billing" },
+      permissions: BILLING_SUBSCRIPTION_PERMISSIONS,
+      rpc: [
+        { method: "startSubscription", scope: "billing.write", public: false },
+        { method: "applyStripeEvent", scope: "billing.write", public: false },
+      ],
+      hooks: [
+        { name: "beforeSubscriptionChange", timing: "pre" },
+        { name: "onSubscriptionActivated", timing: "post" },
+        { name: "onSubscriptionPastDue", timing: "post" },
+      ],
+      customization: {
+        config: ["plans", "trialDays", "usageMeters", "dunning"],
+        hooks: ["beforeSubscriptionChange", "onSubscriptionActivated", "onSubscriptionPastDue"],
+        forkable: true,
+      },
+      eventsEmitted: BILLING_SUBSCRIPTION_EVENTS,
+      eventsConsumed: [],
+    });
   });
 
   it("records pinned versions in the composition lock", () => {

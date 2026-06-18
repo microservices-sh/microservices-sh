@@ -42,6 +42,9 @@ export interface ModuleContract {
   eventsEmitted: string[];
   eventsConsumed: string[];
   permissions: string[];
+  secrets?: string[];
+  approvalRisk?: "low" | "medium" | "high";
+  rpc: Array<{ method: string; scope?: string | null; public: boolean }>;
   hooks: ModuleHook[];
   /** Nested connection surface; optional during the phase 2→3 migration window. */
   connections?: ModuleConnections;
@@ -115,8 +118,10 @@ export interface ModuleLock {
     id: string;
     version: string;
     source: string;
+    sourceRef?: ModuleSourceRef;
     checksum: string;
     customizationMode: string;
+    mode?: "embedded" | "service";
     contract: {
       mount: string;
       bindings: string[];
