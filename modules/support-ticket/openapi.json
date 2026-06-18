@@ -1,0 +1,85 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Support Ticket Module",
+    "version": "0.1.0",
+    "description": "Tenant-scoped support tickets with a status lifecycle, priority, and assignment. Routes are owned by the host app; these are the boundary shapes."
+  },
+  "paths": {
+    "/tickets": {
+      "post": {
+        "summary": "Create a support ticket",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tenantId", "subject", "description", "requesterEmail"],
+                "properties": {
+                  "tenantId": { "type": "string" },
+                  "subject": { "type": "string", "minLength": 1, "maxLength": 200 },
+                  "description": { "type": "string" },
+                  "status": { "type": "string", "enum": ["open", "pending", "resolved", "closed"] },
+                  "priority": { "type": "string", "enum": ["low", "normal", "high", "urgent"] },
+                  "requesterEmail": { "type": "string", "format": "email" },
+                  "assigneeId": { "type": "string", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Ticket created" },
+          "400": { "description": "Invalid ticket input" }
+        }
+      },
+      "get": {
+        "summary": "List tickets (tenant-scoped)",
+        "parameters": [
+          { "name": "tenantId", "in": "query", "required": true, "schema": { "type": "string" } },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["open", "pending", "resolved", "closed"] }
+          }
+        ],
+        "responses": { "200": { "description": "Ticket list" } }
+      }
+    },
+    "/tickets/{id}": {
+      "get": {
+        "summary": "Get a ticket",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Ticket detail" },
+          "404": { "description": "Ticket not found" }
+        }
+      },
+      "patch": {
+        "summary": "Update a ticket's status, priority, and/or assignee",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": { "type": "string", "enum": ["open", "pending", "resolved", "closed"] },
+                  "priority": { "type": "string", "enum": ["low", "normal", "high", "urgent"] },
+                  "assigneeId": { "type": "string", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Ticket updated" },
+          "400": { "description": "Invalid update input" },
+          "404": { "description": "Ticket not found" }
+        }
+      }
+    }
+  }
+}

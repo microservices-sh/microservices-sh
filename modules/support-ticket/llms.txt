@@ -1,0 +1,35 @@
+# Support Ticket Module LLM Guide
+
+Purpose: reusable prebuilt support-ticket logic for microservices.sh templates.
+Tenant-scoped tickets (open -> pending -> resolved -> closed) with priority and
+assignment. Powers the ERP/help-desk template surface.
+
+Entry points:
+- `src/index.ts` exports the safe public surface.
+- `src/use-cases/` contains framework-neutral behavior: createTicket, getTicket,
+  listTickets, updateTicket.
+- `src/ports/` defines the `TicketStore` repository interface.
+- `src/adapters/` contains Cloudflare D1 and memory `TicketStore` implementations.
+- `src/meta.ts` builds the Result envelope Meta (correlationId threading, Plan 25 section 4).
+- `migrations/0001_support_ticket.sql` owns the support_tickets table + domain_events.
+- `schemas/` and `openapi.json` describe API-facing contracts.
+- `module.json` is the machine-readable module manifest.
+
+Model:
+- Entity: Ticket { id, tenantId, subject, description, status, priority,
+  requesterEmail, assigneeId, createdAt, updatedAt }.
+- Status enum: open | pending | resolved | closed (default open).
+- Priority enum: low | normal | high | urgent (default normal).
+
+Result + events (the point - do not remove):
+- Every use case returns ok()/err() from @microservices-sh/connection-contract.
+- createTicket emits support-ticket.created.
+- updateTicket emits support-ticket.updated, and additionally
+  support-ticket.status_changed when the status actually transitions.
+- All listing/lookup is tenant-scoped (tenantId).
+
+Agent rules:
+- Keep ticket behavior in this module; keep app routes and UI in templates.
+- Use `TicketStore` for persistence; never make real I/O in tests (use the memory adapter).
+- Keep use cases framework-neutral (no SvelteKit/Hono imports).
+- Ask before changing PII schema, migrations, external side effects, or production deploy.

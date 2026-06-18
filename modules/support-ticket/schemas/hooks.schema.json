@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Support Ticket Hooks",
+  "type": "object",
+  "properties": {
+    "beforeTicketCreate": { "type": "string" },
+    "afterTicketUpdated": { "type": "string" }
+  },
+  "additionalProperties": false
+}

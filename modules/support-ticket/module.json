@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "support-ticket",
+  "name": "Support Ticket",
+  "version": "0.1.0",
+  "status": "available",
+  "class": "core",
+  "summary": "Tenant-scoped support tickets with subject/description, an open->pending->resolved->closed status lifecycle, priority, assignment, and lifecycle events.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    { "type": "d1", "binding": "DB", "tables": ["support_tickets", "domain_events"] }
+  ],
+  "permissions": ["support.read", "support.manage"],
+  "connections": {
+    "requires": [],
+    "optional": ["auth", "audit-log", "email", "customer"],
+    "rpc": {
+      "exposes": [
+        { "method": "createTicket", "scope": "support.manage", "public": false },
+        { "method": "getTicket", "scope": "support.read", "public": false },
+        { "method": "listTickets", "scope": "support.read", "public": false },
+        { "method": "updateTicket", "scope": "support.manage", "public": false }
+      ],
+      "calls": []
+    },
+    "events": {
+      "emits": ["support-ticket.created", "support-ticket.updated", "support-ticket.status_changed"],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeTicketCreate": { "kind": "filter", "scope": "support.manage" },
+      "afterTicketUpdated": { "kind": "observer", "scope": "support.read" }
+    },
+    "provides": { "hooks": [] }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": ["migrations", "pii-fields", "production-deploy", "external-side-effects"]
+  }
+}

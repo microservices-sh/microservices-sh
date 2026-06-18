@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Support Ticket Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": ["support-ticket.created", "support-ticket.updated", "support-ticket.status_changed"]
+    },
+    "entityType": {
+      "type": "string",
+      "const": "support-ticket"
+    }
+  },
+  "required": ["eventName", "entityType"]
+}

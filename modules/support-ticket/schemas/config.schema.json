@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Support Ticket Module Config",
+  "type": "object",
+  "properties": {
+    "defaultPriority": {
+      "type": "string",
+      "enum": ["low", "normal", "high", "urgent"],
+      "default": "normal"
+    },
+    "defaultListLimit": { "type": "integer", "minimum": 1, "maximum": 500, "default": 100 }
+  },
+  "additionalProperties": false
+}
