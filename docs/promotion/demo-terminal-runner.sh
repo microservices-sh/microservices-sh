@@ -17,6 +17,7 @@ Usage:
   bash docs/promotion/demo-terminal-runner.sh prep
   bash docs/promotion/demo-terminal-runner.sh serve
   bash docs/promotion/demo-terminal-runner.sh checks
+  bash docs/promotion/demo-terminal-runner.sh approval-gate
   bash docs/promotion/demo-terminal-runner.sh mcp-config
   bash docs/promotion/demo-terminal-runner.sh cues
 
@@ -79,9 +80,18 @@ checks() {
   echo
   echo '$ pnpm microservices check --json'
   pnpm microservices check --json
+}
+
+approval_gate() {
+  ensure_app
+  cd "$APP_DIR"
+  echo '$ pnpm microservices deploy run --help'
+  set +e
+  pnpm microservices deploy run --help
+  status="$?"
+  set -e
   echo
-  echo '$ pnpm microservices deploy run --plan'
-  pnpm microservices deploy run --plan
+  echo "Approval gate shown. Non-zero exit status ${status} is expected here because deploy actions require explicit confirmation."
 }
 
 mcp_config() {
@@ -115,7 +125,7 @@ cues() {
 25-45s Show generated app, docs/modules/booking.md, and microservices.lock.json.
 45-65s Run modules list, docs booking, and check.
 65-82s Show MCP config and official registry: sh.microservices/mcp.
-82-95s Show deploy plan. Emphasize approval-gated deploys.
+82-95s Show deploy confirmation gate. Emphasize approval-gated deploys.
 EOF
 }
 
@@ -124,6 +134,7 @@ case "${1:-help}" in
   prep) prep ;;
   serve) serve ;;
   checks) checks ;;
+  approval-gate) approval_gate ;;
   mcp-config) mcp_config ;;
   cues) cues ;;
   help|--help|-h) usage ;;

@@ -45,6 +45,7 @@ Use three prepared tabs:
    - show the browser app
 3. **Agent/MCP workflow**
    - run `bash docs/promotion/demo-terminal-runner.sh checks`
+   - run `bash docs/promotion/demo-terminal-runner.sh approval-gate`
    - run `bash docs/promotion/demo-terminal-runner.sh mcp-config`
    - show the official registry link
 
@@ -57,13 +58,14 @@ Use three prepared tabs:
 | Inspect | 25-45s | Show `docs/modules/booking.md` and `microservices.lock.json`. |
 | Check | 45-65s | Run module list/check commands. |
 | MCP | 65-82s | Show MCP config, npm package, and official registry. |
-| Approval gate | 82-95s | Show deploy plan command, emphasize confirmation gates. |
+| Approval gate | 82-95s | Show deploy confirmation gate, emphasize that production actions require confirmation. |
 
 ## Commands During Recording
 
 ```bash
 bash docs/promotion/demo-terminal-runner.sh cues
 bash docs/promotion/demo-terminal-runner.sh checks
+bash docs/promotion/demo-terminal-runner.sh approval-gate
 bash docs/promotion/demo-terminal-runner.sh mcp-config
 ```
 

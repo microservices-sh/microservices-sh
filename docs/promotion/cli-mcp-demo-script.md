@@ -24,7 +24,7 @@ Agents can build screens quickly, but production apps fail at auth, billing, ten
 | 40-55s | Show `docs/modules/booking.md` and `microservices.lock.json` | "The agent gets local module contracts and pinned versions, so it can read the rules before editing." |
 | 55-68s | Run CLI checks | "The CLI gives deterministic checks and plans before anything risky happens." |
 | 68-80s | Show MCP config and official registry link | "The same surface is available through MCP, published as `sh.microservices/mcp` in the official registry." |
-| 80-90s | Show deploy plan command result | "Deploys stay approval-gated. The agent can plan the preview, but production actions still require confirmation." |
+| 80-90s | Show deploy confirmation gate | "Deploys stay approval-gated. The agent can prepare the workflow, but production actions still require confirmation." |
 
 ## Commands To Show
 
@@ -42,7 +42,7 @@ In a second terminal:
 pnpm microservices modules list --json
 pnpm microservices docs booking
 pnpm microservices check --json
-pnpm microservices deploy run --plan
+pnpm microservices deploy run --help
 ```
 
 For MCP:
