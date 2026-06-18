@@ -13,7 +13,7 @@
 // Usage: node scripts/pack-deploy-artifact.mjs <built-app-dir> [--out <dir>] [--template <id>]
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, mkdirSync, writeFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, mkdirSync, writeFileSync, statSync, rmSync, copyFileSync } from "node:fs";
 import { readdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { join, relative, resolve } from "node:path";
@@ -49,7 +49,10 @@ function fail(msg) {
 }
 
 // The build-output trees + deploy config the control plane consumes.
-const INCLUDE_DIRS = [".svelte-kit/cloudflare", ".svelte-kit/output/server", ".svelte-kit/cloudflare-tmp", "migrations"];
+// `.microservices/deploy-bundle` holds the self-contained Wrangler dry-run worker
+// (deps like @sveltejs/kit inlined). The control-plane upload prefers it over the
+// raw `.svelte-kit/output` module graph, which cannot resolve bare node deps.
+const INCLUDE_DIRS = [".microservices/deploy-bundle", ".svelte-kit/cloudflare", ".svelte-kit/output/server", ".svelte-kit/cloudflare-tmp", "migrations"];
 const INCLUDE_FILES = ["wrangler.jsonc", "microservices.config.json", "microservices.template.json", "microservices.lock.json", "package.json"];
 
 function walk(dir, acc) {
@@ -68,6 +71,43 @@ const tpl = existsSync(join(appDir, "microservices.template.json"))
   : {};
 const templateId = options.get("--template") ?? tpl.id ?? "unknown";
 const version = tpl.version ?? "0.0.0";
+
+// Generate the deploy-ready Wrangler dry-run bundle: a self-contained _worker.js
+// with @sveltejs/kit + node deps inlined by esbuild. The control-plane upload
+// (buildRawSvelteKitWorkerBundle) prefers `.microservices/deploy-bundle/_worker.js`
+// over the raw SvelteKit SSR modules, which import bare deps that are absent from
+// the artifact (no node_modules) and fail at upload with "No such module".
+const wranglerBin = join(appDir, "node_modules", ".bin", "wrangler");
+const rawWorker = join(appDir, ".svelte-kit/cloudflare/_worker.js");
+const bundleDir = join(appDir, ".microservices/deploy-bundle");
+if (existsSync(wranglerBin) && existsSync(rawWorker)) {
+  const tmpOut = join(appDir, ".microservices/deploy-bundle-tmp");
+  rmSync(tmpOut, { recursive: true, force: true });
+  rmSync(bundleDir, { recursive: true, force: true });
+  try {
+    execFileSync(wranglerBin, ["deploy", "--dry-run", "--outdir", tmpOut], { cwd: appDir, stdio: "pipe" });
+  } catch (err) {
+    fail(`wrangler dry-run bundle failed: ${err.stderr?.toString() ?? err.message}`);
+  }
+  // Reshape the dry-run outdir into the upload's deploy-bundle layout: the entry
+  // module → _worker.js, any other chunks → modules/*.js. (.map/README dropped.)
+  const produced = readdirSync(tmpOut).filter((f) => f.endsWith(".js"));
+  const mainName = produced.includes("_worker.js") ? "_worker.js" : produced.includes("index.js") ? "index.js" : produced[0];
+  if (!mainName) fail("wrangler dry-run produced no JS module");
+  mkdirSync(join(bundleDir, "modules"), { recursive: true });
+  copyFileSync(join(tmpOut, mainName), join(bundleDir, "_worker.js"));
+  for (const f of produced) {
+    if (f === mainName) continue;
+    copyFileSync(join(tmpOut, f), join(bundleDir, "modules", f));
+  }
+  writeFileSync(
+    join(bundleDir, "metadata.json"),
+    JSON.stringify({ source: "wrangler-dry-run", template: templateId, version, main: "_worker.js", chunks: produced.length - 1 })
+  );
+  rmSync(tmpOut, { recursive: true, force: true });
+} else {
+  console.warn("WARN: wrangler or built _worker.js not found - skipping deploy-bundle (upload will fall back to raw SvelteKit modules)");
+}
 
 // Collect files.
 const files = [];
