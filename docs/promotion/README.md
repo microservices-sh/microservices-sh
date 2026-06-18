@@ -4,6 +4,7 @@ Use these docs when promoting the CLI, MCP package, and official MCP Registry li
 
 - [`cli-mcp-demo-script.md`](./cli-mcp-demo-script.md) - 90-second screen recording script, commands, MCP config, and caption.
 - [`launch-copy.md`](./launch-copy.md) - directory follow-up comment, X/LinkedIn launch posts, founder outreach, and Show HN draft.
+- [`directory-submission-status.md`](./directory-submission-status.md) - directory publish status, open PRs, blockers, and copy-paste submission fields.
 
 Primary proof links:
 
