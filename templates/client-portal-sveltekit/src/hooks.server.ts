@@ -12,7 +12,18 @@ import { createD1AuditEventStore } from "@microservices-sh/audit-log/adapters/d1
 import { createMemoryAuditEventStore } from "@microservices-sh/audit-log/adapters/memory";
 import { createD1SigningKeyStore } from "@microservices-sh/auth/adapters/d1";
 import { createMemorySigningKeyStore } from "@microservices-sh/auth/adapters/memory";
+import {
+  createD1AccountStore,
+  createD1LoginCodeStore,
+  createD1SessionStore,
+  createMemoryAccountStore,
+  createMemoryLoginCodeStore,
+  createMemorySessionStore
+} from "@microservices-sh/identity";
+import { createKvRateLimitStore } from "@microservices-sh/gateway/adapters/kv-rate-limit";
+import { createMemoryRateLimitStore } from "@microservices-sh/gateway/adapters/memory-rate-limit";
 import { seedDemoData } from "$lib/server/demo";
+import { getCurrentUser } from "$lib/server/session";
 import { reportRuntimeError } from "$lib/server/observability";
 
 // Memory fallbacks for local dev without D1/R2. Singletons so seeded demo state
@@ -24,6 +35,10 @@ const memoryMediaStore = createMemoryMediaStore();
 const memoryObjectStorage = createMemoryObjectStorage();
 const memoryAuditStore = createMemoryAuditEventStore();
 const memorySigningKeyStore = createMemorySigningKeyStore();
+const memoryAccountStore = createMemoryAccountStore();
+const memoryLoginCodeStore = createMemoryLoginCodeStore();
+const memorySessionStore = createMemorySessionStore();
+const memoryRateLimitStore = createMemoryRateLimitStore();
 
 const DEFAULT_TENANT_ID = "demo-tenant";
 // Email of the demo customer whose portal a "customer" session views locally.
@@ -44,6 +59,10 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.auditStore = db ? createD1AuditEventStore(db) : memoryAuditStore;
   event.locals.signingKeyStore = db ? createD1SigningKeyStore(db) : memorySigningKeyStore;
   event.locals.claims = null;
+  event.locals.accountStore = db ? createD1AccountStore(db) : memoryAccountStore;
+  event.locals.loginCodeStore = db ? createD1LoginCodeStore(db) : memoryLoginCodeStore;
+  event.locals.sessionStore = db ? createD1SessionStore(db) : memorySessionStore;
+  event.locals.rateLimitStore = env?.RATE_LIMIT_KV ? createKvRateLimitStore(env.RATE_LIMIT_KV) : memoryRateLimitStore;
 
   // Local demo: seed the in-memory stores so the portal renders real,
   // module-produced data without D1/R2. No-op when bindings are present.
@@ -59,7 +78,13 @@ export const handle: Handle = async ({ event, resolve }) => {
     });
   }
 
-  if (dev) {
+  event.locals.user = await getCurrentUser(event.cookies, {
+    accountStore: event.locals.accountStore,
+    sessionStore: event.locals.sessionStore,
+    customerRepository: event.locals.customerRepository
+  });
+
+  if (dev && !event.locals.user) {
     // Local dev ONLY: demo session resolution. Staff side is reachable with
     // ?role=staff (remembered via a cookie) so both portal and admin can be
     // exercised locally without real auth. Guarded by `dev` so this can NEVER
@@ -68,11 +93,14 @@ export const handle: Handle = async ({ event, resolve }) => {
     if (roleParam === "staff" || roleParam === "customer") {
       event.cookies.set("portal_role", roleParam, { path: "/", httpOnly: true, sameSite: "lax" });
     }
-    const role = (event.cookies.get("portal_role") as "staff" | "customer" | undefined) ?? "customer";
+    const role = (roleParam === "staff" || roleParam === "customer" ? roleParam : event.cookies.get("portal_role")) as
+      | "staff"
+      | "customer"
+      | undefined;
 
     if (role === "staff") {
       event.locals.user = { id: "staff-1", email: "staff@example.com", role: "staff", customerId: null };
-    } else {
+    } else if (role === "customer") {
       const customer = await event.locals.customerRepository.findCustomerByEmail(DEMO_CUSTOMER_EMAIL);
       event.locals.user = {
         id: customer?.id ?? "customer-1",
@@ -81,12 +109,6 @@ export const handle: Handle = async ({ event, resolve }) => {
         customerId: customer?.id ?? null
       };
     }
-  } else {
-    // Production: no demo session. Wire real @microservices-sh/auth session
-    // verification here (passwordless email-code → verifyToken) before beta.
-    // Until then /admin and /portal fail closed (see their +layout.server.ts):
-    // no cross-customer or customer PII is served without an authenticated user.
-    event.locals.user = null;
   }
 
   return resolve(event);

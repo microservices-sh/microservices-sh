@@ -1,5 +1,6 @@
 <script lang="ts">
   import "../app.css";
+  import { dev } from "$app/environment";
   import { page } from "$app/stores";
   import { Button, Logo } from "$lib/ui";
 
@@ -46,18 +47,25 @@
       <span>Client Portal</span>
     </a>
     <nav class="nav" aria-label="Primary">
-      {#each links as link}
-        <a
-          href={link.href}
-          aria-current={isActive(link.href, $page.url.pathname) ? "page" : undefined}
-        >
-          {link.label}
-        </a>
-      {/each}
-      {#if data.user?.role === "staff"}
-        <a href="/portal?role=customer">Customer view</a>
+      {#if data.user}
+        {#each links as link}
+          <a
+            href={link.href}
+            aria-current={isActive(link.href, $page.url.pathname) ? "page" : undefined}
+          >
+            {link.label}
+          </a>
+        {/each}
+        {#if dev}
+          {#if data.user.role === "staff"}
+            <a href="/portal?role=customer">Customer view</a>
+          {:else}
+            <a href="/admin?role=staff">Staff view</a>
+          {/if}
+        {/if}
+        <a href="/logout">Log out</a>
       {:else}
-        <a href="/admin?role=staff">Staff view</a>
+        <a href="/login">Sign in</a>
       {/if}
       <Button
         variant="ghost"

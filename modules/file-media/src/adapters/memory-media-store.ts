@@ -36,7 +36,12 @@ export function createMemoryMediaStore(): MediaStore {
     },
     async listFiles(filter) {
       return [...files.values()]
-        .filter((file) => file.tenantId === filter.tenantId && file.status === (filter.status ?? "active"))
+        .filter(
+          (file) =>
+            file.tenantId === filter.tenantId &&
+            file.status === (filter.status ?? "active") &&
+            (filter.ownerId === undefined ? true : file.ownerId === filter.ownerId)
+        )
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         .slice(0, filter.limit ?? 100)
         .map((file) => ({ ...file }));

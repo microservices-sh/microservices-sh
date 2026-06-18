@@ -68,6 +68,7 @@ export async function createUploadTicket(
   const ticket: UploadTicket = {
     id,
     tenantId: hooked.tenantId,
+    ownerId: hooked.ownerId ?? null,
     key,
     contentType: hooked.contentType,
     originalName: hooked.originalName,
@@ -81,8 +82,8 @@ export async function createUploadTicket(
   const event = {
     name: "media.upload_requested",
     correlationId: meta.correlationId,
-    payload: { ticketId: id, tenantId: ticket.tenantId, key, contentType: ticket.contentType }
+    payload: { ticketId: id, tenantId: ticket.tenantId, ownerId: ticket.ownerId, key, contentType: ticket.contentType }
   };
 
-  return ok(201, { ticketId: id, key, maxBytes: ticket.maxBytes, contentType: ticket.contentType, expiresAt: ticket.expiresAt, event }, meta);
+  return ok(201, { ticketId: id, key, ownerId: ticket.ownerId, maxBytes: ticket.maxBytes, contentType: ticket.contentType, expiresAt: ticket.expiresAt, event }, meta);
 }

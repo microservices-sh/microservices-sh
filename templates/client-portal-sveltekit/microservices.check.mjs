@@ -11,8 +11,13 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/portal/files/+page.server.ts",
-    ["@microservices-sh/file-media", "createUploadTicket", "completeUpload"],
-    "Files route uses the file-media module's two-step upload flow."
+    ["@microservices-sh/file-media", "createUploadTicket", "completeUpload", "ownerId: user.customerId"],
+    "Files route uses the file-media module's two-step upload flow scoped by customer ownerId."
+  );
+  assertFileIncludesAll(
+    "src/routes/api/login/+server.ts",
+    ["@microservices-sh/identity", "requestLoginCode", "verifyLoginCode", "@microservices-sh/email", "customerRepository.findCustomerByEmail"],
+    "Login route uses identity/email modules and only issues portal codes to staff or known customer emails."
   );
   assertFileIncludesAll(
     "src/routes/admin/customers/+page.server.ts",

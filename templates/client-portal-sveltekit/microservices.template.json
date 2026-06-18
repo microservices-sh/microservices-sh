@@ -21,24 +21,26 @@
   "modules": {
     "required": [
       "auth",
+      "identity",
+      "email",
+      "gateway",
       "customer",
       "invoice",
       "file-media",
       "audit-log"
     ],
     "optional": [
-      "gateway",
       "payment",
-      "email",
       "admin-shell",
       "webhook-delivery"
     ]
   },
   "slots": {
     "identity": {
-      "activeModule": "auth",
+      "activeModule": "identity",
       "allowedModules": [
-        "auth"
+        "auth",
+        "identity"
       ],
       "approvalRisk": "high"
     },
@@ -78,7 +80,7 @@
       "approvalRisk": "high"
     },
     "messaging": {
-      "activeModule": null,
+      "activeModule": "email",
       "allowedModules": [
         "email"
       ],

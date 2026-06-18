@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({ locals }) => {
       { tenantId: locals.tenantId, customerId: user.customerId },
       { invoiceStore: locals.invoiceStore }
     ),
-    listFiles({ tenantId: locals.tenantId, status: "active" }, { mediaStore: locals.mediaStore })
+    listFiles({ tenantId: locals.tenantId, ownerId: user.customerId, status: "active" }, { mediaStore: locals.mediaStore })
   ]);
 
   const invoices = invoicesResult.ok ? invoicesResult.data.invoices : [];

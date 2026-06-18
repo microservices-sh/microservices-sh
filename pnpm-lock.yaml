@@ -521,9 +521,18 @@ importers:
       '@microservices-sh/customer':
         specifier: workspace:*
         version: link:../../modules/customer
+      '@microservices-sh/email':
+        specifier: workspace:*
+        version: link:../../modules/email
       '@microservices-sh/file-media':
         specifier: workspace:*
         version: link:../../modules/file-media
+      '@microservices-sh/gateway':
+        specifier: workspace:*
+        version: link:../../modules/gateway
+      '@microservices-sh/identity':
+        specifier: workspace:*
+        version: link:../../modules/identity
       '@microservices-sh/invoice':
         specifier: workspace:*
         version: link:../../modules/invoice
@@ -758,6 +767,15 @@ importers:
       '@microservices-sh/billing-subscriptions':
         specifier: workspace:*
         version: link:../../modules/billing-subscriptions
+      '@microservices-sh/email':
+        specifier: workspace:*
+        version: link:../../modules/email
+      '@microservices-sh/gateway':
+        specifier: workspace:*
+        version: link:../../modules/gateway
+      '@microservices-sh/identity':
+        specifier: workspace:*
+        version: link:../../modules/identity
       '@microservices-sh/image-generation':
         specifier: workspace:*
         version: link:../../modules/image-generation

@@ -104,6 +104,7 @@ export async function seedDemoData(deps: DemoDeps): Promise<void> {
     const ticket = await createUploadTicket(
       {
         tenantId: deps.tenantId,
+        ownerId: customer.id,
         originalName: "statement.pdf",
         contentType: "application/pdf",
         declaredBytes: 2048

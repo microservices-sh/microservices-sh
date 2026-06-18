@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const createUploadTicketInputSchema = z.object({
   tenantId: z.string().min(1),
+  ownerId: z.string().min(1).nullable().optional(),
   originalName: z.string().min(1).max(255),
   contentType: z.string().min(1).max(255),
   // Per-upload size ceiling; the module also clamps to the configured maxBytes.
@@ -15,6 +16,7 @@ export const completeUploadInputSchema = z.object({
 
 export const listFilesFilterSchema = z.object({
   tenantId: z.string().min(1),
+  ownerId: z.string().min(1).nullable().optional(),
   status: z.enum(["active", "deleted"]).default("active"),
   limit: z.number().int().positive().max(500).default(100)
 });

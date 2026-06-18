@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { deflateSync } from "node:zlib";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -128,7 +128,7 @@ test("WordPress probe merges EmDash Exporter-only custom post types", async (t) 
     }
     const address = server.address();
     const source = `http://127.0.0.1:${address.port}`;
-    const result = runNode(probeScript, ["--source", source, "--out", "probe.json"], workspace);
+    const result = await runNodeAsync(probeScript, ["--source", source, "--out", "probe.json"], workspace);
     assert.equal(result.status, 0, result.stderr || result.stdout);
 
     const report = await readJson(resolve(workspace, "probe.json"));
@@ -182,6 +182,34 @@ function runNode(script, args, cwd) {
       WP_APP_PASSWORD: "",
       WP_USERNAME: "",
     },
+  });
+}
+
+function runNodeAsync(script, args, cwd) {
+  return new Promise((resolvePromise) => {
+    const child = spawn(process.execPath, [script, ...args], {
+      cwd,
+      env: {
+        ...process.env,
+        WP_APP_PASSWORD: "",
+        WP_USERNAME: "",
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("close", (status, signal) => {
+      resolvePromise({ status, signal, stdout, stderr });
+    });
   });
 }
 

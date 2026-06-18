@@ -40,6 +40,65 @@
       }
     },
     {
+      "id": "identity",
+      "version": "0.1.0",
+      "source": "registry:identity@0.1.0",
+      "checksum": "sha256:preview-identity-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/identity",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["identity.login", "identity.session", "identity.admin", "identity.extend", "identity.observe"],
+        "rpc": [
+          { "method": "requestLoginCode", "scope": "identity.login", "public": false },
+          { "method": "verifyLoginCode", "scope": "identity.login", "public": false },
+          { "method": "readSession", "scope": "identity.session", "public": false },
+          { "method": "destroySession", "scope": "identity.session", "public": false }
+        ],
+        "hooks": ["beforeVerifyCode", "afterSessionCreated"],
+        "events": ["identity.login_code_issued", "identity.login_verified", "identity.session_created", "identity.session_destroyed"],
+        "requires": ["auth"]
+      }
+    },
+    {
+      "id": "email",
+      "version": "0.1.0",
+      "source": "registry:email@0.1.0",
+      "checksum": "sha256:preview-email-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/email",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["email.read", "email.write", "email.admin"],
+        "rpc": [],
+        "hooks": ["beforeEmailSend", "afterEmailQueued", "afterEmailFailed"],
+        "events": ["email.queued", "email.sent", "email.failed"],
+        "requires": []
+      }
+    },
+    {
+      "id": "gateway",
+      "version": "0.1.0",
+      "source": "registry:gateway@0.1.0",
+      "checksum": "sha256:preview-gateway-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/gateway",
+        "bindings": ["DB", "RATE_LIMIT_KV"],
+        "resources": ["D1", "KV"],
+        "permissions": ["gateway.admin"],
+        "rpc": [],
+        "hooks": ["beforeIssueToken", "afterTokenIssued"],
+        "events": ["gateway.token_issued", "gateway.access_denied"],
+        "requires": ["auth"]
+      }
+    },
+    {
       "id": "customer",
       "version": "0.1.0",
       "source": "registry:customer@0.1.0",
@@ -114,7 +173,7 @@
   ],
   "customizations": {
     "config": true,
-    "hooks": ["beforeMintToken", "afterTokenMinted", "beforeCustomerCreate", "afterCustomerUpdated", "beforeInvoiceIssue", "onInvoiceIssued", "onInvoicePaid", "beforeUpload", "allowContentType", "onFileUploaded", "redactAuditPayload"],
+    "hooks": ["beforeMintToken", "afterTokenMinted", "beforeVerifyCode", "afterSessionCreated", "beforeEmailSend", "afterEmailQueued", "afterEmailFailed", "beforeIssueToken", "afterTokenIssued", "beforeCustomerCreate", "afterCustomerUpdated", "beforeInvoiceIssue", "onInvoiceIssued", "onInvoicePaid", "beforeUpload", "allowContentType", "onFileUploaded", "redactAuditPayload"],
     "overlays": [],
     "forks": []
   }

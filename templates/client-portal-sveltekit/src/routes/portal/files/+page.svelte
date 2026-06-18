@@ -16,7 +16,7 @@
       <h1>Your files.</h1>
       <p>
         Upload and review documents. Uploads use the file-media module's two-step flow:
-        a tenant-scoped ticket is reserved, the bytes are stored, then the upload is
+        a customer-scoped ticket is reserved, the bytes are stored, then the upload is
         verified and recorded.
       </p>
       <p><Button href="/portal" variant="ghost">Back to dashboard</Button></p>

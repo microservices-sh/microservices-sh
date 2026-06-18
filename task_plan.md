@@ -242,6 +242,14 @@ Phase 33
 - [x] Validate module checks, template checks, app build, generated-app check, and relevant package tests.
 - **Status:** complete
 
+### Phase 34: Agentic Admin And Visitor Template Review
+- [x] Replace demo-only SaaS starter auth with module-backed identity/email login for admin and owner flows.
+- [x] Replace client portal production-disabled login with module-backed identity/email login.
+- [x] Scope client portal files to the authenticated customer instead of tenant-wide listing.
+- [x] Stabilize the WordPress/EmDash template build under workspace builds.
+- [x] Validate targeted template checks, module checks, full specs, tests, and builds where practical.
+- **Status:** complete
+
 ### Phase 25: Agentic Cloudflare Migration Prompt Orchestrator
 - [x] Add CLI commands that generate a deterministic Cloudflare migration checklist and agent prompt for existing projects.
 - [x] Add report validation and doctor rendering from an external agent-produced `report.json`.

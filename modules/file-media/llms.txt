@@ -16,9 +16,13 @@ Entry points:
 Model:
 - Provider module wrapping R2. Two-step upload: ticket (intent) -> put bytes ->
   complete (verify + record). Object bytes live in R2; D1 holds metadata only.
+- Optional owner scoping: pass `ownerId` when creating an upload ticket, then
+  pass the same `ownerId` to listFiles for customer/user portals.
 
 Correctness invariants (the point of the module — do not remove):
 - Keys are tenant-prefixed via buildObjectKey; reads/deletes are tenant-guarded.
+- Customer/user portals must use ownerId filters; tenant-wide listing is for
+  staff/admin contexts only.
 - Content type is allow-listed and size-capped before an upload is accepted.
 - completeUpload verifies the object exists and fits the size limit before recording.
 - expireStaleTickets removes orphaned objects for tickets never completed.

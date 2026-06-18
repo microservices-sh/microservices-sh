@@ -3,7 +3,7 @@
   "info": {
     "title": "File & Media Module",
     "version": "0.1.0",
-    "description": "Two-step R2 uploads with tenant-scoped keys, validation, and orphan cleanup. Routes are owned by the host app; these are the boundary shapes."
+    "description": "Two-step R2 uploads with tenant-scoped keys, optional owner-scoped listing, validation, and orphan cleanup. Routes are owned by the host app; these are the boundary shapes."
   },
   "paths": {
     "/media/tickets": {
@@ -18,6 +18,7 @@
                 "required": ["tenantId", "originalName", "contentType"],
                 "properties": {
                   "tenantId": { "type": "string" },
+                  "ownerId": { "type": ["string", "null"], "description": "Optional app-level owner id, such as a customer id." },
                   "originalName": { "type": "string" },
                   "contentType": { "type": "string" },
                   "declaredBytes": { "type": "integer", "minimum": 1 }
@@ -61,9 +62,10 @@
     },
     "/media": {
       "get": {
-        "summary": "List a tenant's files",
+        "summary": "List tenant files, optionally filtered by ownerId",
         "parameters": [
           { "name": "tenantId", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "ownerId", "in": "query", "schema": { "type": "string" } },
           { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["active", "deleted"] } },
           { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 500 } }
         ],

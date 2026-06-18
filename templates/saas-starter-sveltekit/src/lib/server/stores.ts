@@ -8,6 +8,17 @@ import { createD1AuditEventStore } from "@microservices-sh/audit-log/adapters/d1
 import { createMemoryAuditEventStore } from "@microservices-sh/audit-log/adapters/memory";
 import { createD1SigningKeyStore } from "@microservices-sh/auth/adapters/d1";
 import { createMemorySigningKeyStore } from "@microservices-sh/auth/adapters/memory";
+import {
+  createD1AccountStore,
+  createD1LoginCodeStore,
+  createD1SessionStore,
+  createMemoryAccountStore,
+  createMemoryLoginCodeStore,
+  createMemorySessionStore,
+  type AccountStore,
+  type LoginCodeStore,
+  type SessionStore
+} from "@microservices-sh/identity";
 import { createPlan } from "@microservices-sh/billing-subscriptions";
 import type { RbacStore } from "@microservices-sh/org-team-rbac/ports";
 import type { BillingStore } from "@microservices-sh/billing-subscriptions/ports";
@@ -22,6 +33,9 @@ const memoryBillingStore = createMemoryBillingStore();
 const memoryTableGateway = createMemoryTableGateway();
 const memoryAuditStore = createMemoryAuditEventStore();
 const memorySigningKeyStore = createMemorySigningKeyStore();
+const memoryAccountStore = createMemoryAccountStore();
+const memoryLoginCodeStore = createMemoryLoginCodeStore();
+const memorySessionStore = createMemorySessionStore();
 
 let plansSeeded = false;
 
@@ -52,6 +66,9 @@ export interface ServerStores {
   tableGateway: TableGateway;
   auditStore: AuditEventStore;
   signingKeyStore: SigningKeyStore;
+  accountStore: AccountStore;
+  loginCodeStore: LoginCodeStore;
+  sessionStore: SessionStore;
 }
 
 // The D1 binding as declared on App.Platform — referenced via the platform type
@@ -68,6 +85,9 @@ export async function resolveStores(db: D1Binding): Promise<ServerStores> {
     billingStore,
     tableGateway: db ? createD1TableGateway(db) : memoryTableGateway,
     auditStore: db ? createD1AuditEventStore(db) : memoryAuditStore,
-    signingKeyStore: db ? createD1SigningKeyStore(db) : memorySigningKeyStore
+    signingKeyStore: db ? createD1SigningKeyStore(db) : memorySigningKeyStore,
+    accountStore: db ? createD1AccountStore(db) : memoryAccountStore,
+    loginCodeStore: db ? createD1LoginCodeStore(db) : memoryLoginCodeStore,
+    sessionStore: db ? createD1SessionStore(db) : memorySessionStore
   };
 }

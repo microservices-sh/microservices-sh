@@ -6,6 +6,8 @@ export type UploadTicketStatus = "pending" | "completed" | "expired";
 export interface UploadTicket {
   id: string;
   tenantId: string;
+  /** Optional app-level owner, such as a customer id for client portals. */
+  ownerId: string | null;
   // Tenant-prefixed object key: `${tenantId}/${id}/${safeName}`.
   key: string;
   contentType: string;
@@ -21,6 +23,8 @@ export type MediaFileStatus = "active" | "deleted";
 export interface MediaFile {
   id: string;
   tenantId: string;
+  /** Optional app-level owner, such as a customer id for client portals. */
+  ownerId: string | null;
   key: string;
   contentType: string;
   bytes: number;
@@ -32,6 +36,7 @@ export interface MediaFile {
 
 export interface MediaFileFilter {
   tenantId: string;
+  ownerId?: string | null;
   status?: MediaFileStatus;
   limit?: number;
 }

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { compose } from "@microservices-sh/connection-contract/composer";
 import { createUploadTicket } from "../src/use-cases/create-upload-ticket";
 import { completeUpload } from "../src/use-cases/complete-upload";
+import { listFiles } from "../src/use-cases/list-files";
 import { createMemoryMediaStore } from "../src/adapters/memory-media-store";
 import { createMemoryObjectStorage } from "../src/adapters/memory-object-storage";
 
@@ -103,5 +104,28 @@ describe("createUploadTicket cross-module hooks + meta", () => {
       expect(r.data.event?.correlationId).toBe("corr-up");
       expect(r.meta.correlationId).toBe("corr-up");
     }
+  });
+
+  it("filters files by ownerId within a tenant", async () => {
+    const d = deps();
+    for (const ownerId of ["customer-a", "customer-b"]) {
+      const ticket = await createUploadTicket({ ...validTicketInput, ownerId }, d);
+      expect(ticket.ok).toBe(true);
+      if (!ticket.ok) continue;
+      d.storage.setSize(ticket.data.key as string, { size: 64, contentType: "image/png" });
+      const completed = await completeUpload({ ticketId: ticket.data.ticketId, tenantId: "tenant-1" }, d);
+      expect(completed.ok).toBe(true);
+    }
+
+    const scoped = await listFiles({ tenantId: "tenant-1", ownerId: "customer-a" }, { mediaStore: d.mediaStore });
+    expect(scoped.ok).toBe(true);
+    if (scoped.ok) {
+      expect(scoped.data.count).toBe(1);
+      expect(scoped.data.files[0].ownerId).toBe("customer-a");
+    }
+
+    const tenantWide = await listFiles({ tenantId: "tenant-1" }, { mediaStore: d.mediaStore });
+    expect(tenantWide.ok).toBe(true);
+    if (tenantWide.ok) expect(tenantWide.data.count).toBe(2);
   });
 });

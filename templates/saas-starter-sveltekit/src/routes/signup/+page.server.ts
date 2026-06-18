@@ -1,8 +1,9 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { createOrganization } from "@microservices-sh/org-team-rbac";
+import { requestLoginCode, verifyLoginCode } from "@microservices-sh/identity";
 import { recordEvent } from "@microservices-sh/audit-log";
-import { writeSession, userIdForEmail, getSessionSecret } from "$lib/server/session";
+import { adminEmailsFor, setSessionCookie } from "$lib/server/session";
 import { rememberOrg } from "$lib/server/org-context";
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -33,7 +34,22 @@ export const actions: Actions = {
       return fail(400, { error: "Enter an organization name.", values });
     }
 
-    const userId = userIdForEmail(email);
+    const codeResult = await requestLoginCode(
+      { email },
+      { accountStore: locals.accountStore, loginCodeStore: locals.loginCodeStore, adminEmails: adminEmailsFor(platform) }
+    );
+    if (!codeResult.ok) {
+      return fail(codeResult.status, { error: codeResult.error?.message ?? "Could not start signup.", values });
+    }
+
+    const verifyResult = await verifyLoginCode(
+      { email, code: codeResult.data.code },
+      { accountStore: locals.accountStore, loginCodeStore: locals.loginCodeStore, sessionStore: locals.sessionStore }
+    );
+    if (!verifyResult.ok) {
+      return fail(verifyResult.status, { error: verifyResult.error?.message ?? "Could not start signup.", values });
+    }
+    const userId = verifyResult.data.user.id;
 
     // The org-team-rbac use case creates the org, seeds owner/admin/member roles,
     // and makes this user the owner — all in one framework-neutral call.
@@ -51,7 +67,7 @@ export const actions: Actions = {
       { auditStore: locals.auditStore }
     );
 
-    await writeSession(cookies, { id: userId, email }, getSessionSecret(platform));
+    setSessionCookie(cookies, verifyResult.data.sessionId);
     rememberOrg(cookies, result.data.id);
 
     throw redirect(303, "/app");

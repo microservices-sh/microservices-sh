@@ -12,6 +12,8 @@ Rules:
    - **Tenant isolation**: build every key with `buildObjectKey` (tenant-prefixed)
      and keep both tenant guards in `deleteFile`/`completeUpload`. Never accept a
      caller-supplied raw key.
+   - **Owner isolation**: client/customer/user portals must write and list with
+     `ownerId`; tenant-wide listFiles is only for staff/admin contexts.
    - **Validation before accept**: keep content-type allow-listing and the size
      ceiling in `createUploadTicket`, and the existence+size check in
      `completeUpload`.

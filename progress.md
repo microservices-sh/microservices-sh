@@ -844,3 +844,60 @@
 | `pnpm --filter @microservices-sh/template-dot-ai-os build:app` | SvelteKit build passes | Passed | Pass |
 | `pnpm --filter create-microservices-app test` | Create CLI tests pass | 15/15 passed | Pass |
 | `git diff --check` | No whitespace errors | Passed with no output | Pass |
+
+## Session: 2026-06-18 (agentic admin and visitor template review)
+### Phase 34 kickoff
+- **Status:** in progress
+- Goal: make ready templates support real agentic/admin management and visitor/customer use where applicable.
+- Initial review findings: SaaS starter login used demo sessions despite ready status; client portal production login was disabled; client portal file listing was tenant-wide; WordPress/EmDash workspace build was flaky in the Cloudflare Vite plugin.
+- Implemented so far: started replacing SaaS starter auth with `identity`, `email`, and gateway rate-limit modules; added login API, email dependencies, identity/email migrations, session helpers, and tests/docs/spec updates.
+
+### Phase 34 update: SaaS starter auth fixed
+- Replaced demo email/session login with identity-owned passwordless email-code login, session reads, logout, signup bootstrap, and admin allowlist handling.
+- Added identity/email module dependencies, migrations, docs, lockfile metadata, and spec assertions.
+- Cleaned stale auth wording in the ads helper.
+
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm --filter @microservices-sh/template-saas-starter-sveltekit check:spec` | Template spec passes | Passed | Pass |
+| `pnpm --filter @microservices-sh/template-saas-starter-sveltekit test` | SaaS starter flow tests pass | 2/2 tests passed | Pass |
+| `pnpm --filter @microservices-sh/template-saas-starter-sveltekit build:app` | SvelteKit build passes | Passed | Pass |
+
+### Phase 34 update: client portal auth and file scoping fixed
+- Replaced the production-disabled client portal login path with identity/email passwordless login.
+- Staff login is constrained to `ADMIN_EMAILS`; customer login codes are issued only for existing customer emails.
+- Added logout, identity/email migrations, gateway rate-limiting, session helpers, and docs/spec assertions.
+- Extended `@microservices-sh/file-media` with optional `ownerId` on tickets/files and list filtering.
+- Updated client portal dashboard/files routes and demo seeding to pass `customerId` as file-media `ownerId`.
+
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm --filter @microservices-sh/file-media build` | File-media TypeScript passes | Passed | Pass |
+| `pnpm --filter @microservices-sh/file-media check:spec` | File-media module spec passes | Passed | Pass |
+| `pnpm exec vitest run modules/file-media/src/file-media.test.ts modules/file-media/tests/connections.test.ts` | File-media tests pass including owner scoping | 17/17 passed | Pass |
+| `pnpm --filter @microservices-sh/template-client-portal-sveltekit check:spec` | Client portal spec passes | Passed | Pass |
+| `pnpm --filter @microservices-sh/template-client-portal-sveltekit build:app` | Client portal SvelteKit build passes | Passed | Pass |
+
+### Phase 34 update: WordPress/EmDash focused checks fixed
+- Set the Astro Cloudflare adapter to `inspectorPort: false` to avoid the Cloudflare Vite plugin probing local network interfaces for a debug inspector during production builds.
+- Fixed a WordPress probe test deadlock by changing the local-server probe case from synchronous child process spawning to async spawning; `spawnSync` blocked the test HTTP server event loop.
+
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm --filter wordpress-emdash-blog-astro check:spec` | Template spec passes | Passed | Pass |
+| `pnpm --filter wordpress-emdash-blog-astro build` | Astro/Cloudflare build passes | Passed | Pass |
+| `pnpm --filter wordpress-emdash-blog-astro test:cli` | Migration CLI tests pass | 4/4 passed | Pass |
+
+### Phase 34 final verification
+- Rebuilt `create-microservices-app` after updating source templates and module bundle lists, so generated SaaS/client-portal apps include identity, email, gateway, and the owner-scoped file-media module.
+- Full spec checks, full Vitest suite, and recursive workspace build now pass.
+- Note: sandboxed recursive build failed once with `listen EPERM 127.0.0.1`; rerunning with local loopback permission passed. This is required by the Astro/Cloudflare build internals.
+
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm --dir packages/create-microservices-app build` | Create package rebuilds bundled templates | Passed | Pass |
+| `pnpm --filter create-microservices-app test` | Create package tests pass | 15/15 passed | Pass |
+| `pnpm spec:check:all` | All module/template specs pass | 30/30 targets passed | Pass |
+| `pnpm test` | Full workspace Vitest suite passes | 71 files / 405 tests passed | Pass |
+| `pnpm -r --workspace-concurrency=1 build` | Recursive workspace build passes | Passed with local loopback permission | Pass |
+| `git diff --check` | No whitespace errors | Passed | Pass |

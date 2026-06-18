@@ -48,6 +48,7 @@ export async function completeUpload(
   const file: MediaFile = {
     id: "file_" + crypto.randomUUID().slice(0, 16),
     tenantId: ticket.tenantId,
+    ownerId: ticket.ownerId,
     key: ticket.key,
     contentType: info.contentType ?? ticket.contentType,
     bytes: info.size,
@@ -66,7 +67,7 @@ export async function completeUpload(
   const event = {
     name: "media.uploaded",
     correlationId: meta.correlationId,
-    payload: { id: file.id, tenantId: file.tenantId, key: file.key, bytes: file.bytes, contentType: file.contentType }
+    payload: { id: file.id, tenantId: file.tenantId, ownerId: file.ownerId, key: file.key, bytes: file.bytes, contentType: file.contentType }
   };
 
   return ok(201, { id: file.id, key: file.key, bytes: file.bytes, contentType: file.contentType, event }, meta);

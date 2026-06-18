@@ -4,11 +4,14 @@ import { listFiles, createUploadTicket, completeUpload } from "@microservices-sh
 
 export const load: PageServerLoad = async ({ locals }) => {
   const user = locals.user;
-  if (!user || user.role !== "customer") {
+  if (!user || user.role !== "customer" || !user.customerId) {
     throw redirect(303, "/login");
   }
 
-  const result = await listFiles({ tenantId: locals.tenantId, status: "active" }, { mediaStore: locals.mediaStore });
+  const result = await listFiles(
+    { tenantId: locals.tenantId, ownerId: user.customerId, status: "active" },
+    { mediaStore: locals.mediaStore }
+  );
   return {
     files: result.ok ? result.data.files : []
   };
@@ -16,13 +19,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
   // Two-step upload, end to end:
-  //   1. createUploadTicket — validate + reserve a tenant-scoped key.
+  //   1. createUploadTicket — validate + reserve a tenant-scoped key tied to the customer ownerId.
   //   2. PUT the bytes to that key, then completeUpload — verify and record.
   // The module owns content-type allowlisting, size limits, and lifecycle; the
   // route only moves bytes and maps results.
   upload: async ({ request, locals }) => {
     const user = locals.user;
-    if (!user || user.role !== "customer") {
+    if (!user || user.role !== "customer" || !user.customerId) {
       return fail(401, { error: "Sign in to upload." });
     }
 
@@ -35,6 +38,7 @@ export const actions: Actions = {
     const ticket = await createUploadTicket(
       {
         tenantId: locals.tenantId,
+        ownerId: user.customerId,
         originalName: file.name,
         contentType: file.type || "application/octet-stream",
         declaredBytes: file.size

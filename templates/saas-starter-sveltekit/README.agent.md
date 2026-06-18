@@ -15,11 +15,14 @@ Safe first actions:
 - SvelteKit routes are adapters. Put domain behavior in module use cases, not routes.
 - Gate every `/app/*` action with `authorize` / `resolvePermissions` from
   `@microservices-sh/org-team-rbac`. Non-members resolve to no permissions.
+- Login and signup sessions are owned by `@microservices-sh/identity`. Do not
+  restore direct signed-cookie sessions or trust an email address without a
+  verified login code.
 - The org id is the billing `subscriberId` — one subscription per organization.
 - `/admin` is platform super-admin scope across all orgs; it is gated by the
   session `isSuperAdmin` flag, not an org role.
 - Do not vendor module internals under `src/lib/server/modules`. Depend on the
   module packages and consume their exported use cases, ports, and adapters.
 
-Do not add payment, email, auth provider, webhook, migration, secret, or
+Do not add payment provider, external auth provider, webhook, migration, secret, or
 production deploy behavior without approval.

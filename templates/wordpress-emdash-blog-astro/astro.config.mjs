@@ -7,7 +7,7 @@ import { d1, r2 } from "@emdash-cms/cloudflare";
 export default defineConfig({
   site: process.env.SITE_URL || process.env.EMDASH_SITE_URL || "http://localhost:4321",
   output: "server",
-  adapter: cloudflare(),
+  adapter: cloudflare({ inspectorPort: false }),
   integrations: [
     react(),
     emdash({

@@ -4,6 +4,8 @@ import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/por
 import type { AuditEventStore } from "@microservices-sh/audit-log/ports";
 import type { SigningKeyStore } from "@microservices-sh/auth/ports";
 import type { TokenClaims } from "@microservices-sh/auth/types";
+import type { AccountStore, LoginCodeStore, SessionStore } from "@microservices-sh/identity";
+import type { RateLimitStore } from "@microservices-sh/gateway";
 
 declare global {
   namespace App {
@@ -18,6 +20,10 @@ declare global {
         MICROSERVICES_TEMPLATE_ID?: string;
         MICROSERVICES_TENANT_ID?: string;
         MICROSERVICES_WORKER_NAME?: string;
+        RATE_LIMIT_KV?: KVNamespace;
+        ADMIN_EMAILS?: string;
+        RESEND_API_KEY?: string;
+        EMAIL_FROM?: string;
       };
     }
 
@@ -32,6 +38,10 @@ declare global {
       auditStore: AuditEventStore;
       signingKeyStore: SigningKeyStore;
       claims: TokenClaims | null;
+      accountStore: AccountStore;
+      loginCodeStore: LoginCodeStore;
+      sessionStore: SessionStore;
+      rateLimitStore: RateLimitStore;
       /**
        * Resolved session principal. `role: "customer"` only sees its own
        * customerId-scoped data; `role: "staff"` sees the admin side.

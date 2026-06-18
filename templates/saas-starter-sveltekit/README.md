@@ -9,6 +9,8 @@ and subscription billing. A super-admin area spans every tenant.
 ## Modules
 
 - auth
+- identity
+- email
 - org-team-rbac
 - billing-subscriptions
 - admin-shell
@@ -19,7 +21,7 @@ and subscription billing. A super-admin area spans every tenant.
 | Route | Purpose |
 |-------|---------|
 | `/` | Marketing landing |
-| `/login`, `/signup` | Demo email session; signup creates a user + first org |
+| `/login`, `/signup` | Passwordless email-code session; signup creates a user + first org |
 | `/app` | Org dashboard (member count, subscription status) + org switcher |
 | `/app/team` | Members list, invitations, role changes (RBAC-gated) |
 | `/app/team/accept` | Accept a single-use, expiring invitation |

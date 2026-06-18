@@ -9,12 +9,15 @@ encapsulates the upload failures AI agents reliably ship:
 1. **Tenant-scoped keys** — every object key is `${tenantId}/${uploadId}/${name}`,
    built through one helper (`buildObjectKey`), so one tenant can never read or
    overwrite another's objects. Listing/delete are tenant-guarded twice.
-2. **Validated upload tickets** — content type is allow-listed and a size ceiling
+2. **Owner-scoped listing** — upload tickets and files can carry `ownerId`
+   (for example a customer id), letting client portals list only the current
+   customer's documents while staff/admin views can still list tenant-wide.
+3. **Validated upload tickets** — content type is allow-listed and a size ceiling
    is enforced *before* an upload is accepted; filenames are sanitized (no path
    traversal, no executable masquerade).
-3. **Completion check, not blind trust** — `completeUpload` verifies the object
+4. **Completion check, not blind trust** — `completeUpload` verifies the object
    actually landed and is within the size limit before recording it.
-4. **Orphan cleanup** — `expireStaleTickets` deletes abandoned objects for tickets
+5. **Orphan cleanup** — `expireStaleTickets` deletes abandoned objects for tickets
    that were never completed, so R2 does not silently accumulate bytes.
 
 ## Upload flow (two steps)
@@ -27,7 +30,7 @@ const storage = createR2ObjectStorage(env.MEDIA_BUCKET);
 
 // 1) reserve a tenant-scoped key + ticket
 const ticket = await createUploadTicket(
-  { tenantId, originalName: "logo.png", contentType: "image/png" },
+  { tenantId, ownerId: customerId, originalName: "logo.png", contentType: "image/png" },
   { mediaStore }
 );
 
@@ -43,6 +46,8 @@ const file = await completeUpload({ ticketId: ticket.data.ticketId, tenantId }, 
 - `deleteFile({ fileId, tenantId }, { mediaStore, storage })` — soft-deletes the
   record and removes the R2 object.
 - `listFiles({ tenantId }, { mediaStore })` — tenant-scoped listing.
+- `listFiles({ tenantId, ownerId: customerId }, { mediaStore })` — customer- or
+  user-scoped listing for portals.
 - Image variants: wire the `onFileUploaded` hook to `enqueueJob` from
   jobs-workflows so resizing/transform runs async (never in the upload handler).
 

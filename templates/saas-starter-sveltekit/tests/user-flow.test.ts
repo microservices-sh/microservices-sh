@@ -2,11 +2,17 @@ import { describe, expect, it } from "vitest";
 import { createMemoryAuditEventStore } from "@microservices-sh/audit-log/adapters/memory";
 import { createPlan, createMemoryBillingStore } from "@microservices-sh/billing-subscriptions";
 import { createMemoryRbacStore } from "@microservices-sh/org-team-rbac/adapters/memory";
+import {
+  createMemoryAccountStore,
+  createMemoryLoginCodeStore,
+  createMemorySessionStore
+} from "@microservices-sh/identity";
+import { createMemoryRateLimitStore } from "@microservices-sh/gateway/adapters/memory-rate-limit";
 import { actions as signupActions } from "../src/routes/signup/+page.server";
 import { load as appLayoutLoad } from "../src/routes/app/+layout.server";
 import { load as appLoad } from "../src/routes/app/+page.server";
 import { actions as billingActions, load as billingLoad } from "../src/routes/app/billing/+page.server";
-import { getSessionSecret, readSession } from "../src/lib/server/session";
+import { getCurrentUser } from "../src/lib/server/session";
 
 class MemoryCookies {
   private values = new Map<string, string>();
@@ -78,13 +84,20 @@ async function seedBillingStore() {
 
 async function createTestContext() {
   const cookies = new MemoryCookies();
-  const platform = { env: { SESSION_SECRET: "template-user-flow-secret" } } as unknown as App.Platform;
+  const accountStore = createMemoryAccountStore();
+  const loginCodeStore = createMemoryLoginCodeStore();
+  const sessionStore = createMemorySessionStore();
+  const platform = { env: {} } as unknown as App.Platform;
   const locals: App.Locals = {
     rbacStore: createMemoryRbacStore(),
     billingStore: await seedBillingStore(),
     auditStore: createMemoryAuditEventStore(),
     tableGateway: {} as App.Locals["tableGateway"],
     signingKeyStore: {} as App.Locals["signingKeyStore"],
+    accountStore,
+    loginCodeStore,
+    sessionStore,
+    rateLimitStore: createMemoryRateLimitStore(),
     user: null
   };
 
@@ -104,7 +117,10 @@ async function signUpOwner(context: Awaited<ReturnType<typeof createTestContext>
     "/app"
   );
 
-  context.locals.user = await readSession(context.cookies as any, getSessionSecret(context.platform));
+  context.locals.user = await getCurrentUser(context.cookies as any, {
+    accountStore: context.locals.accountStore,
+    sessionStore: context.locals.sessionStore
+  });
   expect(context.locals.user).toMatchObject({ email: "owner@example.com", isSuperAdmin: false });
 
   const layout = await appLayoutLoad({ locals: context.locals, cookies: context.cookies } as any);

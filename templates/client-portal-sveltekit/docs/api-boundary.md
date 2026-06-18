@@ -67,9 +67,12 @@ export interface InvoiceStore {
 
 File uploads cross the boundary in two module calls — the route only moves bytes:
 
-1. `createUploadTicket` reserves a tenant-scoped key and validates content type / size.
+1. `createUploadTicket` reserves a tenant-scoped key, carries the session
+   `customerId` as `ownerId`, and validates content type / size.
 2. The route PUTs the bytes to the ticket key, then `completeUpload` verifies the
    object landed and records a `MediaFile`.
+3. Customer portal loads call `listFiles({ tenantId, ownerId: customerId })`;
+   tenant-wide listing is reserved for staff/admin contexts.
 
 The same use cases should be callable from SvelteKit, Hono, MCP tools, tests, and
 future background jobs.

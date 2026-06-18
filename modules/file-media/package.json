@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Prebuilt microservices.sh file-media module: R2-backed uploads with tenant-scoped keys, validated upload tickets, orphan cleanup, and soft-deletes.",
+  "description": "Prebuilt microservices.sh file-media module: R2-backed uploads with tenant-scoped keys, optional owner-scoped listing, validated upload tickets, orphan cleanup, and soft-deletes.",
   "exports": {
     ".": "./src/index.ts",
     "./types": "./src/types.ts",

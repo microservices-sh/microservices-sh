@@ -143,3 +143,9 @@
 - The next durable slice should be an `operator-work` module because tasks, focus blocks, and daily reviews are the core context that AI agents need before calendar, knowledge ingestion, or publishing integrations are useful.
 - Agentic write access should be exposed through explicit module use cases, not direct table/file edits. Every write should accept an `actorId`/`source` and be auditable by the template.
 - External side effects remain out of scope for this slice: no Google Calendar write-back, AI provider calls, Obsidian export, or CMS/social publishing without a later approval module.
+
+## Agentic Admin And Visitor Template Findings
+- `saas-starter-sveltekit` was marked ready while still using direct demo sessions in `/login`; production readiness requires identity-owned sessions and passwordless email-code verification.
+- `client-portal-sveltekit` must support real visitor/customer login in production; a fail-closed production login is safer than demo auth but does not satisfy the agentic visitor-use requirement.
+- Client portal file visibility must be customer-scoped, not tenant-wide. The cleanest module-level fix is to make file/media records optionally owner-scoped so portals can filter by authenticated customer without template-local string filtering.
+- The WordPress/EmDash template build instability appears tied to the Cloudflare Vite plugin attempting local network-interface inspection during workspace builds; the fix should avoid fake success and preserve Cloudflare adapter behavior.

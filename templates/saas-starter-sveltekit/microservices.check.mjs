@@ -6,8 +6,13 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/signup/+page.server.ts",
-    ["@microservices-sh/org-team-rbac", "createOrganization"],
-    "Signup route stays a thin adapter over org-team-rbac createOrganization."
+    ["@microservices-sh/org-team-rbac", "createOrganization", "@microservices-sh/identity", "verifyLoginCode"],
+    "Signup route stays a thin adapter over org-team-rbac and identity use cases."
+  );
+  assertFileIncludesAll(
+    "src/routes/api/login/+server.ts",
+    ["@microservices-sh/identity", "requestLoginCode", "verifyLoginCode", "@microservices-sh/email"],
+    "Login route uses identity login-code use cases and email delivery."
   );
   assertFileIncludesAll(
     "src/routes/app/team/+page.server.ts",

@@ -12,8 +12,8 @@ import type { BillingStore } from "@microservices-sh/billing-subscriptions/ports
 import { mintToken, getJwks, rotateSigningKey } from "@microservices-sh/auth";
 import type { SigningKeyStore } from "@microservices-sh/auth/ports";
 
-// Ensure the app has a signing key (the demo session flow never mints one, so the
-// store can be empty). Used by both the JWKS endpoint and entitlement minting.
+// Ensure the app has a signing key. Passwordless identity sessions do not mint
+// JWT keys, so the store can be empty until ads entitlement tokens are needed.
 export async function ensureSigningKey(store: SigningKeyStore): Promise<void> {
   const jwks = await getJwks({ signingKeyStore: store });
   const keys = jwks.ok ? (jwks.data as { keys?: unknown[] }).keys : undefined;

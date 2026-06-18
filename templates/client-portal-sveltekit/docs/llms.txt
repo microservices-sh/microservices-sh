@@ -5,7 +5,7 @@ Purpose: guide agents implementing or customizing the `client-portal-sveltekit` 
 Template ID: client-portal-sveltekit
 Status: ready (local baseline)
 Framework: sveltekit
-Required modules: auth, customer, invoice, file-media, audit-log
+Required modules: auth, identity, email, gateway, customer, invoice, file-media, audit-log
 Check: pnpm check:spec
 
 ## Read First
@@ -32,13 +32,14 @@ src/routes/portal/invoices/+page.server.ts
   -> parse session + call listInvoices (customerId-scoped)
 
 src/routes/portal/files/+page.server.ts
-  -> two-step upload: createUploadTicket -> PUT bytes -> completeUpload
+  -> owner-scoped listFiles + two-step upload: createUploadTicket -> PUT bytes -> completeUpload
 
 modules/invoice/src/use-cases/*.ts        -> billing behavior
 modules/file-media/src/use-cases/*.ts     -> document/file behavior
 modules/customer/src/use-cases/*.ts       -> account behavior
 modules/audit-log/src/use-cases/*.ts      -> activity trail
-modules/auth/...                          -> identity / sessions
+modules/identity/...                      -> login codes / sessions
+modules/email/...                         -> login-code delivery
 ```
 
 Dependencies (repositories/stores) are created in `src/hooks.server.ts` and
@@ -49,7 +50,8 @@ in-memory adapters back local dev and are seeded by `src/lib/server/demo.ts`.
 
 Customer sessions are scoped to their own `customerId`. Portal routes pass
 `customerId` to `listInvoices` and verify ownership before opening a record, so
-existence never leaks across customers. Staff routes are gated on `role === "staff"`.
+existence never leaks across customers. File routes pass `customerId` as
+`ownerId` to file-media. Staff routes are gated on `role === "staff"`.
 
 ## Approval Gates
 
@@ -71,6 +73,7 @@ pnpm microservices local setup
 pnpm dev
 ```
 
-Before beta, replace the demo role cookie in `src/hooks.server.ts` and
-`src/routes/login` with real `@microservices-sh/auth` session verification, and
-add D1/R2 migrations for managed persistence.
+Passwordless login is backed by `@microservices-sh/identity` and
+`@microservices-sh/email`; the dev role cookie remains local-only for demos.
+Before beta, broaden D1/R2 migration coverage for invoice, file-media, customer,
+and audit-log persistence.

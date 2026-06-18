@@ -21,6 +21,8 @@
   "modules": {
     "required": [
       "auth",
+      "identity",
+      "email",
       "org-team-rbac",
       "billing-subscriptions",
       "admin-shell",
@@ -28,7 +30,6 @@
     ],
     "optional": [
       "payment",
-      "email",
       "webhook-delivery",
       "notifications-inapp",
       "image-generation",
@@ -37,9 +38,10 @@
   },
   "slots": {
     "identity": {
-      "activeModule": "auth",
+      "activeModule": "identity",
       "allowedModules": [
-        "auth"
+        "auth",
+        "identity"
       ],
       "approvalRisk": "high"
     },
@@ -79,7 +81,7 @@
       "approvalRisk": "high"
     },
     "messaging": {
-      "activeModule": null,
+      "activeModule": "email",
       "allowedModules": [
         "email"
       ],

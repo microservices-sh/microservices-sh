@@ -9,9 +9,10 @@ side spanning all customers, invoices, and activity.
 
 Billing comes from `@microservices-sh/invoice`, documents from
 `@microservices-sh/file-media`, accounts from `@microservices-sh/customer`,
-identity from `@microservices-sh/auth`, and the activity trail from
-`@microservices-sh/audit-log`. The template owns only SvelteKit routes, UI,
-composition glue, and Cloudflare binding wiring.
+sessions from `@microservices-sh/identity`, login-code delivery from
+`@microservices-sh/email`, and the activity trail from `@microservices-sh/audit-log`.
+The template owns only SvelteKit routes, UI, composition glue, and Cloudflare
+binding wiring.
 
 ## Styling
 
@@ -33,7 +34,7 @@ system — colors, fonts, radius, shadows — lives in one `@theme` block in
 | Route | Audience | Purpose |
 |-------|----------|---------|
 | `/` | public | Landing page |
-| `/login` | public | Sign in (passwordless email-code via auth module; demo role chooser locally) |
+| `/login` | public | Passwordless email-code sign-in via identity + email modules |
 | `/portal` | customer | Dashboard — own invoices + files summary |
 | `/portal/invoices` | customer | Own invoices |
 | `/portal/invoices/[id]` | customer | Invoice detail with line items |
@@ -42,9 +43,10 @@ system — colors, fonts, radius, shadows — lives in one `@theme` block in
 | `/admin/invoices` | staff | All invoices |
 | `/admin/customers` | staff | All customers with billing rollups |
 
-Customer sessions are scoped to their own `customerId`; staff routes require
-`role === "staff"`. Switch between views locally with the nav links (`?role=staff`
-/ `?role=customer`) or the `/login` form.
+Customer sessions are scoped to their own `customerId`; file reads and uploads
+pass that id as `ownerId` to `@microservices-sh/file-media`. Staff routes require
+`role === "staff"` from `ADMIN_EMAILS`. Local dev can still use explicit
+`?role=staff` / `?role=customer` links for demo data.
 
 ## Data Wiring
 
@@ -67,11 +69,9 @@ pnpm dev
 
 ## Pending Before Beta
 
-1. Replace the demo role cookie with real `@microservices-sh/auth` session verification.
-2. Add D1/R2 migrations for managed persistence (invoice, file-media, customer, audit-log, auth tables).
-3. Scope documents per-customer (file-media is currently tenant-scoped).
-4. Browser screenshot checks for desktop and mobile.
-5. Add payment/email provider modules behind approval gates.
+1. Add broader D1/R2 migration coverage for invoice, file-media, customer, and audit-log tables.
+2. Browser screenshot checks for desktop and mobile.
+3. Add payment provider modules behind approval gates.
 
 ## Managed Preview Deployment
 

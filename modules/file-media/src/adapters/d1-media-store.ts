@@ -5,6 +5,7 @@ function rowToTicket(row: Record<string, unknown>): UploadTicket {
   return {
     id: String(row.id),
     tenantId: String(row.tenant_id),
+    ownerId: row.owner_id == null ? null : String(row.owner_id),
     key: String(row.key),
     contentType: String(row.content_type),
     originalName: String(row.original_name),
@@ -19,6 +20,7 @@ function rowToFile(row: Record<string, unknown>): MediaFile {
   return {
     id: String(row.id),
     tenantId: String(row.tenant_id),
+    ownerId: row.owner_id == null ? null : String(row.owner_id),
     key: String(row.key),
     contentType: String(row.content_type),
     bytes: Number(row.bytes ?? 0),
@@ -29,17 +31,18 @@ function rowToFile(row: Record<string, unknown>): MediaFile {
   };
 }
 
-const TICKET_COLS = "id, tenant_id, key, content_type, original_name, max_bytes, status, expires_at, created_at";
-const FILE_COLS = "id, tenant_id, key, content_type, bytes, original_name, status, created_at, updated_at";
+const TICKET_COLS = "id, tenant_id, owner_id, key, content_type, original_name, max_bytes, status, expires_at, created_at";
+const FILE_COLS = "id, tenant_id, owner_id, key, content_type, bytes, original_name, status, created_at, updated_at";
 
 export function createD1MediaStore(db: D1Database): MediaStore {
   return {
     async insertTicket(ticket) {
       await db
-        .prepare(`INSERT INTO upload_tickets (${TICKET_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .prepare(`INSERT INTO upload_tickets (${TICKET_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .bind(
           ticket.id,
           ticket.tenantId,
+          ticket.ownerId,
           ticket.key,
           ticket.contentType,
           ticket.originalName,
@@ -75,10 +78,11 @@ export function createD1MediaStore(db: D1Database): MediaStore {
 
     async insertFile(file) {
       await db
-        .prepare(`INSERT INTO media_files (${FILE_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .prepare(`INSERT INTO media_files (${FILE_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .bind(
           file.id,
           file.tenantId,
+          file.ownerId,
           file.key,
           file.contentType,
           file.bytes,
@@ -103,11 +107,22 @@ export function createD1MediaStore(db: D1Database): MediaStore {
     },
 
     async listFiles(filter) {
+      let sql = `SELECT ${FILE_COLS} FROM media_files WHERE tenant_id = ? AND status = ?`;
+      const values: unknown[] = [filter.tenantId, filter.status ?? "active"];
+      if (filter.ownerId !== undefined) {
+        if (filter.ownerId === null) {
+          sql += " AND owner_id IS NULL";
+        } else {
+          sql += " AND owner_id = ?";
+          values.push(filter.ownerId);
+        }
+      }
+      sql += " ORDER BY created_at DESC LIMIT ?";
+      values.push(filter.limit ?? 100);
+
       const result = await db
-        .prepare(
-          `SELECT ${FILE_COLS} FROM media_files WHERE tenant_id = ? AND status = ? ORDER BY created_at DESC LIMIT ?`
-        )
-        .bind(filter.tenantId, filter.status ?? "active", filter.limit ?? 100)
+        .prepare(sql)
+        .bind(...values)
         .all<Record<string, unknown>>();
       return (result.results ?? []).map(rowToFile);
     }
