@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { Badge, Button, Eyebrow } from "$lib/ui";
-  import { focusBlocks, openTasks } from "$lib/os-data";
+  import { Alert, Badge, Button, Eyebrow, Field } from "$lib/ui";
+
+  let { data, form } = $props();
 </script>
 
 <svelte:head>
@@ -18,10 +19,16 @@
       </p>
     </div>
     <div class="focus-actions">
-      <Button variant="primary">AI draft plan</Button>
-      <Button>Sync Google</Button>
+      <form method="POST" action="?/draft">
+        <Button type="submit" variant="primary">AI draft plan</Button>
+      </form>
+      <Button disabled>Sync Google</Button>
     </div>
   </div>
+
+  {#if form?.error}
+    <Alert>{form.error}</Alert>
+  {/if}
 
   <div class="focus-grid">
     <section class="panel queue-panel">
@@ -30,16 +37,24 @@
           <Eyebrow>Task queue</Eyebrow>
           <h2>Pull into timeline</h2>
         </div>
-        <Badge tone="warn">{openTasks.length} open</Badge>
+        <Badge tone="warn">{data.openTasks.length} open</Badge>
       </div>
       <ul class="task-queue" role="list">
-        {#each openTasks as task}
+        {#each data.openTasks as task}
           <li>
             <div>
               <strong>{task.title}</strong>
-              <span>{task.category} · {task.due}</span>
+              <span>{task.category} · {task.dueLabel}</span>
             </div>
             <Badge tone={task.priority === "High" ? "warn" : "neutral"}>{task.priority}</Badge>
+          </li>
+        {:else}
+          <li>
+            <div>
+              <strong>No open tasks</strong>
+              <span>The timeline can still hold manual blocks.</span>
+            </div>
+            <Badge tone="neutral">clear</Badge>
           </li>
         {/each}
       </ul>
@@ -54,18 +69,61 @@
         <Badge tone="info">calendar-google optional</Badge>
       </div>
       <ol class="block-stack" aria-label="Editable focus blocks">
-        {#each focusBlocks as block}
+        {#each data.focusBlocks as block}
           <li>
-            <time>{block.time}</time>
+            <time>{block.timeRange}</time>
             <div>
               <strong>{block.title}</strong>
               <span>{block.note}</span>
             </div>
             <Badge tone={block.source === "ai-draft" ? "info" : "neutral"}>{block.energy}</Badge>
           </li>
+        {:else}
+          <li>
+            <time>{data.date}</time>
+            <div>
+              <strong>No blocks yet</strong>
+              <span>Draft a plan or add one manually.</span>
+            </div>
+            <Badge tone="neutral">empty</Badge>
+          </li>
         {/each}
       </ol>
     </section>
+
+    <form class="panel block-form" method="POST" action="?/createBlock">
+      <div class="section-head">
+        <div>
+          <Eyebrow>Manual block</Eyebrow>
+          <h2>Add to timeline</h2>
+        </div>
+        <Badge tone="neutral">{data.date}</Badge>
+      </div>
+      <input type="hidden" name="date" value={data.date} />
+      <div class="block-form-grid">
+        <Field label="Time" id="block-time">
+          <input id="block-time" name="timeRange" required maxlength="80" autocomplete="off" placeholder="13:00-14:00" />
+        </Field>
+        <Field label="Energy" id="block-energy">
+          <select id="block-energy" name="energy">
+            <option>Deep</option>
+            <option>Review</option>
+            <option>Comms</option>
+            <option>Admin</option>
+            <option>Close</option>
+          </select>
+        </Field>
+      </div>
+      <Field label="Title" id="block-title">
+        <input id="block-title" name="title" required maxlength="160" autocomplete="off" />
+      </Field>
+      <Field label="Note" id="block-note">
+        <textarea id="block-note" name="note" rows="3" maxlength="1000"></textarea>
+      </Field>
+      <div class="form-actions">
+        <Button type="submit" variant="primary">Save block</Button>
+      </div>
+    </form>
 
     <section class="panel rule-panel">
       <Eyebrow>Planning rules</Eyebrow>
@@ -88,6 +146,7 @@
   .focus-page,
   .focus-head,
   .focus-grid,
+  .block-form,
   .task-queue,
   .block-stack {
     display: grid;
@@ -105,6 +164,18 @@
   }
   .focus-grid {
     grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.35fr);
+  }
+  .block-form {
+    gap: 14px;
+  }
+  .block-form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(140px, 0.45fr);
+    gap: 14px;
+  }
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
   }
   .rule-panel {
     display: grid;
@@ -180,7 +251,8 @@
   }
   @media (max-width: 900px) {
     .focus-head,
-    .focus-grid {
+    .focus-grid,
+    .block-form-grid {
       grid-template-columns: 1fr;
     }
     .focus-actions {

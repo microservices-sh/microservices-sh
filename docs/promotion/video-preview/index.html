@@ -2536,8 +2536,8 @@
           ]
         },
         {
-          start: 40,
-          end: 55,
+          start: 35,
+          end: 44,
           title: "Inspect contracts",
           short: "Agents read module rules and pinned versions before editing.",
           terminalTitle: "module docs",
@@ -2562,8 +2562,8 @@
           ]
         },
         {
-          start: 55,
-          end: 68,
+          start: 44,
+          end: 52,
           title: "Run checks",
           short: "CLI checks create a deterministic review surface.",
           terminalTitle: "microservices checks",
@@ -2586,8 +2586,8 @@
           ]
         },
         {
-          start: 68,
-          end: 80,
+          start: 52,
+          end: 61,
           title: "Use MCP",
           short: "Expose the same workflow to agent clients through MCP.",
           terminalTitle: "@microservices-sh/mcp",
@@ -2610,8 +2610,8 @@
           ]
         },
         {
-          start: 80,
-          end: 90,
+          start: 61,
+          end: 70,
           title: "Approval-gated deploy",
           short: "Agents can prepare production actions, not silently execute them.",
           terminalTitle: "deploy run",
@@ -3594,6 +3594,7 @@
         railTotal.textContent = formatTime(totalDuration);
       }
 
+      elements.progress.max = totalDuration;
       setTime(0);
       requestAnimationFrame(updateRail);
       window.addEventListener("resize", updateRail);
