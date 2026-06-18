@@ -4,10 +4,9 @@ import { listCustomers } from "@microservices-sh/customer";
 import { listInvoices } from "@microservices-sh/invoice";
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
+  // The /app layout guarantees a signed-in user with an active company org —
+  // it redirects to /login (no session) or /signup (no company) otherwise.
   const { activeOrgId } = await parent();
-  if (!activeOrgId || !locals.user) {
-    return { onboarding: true as const };
-  }
 
   // Company-scoped operational summary. Membership is gated in the /app layout;
   // every list is a thin adapter over a module use case.
@@ -25,7 +24,6 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
   );
 
   return {
-    onboarding: false as const,
     memberCount: members.data.count,
     customerCount: customers.data.customers.length,
     invoiceCount: invoiceList.length,

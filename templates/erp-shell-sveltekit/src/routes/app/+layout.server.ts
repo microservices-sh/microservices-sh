@@ -17,9 +17,10 @@ export const load: LayoutServerLoad = async ({ locals, cookies, platform }) => {
 
   const user = { email: locals.user.email, isSuperAdmin: locals.user.isSuperAdmin };
 
-  if (!org) {
-    return { activeOrgId: null, activeOrg: null, permissions: [] as string[], nav, user };
-  }
+  // No company yet → straight into one-time setup. Sending the user here (rather
+  // than rendering an intermediate "set up your company" card under /app) means
+  // any /app/* URL a not-yet-set-up employee lands on takes them to the wizard.
+  if (!org) throw redirect(303, "/signup");
 
   // Local dev (no D1/R2): seed demo data scoped to this company org so the
   // dashboard is not empty. Idempotent (seedDemoData guards once per session);
