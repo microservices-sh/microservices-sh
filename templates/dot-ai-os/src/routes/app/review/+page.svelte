@@ -1,6 +1,18 @@
 <script lang="ts">
-  import { Badge, Button, Eyebrow } from "$lib/ui";
-  import { completedTasks, reviewPrompts, reviewSignals } from "$lib/os-data";
+  import { Alert, Badge, Button, Eyebrow, Field } from "$lib/ui";
+  import { reviewPrompts } from "$lib/os-data";
+
+  let { data, form } = $props();
+
+  const fallbackShipped = data.completedTasks[0]?.title ?? "Saved work packet";
+  const markdownLines = data.latestReview?.markdown?.split("\n") ?? [
+    "## Shipped",
+    `- ${fallbackShipped}`,
+    "## Open loops",
+    "- Route one content item to AI team.",
+    "## Tomorrow first move",
+    "- Start with the highest-friction task before inbox."
+  ];
 </script>
 
 <svelte:head>
@@ -19,10 +31,14 @@
     </div>
     <div class="review-lock">
       <span>Unlock state</span>
-      <strong>Draft ready</strong>
-      <Button variant="primary" size="sm">Save and unlock</Button>
+      <strong>{data.latestReview ? "Saved today" : "Draft ready"}</strong>
+      <Button href="#daily-review-form" variant="primary" size="sm">Save and unlock</Button>
     </div>
   </div>
+
+  {#if form?.error}
+    <Alert>{form.error}</Alert>
+  {/if}
 
   <div class="review-grid">
     <section class="panel">
@@ -46,18 +62,46 @@
     <section class="panel review-editor-card">
       <div class="section-head">
         <div>
-          <Eyebrow>Markdown output</Eyebrow>
+          <Eyebrow>Daily note</Eyebrow>
           <h2>Obsidian-ready shape</h2>
         </div>
-        <Badge tone="neutral">template-owned D1 later</Badge>
+        <Badge tone="neutral">operator-work D1</Badge>
+      </div>
+      <form id="daily-review-form" class="review-form" method="POST" action="?/save">
+        <input type="hidden" name="date" value={data.date} />
+        <Field label="Shipped" id="review-shipped">
+          <textarea id="review-shipped" name="shipped" rows="4" maxlength="4000">{data.latestReview?.shipped ?? `- ${fallbackShipped}`}</textarea>
+        </Field>
+        <Field label="Open loops" id="review-open-loops">
+          <textarea id="review-open-loops" name="openLoops" rows="4" maxlength="4000">{data.latestReview?.openLoops ?? "- Route one content item to AI team."}</textarea>
+        </Field>
+        <Field label="Agent handoffs" id="review-agent-handoffs">
+          <textarea id="review-agent-handoffs" name="agentHandoffs" rows="3" maxlength="4000">{data.latestReview?.agentHandoffs ?? "- Ask the AI team to prepare the next brief."}</textarea>
+        </Field>
+        <Field label="Tomorrow first move" id="review-first-move">
+          <input
+            id="review-first-move"
+            name="tomorrowFirstMove"
+            required
+            maxlength="1000"
+            autocomplete="off"
+            value={data.latestReview?.tomorrowFirstMove ?? "Start with the highest-friction task before inbox."}
+          />
+        </Field>
+        <div class="form-actions">
+          <Button type="submit" variant="primary">Save review</Button>
+        </div>
+      </form>
+      <div class="section-head preview-head">
+        <div>
+          <Eyebrow>Markdown output</Eyebrow>
+          <h2>Latest saved shape</h2>
+        </div>
       </div>
       <div class="markdown-preview">
-        <p>## Shipped</p>
-        <p>- {completedTasks[0]?.title ?? "Saved work packet"}</p>
-        <p>## Open loops</p>
-        <p>- Route one content item to AI team.</p>
-        <p>## Tomorrow first move</p>
-        <p>- Start with the highest-friction task before inbox.</p>
+        {#each markdownLines as line}
+          <p>{line || " "}</p>
+        {/each}
       </div>
     </section>
 
@@ -65,7 +109,7 @@
       <Eyebrow>Signals</Eyebrow>
       <h2>Review health</h2>
       <div class="signal-grid">
-        {#each reviewSignals as signal}
+        {#each data.reviewSignals as signal}
           <div>
             <span>{signal.label}</span>
             <strong>{signal.value}</strong>
@@ -81,6 +125,7 @@
   .review-page,
   .review-head,
   .review-grid,
+  .review-form,
   .prompt-list,
   .signal-grid {
     display: grid;
@@ -117,6 +162,16 @@
   }
   .review-editor-card {
     grid-row: span 2;
+  }
+  .review-form {
+    gap: 12px;
+  }
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .preview-head {
+    margin-block-start: 4px;
   }
   .prompt-list {
     margin: 0;
