@@ -575,6 +575,9 @@ importers:
       '@microservices-sh/file-media':
         specifier: workspace:*
         version: link:../../modules/file-media
+      '@microservices-sh/gateway':
+        specifier: workspace:*
+        version: link:../../modules/gateway
       '@microservices-sh/identity':
         specifier: workspace:*
         version: link:../../modules/identity

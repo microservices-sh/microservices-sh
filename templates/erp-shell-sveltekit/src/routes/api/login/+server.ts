@@ -16,6 +16,17 @@ export const POST: RequestHandler = async ({ request, platform, locals, cookies 
   const body = (await request.json()) as { action?: string; email?: string; code?: string };
 
   if (body.action === "request") {
+    // Rate-limit code requests per email to blunt brute-force + email bombing.
+    if (body.email) {
+      const identifier = "login:request:" + String(body.email).trim().toLowerCase();
+      const limit = await locals.rateLimitStore.hit(identifier, 5, 600);
+      if (!limit.allowed) {
+        return json(
+          { ok: false, error: { code: "identity.RATE_LIMITED", message: "Too many sign-in attempts. Try again later." } },
+          { status: 429 }
+        );
+      }
+    }
     const res = await requestLoginCode(
       { email: body.email },
       { accountStore: locals.accountStore, loginCodeStore: locals.loginCodeStore, adminEmails: adminEmailsFor(platform) }

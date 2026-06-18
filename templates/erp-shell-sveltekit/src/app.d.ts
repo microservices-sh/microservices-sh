@@ -9,6 +9,7 @@ import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/por
 import type { NotificationStore } from "@microservices-sh/notifications-inapp/ports";
 import type { JobStore } from "@microservices-sh/jobs-workflows/ports";
 import type { AccountStore, LoginCodeStore, SessionStore } from "@microservices-sh/identity";
+import type { RateLimitStore } from "@microservices-sh/gateway/ports";
 
 declare global {
   namespace App {
@@ -17,6 +18,7 @@ declare global {
       env?: {
         DB?: D1Database;
         MEDIA_BUCKET?: R2Bucket;
+        RATE_LIMIT_KV?: KVNamespace;
         MICROSERVICES_DEPLOYMENT_ID?: string;
         MICROSERVICES_OBSERVABILITY_TOKEN?: string;
         MICROSERVICES_OBSERVABILITY_URL?: string;
@@ -43,6 +45,8 @@ declare global {
       accountStore: AccountStore;
       loginCodeStore: LoginCodeStore;
       sessionStore: SessionStore;
+      // Fixed-window rate limiter (KV-backed in prod, memory locally).
+      rateLimitStore: RateLimitStore;
       // The signed-in principal, resolved from the session store each request.
       // isSuperAdmin is derived from the account's isAdmin flag, never the cookie.
       user: { id: string; email: string; isSuperAdmin: boolean } | null;

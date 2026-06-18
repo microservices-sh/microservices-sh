@@ -32,6 +32,7 @@
     "@microservices-sh/customer": "workspace:*",
     "@microservices-sh/email": "workspace:*",
     "@microservices-sh/file-media": "workspace:*",
+    "@microservices-sh/gateway": "workspace:*",
     "@microservices-sh/identity": "workspace:*",
     "@microservices-sh/invoice": "workspace:*",
     "@microservices-sh/jobs-workflows": "workspace:*",
