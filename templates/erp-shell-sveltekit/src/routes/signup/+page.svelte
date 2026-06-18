@@ -202,16 +202,20 @@
   }
 
   /* ── Header — always centered ─────────────────────────────────────────── */
+  /* Flex-column + align-items:center so EVERY child box is centered, not just
+     its text. The global app.css `h1` caps width (max-inline-size:16ch) and has
+     margin-left:0, which left-pins a plain block heading — text-align alone
+     can't fix that, so we center the boxes here and lift the cap below. */
   .setup-head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
     margin-block-end: 26px;
     animation: rise 480ms var(--ease) both;
   }
-  .setup-head :global(.eyebrow) {
-    /* Eyebrow renders a left-default <p>; center it within the centered head. */
-    text-align: center;
-  }
   .setup-head h1 {
+    max-inline-size: none;
     margin: 2px 0 0;
     font-size: clamp(1.7rem, 1.3rem + 1.4vw, 2.05rem);
     font-weight: 600;
