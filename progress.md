@@ -825,3 +825,10 @@
 | Docker listing | Remote server entry validates locally | `go run ./cmd/validate -name microservices-sh` passed in Docker registry checkout | Pass |
 | MCP endpoint | Hosted endpoint is reachable | `https://api.microservices.sh/mcp` returned MCP metadata | Pass |
 | Official registry publish | Registry accepts package | `sh.microservices/mcp@0.1.1` is active and searchable | Pass |
+
+## Session: 2026-06-18 (DOT AI OS agentic operator work)
+### Phase 33 kickoff
+- **Status:** in progress
+- Goal: turn DOT AI OS from a static operator-work UI into an agent-readable, module-owned tasks/focus/review workflow with explicit use cases.
+- Scope decision: implement durable local module boundaries for tasks, focus blocks, and review drafts first; keep provider writes, AI calls, knowledge ingestion, and publishing behind future approval-gated modules.
+- Working-tree note: unrelated dirty changes exist in promotion docs, email/forms-intake/workspace-tools/company/ERP files. Keep this phase isolated to the new module, `dot-ai-os`, and planning metadata unless verification requires otherwise.

@@ -19,6 +19,8 @@ import { createD1NotificationStore } from "@microservices-sh/notifications-inapp
 import { createMemoryNotificationStore } from "@microservices-sh/notifications-inapp/adapters/memory";
 import { createD1JobStore } from "@microservices-sh/jobs-workflows/adapters/d1";
 import { createMemoryJobStore } from "@microservices-sh/jobs-workflows/adapters/memory";
+import { createD1OperatorWorkStore } from "@microservices-sh/operator-work/adapters/d1";
+import { createMemoryOperatorWorkStore } from "@microservices-sh/operator-work/adapters/memory";
 import {
   createD1AccountStore,
   createD1LoginCodeStore,
@@ -41,6 +43,7 @@ import type { InvoiceStore, NumberAllocator } from "@microservices-sh/invoice/po
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
 import type { NotificationStore } from "@microservices-sh/notifications-inapp/ports";
 import type { JobStore } from "@microservices-sh/jobs-workflows/ports";
+import type { OperatorWorkStore } from "@microservices-sh/operator-work/ports";
 
 // Memory singletons for local dev without D1/R2. State persists across requests in
 // a single dev session so the seeded workspace -> employees -> contacts/work packets/files
@@ -57,6 +60,7 @@ const memoryMediaStore = createMemoryMediaStore();
 const memoryObjectStorage = createMemoryObjectStorage();
 const memoryNotificationStore = createMemoryNotificationStore();
 const memoryJobStore = createMemoryJobStore();
+const memoryOperatorWorkStore = createMemoryOperatorWorkStore();
 const memoryAccountStore = createMemoryAccountStore();
 const memoryLoginCodeStore = createMemoryLoginCodeStore();
 const memorySessionStore = createMemorySessionStore();
@@ -74,6 +78,7 @@ export interface ServerStores {
   objectStorage: ObjectStorage;
   notificationStore: NotificationStore;
   jobStore: JobStore;
+  operatorWorkStore: OperatorWorkStore;
   accountStore: AccountStore;
   loginCodeStore: LoginCodeStore;
   sessionStore: SessionStore;
@@ -101,6 +106,7 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     objectStorage: bucket ? createR2ObjectStorage(bucket) : memoryObjectStorage,
     notificationStore: db ? createD1NotificationStore(db) : memoryNotificationStore,
     jobStore: db ? createD1JobStore(db) : memoryJobStore,
+    operatorWorkStore: db ? createD1OperatorWorkStore(db) : memoryOperatorWorkStore,
     accountStore: db ? createD1AccountStore(db) : memoryAccountStore,
     loginCodeStore: db ? createD1LoginCodeStore(db) : memoryLoginCodeStore,
     sessionStore: db ? createD1SessionStore(db) : memorySessionStore
@@ -116,5 +122,6 @@ export const memoryStores = {
   numberAllocator: memoryNumberAllocator,
   mediaStore: memoryMediaStore,
   objectStorage: memoryObjectStorage,
-  auditStore: memoryAuditStore
+  auditStore: memoryAuditStore,
+  operatorWorkStore: memoryOperatorWorkStore
 };

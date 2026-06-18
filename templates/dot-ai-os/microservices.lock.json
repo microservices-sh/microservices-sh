@@ -237,6 +237,49 @@
         "events": ["notification.created", "notification.read"],
         "requires": []
       }
+    },
+    {
+      "id": "operator-work",
+      "version": "0.1.0",
+      "source": "registry:operator-work@0.1.0",
+      "checksum": "sha256:preview-operator-work-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/operator-work",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": [
+          "operator-work.read",
+          "operator-work.write",
+          "operator-work.admin",
+          "operator-work.extend",
+          "operator-work.observe"
+        ],
+        "rpc": [
+          { "method": "getOperatorWorkbench", "scope": "operator-work.read", "public": false },
+          { "method": "listOperatorTasks", "scope": "operator-work.read", "public": false },
+          { "method": "upsertOperatorTask", "scope": "operator-work.write", "public": false },
+          { "method": "updateOperatorTaskStatus", "scope": "operator-work.write", "public": false },
+          { "method": "listFocusBlocks", "scope": "operator-work.read", "public": false },
+          { "method": "upsertFocusBlock", "scope": "operator-work.write", "public": false },
+          { "method": "listDailyReviews", "scope": "operator-work.read", "public": false },
+          { "method": "saveDailyReview", "scope": "operator-work.write", "public": false }
+        ],
+        "hooks": [
+          "beforeOperatorTaskUpsert",
+          "afterOperatorTaskUpdated",
+          "beforeFocusBlockUpsert",
+          "beforeDailyReviewSave"
+        ],
+        "events": [
+          "operator-work.task.upserted",
+          "operator-work.task.status_changed",
+          "operator-work.focus_block.upserted",
+          "operator-work.daily_review.saved"
+        ],
+        "requires": ["org-team-rbac"]
+      }
     }
   ],
   "customizations": {

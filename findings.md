@@ -138,3 +138,8 @@
 - Revamp decision: adapt the upstream product surfaces into a Cloudflare-native microservices.sh template, not a direct Vercel/Supabase/Express/SQLite port. The template keeps durable provider behavior behind modules and explicit approval gates.
 - `templates/dot-ai-os/src/lib/os-data.ts` now owns starter UI contract data only. Production task/content/knowledge persistence should move into a module use case or a documented D1 table before real external ingestion/write-back is enabled.
 - The revamp validation passed template spec checks, SvelteKit app build, create-package build, local generated-app creation, generated-app contract checks, create-package tests, whitespace checks, and CSS guard searches.
+
+## DOT AI OS Agentic Operator Work Findings
+- The next durable slice should be an `operator-work` module because tasks, focus blocks, and daily reviews are the core context that AI agents need before calendar, knowledge ingestion, or publishing integrations are useful.
+- Agentic write access should be exposed through explicit module use cases, not direct table/file edits. Every write should accept an `actorId`/`source` and be auditable by the template.
+- External side effects remain out of scope for this slice: no Google Calendar write-back, AI provider calls, Obsidian export, or CMS/social publishing without a later approval module.

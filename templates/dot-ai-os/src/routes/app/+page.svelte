@@ -1,21 +1,21 @@
 <script lang="ts">
   import { Badge, Button, Eyebrow } from "$lib/ui";
-  import {
-    aiWorkers,
-    contentItems,
-    focusBlocks,
-    highPriorityTasks,
-    knowledgeItems,
-    openTasks,
-    reviewSignals
-  } from "$lib/os-data";
+  import { aiWorkers, contentItems, knowledgeItems } from "$lib/os-data";
 
   let { data } = $props();
 
   const money = (cents: number, currency: string) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
 
+  const focusBlocks = data.operator.focusBlocks;
+  const openTasks = data.operator.tasks.filter((task) => task.status !== "done");
+  const highPriorityTasks = openTasks.filter((task) => task.priority === "High");
   const currentBlock = focusBlocks[0];
+  const reviewSignals = [
+    { label: "Saved reviews", value: String(data.operator.summary.savedReviewCount) },
+    { label: "Open tasks", value: String(data.operator.summary.openTaskCount) },
+    { label: "Agent handoffs", value: data.operator.summary.latestReview?.agentHandoffs ? "Ready" : "0" }
+  ];
 
   function energyTone(energy: string): "good" | "info" | "neutral" {
     if (energy === "Deep") return "good";
@@ -76,8 +76,8 @@
       </div>
       <ol class="timeline-list" aria-label="Today timeline">
         {#each focusBlocks as block}
-          <li class:block-current={block.id === currentBlock.id}>
-            <time>{block.time}</time>
+          <li class:block-current={block.id === currentBlock?.id}>
+            <time>{block.timeRange}</time>
             <div>
               <strong>{block.title}</strong>
               <span>{block.note}</span>
@@ -104,6 +104,14 @@
               <span>{task.detail}</span>
             </div>
             <Badge tone="warn">{task.priority}</Badge>
+          </li>
+        {:else}
+          <li class="list-item work-row">
+            <div>
+              <strong>No high-priority tasks</strong>
+              <span>Add a task or draft the day plan from the focus page.</span>
+            </div>
+            <Badge tone="neutral">clear</Badge>
           </li>
         {/each}
       </ul>

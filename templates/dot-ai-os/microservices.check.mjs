@@ -46,18 +46,28 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/+page.svelte",
-    ["Clear Workbench", "Daily unlock", "Module-backed surfaces", "$lib/os-data"],
+    ["Clear Workbench", "Daily unlock", "Module-backed surfaces"],
     "DOT AI OS workbench route renders the upstream-informed operator dashboard."
   );
   assertFileIncludesAll(
-    "src/routes/app/focus/+page.svelte",
-    ["calendar-google", "jobs-workflows"],
-    "Focus plan page documents optional calendar and job module slots."
+    "src/routes/app/+page.server.ts",
+    ["@microservices-sh/operator-work", "getOperatorWorkbench"],
+    "DOT AI OS workbench loads operator work through the operator-work module."
   );
   assertFileIncludesAll(
-    "src/routes/app/tasks/+page.svelte",
-    ["Task board", "AI intake", "$lib/os-data"],
-    "Tasks page renders the starter task board contract."
+    "src/routes/app/focus/+page.server.ts",
+    ["@microservices-sh/operator-work", "listFocusBlocks", "upsertFocusBlock"],
+    "Focus plan page uses operator-work focus block use cases."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/tasks/+page.server.ts",
+    ["@microservices-sh/operator-work", "listOperatorTasks", "upsertOperatorTask", "updateOperatorTaskStatus"],
+    "Tasks page uses operator-work task use cases."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/review/+page.server.ts",
+    ["@microservices-sh/operator-work", "listDailyReviews", "saveDailyReview"],
+    "Daily review page uses operator-work review use cases."
   );
   assertFileIncludesAll(
     "src/routes/app/calendar/+page.svelte",

@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "operator-work",
+  "name": "Operator Work",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Agent-readable task board, focus plan, daily review, and auditable operator work state for DOT AI OS.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "operator_tasks",
+        "operator_subtasks",
+        "operator_focus_blocks",
+        "operator_daily_reviews",
+        "domain_events"
+      ]
+    }
+  ],
+  "permissions": [
+    "operator-work.read",
+    "operator-work.write",
+    "operator-work.admin",
+    "operator-work.extend",
+    "operator-work.observe"
+  ],
+  "connections": {
+    "requires": ["org-team-rbac"],
+    "optional": ["audit-log", "jobs-workflows", "calendar-google", "email"],
+    "rpc": {
+      "exposes": [
+        { "method": "getOperatorWorkbench", "scope": "operator-work.read", "public": false },
+        { "method": "listOperatorTasks", "scope": "operator-work.read", "public": false },
+        { "method": "upsertOperatorTask", "scope": "operator-work.write", "public": false },
+        { "method": "updateOperatorTaskStatus", "scope": "operator-work.write", "public": false },
+        { "method": "listFocusBlocks", "scope": "operator-work.read", "public": false },
+        { "method": "upsertFocusBlock", "scope": "operator-work.write", "public": false },
+        { "method": "listDailyReviews", "scope": "operator-work.read", "public": false },
+        { "method": "saveDailyReview", "scope": "operator-work.write", "public": false }
+      ],
+      "calls": []
+    },
+    "events": {
+      "emits": [
+        "operator-work.task.upserted",
+        "operator-work.task.status_changed",
+        "operator-work.focus_block.upserted",
+        "operator-work.daily_review.saved"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeOperatorTaskUpsert": { "kind": "filter", "scope": "operator-work.extend" },
+      "afterOperatorTaskUpdated": { "kind": "observer", "scope": "operator-work.observe" },
+      "beforeFocusBlockUpsert": { "kind": "filter", "scope": "operator-work.extend" },
+      "beforeDailyReviewSave": { "kind": "filter", "scope": "operator-work.extend" }
+    },
+    "provides": { "hooks": [] }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": [
+      "migrations",
+      "ai-provider-calls",
+      "calendar-writeback",
+      "customer-communications",
+      "production-deploy",
+      "external-publishing"
+    ]
+  }
+}

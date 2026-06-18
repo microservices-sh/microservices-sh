@@ -17,6 +17,9 @@ import { createUploadTicket, completeUpload } from "@microservices-sh/file-media
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
 import { recordEvent } from "@microservices-sh/audit-log";
 import type { AuditEventStore } from "@microservices-sh/audit-log/ports";
+import { saveDailyReview, upsertFocusBlock, upsertOperatorTask } from "@microservices-sh/operator-work";
+import type { OperatorWorkStore } from "@microservices-sh/operator-work/ports";
+import { focusBlocks, operatorTasks } from "$lib/os-data";
 
 export interface DemoDeps {
   tenantId: string;
@@ -27,6 +30,7 @@ export interface DemoDeps {
   mediaStore: MediaStore;
   objectStorage: ObjectStorage & { setSize?: (key: string, info: { size: number; contentType?: string }) => void };
   auditStore: AuditEventStore;
+  operatorWorkStore: OperatorWorkStore;
 }
 
 let seeded = false;
@@ -137,6 +141,63 @@ export async function seedDemoData(deps: DemoDeps): Promise<void> {
       );
     }
   }
+
+  const today = new Date().toISOString().slice(0, 10);
+  for (const task of operatorTasks) {
+    await upsertOperatorTask(
+      {
+        id: task.id,
+        orgId: deps.tenantId,
+        title: task.title,
+        detail: task.detail,
+        status: task.status,
+        category: task.category,
+        priority: task.priority,
+        dueLabel: task.due,
+        source: task.source,
+        actorId: "system:seed",
+        sourceLabel: "dot-ai-os-seed",
+        subtasks: task.subtasks.map((subtask, index) => ({
+          id: `${task.id}-sub-${index + 1}`,
+          text: subtask.text,
+          done: subtask.done
+        }))
+      },
+      { store: deps.operatorWorkStore }
+    );
+  }
+
+  for (const block of focusBlocks) {
+    await upsertFocusBlock(
+      {
+        id: block.id,
+        orgId: deps.tenantId,
+        date: today,
+        timeRange: block.time,
+        title: block.title,
+        energy: block.energy,
+        note: block.note,
+        source: block.source,
+        actorId: "system:seed",
+        sourceLabel: "dot-ai-os-seed"
+      },
+      { store: deps.operatorWorkStore }
+    );
+  }
+
+  await saveDailyReview(
+    {
+      orgId: deps.tenantId,
+      date: today,
+      shipped: "- Saved work packet\n- Confirmed focus queue",
+      openLoops: "- Route one content item to AI team",
+      agentHandoffs: "- Ask Jimmy IP to draft a founder post angle",
+      tomorrowFirstMove: "Start with the highest-friction task before inbox.",
+      actorId: "system:seed",
+      sourceLabel: "dot-ai-os-seed"
+    },
+    { store: deps.operatorWorkStore }
+  );
 
   // A couple of demo support tickets scoped to the workspace tenant.
   for (const ticket of DEMO_TICKETS) {

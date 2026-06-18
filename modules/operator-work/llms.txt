@@ -1,0 +1,10 @@
+# Operator Work Module
+
+Module ID: operator-work
+Status: draft
+Purpose: agent-readable tasks, focus blocks, daily reviews, and auditable edits.
+Entrypoint: src/index.ts
+Check: pnpm check:spec
+Build: pnpm build
+
+Use this module through its use cases and `OperatorWorkStore` port. Do not let agents write tables directly. Every mutation should include `actorId` and `source`.

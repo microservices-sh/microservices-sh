@@ -34,7 +34,8 @@ export const load: LayoutServerLoad = async ({ locals, cookies, platform }) => {
       numberAllocator: locals.numberAllocator,
       mediaStore: locals.mediaStore,
       objectStorage: locals.objectStorage,
-      auditStore: locals.auditStore
+      auditStore: locals.auditStore,
+      operatorWorkStore: locals.operatorWorkStore
     });
   }
 

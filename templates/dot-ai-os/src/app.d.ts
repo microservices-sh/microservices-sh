@@ -8,6 +8,7 @@ import type { InvoiceStore, NumberAllocator } from "@microservices-sh/invoice/po
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
 import type { NotificationStore } from "@microservices-sh/notifications-inapp/ports";
 import type { JobStore } from "@microservices-sh/jobs-workflows/ports";
+import type { OperatorWorkStore } from "@microservices-sh/operator-work/ports";
 import type { AccountStore, LoginCodeStore, SessionStore } from "@microservices-sh/identity";
 import type { RateLimitStore } from "@microservices-sh/gateway/ports";
 
@@ -40,6 +41,7 @@ declare global {
       objectStorage: ObjectStorage;
       notificationStore: NotificationStore;
       jobStore: JobStore;
+      operatorWorkStore: OperatorWorkStore;
       // Passwordless identity stores (@microservices-sh/identity): accounts,
       // one-time login codes, and server-side sessions.
       accountStore: AccountStore;

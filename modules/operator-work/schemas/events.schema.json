@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Operator Work Events",
+  "type": "string",
+  "enum": [
+    "operator-work.task.upserted",
+    "operator-work.task.status_changed",
+    "operator-work.focus_block.upserted",
+    "operator-work.daily_review.saved"
+  ]
+}

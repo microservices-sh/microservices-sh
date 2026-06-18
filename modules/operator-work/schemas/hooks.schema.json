@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Operator Work Hooks",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "beforeOperatorTaskUpsert": { "type": "string" },
+    "afterOperatorTaskUpdated": { "type": "string" },
+    "beforeFocusBlockUpsert": { "type": "string" },
+    "beforeDailyReviewSave": { "type": "string" }
+  }
+}

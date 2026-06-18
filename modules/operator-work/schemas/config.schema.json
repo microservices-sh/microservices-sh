@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Operator Work Config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "maxTasks": { "type": "integer", "minimum": 1, "default": 100 },
+    "allowAgentDrafts": { "type": "boolean", "default": true },
+    "requireReviewBeforeUnlock": { "type": "boolean", "default": true }
+  }
+}

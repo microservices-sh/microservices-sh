@@ -27,7 +27,8 @@
       "customer",
       "invoice",
       "file-media",
-      "support-ticket"
+      "support-ticket",
+      "operator-work"
     ],
     "optional": [
       "identity",
@@ -116,6 +117,13 @@
         "jobs-workflows"
       ],
       "approvalRisk": "low"
+    },
+    "operatorWork": {
+      "activeModule": "operator-work",
+      "allowedModules": [
+        "operator-work"
+      ],
+      "approvalRisk": "medium"
     },
     "notifications": {
       "activeModule": "notifications-inapp",

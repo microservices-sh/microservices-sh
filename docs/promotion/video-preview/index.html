@@ -1,0 +1,3606 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>microservices.sh demo preview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Martian+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b0d0b;
+        --panel: #111611;
+        --panel-2: #171d18;
+        --paper: #f5f0e4;
+        --paper-soft: #ded6c3;
+        --line: #2c372f;
+        --line-strong: #465248;
+        --green: #62f18a;
+        --green-dim: #15361f;
+        --amber: #ffbd57;
+        --red: #ff6f61;
+        --cyan: #6fd8ff;
+        --text: #f8f7f0;
+        --muted: #aeb7ab;
+        --shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+        --mono: "Martian Mono", "SFMono-Regular", Consolas, monospace;
+        --term: "IBM Plex Mono", "SFMono-Regular", ui-monospace, Consolas, monospace;
+        --display: "Hanken Grotesk", "Aptos", ui-sans-serif, system-ui, sans-serif;
+        font-family:
+          "Hanken Grotesk",
+          "Aptos",
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(rgba(98, 241, 138, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(98, 241, 138, 0.025) 1px, transparent 1px),
+          radial-gradient(circle at 8% -4%, rgba(98, 241, 138, 0.14), transparent 40rem),
+          radial-gradient(circle at 98% 104%, rgba(111, 216, 255, 0.07), transparent 42rem),
+          var(--bg);
+        background-size: 30px 30px, 30px 30px, auto, auto, auto;
+        background-attachment: fixed;
+        color: var(--text);
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        pointer-events: none;
+      }
+
+      /* vignette */
+      body::before {
+        background: radial-gradient(120% 90% at 50% 38%, transparent 55%, rgba(0, 0, 0, 0.42));
+      }
+
+      /* film grain */
+      body::after {
+        opacity: 0.045;
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .shell {
+        width: min(1520px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 24px 0 32px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding-bottom: 18px;
+      }
+
+      .brand {
+        display: grid;
+        gap: 4px;
+      }
+
+      .brand-wrap {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .logo-hex {
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 44px;
+        height: 44px;
+        border: 1px solid var(--line-strong);
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(98, 241, 138, 0.1), rgba(98, 241, 138, 0.015));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 22px -12px rgba(98, 241, 138, 0.5);
+        color: var(--green);
+      }
+
+      .logo-hex svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      .brand__eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        font-weight: 500;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+      }
+
+      .brand__eyebrow::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 8px var(--green);
+        animation: blink 2.4s steps(1) infinite;
+      }
+
+      @keyframes blink {
+        0%, 60% { opacity: 1; }
+        61%, 100% { opacity: 0.25; }
+      }
+
+      h1 {
+        margin: 2px 0 0;
+        font-family: var(--display);
+        font-size: clamp(1.35rem, 2.5vw, 2.6rem);
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        line-height: 1.02;
+      }
+
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .badge {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: rgba(17, 22, 17, 0.6);
+        color: var(--paper-soft);
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.01em;
+        padding: 7px 11px;
+        white-space: nowrap;
+      }
+
+      .badge::before {
+        content: "";
+        width: 5px;
+        height: 5px;
+        border-radius: 1px;
+        background: var(--line-strong);
+      }
+
+      .badge:nth-child(1)::before { background: var(--green); }
+      .badge:nth-child(2)::before { background: var(--cyan); }
+      .badge:nth-child(3)::before { background: var(--amber); }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(320px, 0.38fr);
+        gap: 18px;
+      }
+
+      .stage-wrap,
+      .side {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(23, 29, 24, 0.94), rgba(13, 17, 13, 0.94));
+        box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+      }
+
+      .stage-wrap {
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .stage-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-bottom: 1px solid var(--line);
+        padding: 14px 16px;
+      }
+
+      .scene-title {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .scene-title span {
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        font-weight: 500;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+
+      .scene-title strong {
+        display: block;
+        font-family: var(--display);
+        font-size: 1.06rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .clock {
+        flex: 0 0 auto;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.76rem;
+        letter-spacing: 0.02em;
+      }
+
+      .stage {
+        aspect-ratio: 16 / 9;
+        min-height: 420px;
+        padding: 18px;
+        position: relative;
+      }
+
+      .video-frame {
+        display: grid;
+        grid-template-columns: minmax(0, 1.04fr) minmax(300px, 0.78fr);
+        gap: 16px;
+        height: 100%;
+      }
+
+      .terminal,
+      .browser {
+        min-width: 0;
+        border: 1px solid var(--line-strong);
+        border-radius: 11px;
+        overflow: hidden;
+        background: #090b09;
+        box-shadow: 0 18px 44px -22px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      }
+
+      .terminal {
+        position: relative;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        background:
+          radial-gradient(120% 60% at 0% 0%, rgba(98, 241, 138, 0.05), transparent 60%),
+          #080a08;
+      }
+
+      /* faint scanlines on the terminal for CRT soul */
+      .terminal::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 3px);
+        mix-blend-mode: overlay;
+      }
+
+      .chrome {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 40px;
+        border-bottom: 1px solid var(--line);
+        background: #151b16;
+        padding: 9px 12px;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--red);
+      }
+
+      .dot:nth-child(2) {
+        background: var(--amber);
+      }
+
+      .dot:nth-child(3) {
+        background: var(--green);
+      }
+
+      .chrome-label {
+        min-width: 0;
+        margin-left: 6px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--muted);
+        font-family: var(--term);
+        font-size: 0.76rem;
+      }
+
+      .term-lines {
+        position: relative;
+        z-index: 1;
+        margin: 0;
+        padding: 18px 18px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        color: var(--paper);
+        font-family: var(--term);
+        font-size: clamp(0.8rem, 1.05vw, 0.95rem);
+        line-height: 1.5;
+        white-space: normal;
+        overflow: hidden;
+      }
+
+      .t-line {
+        display: flex;
+        gap: 9px;
+      }
+
+      .t-arrow {
+        flex: 0 0 auto;
+        color: var(--green);
+        font-weight: 600;
+      }
+
+      .t-body {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .t-prog {
+        color: #eafff0;
+        font-weight: 600;
+      }
+
+      .t-args {
+        color: #a4e6bb;
+      }
+
+      .t-out {
+        color: #8b9c89;
+        padding-left: 23px;
+        overflow-wrap: anywhere;
+      }
+
+      .t-warn {
+        align-items: baseline;
+        gap: 8px;
+        padding-left: 23px;
+        color: var(--amber);
+      }
+
+      .t-warn-ic {
+        flex: 0 0 auto;
+        font-size: 0.7em;
+      }
+
+      /* scene 1 full-bleed terminal hero */
+      .video-frame--solo {
+        grid-template-columns: 1fr;
+      }
+
+      .video-frame--solo .browser {
+        display: none;
+      }
+
+      .video-frame--hero .term-lines {
+        font-size: clamp(0.86rem, 1.15vw, 1.05rem);
+        gap: 8px;
+        padding: 22px 24px 16px;
+      }
+
+      /* scene 2: terminal command finishes, browser opens */
+      .is-opening .browser {
+        animation: browserOpen 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+        transform-origin: right center;
+      }
+
+      @keyframes browserOpen {
+        from { opacity: 0; transform: translateX(28px) scale(0.97); }
+        to { opacity: 1; transform: none; }
+      }
+
+      .t-ok {
+        align-items: baseline;
+        gap: 9px;
+        color: var(--paper-soft);
+      }
+
+      .t-ok-ic {
+        flex: 0 0 auto;
+        color: var(--green);
+      }
+
+      .t-note {
+        margin-left: 9px;
+        border-radius: 999px;
+        background: var(--green-dim);
+        color: var(--green);
+        font-size: 0.78em;
+        letter-spacing: 0.02em;
+        padding: 1px 9px;
+      }
+
+      .t-head {
+        margin-top: 9px;
+        color: var(--muted);
+        letter-spacing: 0.03em;
+      }
+
+      .t-risk {
+        align-items: baseline;
+        gap: 11px;
+        padding-left: 2px;
+        color: var(--paper-soft);
+      }
+
+      .t-risk-ic {
+        flex: 0 0 auto;
+        color: var(--amber);
+        font-size: 0.76em;
+      }
+
+      .t-risk-label {
+        flex: 0 0 122px;
+        color: var(--amber);
+      }
+
+      .t-risk-note {
+        color: var(--muted);
+      }
+
+      .t-cursor {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .caret {
+        display: inline-block;
+        width: 8px;
+        height: 1.05em;
+        background: var(--green);
+        box-shadow: 0 0 8px rgba(98, 241, 138, 0.7);
+        animation: caret 1.05s steps(1) infinite;
+      }
+
+      @keyframes caret {
+        50% { opacity: 0; }
+      }
+
+      .caret--inline {
+        width: 7px;
+        height: 1em;
+        margin-left: 1px;
+        vertical-align: -0.12em;
+      }
+
+      .t-reveal {
+        animation: tReveal 0.26s ease both;
+      }
+
+      @keyframes tReveal {
+        from { opacity: 0; transform: translateY(3px); }
+        to { opacity: 1; transform: none; }
+      }
+
+      .terminal-foot {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-family: var(--term);
+        font-size: 0.72rem;
+        padding: 11px 14px;
+      }
+
+      .terminal-foot::before {
+        content: "";
+        flex: 0 0 auto;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 7px var(--green);
+      }
+
+      .browser {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        background: var(--paper);
+        color: #172017;
+      }
+
+      /* browser window bar = address bar */
+      .chrome--browser {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        min-height: 42px;
+        border-bottom: 1px solid #d6cdbb;
+        background: linear-gradient(#f1ebdd, #e6dfce);
+        padding: 8px 11px;
+      }
+
+      .chrome--browser .dots {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .chrome--browser .dot {
+        width: 9px;
+        height: 9px;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+      }
+
+      .addr {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+        border: 1px solid #dad2c1;
+        border-radius: 999px;
+        background: #fcf9f1;
+        padding: 5px 12px;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+      }
+
+      .addr-ic {
+        flex: 0 0 auto;
+        width: 11px;
+        height: 11px;
+        color: #7f8b79;
+      }
+
+      .addr-url {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #495849;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.01em;
+      }
+
+      .surface-tag {
+        flex: 0 0 auto;
+        border: 1px solid #c4bca9;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.5);
+        color: #46563f;
+        font-family: var(--mono);
+        font-size: 0.63rem;
+        font-weight: 400;
+        letter-spacing: 0.02em;
+        padding: 4px 9px;
+        white-space: nowrap;
+      }
+
+      /* ── In-stage surface: real product views ── */
+      .surface {
+        position: relative;
+        min-height: 0;
+        overflow: hidden;
+        background: var(--paper);
+        color: #18211a;
+      }
+
+      .surface > * {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* surfaces populate their content on mount/open */
+      @keyframes surfIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: none; }
+      }
+
+      :where(.srf--tree, .srf--registry, .srf--doc) > * {
+        animation: surfIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(1) { animation-delay: 0.1s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(2) { animation-delay: 0.24s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(3) { animation-delay: 0.38s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(4) { animation-delay: 0.52s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(5) { animation-delay: 0.66s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(6) { animation-delay: 0.8s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(7) { animation-delay: 0.94s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(8) { animation-delay: 1.08s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(9) { animation-delay: 1.22s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(10) { animation-delay: 1.36s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(n + 11) { animation-delay: 1.5s; }
+
+      .srf--shot figcaption {
+        animation: surfIn 0.5s ease 0.2s both;
+      }
+
+      /* shot: real screenshots */
+      .srf--shot {
+        margin: 0;
+        background: #0d120e;
+        box-shadow: inset 0 8px 18px -12px rgba(0, 0, 0, 0.6);
+      }
+
+      .srf--shot img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: top center;
+      }
+
+      .srf--shot::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        background:
+          linear-gradient(transparent 70%, rgba(6, 9, 7, 0.32)),
+          radial-gradient(120% 80% at 50% 0%, transparent 70%, rgba(0, 0, 0, 0.18));
+      }
+
+      .srf--shot figcaption {
+        z-index: 2;
+      }
+
+      .srf--shot figcaption {
+        position: absolute;
+        inset: 12px auto auto 12px;
+        right: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        max-width: calc(100% - 24px);
+        border: 1px solid rgba(245, 240, 228, 0.16);
+        border-radius: 999px;
+        background: rgba(8, 12, 9, 0.74);
+        backdrop-filter: blur(7px);
+        -webkit-backdrop-filter: blur(7px);
+        color: var(--paper);
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.02em;
+        line-height: 1.2;
+        padding: 6px 11px 6px 10px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .srf--shot figcaption::before {
+        content: "";
+        flex: 0 0 auto;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 7px rgba(98, 241, 138, 0.8);
+      }
+
+      /* shared dark "code" surfaces */
+      .srf--tree,
+      .srf--checks,
+      .srf--registry,
+      .srf--deploy {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        background:
+          radial-gradient(130% 55% at 0% 0%, rgba(98, 241, 138, 0.05), transparent 55%),
+          linear-gradient(180deg, #0e140f, #0a0e0b);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+        color: var(--paper);
+        font-size: 0.78rem;
+        line-height: 1.45;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+        padding: 14px 15px 13px;
+      }
+
+      .srf-eyebrow {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      /* tree */
+      .tree-row {
+        display: flex;
+        gap: 8px;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+      }
+
+      .tree-dir {
+        color: var(--paper);
+        font-weight: 500;
+      }
+
+      .tree-sub {
+        color: #8f9c8a;
+        padding-left: 16px;
+      }
+
+      .tree-file {
+        color: var(--cyan);
+        padding-left: 16px;
+      }
+
+      .tree-row.is-on {
+        margin: 1px 0;
+        padding-block: 2px;
+        border-radius: 6px;
+        background: rgba(98, 241, 138, 0.09);
+        box-shadow: inset 2px 0 0 var(--green);
+        color: var(--green);
+      }
+
+      .tree-row .muted {
+        color: #6f7c6b;
+      }
+
+      /* dark module-contract spec card */
+      .srf--doc {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+        padding: 15px 15px 13px;
+        background:
+          radial-gradient(130% 55% at 0% 0%, rgba(98, 241, 138, 0.05), transparent 55%),
+          linear-gradient(180deg, #0e140f, #0a0e0b);
+        color: var(--paper);
+      }
+
+      .dc-head {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .dc-id {
+        font-family: var(--mono);
+        font-size: 1.02rem;
+        font-weight: 600;
+        color: var(--green);
+      }
+
+      .dc-ver {
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        color: var(--paper-soft);
+        padding: 2px 8px;
+      }
+
+      .dc-status {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #8fa08c;
+      }
+
+      .dc-status i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 7px var(--green);
+      }
+
+      .dc-summary {
+        margin: 0;
+        color: #97a193;
+        font-size: 0.8rem;
+        line-height: 1.45;
+      }
+
+      .dc-facets {
+        display: grid;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .dc-row {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        padding: 8px 11px;
+        transition: background 0.3s;
+      }
+
+      .dc-row + .dc-row {
+        border-top: 1px solid rgba(255, 255, 255, 0.04);
+      }
+
+      .dc-k {
+        flex: 0 0 84px;
+        font-family: var(--mono);
+        font-size: 0.64rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #6f7c6b;
+      }
+
+      .dc-v {
+        min-width: 0;
+        font-family: var(--mono);
+        font-size: 0.76rem;
+        color: #cdd5c8;
+      }
+
+      .dc-v b {
+        font-weight: 400;
+        color: var(--cyan);
+        transition: color 0.3s;
+      }
+
+      .dc-row.read {
+        background: rgba(98, 241, 138, 0.07);
+      }
+
+      .dc-row.read .dc-v b {
+        color: var(--green);
+      }
+
+      .dc-gate {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        border: 1px solid rgba(255, 189, 87, 0.32);
+        border-radius: 10px;
+        background: rgba(255, 189, 87, 0.06);
+        padding: 9px 11px;
+        transition: box-shadow 0.3s;
+      }
+
+      .dc-gate-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--amber);
+      }
+
+      .dc-gate-badge::before {
+        content: "▲";
+        font-size: 0.8em;
+      }
+
+      .dc-gate-items {
+        color: #d7cbb0;
+        font-family: var(--mono);
+        font-size: 0.74rem;
+      }
+
+      .dc-gate.read {
+        box-shadow: 0 0 0 1px rgba(255, 189, 87, 0.5), 0 0 16px rgba(255, 189, 87, 0.2);
+      }
+
+      .doc-pin {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: #0a0f0b;
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        padding: 9px 11px;
+        transition: box-shadow 0.3s;
+      }
+
+      .doc-pin.read {
+        box-shadow: 0 0 0 1px rgba(98, 241, 138, 0.45), 0 0 18px rgba(98, 241, 138, 0.28);
+      }
+
+      .doc-scan {
+        position: absolute;
+        left: 8px;
+        right: 8px;
+        border-radius: 8px;
+        background: rgba(98, 241, 138, 0.08);
+        box-shadow: inset 0 0 0 1px rgba(98, 241, 138, 0.4);
+        opacity: 0;
+        pointer-events: none;
+        animation: none;
+        transition: top 0.45s cubic-bezier(0.5, 0, 0.2, 1), height 0.45s cubic-bezier(0.5, 0, 0.2, 1), opacity 0.3s;
+      }
+
+      .doc-scan.on {
+        opacity: 1;
+      }
+
+      /* checks */
+      .chk-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: #aeb7ab;
+      }
+
+      .chk-pass {
+        margin-left: auto;
+        color: #8fa08c;
+        transition: color 0.3s;
+      }
+
+      .chk-pass.ok {
+        color: var(--green);
+      }
+
+      .chk-row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-family: var(--mono);
+        font-size: 0.76rem;
+        color: #687366;
+        transition: color 0.25s;
+      }
+
+      .chk-ic {
+        flex: 0 0 auto;
+        display: inline-grid;
+        place-items: center;
+        width: 13px;
+        height: 13px;
+        color: #566356;
+        font-size: 0.82rem;
+        line-height: 1;
+      }
+
+      .chk-row.pending .chk-ic::before {
+        content: "○";
+      }
+
+      .chk-row.pass .chk-ic::before {
+        content: "✓";
+      }
+
+      .chk-ic.sp {
+        width: 12px;
+        height: 12px;
+        border: 2px solid rgba(255, 189, 87, 0.25);
+        border-top-color: var(--amber);
+        border-radius: 50%;
+        animation: ckspin 0.55s linear infinite;
+      }
+
+      .chk-ic.sp::before {
+        content: "";
+      }
+
+      @keyframes ckspin {
+        to { transform: rotate(360deg); }
+      }
+
+      .chk-row.running {
+        color: #e0e7da;
+      }
+
+      .chk-row.pass {
+        color: #cdd5c8;
+      }
+
+      .chk-row.pass .chk-ic {
+        color: var(--green);
+      }
+
+      .chk-row.pass .st {
+        color: var(--green);
+      }
+
+      .chk-row .id {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .chk-row .st {
+        flex: 0 0 auto;
+        margin-left: auto;
+        color: #5a665a;
+        white-space: nowrap;
+        transition: color 0.25s;
+      }
+
+      .chk-foot {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-top: 3px;
+        border-top: 1px solid var(--line);
+        color: var(--amber);
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        padding-top: 9px;
+      }
+
+      .chk-foot::before {
+        content: "🔒";
+        font-size: 0.85em;
+      }
+
+      /* registry */
+      .reg-top {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+
+      .reg-ns {
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.86rem;
+        font-weight: 500;
+      }
+
+      .reg-ver {
+        margin-left: auto;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        color: var(--paper-soft);
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        padding: 2px 8px;
+      }
+
+      .reg-title {
+        font-family: var(--display);
+        font-size: 1.22rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .srf--registry p {
+        margin: 0;
+        color: #97a193;
+        font-size: 0.79rem;
+        line-height: 1.45;
+      }
+
+      .reg-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.74rem;
+        color: #8f9c8a;
+      }
+
+      .reg-row span {
+        flex: 0 0 52px;
+        font-family: var(--mono);
+        color: #6f7c6b;
+      }
+
+      .reg-row code {
+        color: var(--cyan);
+        font-family: var(--mono);
+        font-size: 0.74rem;
+      }
+
+      .reg-badge {
+        border-radius: 7px;
+        background: var(--green-dim);
+        color: var(--green);
+        font-size: 0.74rem;
+        padding: 8px 10px;
+      }
+
+      .reg-cmd {
+        margin-top: 3px;
+        border-radius: 7px;
+        background: #172017;
+        color: var(--paper);
+        font-family: var(--mono);
+        font-size: 0.74rem;
+        padding: 9px 11px;
+      }
+
+      /* mcp client connection + tools */
+      .srf--mcp {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 15px 15px 13px;
+        background:
+          radial-gradient(130% 55% at 0% 0%, rgba(98, 241, 138, 0.05), transparent 55%),
+          linear-gradient(180deg, #0e140f, #0a0e0b);
+        color: var(--paper);
+        overflow: hidden;
+        overflow-wrap: anywhere;
+      }
+
+      .mcp-top {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .mcp-ns {
+        font-family: var(--mono);
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: var(--green);
+      }
+
+      .mcp-ver {
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        color: var(--paper-soft);
+        padding: 2px 8px;
+      }
+
+      .mcp-status {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        letter-spacing: 0.06em;
+        color: var(--amber);
+        transition: color 0.3s;
+      }
+
+      .mcp-status i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--amber);
+        box-shadow: 0 0 7px var(--amber);
+        animation: mcpBlink 0.9s steps(1) infinite;
+      }
+
+      .mcp-status.live {
+        color: var(--green);
+      }
+
+      .mcp-status.live i {
+        background: var(--green);
+        box-shadow: 0 0 8px var(--green);
+        animation: none;
+      }
+
+      @keyframes mcpBlink {
+        50% { opacity: 0.3; }
+      }
+
+      .mcp-tools {
+        display: grid;
+        gap: 7px;
+      }
+
+      .mcp-tool {
+        display: grid;
+        grid-template-columns: 16px 1fr;
+        column-gap: 10px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: rgba(255, 255, 255, 0.012);
+        padding: 9px 11px;
+        transition: border-color 0.3s, background 0.3s, opacity 0.3s;
+      }
+
+      .mcp-tool .mt-ic {
+        grid-row: span 2;
+        display: inline-grid;
+        place-items: center;
+        width: 16px;
+        height: 16px;
+        color: #566356;
+        font-size: 0.8rem;
+      }
+
+      .mcp-tool b {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: #cdd5c8;
+      }
+
+      .mcp-tool small {
+        grid-column: 2;
+        color: #6f7c6b;
+        font-size: 0.66rem;
+      }
+
+      .mcp-tool.pending {
+        opacity: 0.4;
+      }
+
+      .mcp-tool.on {
+        opacity: 1;
+        border-color: rgba(98, 241, 138, 0.28);
+        background: rgba(98, 241, 138, 0.04);
+      }
+
+      .mcp-tool.on .mt-ic {
+        color: var(--green);
+      }
+
+      .mcp-tool.on b {
+        color: var(--paper);
+      }
+
+      .mcp-foot {
+        margin-top: auto;
+        display: grid;
+        gap: 8px;
+      }
+
+      .mcp-badge {
+        justify-self: start;
+        border-radius: 999px;
+        background: var(--green-dim);
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        padding: 4px 10px;
+      }
+
+      .mcp-cmd {
+        border-radius: 8px;
+        background: #172017;
+        color: var(--paper);
+        font-family: var(--mono);
+        font-size: 0.74rem;
+        padding: 9px 11px;
+      }
+
+      /* deploy */
+      .dep-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: #aeb7ab;
+      }
+
+      .dep-status {
+        margin-left: auto;
+        color: #8fa08c;
+        transition: color 0.3s;
+      }
+
+      .dep-status.wait {
+        color: var(--amber);
+      }
+
+      .dep-step {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 9px 11px;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        color: #687366;
+        transition: color 0.3s, border-color 0.3s, background 0.3s, opacity 0.3s;
+      }
+
+      .dep-step .ic {
+        flex: 0 0 auto;
+        display: inline-grid;
+        place-items: center;
+        width: 14px;
+        height: 14px;
+        font-size: 0.8rem;
+        color: #566356;
+      }
+
+      .dep-step b {
+        font-weight: 500;
+      }
+
+      .dep-step .flag {
+        margin-left: auto;
+        font-size: 0.66rem;
+        color: #6f7c6b;
+      }
+
+      .dep-step.run {
+        color: #e0e7da;
+      }
+
+      .dep-step.run .ic {
+        width: 12px;
+        height: 12px;
+        border: 2px solid rgba(98, 241, 138, 0.25);
+        border-top-color: var(--green);
+        border-radius: 50%;
+        animation: ckspin 0.55s linear infinite;
+      }
+
+      .dep-step.done {
+        color: #cdd5c8;
+        border-color: rgba(98, 241, 138, 0.28);
+      }
+
+      .dep-step.done .ic,
+      .dep-step.done .flag {
+        color: var(--green);
+      }
+
+      .dep-step.locked {
+        opacity: 0.5;
+      }
+
+      .dep-step.awaiting {
+        color: var(--amber);
+        border-color: rgba(255, 189, 87, 0.45);
+        background: rgba(255, 189, 87, 0.07);
+        animation: depPulse 1.6s ease-in-out infinite;
+      }
+
+      .dep-step.awaiting .ic,
+      .dep-step.awaiting .flag {
+        color: var(--amber);
+      }
+
+      @keyframes depPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(255, 189, 87, 0); }
+        50% { box-shadow: 0 0 0 4px rgba(255, 189, 87, 0.12); }
+      }
+
+      .dep-gate {
+        color: var(--amber);
+        font-family: var(--mono);
+        font-size: 0.74rem;
+        text-align: center;
+      }
+
+      .dep-btn {
+        margin-top: 3px;
+        border: 1px solid var(--line-strong);
+        border-radius: 9px;
+        background: #182119;
+        color: var(--paper-soft);
+        cursor: default;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 11px;
+        text-align: center;
+        transition: background 0.3s, color 0.3s, border-color 0.3s;
+      }
+
+      .dep-btn.live {
+        border-color: #74ff98;
+        background: var(--green);
+        color: #0b0d0b;
+        animation: depBtn 1.5s ease-in-out infinite;
+      }
+
+      @keyframes depBtn {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(98, 241, 138, 0.5); }
+        60% { box-shadow: 0 0 0 7px rgba(98, 241, 138, 0); }
+      }
+
+      /* scene 3: live booking flow */
+      .srf--book {
+        display: flex;
+        flex-direction: column;
+        background: linear-gradient(180deg, #ffffff, #f5f1e7);
+        color: #1d2620;
+        font-size: 0.8rem;
+        overflow: hidden;
+      }
+
+      .bk-rail {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        border-bottom: 1px solid #e6dfce;
+        padding: 11px 14px;
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #a3a795;
+      }
+
+      .bk-prog {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .bk-prog i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #d9d2c0;
+        transition: background 0.3s;
+      }
+
+      .bk-prog i.on {
+        background: #1e6930;
+      }
+
+      .bk-now {
+        color: #1e6930;
+        font-weight: 600;
+      }
+
+      .bk-count {
+        margin-left: auto;
+        color: #a3a795;
+        letter-spacing: 0.04em;
+      }
+
+      .bk-days {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .bk-day {
+        display: grid;
+        gap: 1px;
+        justify-items: center;
+        border: 1px solid #e2dac8;
+        border-radius: 10px;
+        background: #fffdf7;
+        color: #2c352c;
+        font: inherit;
+        padding: 9px 0;
+        cursor: default;
+        transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, color 0.2s;
+      }
+
+      .bk-day small {
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #9aa093;
+      }
+
+      .bk-day b {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 1.05rem;
+      }
+
+      .bk-day.bk-picked {
+        border-color: #1e6930;
+        background: #e7f7ea;
+        box-shadow: inset 0 0 0 1px #1e6930;
+        color: #1e6930;
+      }
+
+      .bk-day.bk-picked small {
+        color: #2f7a45;
+      }
+
+      .bk-field {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        border: 1px solid #e2dac8;
+        border-radius: 10px;
+        background: #fffdf7;
+        padding: 11px 12px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+
+      .bk-field small {
+        flex: 0 0 48px;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #9aa093;
+      }
+
+      .bk-val {
+        flex: 1;
+        min-width: 0;
+        min-height: 1.1em;
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        color: #283229;
+        overflow-wrap: anywhere;
+      }
+
+      .bk-field.focus {
+        border-color: #1e6930;
+        box-shadow: inset 0 0 0 1px #1e6930;
+      }
+
+      .bk-body {
+        position: relative;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        padding: 15px 14px;
+      }
+
+      .bk-step {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: 9px;
+        animation: bkFade 0.34s ease both;
+      }
+
+      @keyframes bkFade {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: none; }
+      }
+
+      .bk-h {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 1.04rem;
+        letter-spacing: -0.01em;
+        margin-bottom: 3px;
+      }
+
+      .bk-brand {
+        display: flex;
+        align-items: baseline;
+        gap: 9px;
+        padding: 12px 14px 0;
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 1rem;
+        letter-spacing: -0.015em;
+        color: #1e2a22;
+      }
+
+      .bk-brand .mk {
+        color: #1e6930;
+        font-size: 0.8em;
+      }
+
+      .bk-brand small {
+        font-family: var(--mono);
+        font-weight: 400;
+        font-size: 0.58rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #9aa093;
+      }
+
+      .bk-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border: 1px solid #e2dac8;
+        border-radius: 12px;
+        background: #fffdf7;
+        color: #283229;
+        font: inherit;
+        text-align: left;
+        padding: 9px 11px;
+        cursor: default;
+        transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      }
+
+      .bk-thumb {
+        flex: 0 0 auto;
+        width: 46px;
+        height: 46px;
+        border-radius: 9px;
+        object-fit: cover;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+      }
+
+      .bk-item-main {
+        display: grid;
+        gap: 2px;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .bk-item-main b {
+        font-weight: 700;
+      }
+
+      .bk-item-main small {
+        color: #7a8274;
+        font-family: var(--mono);
+        font-size: 0.65rem;
+      }
+
+      .bk-price {
+        flex: 0 0 auto;
+        font-family: var(--mono);
+        font-size: 0.84rem;
+        font-weight: 600;
+        color: #1e6930;
+      }
+
+      .bk-confirm {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-radius: 12px;
+        background: #f0ead9;
+        padding: 11px;
+      }
+
+      .bk-thumb-lg {
+        flex: 0 0 auto;
+        width: 58px;
+        height: 58px;
+        border-radius: 10px;
+        object-fit: cover;
+      }
+
+      .bk-confirm-main {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .bk-confirm-main b {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 0.98rem;
+      }
+
+      .bk-confirm-main small {
+        color: #6c7567;
+        font-family: var(--mono);
+        font-size: 0.67rem;
+      }
+
+      .bk-item.bk-picked,
+      .bk-slot.bk-picked {
+        border-color: #1e6930;
+        background: #e7f7ea;
+        box-shadow: inset 0 0 0 1px #1e6930;
+      }
+
+      .bk-slots {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .bk-slot {
+        border: 1px solid #e2dac8;
+        border-radius: 10px;
+        background: #fffdf7;
+        color: #2c352c;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        text-align: center;
+        padding: 11px 0;
+        transition: border-color 0.2s, background 0.2s, color 0.2s;
+      }
+
+      .bk-slot.bk-picked {
+        color: #1e6930;
+        font-weight: 600;
+      }
+
+      .bk-sum {
+        border-radius: 11px;
+        background: #efe8d7;
+        padding: 12px 13px;
+        font-size: 0.83rem;
+      }
+
+      .bk-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border: 1px solid #e2dac8;
+        border-radius: 11px;
+        background: #fffdf7;
+        padding: 13px;
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        color: #46514a;
+      }
+
+      .bk-pay {
+        margin-top: auto;
+        border: 0;
+        border-radius: 11px;
+        background: #1e6930;
+        color: #fff;
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 0.96rem;
+        padding: 14px;
+        cursor: default;
+        transition: background 0.2s, transform 0.15s;
+      }
+
+      .bk-pay.bk-picked {
+        background: #18582a;
+        transform: scale(0.98);
+      }
+
+      .bk-done {
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        gap: 11px;
+      }
+
+      .bk-check {
+        display: grid;
+        place-items: center;
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        background: #e7f7ea;
+        color: #1e6930;
+        font-size: 1.7rem;
+        box-shadow: 0 0 0 7px rgba(30, 105, 48, 0.08);
+        animation: bkPop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes bkPop {
+        from { transform: scale(0.4); opacity: 0; }
+        to { transform: none; opacity: 1; }
+      }
+
+      .bk-done-t {
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 1.2rem;
+      }
+
+      .bk-sub {
+        color: #6c7567;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+      }
+
+      .bk-cursor {
+        position: absolute;
+        z-index: 5;
+        width: 20px;
+        height: 20px;
+        margin: -10px 0 0 -10px;
+        border-radius: 50%;
+        border: 2px solid rgba(30, 105, 48, 0.9);
+        background: rgba(30, 105, 48, 0.16);
+        box-shadow: 0 2px 9px rgba(0, 0, 0, 0.22);
+        pointer-events: none;
+        opacity: 0;
+        transition: left 0.55s cubic-bezier(0.5, 0, 0.2, 1), top 0.55s cubic-bezier(0.5, 0, 0.2, 1), opacity 0.3s;
+      }
+
+      .bk-cursor.is-on {
+        opacity: 1;
+      }
+
+      .bk-cursor.click {
+        animation: bkClick 0.36s ease;
+      }
+
+      @keyframes bkClick {
+        40% { transform: scale(0.58); }
+        100% { transform: scale(1); }
+      }
+
+      .voiceover {
+        position: absolute;
+        left: 22px;
+        right: 22px;
+        bottom: 22px;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 15px;
+        align-items: center;
+        border: 1px solid rgba(98, 241, 138, 0.16);
+        border-left: 3px solid var(--green);
+        border-radius: 13px;
+        background: linear-gradient(110deg, rgba(8, 11, 9, 0.94), rgba(11, 15, 12, 0.68));
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 22px 60px -20px rgba(0, 0, 0, 0.85);
+        padding: 13px 18px 13px 16px;
+      }
+
+      .vo-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        align-self: stretch;
+        padding-right: 15px;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        font-weight: 500;
+        letter-spacing: 0.18em;
+      }
+
+      .vo-eq {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 15px;
+      }
+
+      .vo-eq i {
+        width: 3px;
+        border-radius: 2px;
+        background: var(--green);
+        box-shadow: 0 0 6px rgba(98, 241, 138, 0.6);
+        transform-origin: bottom;
+        animation: eq 0.9s ease-in-out infinite;
+      }
+
+      .vo-eq i:nth-child(1) { height: 7px; animation-delay: 0s; }
+      .vo-eq i:nth-child(2) { height: 15px; animation-delay: 0.18s; }
+      .vo-eq i:nth-child(3) { height: 9px; animation-delay: 0.36s; }
+      .vo-eq i:nth-child(4) { height: 12px; animation-delay: 0.1s; }
+
+      @keyframes eq {
+        0%, 100% { transform: scaleY(0.35); }
+        50% { transform: scaleY(1); }
+      }
+
+      .vo-text {
+        margin: 0;
+        color: var(--paper);
+        font-size: clamp(0.9rem, 1.3vw, 1.16rem);
+        font-weight: 500;
+        line-height: 1.4;
+        letter-spacing: -0.005em;
+      }
+
+      .controls {
+        display: grid;
+        gap: 12px;
+        border-top: 1px solid var(--line);
+        padding: 14px 16px 16px;
+      }
+
+      .control-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .button {
+        min-height: 40px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: #182119;
+        color: var(--text);
+        cursor: pointer;
+        padding: 9px 13px;
+      }
+
+      .button:hover,
+      .button:focus-visible {
+        border-color: var(--green);
+      }
+
+      .button--primary {
+        border-color: #74ff98;
+        background: var(--green);
+        color: #0b0d0b;
+        font-weight: 750;
+      }
+
+      .button.is-on {
+        border-color: var(--green);
+        color: var(--green);
+        background: rgba(98, 241, 138, 0.08);
+      }
+
+      progress {
+        width: 100%;
+        height: 12px;
+        border: 0;
+        border-radius: 999px;
+        overflow: hidden;
+        background: #222a23;
+      }
+
+      progress::-webkit-progress-bar {
+        background: #222a23;
+      }
+
+      progress::-webkit-progress-value {
+        background: linear-gradient(90deg, var(--green), #9bffba);
+      }
+
+      progress::-moz-progress-bar {
+        background: linear-gradient(90deg, var(--green), #9bffba);
+      }
+
+      /* ── Right rail: edit-suite timeline ── */
+      .side {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        min-height: 100%;
+        overflow: hidden;
+      }
+
+      .side-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--line);
+        padding: 17px 16px 15px;
+      }
+
+      .side-eyebrow {
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        font-weight: 500;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+      }
+
+      .side-meta {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        font-weight: 300;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+      }
+
+      .side-meta .side-dot {
+        opacity: 0.45;
+        padding: 0 5px;
+      }
+
+      .rail-scroll {
+        max-height: 560px;
+        overflow: auto;
+        padding: 12px 14px 8px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--line-strong) transparent;
+      }
+
+      .rail-scroll::-webkit-scrollbar {
+        width: 7px;
+      }
+
+      .rail-scroll::-webkit-scrollbar-thumb {
+        border: 2px solid transparent;
+        border-radius: 999px;
+        background: var(--line-strong);
+        background-clip: padding-box;
+      }
+
+      .rail {
+        position: relative;
+        display: grid;
+        gap: 1px;
+        margin: 0;
+        padding: 0;
+      }
+
+      .rail-track,
+      .rail-progress {
+        position: absolute;
+        left: 17px;
+        width: 2px;
+        border-radius: 2px;
+        pointer-events: none;
+      }
+
+      .rail-track {
+        background: var(--line);
+      }
+
+      .rail-progress {
+        background: linear-gradient(180deg, var(--green), rgba(98, 241, 138, 0.35));
+        box-shadow: 0 0 9px rgba(98, 241, 138, 0.5);
+        transition: height 0.18s linear, top 0.18s linear;
+      }
+
+      .rail li {
+        list-style: none;
+        animation: railIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes railIn {
+        from {
+          opacity: 0;
+          transform: translateY(7px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      .rail-btn {
+        position: relative;
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 12px;
+        width: 100%;
+        border: 0;
+        border-radius: 11px;
+        background: transparent;
+        color: var(--text);
+        cursor: pointer;
+        padding: 11px 12px 11px 3px;
+        text-align: left;
+        transition: background 0.25s ease, box-shadow 0.25s ease;
+      }
+
+      .rail-btn:hover,
+      .rail-btn:focus-visible {
+        background: rgba(98, 241, 138, 0.06);
+        outline: none;
+      }
+
+      .rail-spine {
+        display: grid;
+        place-items: start center;
+        padding-top: 3px;
+      }
+
+      .rail-node {
+        position: relative;
+        z-index: 2;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        border: 2px solid var(--line-strong);
+        background: var(--bg);
+        transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .rail-body {
+        min-width: 0;
+      }
+
+      .rail-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+
+      .rail-time {
+        font-family: var(--mono);
+        font-size: 0.71rem;
+        font-weight: 400;
+        letter-spacing: 0.02em;
+        color: var(--muted);
+        transition: color 0.25s ease;
+      }
+
+      .rail-dur {
+        position: relative;
+        flex: 1;
+        height: 3px;
+        border-radius: 999px;
+        background: var(--line);
+        overflow: hidden;
+      }
+
+      .rail-dur-fill {
+        position: absolute;
+        inset: 0 100% 0 0;
+        background: linear-gradient(90deg, var(--green), #9bffba);
+        transition: right 0.2s linear;
+      }
+
+      .rail-title {
+        display: block;
+        font-family: var(--display);
+        font-size: 0.94rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        line-height: 1.22;
+        color: var(--paper-soft);
+        transition: color 0.25s ease;
+      }
+
+      .rail-desc {
+        display: block;
+        overflow: hidden;
+        max-height: 0;
+        color: var(--muted);
+        font-size: 0.8rem;
+        line-height: 1.42;
+        opacity: 0;
+        transition: max-height 0.35s ease, opacity 0.3s ease, margin-top 0.35s ease;
+      }
+
+      .rail-btn[data-state="past"] .rail-node {
+        border-color: var(--green);
+        background: var(--green);
+      }
+
+      .rail-btn[data-state="past"] .rail-dur-fill {
+        right: 0;
+      }
+
+      .rail-btn[data-state="past"] .rail-title {
+        color: var(--muted);
+      }
+
+      .rail-btn[data-state="active"] {
+        background: linear-gradient(180deg, rgba(98, 241, 138, 0.1), rgba(98, 241, 138, 0.02));
+        box-shadow: inset 0 0 0 1px rgba(98, 241, 138, 0.28);
+      }
+
+      .rail-btn[data-state="active"] .rail-node {
+        border-color: var(--green);
+        background: var(--green);
+        animation: nodePulse 2.1s ease-out infinite;
+      }
+
+      .rail-btn[data-state="active"] .rail-time {
+        color: var(--green);
+      }
+
+      .rail-btn[data-state="active"] .rail-title {
+        color: var(--text);
+      }
+
+      .rail-btn[data-state="active"] .rail-desc {
+        max-height: 64px;
+        margin-top: 7px;
+        opacity: 1;
+      }
+
+      @keyframes nodePulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(98, 241, 138, 0.5);
+        }
+        70% {
+          box-shadow: 0 0 0 8px rgba(98, 241, 138, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(98, 241, 138, 0);
+        }
+      }
+
+      .guarantees {
+        display: grid;
+        gap: 10px;
+        border-top: 1px solid var(--line);
+        padding: 15px 16px 16px;
+        background: rgba(9, 11, 9, 0.4);
+      }
+
+      .guarantee {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--paper-soft);
+        font-size: 0.84rem;
+        line-height: 1.35;
+      }
+
+      .gtick {
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 18px;
+        height: 18px;
+        border-radius: 6px;
+        background: var(--green-dim);
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.66rem;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      @media (max-width: 1180px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .side {
+          min-height: auto;
+        }
+
+        .rail-scroll {
+          max-height: none;
+        }
+      }
+
+      @media (max-width: 860px) {
+        .topbar,
+        .stage-head,
+        .control-row {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .badges {
+          justify-content: flex-start;
+        }
+
+        .stage {
+          aspect-ratio: auto;
+          min-height: 0;
+        }
+
+        .video-frame {
+          grid-template-columns: 1fr;
+        }
+
+        .browser {
+          min-height: 360px;
+        }
+
+        .voiceover {
+          position: static;
+          margin-top: 16px;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .shell {
+          width: min(100% - 20px, 1520px);
+          padding-top: 14px;
+        }
+
+        .stage,
+        .controls,
+        .stage-head,
+        .side-head,
+        .checklist {
+          padding-left: 12px;
+          padding-right: 12px;
+        }
+
+        .app-body,
+        .metric-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.001ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand-wrap">
+          <span class="logo-hex" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2 21 7v10l-9 5-9-5V7z"></path>
+              <path d="M9.5 9.5 7 12l2.5 2.5M14.5 9.5 17 12l-2.5 2.5" stroke-width="1.6"></path>
+            </svg>
+          </span>
+          <div class="brand">
+            <span class="brand__eyebrow">90-second product demo</span>
+            <h1>microservices.sh CLI and MCP preview</h1>
+          </div>
+        </div>
+        <div class="badges" aria-label="Product surfaces">
+          <span class="badge">npm create microservices-app</span>
+          <span class="badge">@microservices-sh/mcp</span>
+          <span class="badge">sh.microservices/mcp</span>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="stage-wrap" aria-label="Video preview">
+          <div class="stage-head">
+            <div class="scene-title">
+              <span id="scene-kicker">Scene 1 of 7</span>
+              <strong id="scene-heading">Production foundation risk</strong>
+            </div>
+            <div class="clock" id="clock">00:00 / 01:30</div>
+          </div>
+
+          <div class="stage">
+            <div class="video-frame">
+              <section class="terminal" aria-label="Terminal preview">
+                <div class="chrome">
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="chrome-label" id="terminal-title">demo terminal</span>
+                </div>
+                <pre class="term-lines" id="terminal-lines"></pre>
+                <div class="terminal-foot" id="terminal-foot">local workspace: studio-booking</div>
+              </section>
+
+              <section class="browser" aria-label="Generated surface preview">
+                <div class="chrome chrome--browser">
+                  <span class="dots">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                  </span>
+                  <span class="addr">
+                    <svg class="addr-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                      <rect x="5" y="11" width="14" height="9" rx="2"></rect>
+                      <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+                    </svg>
+                    <span class="addr-url" id="browser-url">localhost:5173</span>
+                  </span>
+                  <span class="surface-tag" id="surface-tag">Cloudflare-native</span>
+                </div>
+                <div class="surface" id="surface"></div>
+              </section>
+            </div>
+
+            <div class="voiceover">
+              <span class="vo-badge">
+                <span class="vo-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                VO
+              </span>
+              <p class="vo-text" id="voiceover">
+                AI agents are fast at the first 70 percent of an app. The risky part is the production 30 percent.
+              </p>
+            </div>
+          </div>
+
+          <div class="controls">
+            <label class="sr-only" for="progress">Demo progress</label>
+            <progress id="progress" value="0" max="90"></progress>
+            <div class="control-row">
+              <div class="buttons">
+                <button class="button button--primary" type="button" id="play">Play</button>
+                <button class="button" type="button" id="prev">Previous</button>
+                <button class="button" type="button" id="next">Next</button>
+                <button class="button" type="button" id="restart">Restart</button>
+                <button class="button" type="button" id="vo-toggle" aria-pressed="false">🔇 VO off</button>
+              </div>
+              <audio id="vo-audio" preload="auto"></audio>
+              <span class="clock" id="scene-range">00:00-00:10</span>
+            </div>
+          </div>
+        </section>
+
+        <aside class="side" aria-label="Storyboard timeline">
+          <div class="side-head">
+            <span class="side-eyebrow">Timeline</span>
+            <span class="side-meta">
+              <span id="rail-count">7 scenes</span><span class="side-dot">·</span><span id="rail-total">01:30</span>
+            </span>
+          </div>
+          <div class="rail-scroll">
+            <ol class="rail" id="timeline"></ol>
+          </div>
+          <div class="guarantees" aria-label="What this proves">
+            <div class="guarantee"><span class="gtick">✓</span><span>Generated source stays local and inspectable.</span></div>
+            <div class="guarantee"><span class="gtick">✓</span><span>Contracts and lockfiles guide agents before edits.</span></div>
+            <div class="guarantee"><span class="gtick">✓</span><span>Deploys stay behind approval gates.</span></div>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <script>
+      const scenes = [
+        {
+          start: 0,
+          end: 11,
+          title: "Production foundation risk",
+          short: "Agents are fast at UI. The risky layer is production.",
+          fullTerminal: true,
+          terminalTitle: "studio-booking ▸ agent session",
+          terminalFoot: "looks shippable — not safe to ship",
+          browserUrl: "microservices.sh",
+          appPill: "Agent-readable foundations",
+          voiceover: "Coding agents nail the first seventy percent of an app — the UI. The dangerous thirty percent is production: the part that leaks data, loses money, and can't be undone.",
+          lines: [
+            { text: "$ agent: build a booking SaaS", type: "prompt" },
+            { text: "UI · routes · admin · dashboard", type: "ok", note: "looks done in minutes" },
+            { text: "the production 30% — what actually breaks", type: "head" },
+            { type: "risk", label: "auth", note: "any user can read another's bookings" },
+            { type: "risk", label: "billing", note: "checkout skipped — you eat the cost" },
+            { type: "risk", label: "tenants", note: "tenant A sees tenant B's data" },
+            { type: "risk", label: "migrations", note: "one schema change drops live rows" },
+            { type: "risk", label: "deploy", note: "no audit trail, no rollback" }
+          ],
+          menu: ["Auth", "Billing", "Tenants", "Migrations", "Deploy"],
+          activeMenu: 0,
+          main: [
+            { label: "Agent output", value: "Fast UI" },
+            { label: "Operating risk", value: "High" },
+            { code: "missing: contracts, checks, approval gates" }
+          ]
+        },
+        {
+          start: 11,
+          end: 21,
+          title: "Create the app",
+          short: "Generate a working Cloudflare-native app from the CLI.",
+          openSurface: true,
+          terminalTitle: "npm create microservices-app",
+          terminalFoot: "template: booking-sveltekit",
+          browserUrl: "terminal",
+          appPill: "SvelteKit + Workers + D1",
+          voiceover: "microservices.sh gives you that thirty percent as Cloudflare-native foundations your agent can read and change — generated in one command.",
+          lines: [
+            { text: "$ npm create microservices-app@latest studio-booking -- --template booking-sveltekit", type: "prompt" },
+            { text: "scaffolded booking-sveltekit · 8 modules", type: "muted" },
+            { text: "src/ · modules/ · migrations/ · microservices.lock.json", type: "muted" },
+            { text: "$ cd studio-booking && pnpm install", type: "prompt" }
+          ],
+          menu: ["app/", "docs/", "migrations/", "microservices.lock.json"],
+          activeMenu: 0,
+          main: [
+            { label: "Generated files", value: "Source owned" },
+            { label: "Target runtime", value: "Cloudflare" },
+            { code: "cd studio-booking && pnpm install" }
+          ]
+        },
+        {
+          start: 21,
+          end: 35,
+          title: "Show the generated app",
+          short: "A real booking app, not a mockup.",
+          terminalTitle: "pnpm dev",
+          terminalFoot: "browser tab: generated app",
+          browserUrl: "localhost:5173",
+          appPill: "Running locally",
+          voiceover: "It's a real app, not a mockup — SvelteKit on Workers, a D1 database, a working booking flow, and source you own.",
+          lines: [
+            { text: "$ pnpm microservices local setup", type: "prompt" },
+            { text: "D1 local database ready", type: "muted" },
+            { text: "$ pnpm dev", type: "prompt" },
+            { text: "Local: http://localhost:5173", type: "muted" }
+          ],
+          menu: ["Dashboard", "Bookings", "Customers", "Files"],
+          activeMenu: 1,
+          main: [
+            { label: "Bookings today", value: "12" },
+            { label: "Open invoices", value: "4" },
+            { code: "booking flow + admin screens + local data" }
+          ]
+        },
+        {
+          start: 40,
+          end: 55,
+          title: "Inspect contracts",
+          short: "Agents read module rules and pinned versions before editing.",
+          terminalTitle: "module docs",
+          terminalFoot: "agent context: docs/modules/booking.md",
+          browserUrl: "workspace files",
+          appPill: "Pinned contracts",
+          voiceover: "Before it edits, the agent reads the module's contract — its boundaries, its pinned version, and what needs your approval.",
+          lines: [
+            { text: "$ pnpm microservices docs booking", type: "prompt" },
+            { text: "Booking · mount /bookings · requires auth, customer", type: "muted" },
+            { text: "$ grep booking microservices.lock.json", type: "prompt" },
+            { text: "booking@0.1.0 · pinned", type: "muted" },
+            { text: "$ agent: add email reminders to booking", type: "prompt" },
+            { text: "contract read · migrations + PII need approval", type: "ok" }
+          ],
+          menu: ["booking.md", "auth.md", "billing.md", "lockfile"],
+          activeMenu: 0,
+          main: [
+            { label: "Contract docs", value: "Local" },
+            { label: "Versions", value: "Pinned" },
+            { code: "agent reads constraints before changing source" }
+          ]
+        },
+        {
+          start: 55,
+          end: 68,
+          title: "Run checks",
+          short: "CLI checks create a deterministic review surface.",
+          terminalTitle: "microservices checks",
+          terminalFoot: "result: inspect before deploy",
+          browserUrl: "checks",
+          appPill: "Deterministic checks",
+          voiceover: "One command runs deterministic checks, so you see exactly what's safe before anything ships.",
+          lines: [
+            { text: "$ pnpm microservices modules list --json", type: "prompt" },
+            { text: "gateway auth identity customer booking audit-log payment email", type: "muted" },
+            { text: "$ pnpm microservices check --json", type: "prompt" },
+            { text: "ok: manifest · lockfile · api-boundary · migrations · http-smoke ✓", type: "muted" }
+          ],
+          menu: ["Modules", "Checks", "Plan", "Audit"],
+          activeMenu: 1,
+          main: [
+            { label: "Module check", value: "Pass" },
+            { label: "Deploy state", value: "Gated" },
+            { code: "microservices check --json" }
+          ]
+        },
+        {
+          start: 68,
+          end: 80,
+          title: "Use MCP",
+          short: "Expose the same workflow to agent clients through MCP.",
+          terminalTitle: "@microservices-sh/mcp",
+          terminalFoot: "official registry: sh.microservices/mcp",
+          browserUrl: "registry.modelcontextprotocol.io",
+          appPill: "Official MCP Registry",
+          voiceover: "The same tools work inside your agent — Claude, Cursor, Codex — through one MCP server in the official registry.",
+          lines: [
+            { text: "$ npx -y @microservices-sh/mcp", type: "prompt" },
+            { text: "MCP server ready", type: "muted" },
+            { text: "MICROSERVICES_API_URL=https://api.microservices.sh", type: "muted" },
+            { text: "Registry namespace: sh.microservices/mcp", type: "muted" }
+          ],
+          menu: ["inspect modules", "compose app", "run checks", "deploy plan"],
+          activeMenu: 0,
+          main: [
+            { label: "MCP package", value: "0.1.1" },
+            { label: "Registry", value: "Live" },
+            { code: "npx -y @microservices-sh/mcp" }
+          ]
+        },
+        {
+          start: 80,
+          end: 90,
+          title: "Approval-gated deploy",
+          short: "Agents can prepare production actions, not silently execute them.",
+          terminalTitle: "deploy run",
+          terminalFoot: "end card: CLI + MCP install commands",
+          browserUrl: "deploy plan",
+          appPill: "Confirmation required",
+          voiceover: "And deploys stay gated. The agent prepares everything — but production waits for you.",
+          lines: [
+            { text: "$ pnpm microservices deploy run --help", type: "prompt" },
+            { text: "preview ✓ · provision · migrate · upload", type: "muted" },
+            { text: "production actions require confirmation", type: "warn" },
+            { text: "agents prepare · humans approve", type: "ok" },
+            { text: "$ npm create microservices-app@latest", type: "prompt" },
+            { text: "$ npx -y @microservices-sh/mcp", type: "prompt" }
+          ],
+          menu: ["Plan", "Review", "Confirm", "Deploy"],
+          activeMenu: 2,
+          main: [
+            { label: "Production action", value: "Blocked" },
+            { label: "Human step", value: "Confirm" },
+            { code: "approval-gated deploy plans" }
+          ]
+        }
+      ];
+
+      const totalDuration = scenes[scenes.length - 1].end;
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const elements = {
+        sceneKicker: document.querySelector("#scene-kicker"),
+        sceneHeading: document.querySelector("#scene-heading"),
+        clock: document.querySelector("#clock"),
+        terminalTitle: document.querySelector("#terminal-title"),
+        terminalLines: document.querySelector("#terminal-lines"),
+        terminalFoot: document.querySelector("#terminal-foot"),
+        browserUrl: document.querySelector("#browser-url"),
+        surfaceTag: document.querySelector("#surface-tag"),
+        voiceover: document.querySelector("#voiceover"),
+        surface: document.querySelector("#surface"),
+        videoFrame: document.querySelector(".video-frame"),
+        progress: document.querySelector("#progress"),
+        play: document.querySelector("#play"),
+        prev: document.querySelector("#prev"),
+        next: document.querySelector("#next"),
+        restart: document.querySelector("#restart"),
+        sceneRange: document.querySelector("#scene-range"),
+        timeline: document.querySelector("#timeline"),
+        voAudio: document.querySelector("#vo-audio"),
+        voToggle: document.querySelector("#vo-toggle")
+      };
+
+      let voOn = false;
+
+      function playSceneVO() {
+        const a = elements.voAudio;
+        if (!a || !voOn || activeSceneIndex < 0) {
+          return;
+        }
+        const file = `assets/vo/vo-${activeSceneIndex + 1}.mp3`;
+        if (!a.src.endsWith(file)) {
+          a.src = file;
+        }
+        try {
+          a.currentTime = 0;
+        } catch (e) {
+          /* not loaded yet */
+        }
+        a.play().catch(() => {});
+      }
+
+      let currentTime = 0;
+      let playing = false;
+      let lastFrame = 0;
+      let activeSceneIndex = -1;
+
+      function formatTime(value) {
+        const minutes = Math.floor(value / 60).toString().padStart(2, "0");
+        const seconds = Math.floor(value % 60).toString().padStart(2, "0");
+        return `${minutes}:${seconds}`;
+      }
+
+      function getSceneIndex(time) {
+        const index = scenes.findIndex((scene) => time >= scene.start && time < scene.end);
+        return index === -1 ? scenes.length - 1 : index;
+      }
+
+      let termRun = null;
+
+      function buildTermLine(line) {
+        const row = document.createElement("div");
+        row.className = "t-line";
+        if (line.type === "prompt") {
+          const arrow = document.createElement("span");
+          arrow.className = "t-arrow";
+          arrow.textContent = "❯";
+          const body = document.createElement("span");
+          body.className = "t-body";
+          const cmd = line.text.replace(/^\$\s+/, "");
+          const sp = cmd.indexOf(" ");
+          const prog = document.createElement("span");
+          prog.className = "t-prog";
+          const args = document.createElement("span");
+          args.className = "t-args";
+          if (sp === -1) {
+            prog.textContent = cmd;
+          } else {
+            prog.textContent = cmd.slice(0, sp);
+            args.textContent = cmd.slice(sp);
+          }
+          body.append(prog, args);
+          row.append(arrow, body);
+        } else if (line.type === "warn") {
+          row.className = "t-line t-warn";
+          const ic = document.createElement("span");
+          ic.className = "t-warn-ic";
+          ic.textContent = "▲";
+          const txt = document.createElement("span");
+          txt.textContent = line.text;
+          row.append(ic, txt);
+        } else if (line.type === "ok") {
+          row.className = "t-line t-ok";
+          const ic = document.createElement("span");
+          ic.className = "t-ok-ic";
+          ic.textContent = "✓";
+          const txt = document.createElement("span");
+          txt.textContent = line.text;
+          row.append(ic, txt);
+          if (line.note) {
+            const note = document.createElement("span");
+            note.className = "t-note";
+            note.textContent = line.note;
+            row.append(note);
+          }
+        } else if (line.type === "head") {
+          row.className = "t-line t-head";
+          row.textContent = line.text;
+        } else if (line.type === "risk") {
+          row.className = "t-line t-risk";
+          const ic = document.createElement("span");
+          ic.className = "t-risk-ic";
+          ic.textContent = "▲";
+          const label = document.createElement("span");
+          label.className = "t-risk-label";
+          label.textContent = line.label;
+          const note = document.createElement("span");
+          note.className = "t-risk-note";
+          note.textContent = line.note;
+          row.append(ic, label, note);
+        } else {
+          row.className = "t-line t-out";
+          row.textContent = line.text;
+        }
+        return row;
+      }
+
+      function caretRow() {
+        const cursor = document.createElement("div");
+        cursor.className = "t-cursor";
+        const arrow = document.createElement("span");
+        arrow.className = "t-arrow";
+        arrow.textContent = "❯";
+        const caret = document.createElement("span");
+        caret.className = "caret";
+        cursor.append(arrow, caret);
+        return cursor;
+      }
+
+      function renderTerminal(scene, onDone) {
+        const t = elements.terminalLines;
+        if (termRun) {
+          termRun.cancelled = true;
+        }
+        const run = { cancelled: false };
+        termRun = run;
+        t.textContent = "";
+
+        // Reduced motion: render everything at once.
+        if (prefersReducedMotion) {
+          scene.lines.forEach((line) => t.append(buildTermLine(line)));
+          t.append(caretRow());
+          if (onDone) onDone();
+          return;
+        }
+
+        let i = 0;
+
+        function next() {
+          if (run.cancelled) {
+            return;
+          }
+          if (i >= scene.lines.length) {
+            t.append(caretRow());
+            if (onDone) onDone();
+            return;
+          }
+
+          const line = scene.lines[i];
+
+          if (line.type === "prompt") {
+            // Type the command character by character.
+            const row = document.createElement("div");
+            row.className = "t-line";
+            const arrow = document.createElement("span");
+            arrow.className = "t-arrow";
+            arrow.textContent = "❯";
+            const body = document.createElement("span");
+            body.className = "t-body";
+            const caret = document.createElement("span");
+            caret.className = "caret caret--inline";
+            row.append(arrow, body, caret);
+            t.append(row);
+
+            const full = line.text.replace(/^\$\s+/, "");
+            const sp = full.indexOf(" ");
+            let pos = 0;
+
+            function typeChar() {
+              if (run.cancelled) {
+                return;
+              }
+              pos += 1;
+              body.textContent = "";
+              if (sp === -1 || pos <= sp) {
+                const prog = document.createElement("span");
+                prog.className = "t-prog";
+                prog.textContent = full.slice(0, pos);
+                body.append(prog);
+              } else {
+                const prog = document.createElement("span");
+                prog.className = "t-prog";
+                prog.textContent = full.slice(0, sp);
+                const args = document.createElement("span");
+                args.className = "t-args";
+                args.textContent = full.slice(sp, pos);
+                body.append(prog, args);
+              }
+              if (pos < full.length) {
+                setTimeout(typeChar, 14 + Math.random() * 24);
+              } else {
+                caret.remove();
+                i += 1;
+                setTimeout(next, 280);
+              }
+            }
+
+            typeChar();
+          } else {
+            // Output / warning: fade in, then continue.
+            const row = buildTermLine(line);
+            row.classList.add("t-reveal");
+            t.append(row);
+            i += 1;
+            const delay = { warn: 240, risk: 210, head: 200, ok: 150 }[line.type] || 110;
+            setTimeout(next, delay);
+          }
+        }
+
+        next();
+      }
+
+      // Per-scene right-panel surfaces. Content is real: captured from the
+      // running booking-sveltekit app, its lockfile/docs, the CLI output, and
+      // the live MCP registry manifest (sh.microservices/mcp@0.1.1).
+      const surfaces = [
+        {
+          url: "studio-booking · agent build",
+          tag: "Agent output",
+          html: `<figure class="srf--shot"><img src="assets/app-home.png?v=2" alt="Generated booking app home page"><figcaption>Agent ships the UI · the easy 70%</figcaption></figure>`
+        },
+        {
+          url: "studio-booking/",
+          tag: "Generated project",
+          html: `
+            <div class="srf--tree">
+              <span class="srf-eyebrow">generated source · owned by you</span>
+              <div class="tree-row tree-dir">▾ src/ <span class="muted">routes · lib · server</span></div>
+              <div class="tree-row tree-sub">admin · book · api · login</div>
+              <div class="tree-row tree-dir">▾ modules/ <span class="muted">· 8</span></div>
+              <div class="tree-row tree-sub">gateway · auth · identity · customer</div>
+              <div class="tree-row tree-sub">booking · audit-log · payment · email</div>
+              <div class="tree-row tree-dir">▾ migrations/ <span class="muted">· 8 sql</span></div>
+              <div class="tree-row tree-file is-on">microservices.lock.json</div>
+              <div class="tree-row tree-file">docs/modules/booking.md</div>
+            </div>`
+        },
+        {
+          url: "localhost:5173/book",
+          tag: "Live booking flow",
+          html: `<div class="srf--book"><div class="bk-brand"><span class="mk">◆</span>Verana <small>wellness studio</small></div><div class="bk-rail" id="bk-rail"></div><div class="bk-body" id="bk-body"></div><div class="bk-cursor" id="bk-cursor"></div></div>`,
+          mount: (run) => bookingFlow(run)
+        },
+        {
+          url: "docs/modules/booking.md",
+          tag: "Pinned contract",
+          mount: (run) => contractScan(run),
+          html: `
+            <article class="srf--doc">
+              <div class="dc-head"><span class="dc-id">booking</span><span class="dc-ver">v0.1.0</span><span class="dc-status"><i></i>available</span></div>
+              <p class="dc-summary">Service booking, availability, cancellation windows, confirmation, and booking events.</p>
+              <div class="dc-facets">
+                <div class="dc-row" data-read><span class="dc-k">requires</span><span class="dc-v"><b>auth</b> · <b>customer</b></span></div>
+                <div class="dc-row"><span class="dc-k">mount</span><span class="dc-v">/bookings</span></div>
+                <div class="dc-row"><span class="dc-k">resources</span><span class="dc-v">D1 · KV</span></div>
+                <div class="dc-row"><span class="dc-k">permissions</span><span class="dc-v">read · write · admin</span></div>
+                <div class="dc-row"><span class="dc-k">events</span><span class="dc-v">created · confirmed · cancelled</span></div>
+              </div>
+              <div class="dc-gate" data-read><span class="dc-gate-badge">approval gate · medium</span><span class="dc-gate-items">migrations · PII · payment</span></div>
+              <div class="doc-pin" data-read>🔒 registry:booking@0.1.0 · pinned</div>
+              <span class="doc-scan"></span>
+            </article>`
+        },
+        {
+          url: "pnpm microservices check --json",
+          tag: "Deterministic checks",
+          mount: (run) => runChecks(run),
+          html: `
+            <div class="srf--checks">
+              <div class="chk-head"><b>check</b> booking-sveltekit <span class="chk-pass" id="ck-verdict">running…</span></div>
+              <div class="chk-row pending" data-st="pass"><span class="chk-ic"></span><span class="id">manifest</span><span class="st"></span></div>
+              <div class="chk-row pending" data-st="pass"><span class="chk-ic"></span><span class="id">lockfile</span><span class="st"></span></div>
+              <div class="chk-row pending" data-st="pass"><span class="chk-ic"></span><span class="id">api-boundary</span><span class="st"></span></div>
+              <div class="chk-row pending" data-st="pass"><span class="chk-ic"></span><span class="id">wrangler-config</span><span class="st"></span></div>
+              <div class="chk-row pending" data-st="pass"><span class="chk-ic"></span><span class="id">migrations</span><span class="st"></span></div>
+              <div class="chk-row pending" data-st="pass"><span class="chk-ic"></span><span class="id">http-smoke</span><span class="st"></span></div>
+              <div class="chk-row pending" data-st="7 pass"><span class="chk-ic"></span><span class="id">spec contracts</span><span class="st"></span></div>
+              <div class="chk-row pending" data-st="pass"><span class="chk-ic"></span><span class="id">policy:no-local-booking-module</span><span class="st"></span></div>
+              <div class="chk-foot">deploy · requires confirmation</div>
+            </div>`
+        },
+        {
+          url: "mcp · sh.microservices/mcp",
+          tag: "Agent client",
+          mount: (run) => mcpConnect(run),
+          html: `
+            <div class="srf--mcp">
+              <div class="mcp-top"><span class="mcp-ns">sh.microservices/mcp</span><span class="mcp-ver">v0.1.1</span><span class="mcp-status" id="mcp-status"><i></i>connecting…</span></div>
+              <span class="srf-eyebrow">same surface · available to your agent</span>
+              <div class="mcp-tools" id="mcp-tools">
+                <div class="mcp-tool pending"><span class="mt-ic">◌</span><b>modules.list</b><small>inspect installed modules</small></div>
+                <div class="mcp-tool pending"><span class="mt-ic">◌</span><b>modules.docs</b><small>read module contracts</small></div>
+                <div class="mcp-tool pending"><span class="mt-ic">◌</span><b>check</b><small>run deterministic checks</small></div>
+                <div class="mcp-tool pending"><span class="mt-ic">◌</span><b>deploy.plan</b><small>prepare approval-gated deploy</small></div>
+              </div>
+              <div class="mcp-foot"><span class="mcp-badge">✓ official MCP Registry</span><div class="mcp-cmd">npx -y @microservices-sh/mcp</div></div>
+            </div>`
+        },
+        {
+          url: "pnpm microservices deploy run",
+          tag: "Approval-gated",
+          mount: (run) => deployRun(run),
+          html: `
+            <div class="srf--deploy">
+              <div class="dep-head">deploy run · plan <span class="dep-status" id="dep-status">preparing…</span></div>
+              <div class="dep-step pending"><span class="ic">○</span><b>preview</b><span class="flag">build artifact</span></div>
+              <div class="dep-step pending"><span class="ic">🔒</span><b>provision</b><span class="flag">--confirm</span></div>
+              <div class="dep-step pending"><span class="ic">🔒</span><b>migrate</b><span class="flag">--confirm</span></div>
+              <div class="dep-step pending"><span class="ic">🔒</span><b>upload</b><span class="flag">--confirm</span></div>
+              <div class="dep-gate" id="dep-gate">agent prepared the plan</div>
+              <div class="dep-btn" id="dep-btn">Confirm deploy</div>
+            </div>`
+        }
+      ];
+
+      let surfaceRun = null;
+
+      function renderSurface(index) {
+        const surface = surfaces[index] || surfaces[surfaces.length - 1];
+        if (surfaceRun) {
+          surfaceRun.cancelled = true;
+        }
+        surfaceRun = { cancelled: false };
+        elements.browserUrl.textContent = surface.url;
+        elements.surfaceTag.textContent = surface.tag;
+        elements.surface.innerHTML = surface.html;
+        if (typeof surface.mount === "function") {
+          surface.mount(surfaceRun);
+        }
+      }
+
+      // Scene 3: auto-play a real booking journey with a moving cursor.
+      function bookingFlow(run) {
+        const root = elements.surface.querySelector(".srf--book");
+        if (!root) {
+          return;
+        }
+        const rail = root.querySelector("#bk-rail");
+        const body = root.querySelector("#bk-body");
+        const cursor = root.querySelector("#bk-cursor");
+
+        const steps = [
+          {
+            stepKey: 0,
+            name: "Service",
+            kind: "pick",
+            html:
+              '<div class="bk-step"><div class="bk-h">Choose a service</div>' +
+              '<button class="bk-item"><img class="bk-thumb" src="assets/svc-1.png?v=1" alt=""><span class="bk-item-main"><b>Signature facial</b><small>60 min · gentle cleanse</small></span><span class="bk-price">$120</span></button>' +
+              '<button class="bk-item bk-target"><img class="bk-thumb" src="assets/svc-2.png?v=1" alt=""><span class="bk-item-main"><b>Deep-tissue massage</b><small>90 min · full body</small></span><span class="bk-price">$150</span></button>' +
+              '<button class="bk-item"><img class="bk-thumb" src="assets/svc-3.png?v=1" alt=""><span class="bk-item-main"><b>Express reset</b><small>30 min · quick refresh</small></span><span class="bk-price">$70</span></button></div>'
+          },
+          {
+            stepKey: 1,
+            name: "Date",
+            kind: "pick",
+            html:
+              '<div class="bk-step"><div class="bk-h">Select a date · June</div>' +
+              '<div class="bk-days">' +
+              '<button class="bk-day"><small>Wed</small><b>18</b></button>' +
+              '<button class="bk-day bk-target"><small>Thu</small><b>19</b></button>' +
+              '<button class="bk-day"><small>Fri</small><b>20</b></button>' +
+              '<button class="bk-day"><small>Sat</small><b>21</b></button>' +
+              '<button class="bk-day"><small>Mon</small><b>23</b></button>' +
+              '<button class="bk-day"><small>Tue</small><b>24</b></button>' +
+              '</div></div>'
+          },
+          {
+            stepKey: 2,
+            name: "Time",
+            kind: "pick",
+            html:
+              '<div class="bk-step"><div class="bk-h">Pick a time · Thu 19</div>' +
+              '<div class="bk-slots">' +
+              '<span class="bk-slot">09:00</span><span class="bk-slot">10:30</span><span class="bk-slot">11:30</span>' +
+              '<span class="bk-slot bk-target">13:00</span><span class="bk-slot">15:30</span><span class="bk-slot">16:00</span>' +
+              '</div></div>'
+          },
+          {
+            stepKey: 3,
+            name: "Details",
+            kind: "form",
+            html:
+              '<div class="bk-step"><div class="bk-h">Your details</div>' +
+              '<div class="bk-field"><small>Name</small><span class="bk-val" data-fill="Maya Chen"></span></div>' +
+              '<div class="bk-field"><small>Email</small><span class="bk-val" data-fill="maya.chen@gmail.com"></span></div>' +
+              '<div class="bk-field"><small>Phone</small><span class="bk-val" data-fill="+1 (555) 0147"></span></div>' +
+              '<button class="bk-pay bk-target">Continue</button></div>'
+          },
+          {
+            stepKey: 4,
+            name: "Pay",
+            kind: "pick",
+            html:
+              '<div class="bk-step"><div class="bk-h">Confirm &amp; pay</div>' +
+              '<div class="bk-confirm"><img class="bk-thumb-lg" src="assets/svc-2.png?v=1" alt="">' +
+              '<span class="bk-confirm-main"><b>Deep-tissue massage</b><small>Thu 19 Jun · 13:00 · with Lena</small></span></div>' +
+              '<div class="bk-card"><span>Maya Chen · •••• 4242</span><span>$150</span></div>' +
+              '<button class="bk-pay bk-target">Pay $150</button></div>'
+          },
+          {
+            stepKey: 5,
+            name: "Done",
+            kind: "done",
+            html:
+              '<div class="bk-step bk-done"><div class="bk-check">✓</div>' +
+              '<div class="bk-done-t">Booking confirmed</div>' +
+              '<div class="bk-sub">Verana · Thu 19 Jun, 13:00 · booking.created</div></div>'
+          }
+        ];
+
+        function setRail(active, name) {
+          const total = 5;
+          let dots = "";
+          for (let d = 0; d < total; d += 1) {
+            dots += `<i class="${d <= active ? "on" : ""}"></i>`;
+          }
+          const cur = Math.min(active + 1, total);
+          rail.innerHTML =
+            `<span class="bk-prog">${dots}</span>` +
+            `<span class="bk-now">${name}</span>` +
+            `<span class="bk-count">${cur} / ${total}</span>`;
+        }
+
+        function moveCursorTo(el) {
+          if (!el) {
+            return;
+          }
+          const rootRect = root.getBoundingClientRect();
+          const r = el.getBoundingClientRect();
+          cursor.style.left = `${r.left - rootRect.left + r.width / 2}px`;
+          cursor.style.top = `${r.top - rootRect.top + r.height / 2}px`;
+          cursor.classList.add("is-on");
+        }
+
+        let i = 0;
+
+        function clickTargetThenAdvance(target) {
+          if (run.cancelled) {
+            return;
+          }
+          moveCursorTo(target);
+          setTimeout(() => {
+            if (run.cancelled) {
+              return;
+            }
+            cursor.classList.add("click");
+            target.classList.add("bk-picked");
+            setTimeout(() => cursor.classList.remove("click"), 360);
+            setTimeout(() => {
+              if (run.cancelled) {
+                return;
+              }
+              i += 1;
+              show();
+            }, 1050);
+          }, 820);
+        }
+
+        function fillForm(onComplete) {
+          const fields = Array.from(body.querySelectorAll(".bk-field"));
+          let fi = 0;
+          function nextField() {
+            if (run.cancelled) {
+              return;
+            }
+            if (fi >= fields.length) {
+              onComplete();
+              return;
+            }
+            const parent = fields[fi];
+            const el = parent.querySelector(".bk-val");
+            parent.classList.add("focus");
+            moveCursorTo(parent);
+            const full = el.dataset.fill || "";
+            let pos = 0;
+            function typeChar() {
+              if (run.cancelled) {
+                return;
+              }
+              pos += 1;
+              el.textContent = full.slice(0, pos);
+              if (pos < full.length) {
+                setTimeout(typeChar, 22 + Math.random() * 26);
+              } else {
+                parent.classList.remove("focus");
+                fi += 1;
+                setTimeout(nextField, 340);
+              }
+            }
+            setTimeout(typeChar, 300);
+          }
+          nextField();
+        }
+
+        function show() {
+          if (run.cancelled) {
+            return;
+          }
+          const step = steps[i];
+          setRail(step.stepKey, step.name);
+          body.innerHTML = step.html;
+
+          const target = body.querySelector(".bk-target");
+          if (!target) {
+            cursor.classList.remove("is-on");
+            return;
+          }
+
+          if (step.kind === "form") {
+            fillForm(() => clickTargetThenAdvance(target));
+          } else {
+            requestAnimationFrame(() => clickTargetThenAdvance(target));
+          }
+        }
+
+        setTimeout(show, 450);
+      }
+
+      // Scene 7: agent runs the plan to the gate and stops — humans approve.
+      function deployRun(run) {
+        const root = elements.surface.querySelector(".srf--deploy");
+        if (!root) {
+          return;
+        }
+        const steps = Array.from(root.querySelectorAll(".dep-step"));
+        if (!steps.length) {
+          return;
+        }
+        const status = root.querySelector("#dep-status");
+        const gate = root.querySelector("#dep-gate");
+        const btn = root.querySelector("#dep-btn");
+        const preview = steps[0];
+        const provision = steps[1];
+        const rest = steps.slice(2);
+
+        function setIc(step, ch) {
+          const e = step.querySelector(".ic");
+          if (e) {
+            e.textContent = ch;
+          }
+        }
+        function setFlag(step, t) {
+          const e = step.querySelector(".flag");
+          if (e) {
+            e.textContent = t;
+          }
+        }
+
+        setTimeout(() => {
+          if (run.cancelled) {
+            return;
+          }
+          preview.classList.remove("pending");
+          preview.classList.add("run");
+          setIc(preview, "");
+          setTimeout(() => {
+            if (run.cancelled) {
+              return;
+            }
+            preview.classList.remove("run");
+            preview.classList.add("done");
+            setIc(preview, "✓");
+            setFlag(preview, "ready");
+            setTimeout(() => {
+              if (run.cancelled) {
+                return;
+              }
+              rest.forEach((s) => {
+                s.classList.remove("pending");
+                s.classList.add("locked");
+              });
+              provision.classList.remove("pending");
+              provision.classList.add("awaiting");
+              setIc(provision, "🔔");
+              setFlag(provision, "awaiting you");
+              if (status) {
+                status.textContent = "awaiting approval";
+                status.classList.add("wait");
+              }
+              if (gate) {
+                gate.textContent = "production actions need your approval";
+              }
+              if (btn) {
+                btn.classList.add("live");
+              }
+            }, 700);
+          }, 850);
+        }, 600);
+      }
+
+      // Scene 6: MCP client connects, then the shared tool surface registers.
+      function mcpConnect(run) {
+        const root = elements.surface.querySelector(".srf--mcp");
+        if (!root) {
+          return;
+        }
+        const status = root.querySelector("#mcp-status");
+        const tools = Array.from(root.querySelectorAll(".mcp-tool"));
+
+        setTimeout(() => {
+          if (run.cancelled) {
+            return;
+          }
+          if (status) {
+            status.classList.add("live");
+            status.innerHTML = "<i></i>connected";
+          }
+          let k = 0;
+          function register() {
+            if (run.cancelled || k >= tools.length) {
+              return;
+            }
+            const tool = tools[k];
+            tool.classList.remove("pending");
+            tool.classList.add("on");
+            const ic = tool.querySelector(".mt-ic");
+            if (ic) {
+              ic.textContent = "✓";
+            }
+            k += 1;
+            setTimeout(register, 360);
+          }
+          register();
+        }, 800);
+      }
+
+      // Scene 5: run checks one by one — pending -> spinner -> pass + verdict.
+      function runChecks(run) {
+        const root = elements.surface.querySelector(".srf--checks");
+        if (!root) {
+          return;
+        }
+        const rows = Array.from(root.querySelectorAll(".chk-row"));
+        const verdict = root.querySelector("#ck-verdict");
+
+        let k = 0;
+        function step() {
+          if (run.cancelled) {
+            return;
+          }
+          if (k >= rows.length) {
+            if (verdict) {
+              verdict.textContent = `${rows.length} passed`;
+              verdict.classList.add("ok");
+            }
+            return;
+          }
+          const row = rows[k];
+          const ic = row.querySelector(".chk-ic");
+          row.classList.remove("pending");
+          row.classList.add("running");
+          ic.classList.add("sp");
+          setTimeout(() => {
+            if (run.cancelled) {
+              return;
+            }
+            row.classList.remove("running");
+            row.classList.add("pass");
+            ic.classList.remove("sp");
+            const st = row.querySelector(".st");
+            if (st) {
+              st.textContent = row.dataset.st || "pass";
+            }
+            k += 1;
+            step();
+          }, 240);
+        }
+
+        setTimeout(step, 700);
+      }
+
+      // Scene 4: agent "reads" the contract — a scan band locks onto the
+      // constraints (requires, approval gate, pinned version).
+      function contractScan(run) {
+        const root = elements.surface.querySelector(".srf--doc");
+        if (!root) {
+          return;
+        }
+        const scan = root.querySelector(".doc-scan");
+        const targets = Array.from(root.querySelectorAll("[data-read]"));
+
+        function place(el) {
+          const rr = root.getBoundingClientRect();
+          const r = el.getBoundingClientRect();
+          scan.style.top = `${r.top - rr.top - 3}px`;
+          scan.style.height = `${r.height + 6}px`;
+          scan.classList.add("on");
+        }
+
+        let k = 0;
+        function step() {
+          if (run.cancelled || !targets.length) {
+            return;
+          }
+          if (k >= targets.length) {
+            return;
+          }
+          const el = targets[k];
+          place(el);
+          el.classList.add("read");
+          setTimeout(() => {
+            if (run.cancelled) {
+              return;
+            }
+            k += 1;
+            step();
+          }, 1150);
+        }
+
+        setTimeout(step, 1500);
+      }
+
+      function renderScene(index) {
+        const scene = scenes[index];
+        activeSceneIndex = index;
+
+        if (elements.videoFrame) {
+          const startSolo = !!scene.fullTerminal || !!scene.openSurface;
+          elements.videoFrame.classList.toggle("video-frame--solo", startSolo);
+          elements.videoFrame.classList.toggle("video-frame--hero", !!scene.fullTerminal);
+          elements.videoFrame.classList.remove("is-opening");
+        }
+
+        elements.sceneKicker.textContent = `Scene ${index + 1} of ${scenes.length}`;
+        elements.sceneHeading.textContent = scene.title;
+        elements.terminalTitle.textContent = scene.terminalTitle;
+        elements.terminalFoot.textContent = scene.terminalFoot;
+        elements.voiceover.textContent = scene.voiceover;
+        elements.sceneRange.textContent = `${formatTime(scene.start)}-${formatTime(scene.end)}`;
+
+        renderSurface(index);
+        renderTerminal(scene, () => {
+          if (scene.openSurface && elements.videoFrame) {
+            elements.videoFrame.classList.remove("video-frame--solo");
+            elements.videoFrame.classList.add("is-opening");
+          }
+        });
+
+        document.querySelectorAll("[data-scene-index]").forEach((button) => {
+          const isActive = Number(button.dataset.sceneIndex) === index;
+          button.setAttribute("aria-current", isActive ? "true" : "false");
+        });
+
+        if (playing) {
+          playSceneVO();
+        }
+      }
+
+      function renderTime() {
+        const index = getSceneIndex(currentTime);
+
+        if (index !== activeSceneIndex) {
+          renderScene(index);
+        }
+
+        elements.clock.textContent = `${formatTime(currentTime)} / ${formatTime(totalDuration)}`;
+        elements.progress.value = currentTime;
+        updateRail();
+      }
+
+      function setTime(value) {
+        currentTime = Math.min(totalDuration, Math.max(0, value));
+        if (currentTime >= totalDuration) {
+          playing = false;
+          elements.play.textContent = "Play";
+        }
+        renderTime();
+      }
+
+      function tick(timestamp) {
+        if (!playing) {
+          lastFrame = timestamp;
+          return;
+        }
+
+        const delta = lastFrame ? (timestamp - lastFrame) / 1000 : 0;
+        lastFrame = timestamp;
+        setTime(currentTime + delta);
+        requestAnimationFrame(tick);
+      }
+
+      function play() {
+        if (currentTime >= totalDuration) {
+          setTime(0);
+        }
+
+        playing = true;
+        elements.play.textContent = "Pause";
+        lastFrame = 0;
+        requestAnimationFrame(tick);
+        playSceneVO();
+      }
+
+      function pause() {
+        playing = false;
+        elements.play.textContent = "Play";
+        if (elements.voAudio) {
+          elements.voAudio.pause();
+        }
+      }
+
+      let railTrack = null;
+      let railProgress = null;
+      let railNodes = [];
+
+      function buildTimeline() {
+        railTrack = document.createElement("span");
+        railTrack.className = "rail-track";
+        railProgress = document.createElement("span");
+        railProgress.className = "rail-progress";
+        elements.timeline.append(railTrack, railProgress);
+
+        scenes.forEach((scene, index) => {
+          const item = document.createElement("li");
+          item.style.animationDelay = `${index * 0.05}s`;
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "rail-btn";
+          button.dataset.sceneIndex = String(index);
+          button.dataset.state = "future";
+          button.setAttribute("aria-current", "false");
+          button.innerHTML = `
+            <span class="rail-spine"><span class="rail-node"></span></span>
+            <span class="rail-body">
+              <span class="rail-meta">
+                <span class="rail-time">${formatTime(scene.start)}</span>
+                <span class="rail-dur"><span class="rail-dur-fill"></span></span>
+              </span>
+              <strong class="rail-title">${scene.title}</strong>
+              <span class="rail-desc">${scene.short}</span>
+            </span>
+          `;
+          button.addEventListener("click", () => {
+            pause();
+            setTime(scene.start);
+          });
+          item.append(button);
+          elements.timeline.append(item);
+        });
+
+        railNodes = Array.from(elements.timeline.querySelectorAll(".rail-node"));
+      }
+
+      function nodeCenter(index) {
+        const railRect = elements.timeline.getBoundingClientRect();
+        const rect = railNodes[index].getBoundingClientRect();
+        return rect.top - railRect.top + rect.height / 2;
+      }
+
+      function updateRail() {
+        if (!railNodes.length) {
+          return;
+        }
+
+        const first = nodeCenter(0);
+        const last = nodeCenter(railNodes.length - 1);
+        railTrack.style.top = `${first}px`;
+        railTrack.style.height = `${Math.max(0, last - first)}px`;
+
+        const index = getSceneIndex(currentTime);
+        const scene = scenes[index];
+        const span = scene.end - scene.start || 1;
+        const intra = Math.min(1, Math.max(0, (currentTime - scene.start) / span));
+
+        const activeCenter = nodeCenter(index);
+        const nextCenter = index < railNodes.length - 1 ? nodeCenter(index + 1) : activeCenter;
+        const playhead = activeCenter + intra * (nextCenter - activeCenter);
+        railProgress.style.top = `${first}px`;
+        railProgress.style.height = `${Math.max(0, playhead - first)}px`;
+
+        document.querySelectorAll(".rail-btn").forEach((button, i) => {
+          const state = i < index ? "past" : i === index ? "active" : "future";
+          button.dataset.state = state;
+          const fill = button.querySelector(".rail-dur-fill");
+          if (fill) {
+            const percent = i < index ? 100 : i === index ? intra * 100 : 0;
+            fill.style.right = `${100 - percent}%`;
+          }
+        });
+      }
+
+      elements.play.addEventListener("click", () => {
+        playing ? pause() : play();
+      });
+
+      elements.prev.addEventListener("click", () => {
+        pause();
+        const index = getSceneIndex(currentTime);
+        const previous = scenes[Math.max(0, index - 1)];
+        setTime(previous.start);
+      });
+
+      elements.next.addEventListener("click", () => {
+        pause();
+        const index = getSceneIndex(currentTime);
+        const next = scenes[Math.min(scenes.length - 1, index + 1)];
+        setTime(next.start);
+      });
+
+      elements.restart.addEventListener("click", () => {
+        pause();
+        setTime(0);
+      });
+
+      elements.voToggle.addEventListener("click", () => {
+        voOn = !voOn;
+        elements.voToggle.textContent = voOn ? "🔊 VO on" : "🔇 VO off";
+        elements.voToggle.classList.toggle("is-on", voOn);
+        elements.voToggle.setAttribute("aria-pressed", voOn ? "true" : "false");
+        if (voOn && playing) {
+          playSceneVO();
+        } else if (elements.voAudio) {
+          elements.voAudio.pause();
+        }
+      });
+
+      elements.progress.addEventListener("click", (event) => {
+        const rect = elements.progress.getBoundingClientRect();
+        const ratio = (event.clientX - rect.left) / rect.width;
+        pause();
+        setTime(ratio * totalDuration);
+      });
+
+      buildTimeline();
+
+      const railCount = document.querySelector("#rail-count");
+      const railTotal = document.querySelector("#rail-total");
+      if (railCount) {
+        railCount.textContent = `${scenes.length} scenes`;
+      }
+      if (railTotal) {
+        railTotal.textContent = formatTime(totalDuration);
+      }
+
+      setTime(0);
+      requestAnimationFrame(updateRail);
+      window.addEventListener("resize", updateRail);
+
+      if (!prefersReducedMotion) {
+        window.setTimeout(play, 450);
+      }
+    </script>
+  </body>
+</html>

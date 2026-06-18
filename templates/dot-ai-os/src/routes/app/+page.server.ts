@@ -2,18 +2,21 @@ import type { PageServerLoad } from "./$types";
 import { listMembers } from "@microservices-sh/org-team-rbac";
 import { listCustomers } from "@microservices-sh/customer";
 import { listInvoices } from "@microservices-sh/invoice";
+import { getOperatorWorkbench } from "@microservices-sh/operator-work";
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
   // The /app layout guarantees a signed-in user with an active operator workspace org —
   // it redirects to /login (no session) or /signup (no workspace) otherwise.
   const { activeOrgId } = await parent();
+  const today = new Date().toISOString().slice(0, 10);
 
   // Workspace-scoped operational summary. Membership is gated in the /app layout;
   // every list is a thin adapter over a module use case.
-  const [members, customers, invoices] = await Promise.all([
+  const [members, customers, invoices, operatorWorkbench] = await Promise.all([
     listMembers(activeOrgId, { store: locals.rbacStore }),
     listCustomers({ customerRepository: locals.customerRepository }),
-    listInvoices({ tenantId: activeOrgId }, { invoiceStore: locals.invoiceStore })
+    listInvoices({ tenantId: activeOrgId }, { invoiceStore: locals.invoiceStore }),
+    getOperatorWorkbench({ orgId: activeOrgId, date: today }, { store: locals.operatorWorkStore })
   ]);
 
   const invoiceList = invoices.ok ? invoices.data.invoices : [];
@@ -29,6 +32,20 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
     invoiceCount: invoiceList.length,
     openInvoiceCount: openInvoices.length,
     outstandingCents,
-    currency: invoiceList[0]?.currency ?? "USD"
+    currency: invoiceList[0]?.currency ?? "USD",
+    operator: operatorWorkbench.ok
+      ? operatorWorkbench.data
+      : {
+          tasks: [],
+          focusBlocks: [],
+          reviews: [],
+          summary: {
+            openTaskCount: 0,
+            highPriorityTaskCount: 0,
+            focusBlockCount: 0,
+            savedReviewCount: 0,
+            latestReview: null
+          }
+        }
   };
 };
