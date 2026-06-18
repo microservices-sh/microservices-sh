@@ -734,3 +734,28 @@
 | `pnpm --filter @microservices-sh/cli build` | CLI syntax passes | Passed | Pass |
 | `pnpm --filter @microservices-sh/cli test` | CLI tests pass | 5/5 tests passed | Pass |
 | `git diff --check` | No whitespace errors | Passed with no output | Pass |
+
+## Session: 2026-06-18 (standalone MCP package and directory distribution)
+### Phase 30 kickoff
+- **Status:** complete for package, npm, GitHub, official MCP Registry, Docker, and PR-based directories.
+- Created and pushed standalone public repo `https://github.com/microservices-sh/mcp`.
+- Published `@microservices-sh/mcp@0.1.1` to npm with the package binary `microservices-mcp` and MCP name `sh.microservices/mcp`.
+- Added Trusted Publisher publish workflow, reran the release after npm propagation lag, and confirmed the workflow passed.
+- Updated MCP package defaults and README examples to use `https://api.microservices.sh`.
+- Validated `server.json` with `mcp-publisher validate server.json`.
+- Opened listing PRs:
+  - Awesome MCP Servers: `https://github.com/punkpeye/awesome-mcp-servers/pull/8249`
+  - MCPFind: `https://github.com/MCPFind/mcp-find/pull/77`
+  - MCPSvr: `https://github.com/nanbingxyz/mcpsvr/pull/33`
+  - Docker MCP Registry: `https://github.com/docker/mcp-registry/pull/3961`
+- Published `sh.microservices/mcp@0.1.1` to the official MCP Registry after adding DNS TXT authentication for `microservices.sh`.
+- Confirmed Smithery submission needs the correct `microservices` namespace/account; the current CLI session is authenticated under `favcrm`.
+- Aligned the root CLI deploy API default and help examples with `https://api.microservices.sh` so generated-app and standalone MCP docs do not contradict the root CLI.
+
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| npm package | Latest package is available | `@microservices-sh/mcp@0.1.1` is latest | Pass |
+| MCP registry metadata | `server.json` validates | `mcp-publisher validate server.json` passed in standalone MCP repo | Pass |
+| Docker listing | Remote server entry validates locally | `go run ./cmd/validate -name microservices-sh` passed in Docker registry checkout | Pass |
+| MCP endpoint | Hosted endpoint is reachable | `https://api.microservices.sh/mcp` returned MCP metadata | Pass |
+| Official registry publish | Registry accepts package | `sh.microservices/mcp@0.1.1` is active and searchable | Pass |

@@ -39,6 +39,10 @@
 - Real product billing should not be added before auth. Stripe customers, subscriptions, and deploy entitlements need reliable `workspaceId`, `ownerUserId`, `ownerEmail`, and scoped CLI/API identity.
 - For this use case, opaque D1-backed portal sessions plus workspace-scoped D1 API keys fit better than long-lived JWT-first auth. JWTs can be added later only as short-lived access tokens if stateless API calls become necessary.
 - The first API auth slice now establishes D1 auth tables, workspace-scoped API-key identity, internal static-key compatibility under `ws_internal`, workspace-scoped control-plane queries, and MCP identity propagation. Billing is still blocked until remote D1 migration/backfill, first-owner key bootstrap, CLI profiles, portal sessions, and cross-workspace tests are complete.
+- The standalone MCP package is now the right distribution unit for agent directories: `@microservices-sh/mcp` exposes local stdio install via npm, while `https://api.microservices.sh/mcp` gives remote Streamable HTTP catalogs a hosted endpoint.
+- Official MCP Registry submission uses `server.json` and `mcp-publisher`, not a PR. `sh.microservices/mcp` is now published through domain-authenticated DNS ownership of `microservices.sh`.
+- High-value public MCP listing routes are now covered by PRs to Awesome MCP Servers, MCPFind, MCPSvr, and Docker MCP Registry. PulseMCP, MCP.so, Glama, and Smithery remain self-service/account-driven; Smithery must not be published from the current `favcrm` namespace.
+- Docker MCP Registry is a good fit for the hosted remote endpoint after API-key auth, while local stdio discovery is better served by npm/package-based directories.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -98,6 +102,12 @@
 - Hono Cloudflare Workers guide: https://hono.dev/docs/getting-started/cloudflare-workers
 - MCP transports: https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
 - MCP debugging and local stdio setup guidance: https://modelcontextprotocol.io/docs/tools/debugging
+- Official MCP Registry publishing quickstart: https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/quickstart.mdx
+- Official MCP Registry authentication: https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/authentication.mdx
+- Docker MCP Registry: https://github.com/docker/mcp-registry
+- Awesome MCP Servers: https://github.com/punkpeye/awesome-mcp-servers
+- MCPFind: https://github.com/MCPFind/mcp-find
+- MCPSvr: https://github.com/nanbingxyz/mcpsvr
 - OWASP Authentication Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
 - OWASP Session Management Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
 - OAuth 2.0 Device Authorization Grant, RFC 8628: https://www.rfc-editor.org/rfc/rfc8628

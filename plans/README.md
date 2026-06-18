@@ -32,6 +32,8 @@ This directory contains the actionable plan for starting the microservices.sh MV
 27. `24-service-topology-and-auth-comms.md` - service-scoped D1, embedded/service deploy modes, and auth-gated inter-service communication (service bindings + short-lived JWT + signed queue events).
 28. `25-module-connection-standard.md` - honeycomb module-connection standard: three primitives (RPC/events/hooks), unified Result envelope, build-time composer, thin runtime dispatch.
 29. `26-identity-better-auth.md` - identity layer on Better Auth (user accounts, login, sessions) that bridges to `@microservices-sh/auth` token minting; does not replace the token module. (Draft)
+30. `27-market-product-direction-and-mcp-distribution.md` - ICP-focused product direction, distribution posture, MCP packaging, registry, and directory strategy.
+31. `managed-deploy-oauth.md` - managed deploy into a user's own Cloudflare account, with API-token-first and OAuth-later sequencing.
 
 ## Core Decision
 The MVP is good enough to start if it remains narrow:
@@ -62,16 +64,18 @@ The MVP is good enough to start if it remains narrow:
 5. Start with manual/concierge generation before automating the full platform.
 6. Treat current research as secondary validation only; complete primary interviews and paid pilot asks before claiming demand.
 7. Use `12-assumption-validation-results.md` as the decision gate before building the managed runtime.
-8. Publish to MCP directories only after the create-app quickstart, MCP setup flow, manifest, docs, demo, and minimum tool surface are working.
+8. Track MCP directory PRs and finish official MCP Registry namespace authentication before treating directory distribution as done.
 9. Use `14-landing-page-brand-brief.md` as the design/development brief for the fake-door landing page.
 10. Use `15-hono-cloudflare-runtime-decision.md` as the engineering baseline for the runtime scaffold and generated app template.
 11. Use `16-cli-sdk-mcp-packaging.md` to sequence create package, CLI, SDK, MCP, local MCP, and Dockerized MCP work.
 12. Use `17-mvp-detailed-execution-plan.md` as the build checklist for the MVP.
 13. Do not expand beyond the booking template until external users complete the local generation flow.
 14. Use `19-module-docs-source-and-permissions.md` and `docs/modules/` as the source of truth for module documentation, structure, and LLM-agent access.
-15. Add CLI/MCP doc tools before publishing to MCP directories.
+15. Add CLI/MCP doc tools before broadening the public MCP tool surface.
 16. Do not treat MCP directories as the first activation path; use them as discovery after the create flow works.
 17. Use `docs/templates/template-spec-standard.md`, `docs/templates/booking-sveltekit.md`, and `templates/booking-sveltekit` before extending the first full SvelteKit booking template.
-18. Continue Phase 24 in `../task_plan.md`: add the remote D1 migration/backfill, first-owner API-key bootstrap, CLI profiles, portal sessions, and isolation tests.
+18. Finish the remaining SvelteKit portal API-key management UI before billing.
 19. Keep `21-auth-first-account-and-cli-plan.md` as the auth source of truth before product billing, so Stripe subscriptions can attach to trusted workspaces and deploy entitlements.
-20. Do not start `22-product-billing-cli-admin-portal.md` implementation until the remaining auth migration, bootstrap, CLI, portal, and cross-workspace test gates are complete.
+20. Do not start `22-product-billing-cli-admin-portal.md` implementation until the portal API-key UI is complete and the auth gates remain green.
+21. Use `27-market-product-direction-and-mcp-distribution.md` as the current ICP and MCP distribution source of truth.
+22. Use `managed-deploy-oauth.md` for the user's-own-Cloudflare deploy path; prove the scoped-token flow before OAuth.

@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 25
+Phase 30
 
 ## Phases
 
@@ -228,6 +228,16 @@ Phase 25
 - [~] Add portal sessions, API-key management UI, and CSRF/cookie hardening. (API done: passwordless sessions in `auth-flow.ts`/`portal.ts`, `httpOnly+secure+SameSite=Lax` cookies, CORS origin allowlist. SvelteKit key-management UI still pending — the only open auth item.)
 - [x] Add cross-workspace route tests and MCP identity tests. (`api/test/isolation.test.mjs` function-level + `api/test/routes.test.mjs` HTTP/MCP-level via `app.fetch`; 22 tests total, node:sqlite D1. Covers 401 gates, per-route 404 isolation, and MCP identity scoping.)
 - **Status:** auth/tenancy, remote migration, bootstrap, portal API, CLI auth, and function+route+MCP isolation tests all complete; only the SvelteKit portal API-key UI remains before billing
+
+### Phase 30: Standalone MCP Package And Directory Distribution
+- [x] Split the MCP server into the standalone `microservices-sh/mcp` repository.
+- [x] Publish `@microservices-sh/mcp@0.1.1` to npm with Trusted Publisher.
+- [x] Validate `server.json` with the official MCP Registry publisher schema.
+- [x] Update MCP package defaults and README examples to `https://api.microservices.sh`.
+- [x] Open public listing PRs for Awesome MCP Servers, MCPFind, MCPSvr, and Docker MCP Registry.
+- [x] Identify blocked/non-PR directories and remaining official registry namespace-auth requirement.
+- [x] Publish `sh.microservices/mcp` to the official MCP Registry after DNS authentication.
+- **Status:** complete
 
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
