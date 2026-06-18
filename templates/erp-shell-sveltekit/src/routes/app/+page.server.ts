@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
   const [members, customers, invoices] = await Promise.all([
     listMembers(activeOrgId, { store: locals.rbacStore }),
     listCustomers({ customerRepository: locals.customerRepository }),
-    listInvoices({ tenantId: "demo-company" }, { invoiceStore: locals.invoiceStore })
+    listInvoices({ tenantId: activeOrgId }, { invoiceStore: locals.invoiceStore })
   ]);
 
   const invoiceList = invoices.ok ? invoices.data.invoices : [];

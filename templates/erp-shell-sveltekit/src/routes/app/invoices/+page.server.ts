@@ -4,8 +4,6 @@ import { listInvoices } from "@microservices-sh/invoice";
 import { listCustomers } from "@microservices-sh/customer";
 import { requireOrgPermission } from "$lib/server/org-context";
 
-const TENANT_ID = "demo-company";
-
 export const load: PageServerLoad = async ({ locals, cookies, parent }) => {
   const { activeOrgId } = await parent();
   if (!activeOrgId || !locals.user) throw redirect(303, "/app");
@@ -13,8 +11,9 @@ export const load: PageServerLoad = async ({ locals, cookies, parent }) => {
   // Read gate: org.read lets an employee view the invoice ledger.
   await requireOrgPermission(cookies, locals.user.id, activeOrgId, "org.read", locals.rbacStore);
 
+  // Invoices are scoped to the single company org; its id is the tenant.
   const [invoicesResult, customersResult] = await Promise.all([
-    listInvoices({ tenantId: TENANT_ID }, { invoiceStore: locals.invoiceStore }),
+    listInvoices({ tenantId: activeOrgId }, { invoiceStore: locals.invoiceStore }),
     listCustomers({ customerRepository: locals.customerRepository })
   ]);
 

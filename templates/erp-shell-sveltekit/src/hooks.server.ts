@@ -1,7 +1,6 @@
 import type { Handle, HandleServerError } from "@sveltejs/kit";
-import { resolveStores, memoryStores } from "$lib/server/stores";
+import { resolveStores } from "$lib/server/stores";
 import { readSession, getSessionSecret } from "$lib/server/session";
-import { seedDemoData } from "$lib/server/demo";
 import { reportRuntimeError } from "$lib/server/observability";
 
 // Wire module stores + the session user onto locals for every request. Stores are
@@ -25,20 +24,6 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.notificationStore = stores.notificationStore;
   event.locals.jobStore = stores.jobStore;
   event.locals.user = await readSession(event.cookies, getSessionSecret(event.platform));
-
-  // Local demo: seed the in-memory stores so customers/invoices/files render
-  // real, module-produced data without D1/R2. No-op when DB is present.
-  if (!db) {
-    await seedDemoData({
-      tenantId: "demo-company",
-      customerRepository: memoryStores.customerRepository,
-      invoiceStore: memoryStores.invoiceStore,
-      numberAllocator: memoryStores.numberAllocator,
-      mediaStore: memoryStores.mediaStore,
-      objectStorage: memoryStores.objectStorage,
-      auditStore: memoryStores.auditStore
-    });
-  }
 
   return resolve(event);
 };

@@ -3,8 +3,6 @@ import { redirect } from "@sveltejs/kit";
 import { listFiles } from "@microservices-sh/file-media";
 import { requireOrgPermission } from "$lib/server/org-context";
 
-const TENANT_ID = "demo-company";
-
 export const load: PageServerLoad = async ({ locals, cookies, parent }) => {
   const { activeOrgId } = await parent();
   if (!activeOrgId || !locals.user) throw redirect(303, "/app");
@@ -12,7 +10,8 @@ export const load: PageServerLoad = async ({ locals, cookies, parent }) => {
   // Read gate: org.read lets an employee view stored files (metadata only).
   await requireOrgPermission(cookies, locals.user.id, activeOrgId, "org.read", locals.rbacStore);
 
-  const result = await listFiles({ tenantId: TENANT_ID, status: "active" }, { mediaStore: locals.mediaStore });
+  // Files are scoped to the single company org; its id is the tenant.
+  const result = await listFiles({ tenantId: activeOrgId, status: "active" }, { mediaStore: locals.mediaStore });
   const files = result.ok ? result.data.files : [];
 
   return {
