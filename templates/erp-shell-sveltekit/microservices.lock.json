@@ -175,6 +175,24 @@
       }
     },
     {
+      "id": "billing-subscriptions",
+      "version": "0.1.0",
+      "source": "registry:billing-subscriptions@0.1.0",
+      "checksum": "sha256:preview-billing-subscriptions-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/billing",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["billing.read", "billing.write", "billing.admin", "billing-subscriptions.extend", "billing-subscriptions.observe"],
+        "rpc": [],
+        "hooks": [],
+        "events": ["subscription.started", "subscription.activated", "subscription.past_due", "subscription.canceled", "subscription.plan_changed"],
+        "requires": []
+      }
+    },
+    {
       "id": "file-media",
       "version": "0.1.0",
       "source": "registry:file-media@0.1.0",

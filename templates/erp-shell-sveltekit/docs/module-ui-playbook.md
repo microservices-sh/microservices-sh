@@ -89,7 +89,7 @@ The reference page is deliberately generic. When customizing:
 | file-media | Files — list + upload | ✅ `app/files` |
 | org-team-rbac | Team — members + invites | ✅ `app/team` |
 | payment | Payments — ledger + refunds | ✅ `app/payments` |
-| billing-subscriptions | Subscriptions — plans + status | ⬜ to author |
+| billing-subscriptions | Billing — plans + subscriptions | ✅ `app/billing` |
 | image-generation | Image generation — prompt + gallery | ⬜ to author |
 | ads-manager | Ads — campaigns + snapshots | ⬜ to author |
 | forms-intake | Intake forms — submissions | ⬜ to author |

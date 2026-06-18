@@ -11,6 +11,7 @@ import type { JobStore } from "@microservices-sh/jobs-workflows/ports";
 import type { AccountStore, LoginCodeStore, SessionStore } from "@microservices-sh/identity";
 import type { RateLimitStore } from "@microservices-sh/gateway/ports";
 import type { PaymentRepository, PaymentGateway } from "@microservices-sh/payment/ports";
+import type { BillingStore } from "@microservices-sh/billing-subscriptions/ports";
 
 declare global {
   namespace App {
@@ -52,6 +53,7 @@ declare global {
       // Payments: D1/memory repository + Stripe/memory gateway.
       paymentRepository: PaymentRepository;
       paymentGateway: PaymentGateway;
+      billingStore: BillingStore;
       // The signed-in principal, resolved from the session store each request.
       // isSuperAdmin is derived from the account's isAdmin flag, never the cookie.
       user: { id: string; email: string; isSuperAdmin: boolean } | null;

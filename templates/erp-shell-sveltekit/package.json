@@ -29,6 +29,7 @@
     "@microservices-sh/admin-shell": "workspace:*",
     "@microservices-sh/audit-log": "workspace:*",
     "@microservices-sh/auth": "workspace:*",
+    "@microservices-sh/billing-subscriptions": "workspace:*",
     "@microservices-sh/customer": "workspace:*",
     "@microservices-sh/email": "workspace:*",
     "@microservices-sh/file-media": "workspace:*",

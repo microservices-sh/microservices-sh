@@ -642,6 +642,9 @@ importers:
       '@microservices-sh/auth':
         specifier: workspace:*
         version: link:../../modules/auth
+      '@microservices-sh/billing-subscriptions':
+        specifier: workspace:*
+        version: link:../../modules/billing-subscriptions
       '@microservices-sh/customer':
         specifier: workspace:*
         version: link:../../modules/customer

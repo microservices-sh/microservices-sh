@@ -33,6 +33,7 @@ const MODULE_NAV: Record<string, NavItem> = {
   customer: { label: "Customers", href: "/app/customers" },
   invoice: { label: "Invoices", href: "/app/invoices" },
   payment: { label: "Payments", href: "/app/payments" },
+  "billing-subscriptions": { label: "Billing", href: "/app/billing" },
   "support-ticket": { label: "Support", href: "/app/support" },
   "notifications-inapp": { label: "Notifications", href: "/app/notifications" },
   "file-media": { label: "Files", href: "/app/files" },
@@ -40,7 +41,7 @@ const MODULE_NAV: Record<string, NavItem> = {
 };
 
 // Which modules belong to which sidebar group (operational vs organization).
-const OPERATIONS = ["customer", "invoice", "payment", "support-ticket", "notifications-inapp", "file-media"];
+const OPERATIONS = ["customer", "invoice", "payment", "billing-subscriptions", "support-ticket", "notifications-inapp", "file-media"];
 const ORGANIZATION = ["org-team-rbac"];
 
 function itemsFor(moduleIds: string[], enabled: Set<string>): NavItem[] {
