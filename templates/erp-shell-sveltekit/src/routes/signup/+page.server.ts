@@ -1,8 +1,9 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { createOrganization, inviteMember } from "@microservices-sh/org-team-rbac";
+import { requestLoginCode, verifyLoginCode } from "@microservices-sh/identity";
 import { recordEvent } from "@microservices-sh/audit-log";
-import { writeSession, userIdForEmail, getSessionSecret } from "$lib/server/session";
+import { setSessionCookie, adminEmailsFor } from "$lib/server/session";
 import { rememberCompanyOrg, loadCompanyContext } from "$lib/server/org-context";
 
 interface SetupInvite {
@@ -64,7 +65,25 @@ export const actions: Actions = {
       return fail(400, { error: "Enter a company name.", values });
     }
 
-    const userId = userIdForEmail(email);
+    // Bootstrap the owner's real identity account + session. requestLoginCode
+    // returns the plaintext code to us, so we verify it server-side immediately:
+    // the owner is provisioned and signed in atomically (no email round-trip for
+    // the very first user), and the account id becomes the org owner id.
+    const codeRes = await requestLoginCode(
+      { email },
+      { accountStore: locals.accountStore, loginCodeStore: locals.loginCodeStore, adminEmails: adminEmailsFor(platform) }
+    );
+    if (!codeRes.ok) {
+      return fail(codeRes.status ?? 400, { error: codeRes.error?.message ?? "Could not start setup.", values });
+    }
+    const verifyRes = await verifyLoginCode(
+      { email, code: codeRes.data.code },
+      { accountStore: locals.accountStore, loginCodeStore: locals.loginCodeStore, sessionStore: locals.sessionStore }
+    );
+    if (!verifyRes.ok) {
+      return fail(verifyRes.status ?? 400, { error: verifyRes.error?.message ?? "Could not start setup.", values });
+    }
+    const userId = verifyRes.data.user.id;
 
     // The org-team-rbac use case creates the company org, seeds owner/admin/member
     // roles, and makes this user the owner — all in one framework-neutral call.
@@ -103,7 +122,7 @@ export const actions: Actions = {
       }
     }
 
-    await writeSession(cookies, { id: userId, email }, getSessionSecret(platform));
+    setSessionCookie(cookies, verifyRes.data.sessionId);
     rememberCompanyOrg(cookies, orgId);
 
     throw redirect(303, "/app");

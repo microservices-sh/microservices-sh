@@ -30,6 +30,7 @@
     "@microservices-sh/audit-log": "workspace:*",
     "@microservices-sh/auth": "workspace:*",
     "@microservices-sh/customer": "workspace:*",
+    "@microservices-sh/email": "workspace:*",
     "@microservices-sh/file-media": "workspace:*",
     "@microservices-sh/identity": "workspace:*",
     "@microservices-sh/invoice": "workspace:*",

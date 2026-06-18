@@ -19,6 +19,17 @@ import { createD1NotificationStore } from "@microservices-sh/notifications-inapp
 import { createMemoryNotificationStore } from "@microservices-sh/notifications-inapp/adapters/memory";
 import { createD1JobStore } from "@microservices-sh/jobs-workflows/adapters/d1";
 import { createMemoryJobStore } from "@microservices-sh/jobs-workflows/adapters/memory";
+import {
+  createD1AccountStore,
+  createD1LoginCodeStore,
+  createD1SessionStore,
+  createMemoryAccountStore,
+  createMemoryLoginCodeStore,
+  createMemorySessionStore,
+  type AccountStore,
+  type LoginCodeStore,
+  type SessionStore
+} from "@microservices-sh/identity";
 
 import type { RbacStore } from "@microservices-sh/org-team-rbac/ports";
 import type { TableGateway } from "@microservices-sh/admin-shell/ports";
@@ -46,6 +57,9 @@ const memoryMediaStore = createMemoryMediaStore();
 const memoryObjectStorage = createMemoryObjectStorage();
 const memoryNotificationStore = createMemoryNotificationStore();
 const memoryJobStore = createMemoryJobStore();
+const memoryAccountStore = createMemoryAccountStore();
+const memoryLoginCodeStore = createMemoryLoginCodeStore();
+const memorySessionStore = createMemorySessionStore();
 
 export interface ServerStores {
   rbacStore: RbacStore;
@@ -60,6 +74,9 @@ export interface ServerStores {
   objectStorage: ObjectStorage;
   notificationStore: NotificationStore;
   jobStore: JobStore;
+  accountStore: AccountStore;
+  loginCodeStore: LoginCodeStore;
+  sessionStore: SessionStore;
 }
 
 // The platform bindings as declared on App.Platform — referenced via the platform
@@ -83,7 +100,10 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     mediaStore: db ? createD1MediaStore(db) : memoryMediaStore,
     objectStorage: bucket ? createR2ObjectStorage(bucket) : memoryObjectStorage,
     notificationStore: db ? createD1NotificationStore(db) : memoryNotificationStore,
-    jobStore: db ? createD1JobStore(db) : memoryJobStore
+    jobStore: db ? createD1JobStore(db) : memoryJobStore,
+    accountStore: db ? createD1AccountStore(db) : memoryAccountStore,
+    loginCodeStore: db ? createD1LoginCodeStore(db) : memoryLoginCodeStore,
+    sessionStore: db ? createD1SessionStore(db) : memorySessionStore
   };
 }
 

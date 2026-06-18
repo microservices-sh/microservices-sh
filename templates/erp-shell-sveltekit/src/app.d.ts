@@ -8,6 +8,7 @@ import type { InvoiceStore, NumberAllocator } from "@microservices-sh/invoice/po
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
 import type { NotificationStore } from "@microservices-sh/notifications-inapp/ports";
 import type { JobStore } from "@microservices-sh/jobs-workflows/ports";
+import type { AccountStore, LoginCodeStore, SessionStore } from "@microservices-sh/identity";
 
 declare global {
   namespace App {
@@ -37,9 +38,13 @@ declare global {
       objectStorage: ObjectStorage;
       notificationStore: NotificationStore;
       jobStore: JobStore;
-      // The signed-in principal. In this ERP shell the session user is a demo
-      // identity; wire @microservices-sh/identity (passwordless email-code →
-      // verifyLoginCode/readSession) for real employee sessions.
+      // Passwordless identity stores (@microservices-sh/identity): accounts,
+      // one-time login codes, and server-side sessions.
+      accountStore: AccountStore;
+      loginCodeStore: LoginCodeStore;
+      sessionStore: SessionStore;
+      // The signed-in principal, resolved from the session store each request.
+      // isSuperAdmin is derived from the account's isAdmin flag, never the cookie.
       user: { id: string; email: string; isSuperAdmin: boolean } | null;
     }
   }

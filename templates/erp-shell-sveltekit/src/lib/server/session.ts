@@ -1,7 +1,21 @@
 import type { Cookies } from "@sveltejs/kit";
 import { dev } from "$app/environment";
+import {
+  readSession as identityReadSession,
+  destroySession,
+  SESSION_COOKIE,
+  type AccountStore,
+  type SessionStore
+} from "@microservices-sh/identity";
 
-const SESSION_COOKIE = "erp_session";
+// ── Real session layer (passwordless identity) ──────────────────────────────
+//
+// Replaces the old demo HMAC cookie. Sessions are now opaque, server-side records
+// owned by @microservices-sh/identity; the cookie carries only the session id.
+// The signed-in principal is resolved from the store every request (fail-closed),
+// and super-admin is derived from the account's isAdmin flag — never the cookie.
+
+export { SESSION_COOKIE };
 
 export interface SessionUser {
   id: string;
@@ -9,91 +23,55 @@ export interface SessionUser {
   isSuperAdmin: boolean;
 }
 
-// Stored payload — note isSuperAdmin is NOT persisted: it is derived from the
-// server-side allowlist on every read, never trusted from the cookie.
-interface StoredSession {
-  id: string;
-  email: string;
+export interface IdentityStoreDeps {
+  accountStore: AccountStore;
+  sessionStore: SessionStore;
 }
 
-const SUPER_ADMIN_EMAILS = new Set(["admin@example.com"]);
+// Bootstrap admin emails (env ADMIN_EMAILS, comma-separated) get isAdmin on first
+// login. A default keeps the starter's super-admin demo working out of the box.
+const DEFAULT_ADMIN_EMAILS = ["admin@example.com"];
 
-export function isSuperAdminEmail(email: string): boolean {
-  return SUPER_ADMIN_EMAILS.has(email.trim().toLowerCase());
+export function adminEmailsFor(platform: App.Platform | undefined): string[] {
+  const env = (platform?.env ?? {}) as { ADMIN_EMAILS?: string };
+  const fromEnv = (env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return fromEnv.length > 0 ? fromEnv : DEFAULT_ADMIN_EMAILS;
 }
 
-// The cookie is signed (HMAC-SHA256) with a server secret so its contents can't
-// be forged client-side. Provide SESSION_SECRET via env in production; a dev
-// fallback keeps the starter runnable locally. For real auth, swap this whole
-// module for the @microservices-sh/auth JWT flow (the JWKS endpoint is wired).
-export function getSessionSecret(platform: App.Platform | undefined): string {
-  const env = (platform?.env ?? {}) as { SESSION_SECRET?: string };
-  return env.SESSION_SECRET ?? "dev-insecure-session-secret-change-me";
-}
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 
+// Secure cookie except on plain-HTTP local dev (so the session survives over
+// http://localhost). SameSite=Lax + httpOnly always.
 function cookieOptions() {
-  return { path: "/", httpOnly: true, sameSite: "lax" as const, secure: !dev, maxAge: 60 * 60 * 24 * 30 };
+  return { path: "/", httpOnly: true, sameSite: "lax" as const, secure: !dev, maxAge: COOKIE_MAX_AGE };
 }
 
-function b64url(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+export function setSessionCookie(cookies: Cookies, sessionId: string): void {
+  cookies.set(SESSION_COOKIE, sessionId, cookieOptions());
 }
 
-async function sign(secret: string, payload: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
+// Resolve the current user from the session cookie, or null. Re-validated against
+// the session store every call; a missing/expired session yields null.
+export async function getCurrentUser(cookies: Cookies, deps: IdentityStoreDeps): Promise<SessionUser | null> {
+  const sessionId = cookies.get(SESSION_COOKIE);
+  if (!sessionId) return null;
+
+  const result = await identityReadSession(
+    { sessionId },
+    { accountStore: deps.accountStore, sessionStore: deps.sessionStore }
   );
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
-  return b64url(new Uint8Array(sig));
+  if (!result.ok || !result.data.user) return null;
+
+  const { id, email, isAdmin } = result.data.user;
+  return { id, email, isSuperAdmin: isAdmin };
 }
 
-function constantTimeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
-export async function readSession(cookies: Cookies, secret: string): Promise<SessionUser | null> {
-  const raw = cookies.get(SESSION_COOKIE);
-  if (!raw) return null;
-  const dot = raw.lastIndexOf(".");
-  if (dot < 0) return null;
-  const payload = raw.slice(0, dot);
-  const providedSig = raw.slice(dot + 1);
-  const expectedSig = await sign(secret, payload);
-  if (!constantTimeEqual(providedSig, expectedSig)) return null; // tampered / unsigned
-  try {
-    const parsed = JSON.parse(atob(payload)) as Partial<StoredSession>;
-    if (!parsed.id || !parsed.email) return null;
-    // isSuperAdmin is authoritative from the allowlist, NOT the cookie.
-    return { id: parsed.id, email: parsed.email, isSuperAdmin: isSuperAdminEmail(parsed.email) };
-  } catch {
-    return null;
-  }
-}
-
-export async function writeSession(cookies: Cookies, user: StoredSession, secret: string): Promise<void> {
-  const payload = btoa(JSON.stringify({ id: user.id, email: user.email }));
-  const sig = await sign(secret, payload);
-  cookies.set(SESSION_COOKIE, `${payload}.${sig}`, cookieOptions());
-}
-
-export function clearSession(cookies: Cookies): void {
+// End the session: delete the server record, then clear the cookie.
+export async function endSession(cookies: Cookies, sessionStore: SessionStore): Promise<void> {
+  const sessionId = cookies.get(SESSION_COOKIE);
+  if (sessionId) await destroySession({ sessionId }, { sessionStore });
   cookies.delete(SESSION_COOKIE, { path: "/" });
-}
-
-// Deterministic-ish user id from an email so repeat logins map to one identity in
-// the in-memory dev store. Super-admin is granted to the configured email(s).
-export function userIdForEmail(email: string): string {
-  const normalized = email.trim().toLowerCase();
-  let hash = 0;
-  for (let i = 0; i < normalized.length; i += 1) {
-    hash = (hash * 31 + normalized.charCodeAt(i)) >>> 0;
-  }
-  return `usr_${hash.toString(16).padStart(8, "0")}`;
 }

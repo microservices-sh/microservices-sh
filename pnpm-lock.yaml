@@ -569,6 +569,9 @@ importers:
       '@microservices-sh/customer':
         specifier: workspace:*
         version: link:../../modules/customer
+      '@microservices-sh/email':
+        specifier: workspace:*
+        version: link:../../modules/email
       '@microservices-sh/file-media':
         specifier: workspace:*
         version: link:../../modules/file-media

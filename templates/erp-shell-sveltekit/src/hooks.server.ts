@@ -1,6 +1,6 @@
 import type { Handle, HandleServerError } from "@sveltejs/kit";
 import { resolveStores } from "$lib/server/stores";
-import { readSession, getSessionSecret } from "$lib/server/session";
+import { getCurrentUser } from "$lib/server/session";
 import { reportRuntimeError } from "$lib/server/observability";
 
 // Wire module stores + the session user onto locals for every request. Stores are
@@ -24,7 +24,13 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.objectStorage = stores.objectStorage;
   event.locals.notificationStore = stores.notificationStore;
   event.locals.jobStore = stores.jobStore;
-  event.locals.user = await readSession(event.cookies, getSessionSecret(event.platform));
+  event.locals.accountStore = stores.accountStore;
+  event.locals.loginCodeStore = stores.loginCodeStore;
+  event.locals.sessionStore = stores.sessionStore;
+  event.locals.user = await getCurrentUser(event.cookies, {
+    accountStore: stores.accountStore,
+    sessionStore: stores.sessionStore
+  });
 
   return resolve(event);
 };
