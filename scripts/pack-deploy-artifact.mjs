@@ -127,9 +127,8 @@ const manifest = {
 };
 writeFileSync(join(outDir, "manifest.json"), JSON.stringify(manifest, null, 2));
 
-// Control-plane-consumable artifact ({composition, files}) - matches the api's
-// normalizeUploadedArtifact, so createPreviewDeploymentFromArtifact can deploy
-// this prebuilt build with no user upload / no Worker-side vite build.
+// Control-plane-consumable artifact. The API accepts it under the top-level
+// `artifact` field on POST /deployments/preview.
 const lock = existsSync(join(appDir, "microservices.lock.json"))
   ? JSON.parse(readFileSync(join(appDir, "microservices.lock.json"), "utf8"))
   : {};
@@ -139,7 +138,7 @@ const cfg = existsSync(join(appDir, "microservices.config.json"))
 const moduleIds = (lock.modules ?? tpl.modules?.required ?? [])
   .map((m) => (typeof m === "string" ? m : m?.id))
   .filter(Boolean);
-const payload = {
+const artifact = {
   source: "ci-prebuilt",
   composition: {
     template: { id: templateId, name: tpl.displayName ?? tpl.name ?? templateId },
@@ -148,6 +147,14 @@ const payload = {
   },
   metadata: { template: templateId, version, fileCount: entries.length, totalBytes },
   files: entries.map((e) => ({ path: e.path, contents: e.contents })),
+};
+const payload = {
+  templateId,
+  modules: moduleIds,
+  config: cfg,
+  prebuilt: true,
+  artifactVersion: version,
+  artifact,
 };
 writeFileSync(join(outDir, "payload.json"), JSON.stringify(payload));
 
@@ -159,5 +166,5 @@ const tarSize = statSync(tarPath).size;
 console.log(`OK: artifact ready: ${templateId}@${version}`);
 console.log(`  files: ${entries.length} | uncompressed: ${(totalBytes / 1024).toFixed(0)} KiB | tar.gz: ${(tarSize / 1024).toFixed(0)} KiB`);
 console.log(`  manifest: ${relative(process.cwd(), join(outDir, "manifest.json"))}`);
-console.log(`  payload:  ${relative(process.cwd(), join(outDir, "payload.json"))} (control-plane upload shape)`);
+console.log(`  payload:  ${relative(process.cwd(), join(outDir, "payload.json"))} (POST /deployments/preview shape)`);
 console.log(`  tarball:  ${relative(process.cwd(), tarPath)}`);
