@@ -1,0 +1,79 @@
+name: Build deploy artifacts
+
+# Phase B: build each deployable template ONCE in CI and store an upload-ready
+# artifact, so the managed control plane can deploy into a user's Cloudflare
+# account without the user's machine (no per-user npm install / vite build).
+# The pack step enforces the same upload-readiness gate as the control plane.
+
+on:
+  workflow_dispatch:
+    inputs:
+      template:
+        description: "Template id to build (blank = all in the matrix)"
+        required: false
+  release:
+    types: [published]
+
+jobs:
+  artifact:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        template: [booking-sveltekit]
+    env:
+      MICROSERVICES_TELEMETRY: "0"
+      R2_ARTIFACTS_BUCKET: ${{ secrets.R2_ARTIFACTS_BUCKET }}
+      R2_ARTIFACTS_TOKEN: ${{ secrets.R2_ARTIFACTS_TOKEN }}
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      TEMPLATE: ${{ matrix.template }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10 --activate
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Build create-microservices-app (bundles templates into dist)
+        run: pnpm --filter create-microservices-app build
+
+      - name: Scaffold the template
+        run: node packages/create-microservices-app/dist/index.js app --template "$TEMPLATE" --dir "$RUNNER_TEMP" --no-install --no-git
+
+      - name: Install + build the app
+        working-directory: ${{ runner.temp }}/app
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+
+      - name: Pack + readiness-gate the deploy artifact
+        run: node scripts/pack-deploy-artifact.mjs "$RUNNER_TEMP/app" --template "$TEMPLATE" --out "$RUNNER_TEMP/artifact"
+
+      - name: Upload artifact (CI)
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-artifact-${{ matrix.template }}
+          path: ${{ runner.temp }}/artifact/
+
+      # Production storage: push to R2 so the control plane can fetch it per deploy.
+      # Gated on secrets so the workflow still runs (and validates the build+gate)
+      # without R2 configured.
+      - name: Publish artifact to R2
+        if: ${{ env.R2_ARTIFACTS_BUCKET != '' && env.R2_ARTIFACTS_TOKEN != '' && env.CF_ACCOUNT_ID != '' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ env.R2_ARTIFACTS_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}
+        run: |
+          ver=$(node -p "require('$RUNNER_TEMP/app/microservices.template.json').version")
+          npx wrangler r2 object put "$R2_ARTIFACTS_BUCKET/$TEMPLATE/${ver}.tar.gz" \
+            --file "$RUNNER_TEMP/artifact/$TEMPLATE@${ver}.tar.gz" --remote
+          npx wrangler r2 object put "$R2_ARTIFACTS_BUCKET/$TEMPLATE/${ver}.manifest.json" \
+            --file "$RUNNER_TEMP/artifact/manifest.json" --remote
