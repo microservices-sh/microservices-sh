@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 35
+Phase 36
 
 ## Phases
 
@@ -256,6 +256,14 @@ Phase 35
 - [x] Add operator-work to the central module contract catalog with permissions, RPC methods, events, hooks, and surfaces.
 - [x] Ensure generated SDK module docs include declared agentic tools and approval gates.
 - [x] Validate module contract, SDK docs, operator-work spec, and operator-work build.
+- **Status:** complete
+
+### Phase 36: Workspace Module Surface Discovery
+- [x] Add admin, visitor, and agentic surface declarations to checked-in module manifests.
+- [x] Add lightweight reference UI and operator skill docs for every module surface.
+- [x] Teach workspace-tools to normalize surfaces, validate local surface files, include surfaces in registry output, and expose them in discovery output.
+- [x] Extend tests for surface normalization and checked-in module surface coverage.
+- [x] Validate workspace-tools, spec checks, registry build, and discovery output.
 - **Status:** complete
 
 ### Phase 25: Agentic Cloudflare Migration Prompt Orchestrator

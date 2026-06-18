@@ -45,6 +45,31 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Media", "path": "/media", "permission": "media.read", "icon": "Image" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": true,
+      "featureKey": "files",
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["file-media.createUploadTicket", "file-media.completeUpload", "file-media.listFiles", "file-media.deleteFile"],
+      "skillPaths": ["skills/file-media-operator/SKILL.md"],
+      "approvalRequiredFor": ["file-media.deleteFile"]
+    }
+  },
+  "skills": [
+    {
+      "id": "file-media-operator",
+      "path": "skills/file-media-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "visitor-files", "media-management"]
+    }
+  ],
   "approval": {
     "risk": "medium",
     "requiresApprovalFor": ["migrations", "object-deletion", "production-deploy"]

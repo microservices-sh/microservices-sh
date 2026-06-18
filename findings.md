@@ -145,6 +145,7 @@
 - External side effects remain out of scope for this slice: no Google Calendar write-back, AI provider calls, Obsidian export, or CMS/social publishing without a later approval module.
 - The central module catalog now needs to carry agentic surfaces, not only routes and dependencies, so CLI/SDK/MCP docs can tell agents which tools are read-only and which require approval.
 - `operator-work` should stay `draft` while the local D1/memory use cases mature, but it is still useful in the contract catalog so generated DOT AI OS apps have an inspectable operator-work tool map.
+- Workspace registry and discovery need to expose module `surfaces`, `referenceUi`, and `skillFiles` so agents can plan admin UI wiring, visitor surfaces, and approval-gated tool use without scraping individual module folders.
 
 ## Agentic Admin And Visitor Template Findings
 - `saas-starter-sveltekit` was marked ready while still using direct demo sessions in `/login`; production readiness requires identity-owned sessions and passwordless email-code verification.

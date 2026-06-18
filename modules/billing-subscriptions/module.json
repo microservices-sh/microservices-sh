@@ -42,6 +42,29 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Billing", "path": "/settings/billing", "permission": "billing.read", "icon": "Receipt" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": false
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["billing-subscriptions.listPlans", "billing-subscriptions.startSubscription", "billing-subscriptions.changePlan", "billing-subscriptions.cancelSubscription"],
+      "skillPaths": ["skills/billing-subscriptions-operator/SKILL.md"],
+      "approvalRequiredFor": ["billing-subscriptions.startSubscription", "billing-subscriptions.changePlan", "billing-subscriptions.cancelSubscription"]
+    }
+  },
+  "skills": [
+    {
+      "id": "billing-subscriptions-operator",
+      "path": "skills/billing-subscriptions-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "subscription-management", "money-mutations"]
+    }
+  ],
   "approval": {
     "risk": "high",
     "requiresApprovalFor": ["migrations", "money-mutations", "production-deploy"]

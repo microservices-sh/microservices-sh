@@ -37,6 +37,29 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Jobs", "path": "/settings/jobs", "permission": "jobs.read", "icon": "Workflow" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": false
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["jobs-workflows.enqueueJob", "jobs-workflows.listJobs", "jobs-workflows.runJob", "jobs-workflows.runDueJobs", "jobs-workflows.upsertSchedule", "jobs-workflows.dueScheduledJobs"],
+      "skillPaths": ["skills/jobs-workflows-operator/SKILL.md"],
+      "approvalRequiredFor": ["jobs-workflows.enqueueJob", "jobs-workflows.runJob", "jobs-workflows.runDueJobs", "jobs-workflows.upsertSchedule"]
+    }
+  },
+  "skills": [
+    {
+      "id": "jobs-workflows-operator",
+      "path": "skills/jobs-workflows-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "background-jobs", "workflow-triage"]
+    }
+  ],
   "approval": {
     "risk": "high",
     "requiresApprovalFor": ["migrations", "background-side-effects", "production-deploy"]

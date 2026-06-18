@@ -40,6 +40,31 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Team", "path": "/team", "permission": "org.read", "icon": "UsersRound" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": true,
+      "featureKey": "teamInvites",
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["org-team-rbac.createOrganization", "org-team-rbac.updateOrganization", "org-team-rbac.listMembers", "org-team-rbac.inviteMember", "org-team-rbac.acceptInvitation", "org-team-rbac.updateMemberRole", "org-team-rbac.removeMember", "org-team-rbac.createRole", "org-team-rbac.authorize"],
+      "skillPaths": ["skills/org-team-rbac-operator/SKILL.md"],
+      "approvalRequiredFor": ["org-team-rbac.createOrganization", "org-team-rbac.updateOrganization", "org-team-rbac.inviteMember", "org-team-rbac.acceptInvitation", "org-team-rbac.updateMemberRole", "org-team-rbac.removeMember", "org-team-rbac.createRole"]
+    }
+  },
+  "skills": [
+    {
+      "id": "org-team-rbac-operator",
+      "path": "skills/org-team-rbac-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "team-management", "permission-changes"]
+    }
+  ],
   "approval": {
     "risk": "high",
     "requiresApprovalFor": ["migrations", "permission-changes", "production-deploy"]

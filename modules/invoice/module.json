@@ -39,6 +39,31 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Invoices", "path": "/invoices", "permission": "invoice.read", "icon": "FileText" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": true,
+      "featureKey": "invoices",
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["invoice.listInvoices", "invoice.getInvoice", "invoice.issueInvoice", "invoice.recordPayment", "invoice.voidInvoice"],
+      "skillPaths": ["skills/invoice-operator/SKILL.md"],
+      "approvalRequiredFor": ["invoice.issueInvoice", "invoice.recordPayment", "invoice.voidInvoice"]
+    }
+  },
+  "skills": [
+    {
+      "id": "invoice-operator",
+      "path": "skills/invoice-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "billing-support", "money-mutations"]
+    }
+  ],
   "approval": {
     "risk": "high",
     "requiresApprovalFor": ["migrations", "money-mutations", "production-deploy"]

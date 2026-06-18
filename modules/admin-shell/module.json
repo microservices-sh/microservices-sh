@@ -33,6 +33,29 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Admin", "path": "/admin", "permission": "admin.access", "icon": "Settings" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": false
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["admin-shell.listRecords", "admin-shell.getRecord", "admin-shell.createRecord", "admin-shell.updateRecord", "admin-shell.deleteRecord"],
+      "skillPaths": ["skills/admin-shell-operator/SKILL.md"],
+      "approvalRequiredFor": ["admin-shell.createRecord", "admin-shell.updateRecord", "admin-shell.deleteRecord"]
+    }
+  },
+  "skills": [
+    {
+      "id": "admin-shell-operator",
+      "path": "skills/admin-shell-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "resource-management", "agentic-admin"]
+    }
+  ],
   "approval": {
     "risk": "high",
     "requiresApprovalFor": ["data-mutations", "permission-changes", "production-deploy"]

@@ -47,6 +47,31 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Bookings", "path": "/bookings", "permission": "booking.read", "icon": "CalendarDays" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": true,
+      "featureKey": "spaces",
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["booking.listBookings", "booking.getBooking", "booking.getAvailability", "booking.createBooking", "booking.cancelBooking"],
+      "skillPaths": ["skills/booking-operator/SKILL.md"],
+      "approvalRequiredFor": ["booking.createBooking", "booking.cancelBooking"]
+    }
+  },
+  "skills": [
+    {
+      "id": "booking-operator",
+      "path": "skills/booking-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "visitor-support", "agentic-booking"]
+    }
+  ],
   "approval": {
     "risk": "medium",
     "requiresApprovalFor": ["migrations", "pii-fields", "production-deploy", "payment-or-email-side-effects"]

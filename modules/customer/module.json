@@ -42,6 +42,31 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Customers", "path": "/customers", "permission": "customer.read", "icon": "Users" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": true,
+      "featureKey": "memberProfile",
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["customer.listCustomers", "customer.getCustomer", "customer.upsertCustomer"],
+      "skillPaths": ["skills/customer-operator/SKILL.md"],
+      "approvalRequiredFor": ["customer.upsertCustomer", "customer.deleteCustomer"]
+    }
+  },
+  "skills": [
+    {
+      "id": "customer-operator",
+      "path": "skills/customer-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "customer-lifecycle", "visitor-support"]
+    }
+  ],
   "approval": {
     "risk": "medium",
     "requiresApprovalFor": ["migrations", "pii-fields", "production-deploy", "external-sync"]

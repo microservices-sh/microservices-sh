@@ -41,6 +41,29 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Gateway", "path": "/settings/api-keys", "permission": "gateway.admin", "icon": "KeyRound" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": false
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["gateway.createApiKey", "gateway.verifyApiKey", "gateway.issueToken"],
+      "skillPaths": ["skills/gateway-operator/SKILL.md"],
+      "approvalRequiredFor": ["gateway.createApiKey", "gateway.issueToken"]
+    }
+  },
+  "skills": [
+    {
+      "id": "gateway-operator",
+      "path": "skills/gateway-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "api-key-management", "public-boundary"]
+    }
+  ],
   "approval": {
     "risk": "high",
     "requiresApprovalFor": ["migrations", "api-key-management", "public-exposure", "production-deploy"]

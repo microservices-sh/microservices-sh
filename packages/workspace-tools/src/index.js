@@ -395,15 +395,80 @@ export function normalizeSkillMetadata(value) {
         id: typeof skill.id === "string" ? skill.id : "",
         recommendedFor: Array.isArray(skill.recommendedFor)
           ? skill.recommendedFor.filter((item) => typeof item === "string")
-          : []
+          : [],
+        ...(typeof skill.path === "string" ? { path: skill.path } : {})
       };
     })
     .filter((skill) => skill && /^[a-z][a-z0-9-]*[a-z0-9]$/.test(skill.id));
 }
 
+function stringList(value) {
+  return Array.isArray(value) ? value.filter((item) => typeof item === "string" && item.trim().length > 0) : [];
+}
+
+function safePathList(value) {
+  return stringList(value).filter(isSafeRelativePath);
+}
+
+function normalizeNavigationItems(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+      const label = typeof item.label === "string" ? item.label : "";
+      const path = typeof item.path === "string" ? item.path : "";
+      if (!label || !path) return null;
+      return {
+        label,
+        path,
+        ...(typeof item.permission === "string" ? { permission: item.permission } : {}),
+        ...(typeof item.icon === "string" ? { icon: item.icon } : {})
+      };
+    })
+    .filter(Boolean);
+}
+
+export function normalizeSurfaceMetadata(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const output = {};
+  for (const key of ["admin", "visitor", "agentic"]) {
+    const surface = value[key];
+    if (surface === undefined) continue;
+    if (!surface || typeof surface !== "object" || Array.isArray(surface)) return null;
+
+    const normalized = {
+      applicable: typeof surface.applicable === "boolean" ? surface.applicable : true
+    };
+    const referenceUi = safePathList(surface.referenceUi);
+    const skillPaths = safePathList(surface.skillPaths);
+    const tools = stringList(surface.tools ?? surface.mcpTools);
+    const approvalRequired = stringList(surface.approvalRequiredFor ?? surface.approvalRequired);
+
+    if (referenceUi.length > 0) normalized.referenceUi = referenceUi;
+    if (key === "admin") {
+      const nav = normalizeNavigationItems(surface.nav);
+      if (nav.length > 0) normalized.nav = nav;
+    }
+    if (key === "visitor" && typeof surface.featureKey === "string" && surface.featureKey.trim()) {
+      normalized.featureKey = surface.featureKey;
+    }
+    if (key === "agentic") {
+      if (tools.length > 0) normalized.tools = tools;
+      if (skillPaths.length > 0) normalized.skillPaths = skillPaths;
+      if (approvalRequired.length > 0) normalized.approvalRequired = approvalRequired;
+    }
+
+    output[key] = normalized;
+  }
+
+  return Object.keys(output).length > 0 ? output : null;
+}
+
 function assertInteractionMetadata(checks, targetPath, manifest, label) {
   const interactive = normalizeInteractiveMetadata(manifest.interactive);
   const skills = normalizeSkillMetadata(manifest.skills);
+  const surfaces = normalizeSurfaceMetadata(manifest.surfaces);
 
   if (manifest.interactive === undefined) {
     record(checks, `${label}:interactive:optional`, `${label} has no interactive setup metadata.`);
@@ -434,6 +499,45 @@ function assertInteractionMetadata(checks, targetPath, manifest, label) {
       skills.length === manifest.skills.length,
       `${label} recommended skills are valid skill ids or skill metadata objects.`
     );
+
+    for (const skill of skills.filter((item) => item.path)) {
+      assertCheck(
+        checks,
+        `${label}:skills:path:${skill.path}`,
+        isSafeRelativePath(skill.path) && existsSync(join(targetPath, skill.path)),
+        `${label} local skill file exists at ${skill.path}.`
+      );
+    }
+  }
+
+  if (manifest.surfaces === undefined) {
+    record(checks, `${label}:surfaces:optional`, `${label} has no surface metadata.`);
+  } else {
+    assertCheck(
+      checks,
+      `${label}:surfaces:shape`,
+      Boolean(surfaces),
+      `${label} surfaces metadata declares admin, visitor, or agentic lanes.`
+    );
+
+    for (const [surfaceName, surface] of Object.entries(surfaces ?? {})) {
+      for (const path of surface.referenceUi ?? []) {
+        assertCheck(
+          checks,
+          `${label}:surfaces:${surfaceName}:reference-ui:${path}`,
+          isSafeRelativePath(path) && existsSync(join(targetPath, path)),
+          `${label} ${surfaceName} reference UI exists at ${path}.`
+        );
+      }
+      for (const path of surface.skillPaths ?? []) {
+        assertCheck(
+          checks,
+          `${label}:surfaces:${surfaceName}:skill:${path}`,
+          isSafeRelativePath(path) && existsSync(join(targetPath, path)),
+          `${label} ${surfaceName} skill file exists at ${path}.`
+        );
+      }
+    }
   }
 }
 
@@ -760,6 +864,32 @@ function moduleScaffoldFiles({ id, name, summary, className }) {
       default: "config-hooks",
       supported: ["config", "hooks", "overlay", "fork"]
     },
+    surfaces: {
+      admin: {
+        applicable: true,
+        nav: [
+          { label: name, path: `/${id}`, permission: `${id}.read` }
+        ],
+        referenceUi: ["reference-ui/admin/README.md"]
+      },
+      visitor: {
+        applicable: false,
+        referenceUi: ["reference-ui/visitor/README.md"]
+      },
+      agentic: {
+        applicable: true,
+        tools: [`${id}.read`, `${id}.write`],
+        skillPaths: [`skills/${id}-operator/SKILL.md`],
+        approvalRequiredFor: [`${id}.write`]
+      }
+    },
+    skills: [
+      {
+        id: `${id}-operator`,
+        path: `skills/${id}-operator/SKILL.md`,
+        recommendedFor: ["admin-operations", "agentic-tools"]
+      }
+    ],
     approval: {
       risk: "medium",
       requiresApprovalFor: ["migrations", "pii-fields", "production-deploy", "external-side-effects"]
@@ -846,6 +976,10 @@ function moduleScaffoldFiles({ id, name, summary, className }) {
     { path: "README.md", contents: `# ${name} Module\n\nStatus: \`draft\`\n\n${summary}\n\n## Public Surface\n\n\`\`\`ts\nimport { ${camelId}Module } from "${packageName}";\n\`\`\`\n\n## Ownership Boundary\n\nThe module owns domain behavior, schemas, hooks, events, permissions, resources, and migrations for \`${id}\`.\n\nTemplates own app shell, route adapters, UI layout, and framework-specific response mapping.\n` },
     { path: "README.agent.md", contents: `# ${name} Module Agent Guide\n\nUse this module through \`${packageName}\`.\n\nSafe first actions:\n\n1. Read \`module.json\`.\n2. Read \`llms.txt\`.\n3. Inspect \`src/index.ts\` exports.\n4. Run \`pnpm check:spec\`.\n5. Run \`pnpm build\` after source edits.\n\nDo not add provider calls, secrets, migrations, or production deploy behavior without approval.\n` },
     { path: "llms.txt", contents: `# ${name} Module\n\nModule ID: ${id}\nStatus: draft\nPurpose: ${summary}\nEntrypoint: src/index.ts\nCheck: pnpm check:spec\nBuild: pnpm build\n` },
+    { path: "reference-ui/README.md", contents: `# ${name} Reference UI\n\nThese files are installable examples for host apps. They are not required runtime code.\n\n- \`admin/\` is for authenticated operator/admin surfaces.\n- \`visitor/\` is for public or customer-facing surfaces when applicable.\n\nKeep reference UI thin: parse route state, call module APIs/use cases, and let the host app own layout, branding, and navigation.\n` },
+    { path: "reference-ui/admin/README.md", contents: `# ${name} Admin Reference UI\n\nUse this folder for admin route examples, table/list screens, forms, and action dialogs.\n\nExpected permission: \`${id}.read\` for read views and \`${id}.write\` for mutations.\n` },
+    { path: "reference-ui/visitor/README.md", contents: `# ${name} Visitor Reference UI\n\nThis module scaffold marks visitor UI as not applicable by default. If the module becomes customer-facing, set \`surfaces.visitor.applicable\` to \`true\` in \`module.json\` and add framework-specific examples here.\n` },
+    { path: `skills/${id}-operator/SKILL.md`, contents: `---\nname: ${id}-operator\ndescription: Use when operating the ${name} module through agentic tools, admin workflows, or support triage.\n---\n\n# ${name} Operator\n\nBefore acting:\n\n1. Read \`module.json\` and confirm the requested action is covered by \`surfaces.agentic.tools\`.\n2. Prefer read-only inspection before mutation.\n3. Ask for explicit approval before actions listed in \`surfaces.agentic.approvalRequiredFor\` or \`approval.requiresApprovalFor\`.\n4. Record important mutations through audit-log when available.\n\nSafe defaults:\n\n- Treat customer data as PII.\n- Do not send messages, charge money, delete data, or deploy without approval.\n- Use module APIs/use cases instead of editing storage directly.\n` },
     { path: "openapi.json", contents: json(openapi) },
     { path: "schemas/config.schema.json", contents: json(configSchema) },
     { path: "schemas/api.schema.json", contents: json(apiSchema) },
@@ -1269,10 +1403,13 @@ async function moduleRegistryEntry(rootPath, modulePath) {
     secrets: manifest.secrets || [],
     interactive: normalizeInteractiveMetadata(manifest.interactive),
     skills: normalizeSkillMetadata(manifest.skills),
+    surfaces: normalizeSurfaceMetadata(manifest.surfaces),
     approval: manifest.approval || null,
     customization: manifest.customization || null,
     docs,
-    migrations: await listRelativeFiles(modulePath, "migrations", ".sql")
+    migrations: await listRelativeFiles(modulePath, "migrations", ".sql"),
+    referenceUi: await listRelativeFiles(modulePath, "reference-ui"),
+    skillFiles: await listRelativeFiles(modulePath, "skills", ".md")
   };
 }
 
@@ -1525,7 +1662,10 @@ function discoverApp(targetPath, workspace) {
       hooks: registryModule?.hooks || locked.contract?.hooks || [],
       secrets: registryModule?.secrets || [],
       interactive: registryModule?.interactive || null,
-      skills: registryModule?.skills || []
+      skills: registryModule?.skills || [],
+      surfaces: registryModule?.surfaces || null,
+      referenceUi: registryModule?.referenceUi || [],
+      skillFiles: registryModule?.skillFiles || []
     };
   });
 

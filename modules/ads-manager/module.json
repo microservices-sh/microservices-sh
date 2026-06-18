@@ -47,6 +47,29 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Ads", "path": "/ads", "permission": "ads.read", "icon": "Megaphone" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": false
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["ads-manager.connectAccount", "ads-manager.listConnections", "ads-manager.disconnectAccount", "ads-manager.listCampaigns", "ads-manager.getInsights", "ads-manager.syncInsights", "ads-manager.detectAnomalies", "ads-manager.listAlerts"],
+      "skillPaths": ["skills/ads-manager-operator/SKILL.md"],
+      "approvalRequiredFor": ["ads-manager.connectAccount", "ads-manager.disconnectAccount", "ads-manager.syncInsights"]
+    }
+  },
+  "skills": [
+    {
+      "id": "ads-manager-operator",
+      "path": "skills/ads-manager-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "ads-monitoring", "paid-service"]
+    }
+  ],
   "approval": {
     "risk": "medium",
     "requiresApprovalFor": ["migrations", "production-deploy", "external-side-effects", "paid-service"]

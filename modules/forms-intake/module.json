@@ -38,6 +38,31 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Forms", "path": "/forms", "permission": "forms-intake.read", "icon": "ClipboardList" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": true,
+      "featureKey": "forms",
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["forms-intake.listForms", "forms-intake.getForm", "forms-intake.publishForm", "forms-intake.reviewSubmission"],
+      "skillPaths": ["skills/forms-intake-operator/SKILL.md"],
+      "approvalRequiredFor": ["forms-intake.publishForm", "forms-intake.rejectSubmission"]
+    }
+  },
+  "skills": [
+    {
+      "id": "forms-intake-operator",
+      "path": "skills/forms-intake-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "visitor-intake", "form-review"]
+    }
+  ],
   "approval": {
     "risk": "medium",
     "requiresApprovalFor": ["migrations", "pii-fields", "production-deploy", "external-side-effects"]

@@ -96,10 +96,31 @@
       "secrets": "runtime-secret-store"
     }
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Email", "path": "/settings/email", "permission": "email.read", "icon": "Mail" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": false
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["email.sendEmail"],
+      "skillPaths": ["skills/email-operator/SKILL.md"],
+      "approvalRequiredFor": ["email.sendEmail"]
+    }
+  },
   "skills": [
     {
       "id": "microservices-provider-setup",
       "recommendedFor": ["provider-setup", "sender-domain", "deliverability"]
+    },
+    {
+      "id": "email-operator",
+      "path": "skills/email-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "provider-setup", "deliverability"]
     }
   ],
   "approval": {

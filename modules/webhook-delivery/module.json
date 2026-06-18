@@ -47,6 +47,29 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Webhooks", "path": "/settings/webhooks", "permission": "webhook.read", "icon": "Webhook" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": false
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["webhook-delivery.registerEndpoint", "webhook-delivery.listDeliveries", "webhook-delivery.deliverEvent"],
+      "skillPaths": ["skills/webhook-delivery-operator/SKILL.md"],
+      "approvalRequiredFor": ["webhook-delivery.registerEndpoint", "webhook-delivery.deliverEvent"]
+    }
+  },
+  "skills": [
+    {
+      "id": "webhook-delivery-operator",
+      "path": "skills/webhook-delivery-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "webhook-management", "external-side-effects"]
+    }
+  ],
   "approval": {
     "risk": "high",
     "requiresApprovalFor": ["migrations", "external-side-effects", "production-deploy"]

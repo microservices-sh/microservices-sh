@@ -42,6 +42,29 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Auth", "path": "/settings/auth", "permission": "auth.admin", "icon": "Shield" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": false
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["auth.mintToken", "auth.verifyToken", "auth.getJwks", "auth.rotateSigningKey"],
+      "skillPaths": ["skills/auth-operator/SKILL.md"],
+      "approvalRequiredFor": ["auth.mintToken", "auth.rotateSigningKey"]
+    }
+  },
+  "skills": [
+    {
+      "id": "auth-operator",
+      "path": "skills/auth-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "security", "service-auth"]
+    }
+  ],
   "approval": {
     "risk": "high",
     "requiresApprovalFor": ["migrations", "secrets", "signing-key-rotation", "production-deploy"]

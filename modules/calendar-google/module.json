@@ -43,6 +43,29 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Calendar", "path": "/calendar", "permission": "calendar-google.read", "icon": "CalendarDays" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": false
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["calendar-google.connectCalendar", "calendar-google.listEvents", "calendar-google.syncCalendar", "calendar-google.renewExpiringChannels", "calendar-google.handlePushNotification"],
+      "skillPaths": ["skills/calendar-google-operator/SKILL.md"],
+      "approvalRequiredFor": ["calendar-google.connectCalendar", "calendar-google.syncCalendar", "calendar-google.renewExpiringChannels"]
+    }
+  },
+  "skills": [
+    {
+      "id": "calendar-google-operator",
+      "path": "skills/calendar-google-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "calendar-sync", "oauth-provider"]
+    }
+  ],
   "approval": {
     "risk": "high",
     "requiresApprovalFor": ["migrations", "oauth-secrets", "external-side-effects", "production-deploy"]

@@ -1,10 +1,12 @@
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import {
   moduleReleaseTagPlan,
   moduleReleaseTagReport,
   normalizeInteractiveMetadata,
   normalizeManifestConnections,
-  normalizeSkillMetadata
+  normalizeSkillMetadata,
+  normalizeSurfaceMetadata
 } from "../src/index.js";
 
 describe("normalizeManifestConnections", () => {
@@ -73,15 +75,74 @@ describe("setup metadata normalizers", () => {
   it("normalizes skill ids and richer skill metadata", () => {
     const n = normalizeSkillMetadata([
       "company-web-design",
-      { id: "email-service-setup", recommendedFor: ["provider-setup", "sender-domain"] },
+      { id: "email-service-setup", recommendedFor: ["provider-setup", "sender-domain"], path: "skills/email/SKILL.md" },
       { id: "Invalid Skill", recommendedFor: ["ignored"] },
       null
     ]);
 
     expect(n).toEqual([
       { id: "company-web-design", recommendedFor: [] },
-      { id: "email-service-setup", recommendedFor: ["provider-setup", "sender-domain"] }
+      { id: "email-service-setup", recommendedFor: ["provider-setup", "sender-domain"], path: "skills/email/SKILL.md" }
     ]);
+  });
+
+  it("normalizes admin, visitor, and agentic surface metadata", () => {
+    const n = normalizeSurfaceMetadata({
+      admin: {
+        nav: [{ label: "Bookings", path: "/bookings", permission: "booking.read" }],
+        referenceUi: ["reference-ui/admin/README.md", "../bad"]
+      },
+      visitor: {
+        applicable: true,
+        featureKey: "spaces",
+        referenceUi: ["reference-ui/visitor/README.md"]
+      },
+      agentic: {
+        mcpTools: ["booking.list", ""],
+        skillPaths: ["skills/booking-operator/SKILL.md"],
+        approvalRequiredFor: ["booking.cancel"]
+      }
+    });
+
+    expect(n).toEqual({
+      admin: {
+        applicable: true,
+        nav: [{ label: "Bookings", path: "/bookings", permission: "booking.read" }],
+        referenceUi: ["reference-ui/admin/README.md"]
+      },
+      visitor: {
+        applicable: true,
+        featureKey: "spaces",
+        referenceUi: ["reference-ui/visitor/README.md"]
+      },
+      agentic: {
+        applicable: true,
+        tools: ["booking.list"],
+        skillPaths: ["skills/booking-operator/SKILL.md"],
+        approvalRequired: ["booking.cancel"]
+      }
+    });
+  });
+});
+
+describe("checked-in module surface metadata", () => {
+  it("declares admin, visitor, and agentic lanes for every module manifest", () => {
+    const modulesRoot = new URL("../../../modules/", import.meta.url);
+    const missing = [];
+
+    for (const entry of readdirSync(modulesRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const manifestPath = new URL(`${entry.name}/module.json`, modulesRoot);
+      if (!existsSync(manifestPath)) continue;
+
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+      const surfaces = normalizeSurfaceMetadata(manifest.surfaces);
+      if (!surfaces?.admin || !surfaces?.visitor || !surfaces?.agentic) {
+        missing.push(manifest.id ?? entry.name);
+      }
+    }
+
+    expect(missing).toEqual([]);
   });
 });
 

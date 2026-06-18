@@ -47,6 +47,29 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Audit Log", "path": "/settings/audit-log", "permission": "audit.read", "icon": "FileSearch" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": false
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["audit-log.listEvents", "audit-log.recordEvent", "audit-log.consumeEvent"],
+      "skillPaths": ["skills/audit-log-operator/SKILL.md"],
+      "approvalRequiredFor": ["audit-log.recordEvent", "audit-log.consumeEvent"]
+    }
+  },
+  "skills": [
+    {
+      "id": "audit-log-operator",
+      "path": "skills/audit-log-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "compliance", "incident-review"]
+    }
+  ],
   "approval": {
     "risk": "medium",
     "requiresApprovalFor": ["migrations", "pii-redaction", "production-deploy"]

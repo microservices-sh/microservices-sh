@@ -45,6 +45,31 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Images", "path": "/images", "permission": "image.read", "icon": "Image" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": true,
+      "featureKey": "imageGallery",
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["image-generation.generateImage", "image-generation.editImage", "image-generation.listImages", "image-generation.getImage", "image-generation.deleteImage"],
+      "skillPaths": ["skills/image-generation-operator/SKILL.md"],
+      "approvalRequiredFor": ["image-generation.generateImage", "image-generation.editImage", "image-generation.deleteImage"]
+    }
+  },
+  "skills": [
+    {
+      "id": "image-generation-operator",
+      "path": "skills/image-generation-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "visitor-media", "provider-costs"]
+    }
+  ],
   "approval": {
     "risk": "medium",
     "requiresApprovalFor": ["migrations", "production-deploy", "external-side-effects"]

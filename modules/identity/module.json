@@ -43,6 +43,31 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Identity", "path": "/settings/identity", "permission": "identity.admin", "icon": "UserRoundCog" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": true,
+      "featureKey": "login",
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["identity.requestLoginCode", "identity.verifyLoginCode", "identity.readSession", "identity.destroySession"],
+      "skillPaths": ["skills/identity-operator/SKILL.md"],
+      "approvalRequiredFor": ["identity.requestLoginCode", "identity.verifyLoginCode", "identity.destroySession"]
+    }
+  },
+  "skills": [
+    {
+      "id": "identity-operator",
+      "path": "skills/identity-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "login-support", "visitor-auth"]
+    }
+  ],
   "approval": {
     "risk": "high",
     "requiresApprovalFor": ["migrations", "secrets", "production-deploy", "external-side-effects"]

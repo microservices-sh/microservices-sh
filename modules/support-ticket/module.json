@@ -43,6 +43,31 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Support Tickets", "path": "/support/tickets", "permission": "support.read", "icon": "LifeBuoy" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": true,
+      "featureKey": "support",
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["support-ticket.listTickets", "support-ticket.getTicket", "support-ticket.createTicket", "support-ticket.updateTicket"],
+      "skillPaths": ["skills/support-ticket-operator/SKILL.md"],
+      "approvalRequiredFor": ["support-ticket.createTicket", "support-ticket.updateTicket"]
+    }
+  },
+  "skills": [
+    {
+      "id": "support-ticket-operator",
+      "path": "skills/support-ticket-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "visitor-support", "agentic-triage"]
+    }
+  ],
   "approval": {
     "risk": "medium",
     "requiresApprovalFor": ["migrations", "pii-fields", "production-deploy", "external-side-effects"]

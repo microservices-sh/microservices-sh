@@ -95,6 +95,29 @@
       "fork"
     ]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Idempotency", "path": "/settings/idempotency", "permission": "idempotency.read", "icon": "Repeat2" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": false
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["idempotency.claimIdempotency", "idempotency.getIdempotencyRecord", "idempotency.completeIdempotency", "idempotency.failIdempotency", "idempotency.pruneExpiredRecords"],
+      "skillPaths": ["skills/idempotency-operator/SKILL.md"],
+      "approvalRequiredFor": ["idempotency.claimIdempotency", "idempotency.completeIdempotency", "idempotency.failIdempotency", "idempotency.pruneExpiredRecords"]
+    }
+  },
+  "skills": [
+    {
+      "id": "idempotency-operator",
+      "path": "skills/idempotency-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "retry-safety", "incident-review"]
+    }
+  ],
   "approval": {
     "risk": "medium",
     "requiresApprovalFor": [

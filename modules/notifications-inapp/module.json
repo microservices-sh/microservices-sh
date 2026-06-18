@@ -35,6 +35,31 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Notifications", "path": "/notifications", "permission": "notifications.read", "icon": "Bell" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": true,
+      "featureKey": "notifications",
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["notifications-inapp.listNotifications", "notifications-inapp.getUnreadCount", "notifications-inapp.notify", "notifications-inapp.markRead", "notifications-inapp.markAllRead"],
+      "skillPaths": ["skills/notifications-inapp-operator/SKILL.md"],
+      "approvalRequiredFor": ["notifications-inapp.notify", "notifications-inapp.markRead", "notifications-inapp.markAllRead"]
+    }
+  },
+  "skills": [
+    {
+      "id": "notifications-inapp-operator",
+      "path": "skills/notifications-inapp-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "visitor-notifications", "support-triage"]
+    }
+  ],
   "approval": {
     "risk": "medium",
     "requiresApprovalFor": ["migrations", "production-deploy"]

@@ -918,3 +918,21 @@
 | `pnpm test -- packages/module-contract/tests/module-versioning.test.js packages/sdk-internal/tests/module-versioning.test.js` | Module contract and SDK doc tests pass | Vitest ran the full workspace suite: 71 files / 410 tests passed | Pass |
 | `pnpm --filter @microservices-sh/operator-work check:spec` | Operator-work module spec passes | Passed | Pass |
 | `pnpm --filter @microservices-sh/operator-work build` | Operator-work module build passes | Passed | Pass |
+
+## Session: 2026-06-18 (workspace module surface discovery)
+### Phase 36 kickoff
+- **Status:** complete
+- Goal: make admin, visitor, and agentic module surfaces discoverable from workspace registry/discovery output.
+- Added surface declarations to checked-in module manifests and paired each module with lightweight `reference-ui/README.md` and `skills/*/SKILL.md` files.
+- Extended workspace-tools to normalize `surfaces`, validate referenced UI/skill files, include `referenceUi` and `skillFiles` in registry entries, and copy surface data into generated-app discovery output.
+- Added tests for surface normalization and checked-in module surface coverage.
+- Note: one discovery/check probe used obsolete positional syntax and returned `Unknown check scope`; reran with `discover --path ...` and `check module ...` successfully.
+
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm spec:check:all` | All module/template specs pass with surface file checks | 30/30 targets passed | Pass |
+| `pnpm exec vitest run packages/workspace-tools/tests/connections.test.js` | Workspace-tools connection/surface tests pass | 10/10 tests passed | Pass |
+| `pnpm --filter @microservices-sh/workspace-tools build` | Workspace-tools syntax check passes | Passed | Pass |
+| `node packages/workspace-tools/src/index.js registry build --out /tmp/ms-registry-surface-check --json` | Registry build includes module surfaces | Passed; 23 modules / 7 templates | Pass |
+| `node packages/workspace-tools/src/index.js discover --path templates/dot-ai-os --json` | Discovery exposes installed module surfaces | Passed; output includes `surfaces`, `referenceUi`, and `skillFiles` for installed modules | Pass |
+| `node packages/workspace-tools/src/index.js check module modules/auth --json` | Single module check validates surface paths | Passed | Pass |
