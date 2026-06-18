@@ -21,8 +21,10 @@ Safe first actions:
 - This is a single workspace template: `/signup` is first-run setup, not a public tenant funnel.
 - The sidebar is derived from `microservices.lock.json` via
   `src/lib/server/erp-nav.ts`; add a module mapping there to surface installed modules.
-- Upstream-inspired starter workflow data lives in `src/lib/os-data.ts`. Treat it
-  as sample UI contract data until a module or documented D1 table owns it.
+- Task, focus, and daily-review state is owned by `@microservices-sh/operator-work`.
+  Use its use cases; do not write `operator_*` tables directly.
+- Upstream-inspired calendar, knowledge, content, and AI-team sample data still
+  lives in `src/lib/os-data.ts` until dedicated modules own those domains.
 - `/admin` is platform super-admin scope, gated by the session `isSuperAdmin`
   flag, not an org role.
 - Do not vendor module internals under `src/lib/server/modules`.

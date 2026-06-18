@@ -828,7 +828,19 @@
 
 ## Session: 2026-06-18 (DOT AI OS agentic operator work)
 ### Phase 33 kickoff
-- **Status:** in progress
+- **Status:** complete
 - Goal: turn DOT AI OS from a static operator-work UI into an agent-readable, module-owned tasks/focus/review workflow with explicit use cases.
 - Scope decision: implement durable local module boundaries for tasks, focus blocks, and review drafts first; keep provider writes, AI calls, knowledge ingestion, and publishing behind future approval-gated modules.
 - Working-tree note: unrelated dirty changes exist in promotion docs, email/forms-intake/workspace-tools/company/ERP files. Keep this phase isolated to the new module, `dot-ai-os`, and planning metadata unless verification requires otherwise.
+- Implemented `@microservices-sh/operator-work` with D1 and memory stores, schemas, hooks, events, ports, use cases, and module docs.
+- Wired DOT AI OS workbench/tasks/focus/review routes through the operator-work module; write actions record actor/source and audit events.
+- Updated create CLI bundling so generated `dot-ai-os` apps include `modules/operator-work`.
+
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm --filter @microservices-sh/operator-work build` | Module TypeScript passes | Passed | Pass |
+| `pnpm --filter @microservices-sh/operator-work check:spec` | Module spec passes | Passed | Pass |
+| `pnpm spec:check -- template templates/dot-ai-os` | Template spec passes | Passed | Pass |
+| `pnpm --filter @microservices-sh/template-dot-ai-os build:app` | SvelteKit build passes | Passed | Pass |
+| `pnpm --filter create-microservices-app test` | Create CLI tests pass | 15/15 passed | Pass |
+| `git diff --check` | No whitespace errors | Passed with no output | Pass |

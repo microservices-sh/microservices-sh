@@ -17,7 +17,7 @@ const REPO_TEMPLATE_MODULES = {
   "wordpress-emdash-blog-astro": [],
   "saas-starter-sveltekit": ["auth", "org-team-rbac", "billing-subscriptions", "admin-shell", "audit-log", "image-generation", "ads-manager"],
   "client-portal-sveltekit": ["auth", "customer", "invoice", "file-media", "audit-log"],
-  "dot-ai-os": ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "invoice", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket"],
+  "dot-ai-os": ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "invoice", "file-media", "jobs-workflows", "notifications-inapp", "operator-work", "support-ticket"],
   "erp-shell-sveltekit": ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "invoice", "payment", "billing-subscriptions", "image-generation", "ads-manager", "forms-intake", "booking", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket"],
 };
 const REPO_TEMPLATE_PACKAGES = {

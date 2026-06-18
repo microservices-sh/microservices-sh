@@ -15,10 +15,10 @@ appear from the installed module set instead of being hardcoded in the layout.
 ## Modules
 
 Wired: auth, identity, org-team-rbac, admin-shell, audit-log, customer, invoice,
-support-ticket, file-media, jobs-workflows, notifications-inapp.
+support-ticket, file-media, jobs-workflows, notifications-inapp, operator-work.
 
 Optional extension slots: calendar-google, email, webhook-delivery, ingestion,
-task/content persistence, and future AI-provider modules.
+content/knowledge persistence, and future AI-provider modules.
 
 ## Upstream Adaptation
 
@@ -26,19 +26,22 @@ The upstream `jimmylau-DOTAI/jimmy-dashboard-OS` repo currently uses Vite,
 React, Express, SQLite, Railway/Vercel artifacts, and Supabase/Postgres export
 support. This template ports the product workflow, not that runtime coupling.
 
-Carried over as template-owned starter surfaces:
+Carried over as operator-work module surfaces:
 
 - task list/board contract
 - focus plan / today's schedule
-- calendar feed/sync shape
 - daily unlock/review loop
+
+Carried over as template-owned starter surfaces:
+
+- calendar feed/sync shape
 - knowledge capture pipeline
 - content production pipeline
 - AI team / digital worker roster
 
 Provider calls, Google Calendar OAuth/write-back, Hermes ingestion, AI rewrites,
-Obsidian export, and durable task/content/knowledge storage require explicit
-module contracts or documented template-owned tables before production use.
+Obsidian export, and durable content/knowledge storage require explicit module
+contracts or documented template-owned tables before production use.
 
 ## Routes
 
@@ -48,10 +51,10 @@ module contracts or documented template-owned tables before production use.
 | `/login` | Demo email session |
 | `/signup` | First workspace setup: creates the org and owner |
 | `/app` | DOT AI OS workbench |
-| `/app/tasks` | Task board and AI intake starter surface |
-| `/app/focus` | Focus-plan starter surface |
+| `/app/tasks` | Task board and AI intake, backed by operator-work |
+| `/app/focus` | Focus plan, backed by operator-work |
 | `/app/calendar` | Calendar context and feed/sync starter surface |
-| `/app/review` | Daily-review starter surface |
+| `/app/review` | Daily review, backed by operator-work |
 | `/app/knowledge` | Knowledge-log starter surface |
 | `/app/content` | Content pipeline starter surface |
 | `/app/ai-team` | Visible digital-worker roster and routing rules |
@@ -69,9 +72,11 @@ module contracts or documented template-owned tables before production use.
 ## Architecture
 
 SvelteKit routes are thin adapters. Domain logic lives in module use cases such
-as `createOrganization`, `upsertCustomer`, `createInvoice`, `listFiles`, and
+as `createOrganization`, `upsertCustomer`, `createInvoice`, `listFiles`,
+`getOperatorWorkbench`, `upsertOperatorTask`, `saveDailyReview`, and
 `recordEvent`. The template owns the app shell, routes, layout, UI composition,
-`src/lib/os-data.ts`, and DOT AI OS-specific workflow surfaces.
+and sample DOT AI OS data for knowledge, content, calendar, and AI-team surfaces
+in `src/lib/os-data.ts`.
 
 Stores resolve to D1/R2 adapters in production and in-memory adapters locally, so
 the app runs out of the box for development.

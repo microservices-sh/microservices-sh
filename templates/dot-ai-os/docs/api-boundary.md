@@ -5,11 +5,13 @@ RBAC, audit, files, contacts, work packets, and admin behavior all live in
 framework-neutral module use cases. SvelteKit `+page.server.ts` files are
 adapters.
 
-The upstream-informed DOT AI OS pages for tasks, focus planning, calendar
-context, daily review, knowledge, content, and AI-team routing currently use
-`src/lib/os-data.ts` sample data. That is UI contract data only. Production
-persistence for those domains must move into a module use case or a documented
-template-owned D1 table with migrations, checks, and approval gates.
+The upstream-informed DOT AI OS pages for tasks, focus planning, and daily
+review now use `@microservices-sh/operator-work` use cases over the
+`OperatorWorkStore` port. Calendar context, knowledge, content, and AI-team
+routing still use `src/lib/os-data.ts` sample data. That remaining sample data
+is UI contract data only; production persistence for those domains must move
+into a module use case or a documented template-owned D1 table with migrations,
+checks, and approval gates.
 
 ## Layers
 
@@ -63,3 +65,18 @@ const decision = await authorize(orgId, user.id, "member.manage", { store });
 
 `resolvePermissions` returns `[]` for non-members — the tenant-isolation boundary.
 The same use cases are callable from SvelteKit, Hono, MCP tools, tests, and jobs.
+
+## Agentic Operator Work
+
+Agents should read or mutate operator work through:
+
+```txt
+getOperatorWorkbench
+listOperatorTasks / upsertOperatorTask / updateOperatorTaskStatus
+listFocusBlocks / upsertFocusBlock
+listDailyReviews / saveDailyReview
+```
+
+Every write includes `actorId` and `sourceLabel`; route adapters also record an
+audit-log event. Provider effects such as AI rewrites, calendar write-back,
+email, and publishing remain outside this boundary until explicitly approved.

@@ -7,15 +7,15 @@
   const money = (cents: number, currency: string) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
 
-  const focusBlocks = data.operator.focusBlocks;
-  const openTasks = data.operator.tasks.filter((task) => task.status !== "done");
-  const highPriorityTasks = openTasks.filter((task) => task.priority === "High");
-  const currentBlock = focusBlocks[0];
-  const reviewSignals = [
+  const focusBlocks = $derived(data.operator.focusBlocks);
+  const openTasks = $derived(data.operator.tasks.filter((task) => task.status !== "done"));
+  const highPriorityTasks = $derived(openTasks.filter((task) => task.priority === "High"));
+  const currentBlock = $derived(focusBlocks[0]);
+  const reviewSignals = $derived([
     { label: "Saved reviews", value: String(data.operator.summary.savedReviewCount) },
     { label: "Open tasks", value: String(data.operator.summary.openTaskCount) },
     { label: "Agent handoffs", value: data.operator.summary.latestReview?.agentHandoffs ? "Ready" : "0" }
-  ];
+  ]);
 
   function energyTone(energy: string): "good" | "info" | "neutral" {
     if (energy === "Deep") return "good";

@@ -76,6 +76,7 @@ const BUNDLED_MODULES = [
   "invoice",
   "jobs-workflows",
   "notifications-inapp",
+  "operator-work",
   "org-team-rbac",
   "payment",
   "support-ticket",

@@ -4,15 +4,15 @@
 
   let { data, form } = $props();
 
-  const fallbackShipped = data.completedTasks[0]?.title ?? "Saved work packet";
-  const markdownLines = data.latestReview?.markdown?.split("\n") ?? [
+  const fallbackShipped = $derived(data.completedTasks[0]?.title ?? "Saved work packet");
+  const markdownLines = $derived(data.latestReview?.markdown?.split("\n") ?? [
     "## Shipped",
     `- ${fallbackShipped}`,
     "## Open loops",
     "- Route one content item to AI team.",
     "## Tomorrow first move",
     "- Start with the highest-friction task before inbox."
-  ];
+  ]);
 </script>
 
 <svelte:head>
