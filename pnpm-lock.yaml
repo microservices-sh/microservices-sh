@@ -660,6 +660,9 @@ importers:
       '@microservices-sh/identity':
         specifier: workspace:*
         version: link:../../modules/identity
+      '@microservices-sh/image-generation':
+        specifier: workspace:*
+        version: link:../../modules/image-generation
       '@microservices-sh/invoice':
         specifier: workspace:*
         version: link:../../modules/invoice

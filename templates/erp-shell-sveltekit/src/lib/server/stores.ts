@@ -36,6 +36,9 @@ import type { PaymentRepository } from "@microservices-sh/payment/ports";
 import { createD1BillingStore } from "@microservices-sh/billing-subscriptions/adapters/d1";
 import { createMemoryBillingStore } from "@microservices-sh/billing-subscriptions/adapters/memory";
 import type { BillingStore } from "@microservices-sh/billing-subscriptions/ports";
+import { createD1ImageStore } from "@microservices-sh/image-generation/adapters/d1";
+import { createMemoryImageStore } from "@microservices-sh/image-generation/adapters/memory";
+import type { ImageStore } from "@microservices-sh/image-generation/ports";
 
 import type { RbacStore } from "@microservices-sh/org-team-rbac/ports";
 import type { TableGateway } from "@microservices-sh/admin-shell/ports";
@@ -68,6 +71,7 @@ const memoryLoginCodeStore = createMemoryLoginCodeStore();
 const memorySessionStore = createMemorySessionStore();
 const memoryPaymentRepository = createMemoryPaymentRepository();
 const memoryBillingStore = createMemoryBillingStore();
+const memoryImageStore = createMemoryImageStore();
 
 export interface ServerStores {
   rbacStore: RbacStore;
@@ -87,6 +91,7 @@ export interface ServerStores {
   sessionStore: SessionStore;
   paymentRepository: PaymentRepository;
   billingStore: BillingStore;
+  imageStore: ImageStore;
 }
 
 // The platform bindings as declared on App.Platform — referenced via the platform
@@ -115,7 +120,8 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     loginCodeStore: db ? createD1LoginCodeStore(db) : memoryLoginCodeStore,
     sessionStore: db ? createD1SessionStore(db) : memorySessionStore,
     paymentRepository: db ? createD1PaymentRepository(db) : memoryPaymentRepository,
-    billingStore: db ? createD1BillingStore(db) : memoryBillingStore
+    billingStore: db ? createD1BillingStore(db) : memoryBillingStore,
+    imageStore: db ? createD1ImageStore(db) : memoryImageStore
   };
 }
 

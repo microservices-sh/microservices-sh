@@ -193,6 +193,24 @@
       }
     },
     {
+      "id": "image-generation",
+      "version": "0.1.0",
+      "source": "registry:image-generation@0.1.0",
+      "checksum": "sha256:preview-image-generation-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/images",
+        "bindings": ["DB", "IMAGE_BUCKET"],
+        "resources": ["D1", "R2"],
+        "permissions": ["image.generate", "image.read", "image.admin", "image.extend", "image.observe"],
+        "rpc": [],
+        "hooks": [],
+        "events": ["image.generated", "image.edited", "image.deleted"],
+        "requires": []
+      }
+    },
+    {
       "id": "file-media",
       "version": "0.1.0",
       "source": "registry:file-media@0.1.0",

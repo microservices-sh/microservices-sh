@@ -35,6 +35,7 @@
     "@microservices-sh/file-media": "workspace:*",
     "@microservices-sh/gateway": "workspace:*",
     "@microservices-sh/identity": "workspace:*",
+    "@microservices-sh/image-generation": "workspace:*",
     "@microservices-sh/invoice": "workspace:*",
     "@microservices-sh/jobs-workflows": "workspace:*",
     "@microservices-sh/notifications-inapp": "workspace:*",

@@ -12,6 +12,8 @@ import type { AccountStore, LoginCodeStore, SessionStore } from "@microservices-
 import type { RateLimitStore } from "@microservices-sh/gateway/ports";
 import type { PaymentRepository, PaymentGateway } from "@microservices-sh/payment/ports";
 import type { BillingStore } from "@microservices-sh/billing-subscriptions/ports";
+import type { ImageStore, ObjectStorage as ImageObjectStorage } from "@microservices-sh/image-generation/ports";
+import type { ProviderRegistry } from "@microservices-sh/image-generation";
 
 declare global {
   namespace App {
@@ -22,6 +24,14 @@ declare global {
         MEDIA_BUCKET?: R2Bucket;
         RATE_LIMIT_KV?: KVNamespace;
         STRIPE_SECRET_KEY?: string;
+        IMAGE_BUCKET?: R2Bucket;
+        KIEAI_API_KEY?: string;
+        KIEAI_BASE_URL?: string;
+        GEMINI_ENDPOINT?: string;
+        GEMINI_AUTH_TOKEN?: string;
+        OPENAI_API_KEY?: string;
+        GPT_IMAGE_BASE_URL?: string;
+        GPT_IMAGE_MODEL?: string;
         MICROSERVICES_DEPLOYMENT_ID?: string;
         MICROSERVICES_OBSERVABILITY_TOKEN?: string;
         MICROSERVICES_OBSERVABILITY_URL?: string;
@@ -54,6 +64,10 @@ declare global {
       paymentRepository: PaymentRepository;
       paymentGateway: PaymentGateway;
       billingStore: BillingStore;
+      // Image generation: store + object storage (R2/memory) + provider registry.
+      imageStore: ImageStore;
+      imageStorage: ImageObjectStorage;
+      imageProviders: ProviderRegistry;
       // The signed-in principal, resolved from the session store each request.
       // isSuperAdmin is derived from the account's isAdmin flag, never the cookie.
       user: { id: string; email: string; isSuperAdmin: boolean } | null;

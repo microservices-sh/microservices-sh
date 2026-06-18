@@ -5,6 +5,12 @@ import { createKvRateLimitStore } from "@microservices-sh/gateway/adapters/kv-ra
 import { createMemoryRateLimitStore } from "@microservices-sh/gateway/adapters/memory-rate-limit";
 import { createStripePaymentGateway } from "@microservices-sh/payment/adapters/stripe-gateway";
 import { createMemoryPaymentGateway } from "@microservices-sh/payment/adapters/memory-gateway";
+import {
+  buildProviders,
+  createMemoryImageProvider,
+  createMemoryObjectStorage as createMemoryImageStorage,
+  createR2ObjectStorage as createR2ImageStorage
+} from "@microservices-sh/image-generation";
 import { reportRuntimeError } from "$lib/server/observability";
 
 // Memory rate limiter for local dev / when no KV binding exists. Per-isolate and
@@ -12,6 +18,9 @@ import { reportRuntimeError } from "$lib/server/observability";
 const memoryRateLimitStore = createMemoryRateLimitStore();
 // Memory payment gateway for local dev; Stripe when STRIPE_SECRET_KEY is set.
 const memoryPaymentGateway = createMemoryPaymentGateway();
+// Memory image-object storage (R2 when IMAGE_BUCKET is bound). Singleton so bytes
+// persist across requests in dev.
+const memoryImageStorage = createMemoryImageStorage();
 
 // Wire module stores + the session user onto locals for every request. Stores are
 // D1/R2-backed in production and memory-backed locally. Route adapters consume
@@ -45,6 +54,14 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.paymentGateway = env?.STRIPE_SECRET_KEY
     ? createStripePaymentGateway(env.STRIPE_SECRET_KEY)
     : memoryPaymentGateway;
+  // Image generation: store (D1/memory), object storage (R2/memory), and the
+  // provider registry built from env keys — falling back to a memory provider
+  // locally so the gallery works without a real image API.
+  event.locals.imageStore = stores.imageStore;
+  event.locals.imageStorage = env?.IMAGE_BUCKET ? createR2ImageStorage(env.IMAGE_BUCKET) : memoryImageStorage;
+  const imageProviders = buildProviders(env ?? {});
+  if (Object.keys(imageProviders).length === 0) imageProviders["kie-ai"] = createMemoryImageProvider();
+  event.locals.imageProviders = imageProviders;
   event.locals.user = await getCurrentUser(event.cookies, {
     accountStore: stores.accountStore,
     sessionStore: stores.sessionStore
