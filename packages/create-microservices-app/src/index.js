@@ -70,6 +70,7 @@ const BUNDLED_MODULES = [
   "customer",
   "email",
   "file-media",
+  "forms-intake",
   "gateway",
   "identity",
   "image-generation",
