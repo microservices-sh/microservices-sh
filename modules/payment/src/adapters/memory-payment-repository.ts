@@ -3,6 +3,7 @@ import type { Payment } from "../types";
 
 export function createMemoryPaymentRepository(): PaymentRepository {
   const payments = new Map<string, Payment>();
+  const webhookEventKeys = new Set<string>();
 
   return {
     async insert(payment) {
@@ -30,6 +31,12 @@ export function createMemoryPaymentRepository(): PaymentRepository {
         }
       }
       return null;
+    },
+
+    async recordWebhookEventKey(eventId) {
+      if (webhookEventKeys.has(eventId)) return false;
+      webhookEventKeys.add(eventId);
+      return true;
     },
 
     async list(filter) {

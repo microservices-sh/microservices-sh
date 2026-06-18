@@ -6,6 +6,7 @@ export interface PaymentRepository {
   getById(id: string): Promise<Payment | null>;
   getByIntentId(intentId: string): Promise<Payment | null>;
   updateStatus(intentId: string, status: PaymentStatus, updatedAt: string): Promise<Payment | null>;
+  recordWebhookEventKey(eventId: string, recordedAt: string): Promise<boolean>;
   list(filter: PaymentFilter): Promise<Payment[]>;
 }
 

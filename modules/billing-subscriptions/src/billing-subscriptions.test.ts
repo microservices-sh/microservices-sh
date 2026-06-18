@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   createPlan,
   startSubscription,
+  cancelSubscription,
   applyStripeEvent,
   dueForDunning,
   mapStripeStatus,
@@ -79,5 +80,45 @@ describe("billing-subscriptions: failed payment -> past_due and dunning", () => 
       expect(dunning.data.count).toBe(1);
       expect(dunning.data.subscriptions[0].id).toBe(subId);
     }
+  });
+});
+
+describe("billing-subscriptions: one open subscription per subscriber", () => {
+  it("rejects a second non-canceled subscription and allows a new one after immediate cancel", async () => {
+    const store = createMemoryBillingStore();
+    const plan = await createPlan(
+      { name: "Pro", priceCents: 2999, currency: "USD", interval: "month" },
+      { store, now: fixedNow(T0) }
+    );
+    if (!plan.ok) throw new Error("plan creation failed");
+
+    const first = await startSubscription(
+      { subscriberId: "org-unique", planId: plan.data.id, trialDays: 14, stripeSubscriptionId: "sub_unique_1" },
+      { store, now: fixedNow(T0) }
+    );
+    expect(first.ok).toBe(true);
+    if (!first.ok) throw new Error("first subscription failed");
+
+    const duplicate = await startSubscription(
+      { subscriberId: "org-unique", planId: plan.data.id, trialDays: 0, stripeSubscriptionId: "sub_unique_2" },
+      { store, now: fixedNow(T0 + 1) }
+    );
+    expect(duplicate).toMatchObject({
+      ok: false,
+      status: 409,
+      error: { code: "billing-subscriptions.SUBSCRIPTION_EXISTS" }
+    });
+
+    const canceled = await cancelSubscription(
+      { subscriptionId: first.data.id, atPeriodEnd: false },
+      { store, now: fixedNow(T0 + 2) }
+    );
+    expect(canceled.ok).toBe(true);
+
+    const replacement = await startSubscription(
+      { subscriberId: "org-unique", planId: plan.data.id, trialDays: 0, stripeSubscriptionId: "sub_unique_3" },
+      { store, now: fixedNow(T0 + 3) }
+    );
+    expect(replacement.ok).toBe(true);
   });
 });

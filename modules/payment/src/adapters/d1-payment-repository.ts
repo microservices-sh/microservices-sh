@@ -64,6 +64,18 @@ export function createD1PaymentRepository(db: D1Database): PaymentRepository {
       return row ? rowToPayment(row) : null;
     },
 
+    async recordWebhookEventKey(eventId, recordedAt) {
+      try {
+        await db
+          .prepare("INSERT INTO payment_webhook_events (event_id, recorded_at) VALUES (?, ?)")
+          .bind(eventId, recordedAt)
+          .run();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+
     async list(filter) {
       const clauses: string[] = [];
       const binds: unknown[] = [];

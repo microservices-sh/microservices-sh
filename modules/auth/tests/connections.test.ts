@@ -54,6 +54,34 @@ describe("auth use-cases carry meta + namespaced codes", () => {
     expect(r.meta.correlationId).toBe("corr-9");
   });
 
+  it("verifyToken can bind a token to the expected issuer, workspace, and project", async () => {
+    const store = await withKey();
+    const minted = await mintToken(validInput, { signingKeyStore: store });
+    expect(minted.ok).toBe(true);
+    if (!minted.ok) throw new Error("mint failed");
+
+    const verified = await verifyToken(
+      { token: minted.data.token },
+      {
+        signingKeyStore: store,
+        expectedIssuer: "auth",
+        expectedWorkspace: "w1",
+        expectedProject: "p1"
+      }
+    );
+    expect(verified.ok).toBe(true);
+
+    const wrongWorkspace = await verifyToken(
+      { token: minted.data.token },
+      { signingKeyStore: store, expectedWorkspace: "other-workspace" }
+    );
+    expect(wrongWorkspace).toMatchObject({
+      ok: false,
+      status: 401,
+      error: { code: "auth.INVALID_WORKSPACE" }
+    });
+  });
+
   it("validation errors are namespaced + carry meta", async () => {
     const store = await withKey();
     const r = await mintToken({}, { signingKeyStore: store });

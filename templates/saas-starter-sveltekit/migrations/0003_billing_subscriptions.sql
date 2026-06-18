@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 CREATE INDEX IF NOT EXISTS idx_subscriptions_subscriber ON subscriptions(subscriber_id, status);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status, updated_at);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_subscriptions_stripe ON subscriptions(stripe_subscription_id) WHERE stripe_subscription_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_subscriptions_one_open_per_subscriber ON subscriptions(subscriber_id) WHERE status <> 'canceled';
 
 -- Idempotency ledger for Stripe webhook ids (and namespaced usage keys).
 CREATE TABLE IF NOT EXISTS billing_events (

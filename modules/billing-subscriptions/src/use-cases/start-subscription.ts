@@ -35,6 +35,17 @@ export async function startSubscription(
   if (!plan) {
     return err(404, { code: "billing-subscriptions.PLAN_NOT_FOUND", message: "Plan not found." }, meta);
   }
+  const existing = await deps.store.getOpenSubscriptionBySubscriber(parsed.data.subscriberId);
+  if (existing) {
+    return err(
+      409,
+      {
+        code: "billing-subscriptions.SUBSCRIPTION_EXISTS",
+        message: "Subscriber already has a non-canceled subscription."
+      },
+      meta
+    );
+  }
 
   const cfg = { ...defaultConfig, ...deps.config };
   const nowMs = deps.now?.() ?? Date.now();
@@ -70,6 +81,17 @@ export async function startSubscription(
     return err(hooked.status, hooked.error, meta);
   }
   const finalSub = hooked.value as Subscription;
+  const existingAfterHooks = await deps.store.getOpenSubscriptionBySubscriber(finalSub.subscriberId);
+  if (existingAfterHooks) {
+    return err(
+      409,
+      {
+        code: "billing-subscriptions.SUBSCRIPTION_EXISTS",
+        message: "Subscriber already has a non-canceled subscription."
+      },
+      meta
+    );
+  }
 
   await deps.store.insertSubscription(finalSub);
   if (finalSub.status === "active") await onSubscriptionActivated(finalSub);

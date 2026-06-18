@@ -15,14 +15,17 @@ const EVENT_MAP: Record<string, { status: PaymentStatus; event: string }> = {
 export async function handleWebhook(
   rawBody: string,
   signatureHeader: string,
-  deps: { paymentRepository: PaymentRepository; webhookSecret: string; now?: () => number }
+  deps: { paymentRepository: PaymentRepository; webhookSecret: string; now?: () => number; timestampToleranceSeconds?: number }
 ) {
-  const valid = await verifyWebhookSignature(rawBody, signatureHeader, deps.webhookSecret);
+  const valid = await verifyWebhookSignature(rawBody, signatureHeader, deps.webhookSecret, {
+    now: deps.now,
+    toleranceSeconds: deps.timestampToleranceSeconds
+  });
   if (!valid) {
     return { ok: false as const, status: 401 as const, error: { code: "INVALID_SIGNATURE", message: "Webhook signature is invalid." } };
   }
 
-  let parsed: { type?: string; data?: { object?: { id?: string; payment_intent?: string } } };
+  let parsed: { id?: string; type?: string; data?: { object?: { id?: string; payment_intent?: string } } };
   try {
     parsed = JSON.parse(rawBody);
   } catch {
@@ -34,6 +37,10 @@ export async function handleWebhook(
   if (!mapping) {
     return { ok: true as const, status: 200 as const, data: { ignored: true, type } };
   }
+  const eventId = parsed.id ?? "";
+  if (!eventId) {
+    return { ok: false as const, status: 400 as const, error: { code: "MISSING_EVENT_ID", message: "Webhook event has no id." } };
+  }
 
   const object = parsed.data?.object ?? {};
   const intentId = object.payment_intent ?? object.id ?? "";
@@ -42,6 +49,16 @@ export async function handleWebhook(
   }
 
   const updatedAt = new Date(deps.now?.() ?? Date.now()).toISOString();
+  const existing = await deps.paymentRepository.getByIntentId(intentId);
+  if (!existing) {
+    return { ok: false as const, status: 404 as const, error: { code: "PAYMENT_NOT_FOUND", message: "No payment matches the webhook intent id." } };
+  }
+
+  const fresh = await deps.paymentRepository.recordWebhookEventKey(eventId, updatedAt);
+  if (!fresh) {
+    return { ok: true as const, status: 200 as const, data: { payment: existing, deduped: true, eventId } };
+  }
+
   const payment = await deps.paymentRepository.updateStatus(intentId, mapping.status, updatedAt);
   if (!payment) {
     return { ok: false as const, status: 404 as const, error: { code: "PAYMENT_NOT_FOUND", message: "No payment matches the webhook intent id." } };

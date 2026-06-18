@@ -31,6 +31,12 @@ export function createMemoryBillingStore(): BillingStore {
       for (const s of subs.values()) if (s.stripeSubscriptionId === stripeSubscriptionId) return { ...s };
       return null;
     },
+    async getOpenSubscriptionBySubscriber(subscriberId) {
+      const open = [...subs.values()]
+        .filter((s) => s.subscriberId === subscriberId && s.status !== "canceled")
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+      return open ? { ...open } : null;
+    },
     async updateSubscription(sub) {
       if (subs.has(sub.id)) subs.set(sub.id, { ...sub });
     },

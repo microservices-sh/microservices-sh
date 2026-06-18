@@ -61,6 +61,10 @@ export function createD1BillingStore(db: D1Database): BillingStore {
       const r = await db.prepare(`SELECT ${SUB_COLS} FROM subscriptions WHERE stripe_subscription_id = ?`).bind(stripeSubscriptionId).first<Record<string, unknown>>();
       return r ? toSub(r) : null;
     },
+    async getOpenSubscriptionBySubscriber(subscriberId) {
+      const r = await db.prepare(`SELECT ${SUB_COLS} FROM subscriptions WHERE subscriber_id = ? AND status <> 'canceled' ORDER BY created_at DESC LIMIT 1`).bind(subscriberId).first<Record<string, unknown>>();
+      return r ? toSub(r) : null;
+    },
     async updateSubscription(sub) {
       await db.prepare(
         "UPDATE subscriptions SET plan_id = ?, status = ?, cancel_at_period_end = ?, current_period_start = ?, current_period_end = ?, stripe_subscription_id = ?, updated_at = ? WHERE id = ?"

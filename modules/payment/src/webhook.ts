@@ -45,17 +45,31 @@ export async function signWebhook(payload: string, secret: string, timestamp: nu
   return `t=${timestamp},v1=${v1}`;
 }
 
+const DEFAULT_TOLERANCE_SECONDS = 300;
+
+export interface VerifyWebhookSignatureOptions {
+  now?: () => number;
+  toleranceSeconds?: number;
+}
+
 // Returns true only if the header carries a v1 signature matching the payload
-// under the secret. Constant-time compare; no timestamp tolerance enforcement
-// here (callers may add one) to keep the primitive deterministic for tests.
+// under the secret and the Stripe timestamp is within the replay tolerance.
 export async function verifyWebhookSignature(
   payload: string,
   header: string,
-  secret: string
+  secret: string,
+  options: VerifyWebhookSignatureOptions = {}
 ): Promise<boolean> {
   if (!header) return false;
   const { timestamp, signatures } = parseSignatureHeader(header);
   if (!timestamp || signatures.length === 0) return false;
+  const timestampSeconds = Number(timestamp);
+  if (!Number.isFinite(timestampSeconds) || timestampSeconds <= 0) return false;
+
+  const toleranceSeconds = options.toleranceSeconds ?? DEFAULT_TOLERANCE_SECONDS;
+  const nowSeconds = Math.floor((options.now?.() ?? Date.now()) / 1000);
+  if (Math.abs(nowSeconds - timestampSeconds) > toleranceSeconds) return false;
+
   const expected = await hmacHex(secret, `${timestamp}.${payload}`);
   return signatures.some((candidate) => constantTimeEqual(expected, candidate));
 }

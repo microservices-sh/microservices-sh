@@ -13,3 +13,11 @@ CREATE TABLE IF NOT EXISTS payments (
 
 CREATE INDEX IF NOT EXISTS idx_payments_customer ON payments(customer_id);
 CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_intent_unique ON payments(intent_id);
+
+-- Idempotency ledger for signed provider webhook events. A redelivered Stripe
+-- event id cannot update state or fire hooks twice.
+CREATE TABLE IF NOT EXISTS payment_webhook_events (
+  event_id TEXT PRIMARY KEY,
+  recorded_at TEXT NOT NULL
+);

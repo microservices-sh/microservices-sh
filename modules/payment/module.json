@@ -14,7 +14,7 @@
   },
   "entrypoint": "src/index.ts",
   "resources": [
-    { "type": "d1", "binding": "DB", "tables": ["payments"] }
+    { "type": "d1", "binding": "DB", "tables": ["payments", "payment_webhook_events"] }
   ],
   "permissions": ["payment.read", "payment.write", "payment.admin", "payment.extend", "payment.observe"],
   "secrets": ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"],

@@ -8,6 +8,7 @@ export interface BillingStore {
   insertSubscription(sub: Subscription): Promise<void>;
   getSubscription(id: string): Promise<Subscription | null>;
   getSubscriptionByStripeId(stripeSubscriptionId: string): Promise<Subscription | null>;
+  getOpenSubscriptionBySubscriber(subscriberId: string): Promise<Subscription | null>;
   updateSubscription(sub: Subscription): Promise<void>;
   list(filter: SubscriptionFilter): Promise<Subscription[]>;
   // Subscriptions in past_due — drives dunning/retry.

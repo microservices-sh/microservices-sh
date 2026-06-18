@@ -5,5 +5,11 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
     globals: false,
+    pool: "forks",
+    poolOptions: {
+      forks: {
+        execArgv: ["--experimental-sqlite"]
+      }
+    }
   },
 });
