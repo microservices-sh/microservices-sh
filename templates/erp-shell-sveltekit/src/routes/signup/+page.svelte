@@ -162,8 +162,6 @@
         <footer class="setup-nav">
           {#if step > 1}
             <Button type="button" variant="ghost" onclick={goBack}>← Back</Button>
-          {:else}
-            <a class="setup-link" href="/login">Already set up? Log in</a>
           {/if}
 
           <div class="setup-nav-right">
@@ -439,13 +437,6 @@
   .setup-nav-right {
     display: inline-flex;
     gap: 10px;
-  }
-  .setup-link {
-    font-size: 0.85rem;
-    color: var(--color-ink-soft);
-  }
-  .setup-link:hover {
-    color: var(--color-green-dark);
   }
   .setup-foot {
     margin: 16px 0 0;
