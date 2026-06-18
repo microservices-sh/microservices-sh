@@ -14,6 +14,7 @@ import type { PaymentRepository, PaymentGateway } from "@microservices-sh/paymen
 import type { BillingStore } from "@microservices-sh/billing-subscriptions/ports";
 import type { ImageStore, ObjectStorage as ImageObjectStorage } from "@microservices-sh/image-generation/ports";
 import type { ProviderRegistry } from "@microservices-sh/image-generation";
+import type { AdsStore } from "@microservices-sh/ads-manager/ports";
 
 declare global {
   namespace App {
@@ -68,6 +69,7 @@ declare global {
       imageStore: ImageStore;
       imageStorage: ImageObjectStorage;
       imageProviders: ProviderRegistry;
+      adsStore: AdsStore;
       // The signed-in principal, resolved from the session store each request.
       // isSuperAdmin is derived from the account's isAdmin flag, never the cookie.
       user: { id: string; email: string; isSuperAdmin: boolean } | null;
