@@ -46,8 +46,33 @@ const REPO_TEMPLATES = {
     status: "ready",
     summary: "Cloudflare SvelteKit client portal — customers see their own invoices and files, with auth, customer, and audit-log.",
   },
+  "erp-shell-sveltekit": {
+    id: "erp-shell-sveltekit",
+    name: "ERP Shell SvelteKit",
+    status: "ready",
+    summary: "Cloudflare SvelteKit ERP shell - customers, invoices, files, support tickets, teams, admin, and audit log.",
+  },
 };
-const BUNDLED_MODULES = ["admin-shell", "audit-log", "auth", "billing-subscriptions", "booking", "customer", "email", "file-media", "gateway", "identity", "invoice", "org-team-rbac", "payment"];
+const BUNDLED_MODULES = [
+  "admin-shell",
+  "ads-manager",
+  "audit-log",
+  "auth",
+  "billing-subscriptions",
+  "booking",
+  "customer",
+  "email",
+  "file-media",
+  "gateway",
+  "identity",
+  "image-generation",
+  "invoice",
+  "jobs-workflows",
+  "notifications-inapp",
+  "org-team-rbac",
+  "payment",
+  "support-ticket",
+];
 const BUNDLED_PACKAGES = new Map([
   ["@microservices-sh/connection-contract", "connection-contract"],
 ]);

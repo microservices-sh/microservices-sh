@@ -40,6 +40,7 @@ Pass with `--template <id>`. Default is `booking-sveltekit`.
 | `booking-business` | Cloudflare Worker / Hono booking app, generated from the module contract |
 | `saas-starter-sveltekit` | Multi-tenant B2B SaaS starter (SvelteKit) — org sign-up, team RBAC, subscriptions, admin, audit log |
 | `client-portal-sveltekit` | SvelteKit client portal — customers see their own invoices and files; auth, customer, audit-log |
+| `erp-shell-sveltekit` | SvelteKit ERP shell - customers, invoices, files, support tickets, teams, admin, audit-log |
 | `company-landing-astro` | Static Astro company landing page, no backend modules |
 | `nextjs` `astro` `react-router` `nuxt` `hono` `sveltekit` | Empty Cloudflare framework starters (via C3); add modules afterward |
 
