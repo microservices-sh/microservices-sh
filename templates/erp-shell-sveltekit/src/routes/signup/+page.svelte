@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { enhance } from "$app/forms";
+  import { enhance, applyAction } from "$app/forms";
+  import { goto } from "$app/navigation";
   import { Button, Field, Card, Alert, Eyebrow, Logo } from "$lib/ui";
 
   let { form } = $props();
@@ -8,10 +9,14 @@
   let step = $state(1);
   let submitting = $state(false);
 
-  let email = $state(form?.values?.email ?? "");
-  let orgName = $state(form?.values?.orgName ?? "");
-  let slug = $state(form?.values?.slug ?? "");
-  let slugEdited = $state(Boolean(form?.values?.slug));
+  function initialFormValues() {
+    return form?.values ?? {};
+  }
+  const initialValues = initialFormValues();
+  let email = $state(initialValues.email ?? "");
+  let orgName = $state(initialValues.orgName ?? "");
+  let slug = $state(initialValues.slug ?? "");
+  let slugEdited = $state(Boolean(initialValues.slug));
 
   type Invite = { email: string; role: "admin" | "member" };
   let invites = $state<Invite[]>([]);
@@ -74,9 +79,16 @@
         method="POST"
         use:enhance={() => {
           submitting = true;
-          return async ({ update }) => {
-            await update();
+          // Follow the success redirect explicitly; relying on update() here is
+          // version-dependent and can silently leave the user on /signup. On
+          // failure, apply the action result so the error Alert renders.
+          return async ({ result }) => {
             submitting = false;
+            if (result.type === "redirect") {
+              await goto(result.location);
+            } else {
+              await applyAction(result);
+            }
           };
         }}
       >
