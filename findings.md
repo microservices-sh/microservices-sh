@@ -143,6 +143,8 @@
 - The next durable slice should be an `operator-work` module because tasks, focus blocks, and daily reviews are the core context that AI agents need before calendar, knowledge ingestion, or publishing integrations are useful.
 - Agentic write access should be exposed through explicit module use cases, not direct table/file edits. Every write should accept an `actorId`/`source` and be auditable by the template.
 - External side effects remain out of scope for this slice: no Google Calendar write-back, AI provider calls, Obsidian export, or CMS/social publishing without a later approval module.
+- The central module catalog now needs to carry agentic surfaces, not only routes and dependencies, so CLI/SDK/MCP docs can tell agents which tools are read-only and which require approval.
+- `operator-work` should stay `draft` while the local D1/memory use cases mature, but it is still useful in the contract catalog so generated DOT AI OS apps have an inspectable operator-work tool map.
 
 ## Agentic Admin And Visitor Template Findings
 - `saas-starter-sveltekit` was marked ready while still using direct demo sessions in `/login`; production readiness requires identity-owned sessions and passwordless email-code verification.

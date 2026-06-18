@@ -1,4 +1,4 @@
-export type ModuleStatus = "available" | "planned";
+export type ModuleStatus = "available" | "planned" | "draft";
 
 export interface ModuleHook {
   name: string;
@@ -37,6 +37,33 @@ export interface InteractiveSetupContract {
 export interface SkillRecommendation {
   id: string;
   recommendedFor?: string[];
+  path?: string;
+}
+
+export interface ModuleSurfaceNavItem {
+  label: string;
+  path: string;
+  permission?: string;
+  icon?: string;
+}
+
+export interface ModuleSurfaces {
+  admin?: {
+    applicable: boolean;
+    nav?: ModuleSurfaceNavItem[];
+    referenceUi?: string[];
+  };
+  visitor?: {
+    applicable: boolean;
+    featureKey?: string;
+    referenceUi?: string[];
+  };
+  agentic?: {
+    applicable: boolean;
+    tools?: string[];
+    skillPaths?: string[];
+    approvalRequired?: string[];
+  };
 }
 
 export interface ModuleContract {
@@ -58,6 +85,7 @@ export interface ModuleContract {
   approvalRisk?: "low" | "medium" | "high";
   interactive?: InteractiveSetupContract;
   skills?: SkillRecommendation[];
+  surfaces?: ModuleSurfaces;
   rpc: Array<{ method: string; scope?: string | null; public: boolean }>;
   hooks: ModuleHook[];
   /** Nested connection surface; optional during the phase 2→3 migration window. */
@@ -147,6 +175,7 @@ export interface ModuleLock {
       events: string[];
       requires: string[];
       secrets: string[];
+      surfaces?: ModuleSurfaces;
     };
   }>;
   customizations: {
@@ -184,7 +213,7 @@ export function parseModuleRef(value: string, explicitVersion?: string | null): 
 export function availableModuleVersions(id: string): string[];
 export function moduleReleaseTag(id: string, version: string): string;
 export function moduleSourceRef(input: string | Pick<ModuleContract, "id" | "version">, version?: string | null): ModuleSourceRef;
-export function listModules(): Array<Pick<ModuleContract, "id" | "name" | "version" | "status" | "category" | "summary" | "requires" | "interactive" | "skills"> & { mount: string; latestVersion: string; availableVersions: string[]; sourceRef: ModuleSourceRef }>;
+export function listModules(): Array<Pick<ModuleContract, "id" | "name" | "version" | "status" | "category" | "summary" | "requires" | "interactive" | "skills" | "surfaces"> & { mount: string; latestVersion: string; availableVersions: string[]; sourceRef: ModuleSourceRef }>;
 export function inspectModule(id: string): ModuleContract;
 export function listTemplates(): Array<Pick<TemplateContract, "id" | "name" | "version" | "status" | "summary" | "defaultModules" | "optionalModules" | "interactive" | "skills">>;
 export function inspectTemplate(id: string): TemplateContract;

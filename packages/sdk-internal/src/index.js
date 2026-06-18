@@ -110,6 +110,7 @@ function availableModuleDocs() {
       sourceRef: contractModuleSourceRef(module),
       interactive: module.interactive ?? null,
       skills: module.skills ?? [],
+      surfaces: module.surfaces ?? null,
       statusNote: "Available in the generated MVP app.",
     };
   });
@@ -135,6 +136,7 @@ function moduleCatalog() {
     events: module.events,
     interactive: module.interactive ?? null,
     skills: module.skills ?? [],
+    surfaces: module.surfaces ?? null,
     sourceRef: module.sourceRef ?? contractModuleSourceRef(module.id, module.version),
   }));
 
@@ -229,6 +231,25 @@ function versionDirection(currentVersion, targetVersion) {
   return "none";
 }
 
+function surfaceMarkdown(module) {
+  const surfaces = module.surfaces ?? {};
+  const lines = [];
+  for (const key of ["admin", "visitor", "agentic"]) {
+    const surface = surfaces[key];
+    if (!surface) {
+      lines.push(`- ${key}: not declared`);
+      continue;
+    }
+    const parts = [surface.applicable ? "applicable" : "not applicable"];
+    if (surface.featureKey) parts.push(`feature: ${surface.featureKey}`);
+    if (surface.nav?.length) parts.push(`nav: ${surface.nav.map((item) => item.path).join(", ")}`);
+    if (surface.tools?.length) parts.push(`tools: ${surface.tools.join(", ")}`);
+    if (surface.approvalRequired?.length) parts.push(`approval: ${surface.approvalRequired.join(", ")}`);
+    lines.push(`- ${key}: ${parts.join("; ")}`);
+  }
+  return lines.join("\n");
+}
+
 function moduleDocMarkdown(module) {
   return `# ${module.name}
 
@@ -258,6 +279,9 @@ ${module.hooks.length ? module.hooks.map((item) => `- ${item}`).join("\n") : "- 
 
 ## Events
 ${module.events.length ? module.events.map((item) => `- ${item}`).join("\n") : "- none"}
+
+## Surfaces
+${surfaceMarkdown(module)}
 
 ## Approval Gate
 Risk: ${module.approvalRisk}

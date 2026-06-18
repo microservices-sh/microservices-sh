@@ -901,3 +901,20 @@
 | `pnpm test` | Full workspace Vitest suite passes | 71 files / 405 tests passed | Pass |
 | `pnpm -r --workspace-concurrency=1 build` | Recursive workspace build passes | Passed with local loopback permission | Pass |
 | `git diff --check` | No whitespace errors | Passed | Pass |
+
+## Session: 2026-06-18 (DOT AI OS operator-work agentic catalog)
+### Phase 35 kickoff
+- **Status:** complete
+- Goal: make the `operator-work` module discoverable as an agentic tool surface, not only as template-local implementation code.
+- Added complete operator-work read tools to module metadata: workbench, tasks, focus blocks, and daily reviews.
+- Marked task, focus-block, and daily-review writes as approval-required in module metadata and operator skill guidance.
+- Added operator-work to the central module-contract catalog with permissions, RPC methods, hooks, events, runtime mount, and admin/agentic surfaces.
+- Extended SDK module docs to include declared surfaces so generated docs list agentic tools and write approval gates.
+- Updated the bundled `dot-ai-os` create-app template copy of the operator-work metadata, skill, and reference UI docs.
+
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm --filter @microservices-sh/module-contract build` | Module contract package builds | Passed | Pass |
+| `pnpm test -- packages/module-contract/tests/module-versioning.test.js packages/sdk-internal/tests/module-versioning.test.js` | Module contract and SDK doc tests pass | Vitest ran the full workspace suite: 71 files / 410 tests passed | Pass |
+| `pnpm --filter @microservices-sh/operator-work check:spec` | Operator-work module spec passes | Passed | Pass |
+| `pnpm --filter @microservices-sh/operator-work build` | Operator-work module build passes | Passed | Pass |

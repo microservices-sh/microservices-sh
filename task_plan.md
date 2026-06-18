@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 33
+Phase 35
 
 ## Phases
 
@@ -248,6 +248,14 @@ Phase 33
 - [x] Scope client portal files to the authenticated customer instead of tenant-wide listing.
 - [x] Stabilize the WordPress/EmDash template build under workspace builds.
 - [x] Validate targeted template checks, module checks, full specs, tests, and builds where practical.
+- **Status:** complete
+
+### Phase 35: DOT AI OS Operator Work Agentic Catalog
+- [x] Expose the complete operator-work read/write tool surface in module metadata.
+- [x] Preserve approval requirements for task, focus-block, and daily-review writes.
+- [x] Add operator-work to the central module contract catalog with permissions, RPC methods, events, hooks, and surfaces.
+- [x] Ensure generated SDK module docs include declared agentic tools and approval gates.
+- [x] Validate module contract, SDK docs, operator-work spec, and operator-work build.
 - **Status:** complete
 
 ### Phase 25: Agentic Cloudflare Migration Prompt Orchestrator

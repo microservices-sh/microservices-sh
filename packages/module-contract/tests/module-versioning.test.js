@@ -70,6 +70,55 @@ describe("module version selectors", () => {
     });
   });
 
+  it("exposes admin, visitor, and agentic surfaces for booking", () => {
+    expect(inspectModule("booking@0.1.0").surfaces).toMatchObject({
+      admin: {
+        applicable: true,
+        nav: [{ path: "/bookings", permission: "booking.read" }],
+      },
+      visitor: {
+        applicable: true,
+        featureKey: "spaces",
+      },
+      agentic: {
+        applicable: true,
+        tools: expect.arrayContaining(["booking.getAvailability", "booking.cancelBooking"]),
+        approvalRequired: expect.arrayContaining(["booking.createBooking", "booking.cancelBooking"]),
+      },
+    });
+  });
+
+  it("exposes the complete agentic surface for operator work", () => {
+    const module = inspectModule("operator-work@0.1.0");
+
+    expect(module).toMatchObject({
+      id: "operator-work",
+      status: "draft",
+      runtime: { mount: "/operator-work" },
+      permissions: expect.arrayContaining(["operator-work.read", "operator-work.write"]),
+      rpc: expect.arrayContaining([
+        { method: "getOperatorWorkbench", scope: "operator-work.read", public: false },
+        { method: "upsertFocusBlock", scope: "operator-work.write", public: false },
+        { method: "saveDailyReview", scope: "operator-work.write", public: false },
+      ]),
+    });
+    expect(module.surfaces.agentic).toMatchObject({
+      applicable: true,
+      tools: expect.arrayContaining([
+        "operator-work.getOperatorWorkbench",
+        "operator-work.listFocusBlocks",
+        "operator-work.upsertFocusBlock",
+        "operator-work.listDailyReviews",
+        "operator-work.saveDailyReview",
+      ]),
+      approvalRequired: expect.arrayContaining([
+        "operator-work.upsertOperatorTask",
+        "operator-work.upsertFocusBlock",
+        "operator-work.saveDailyReview",
+      ]),
+    });
+  });
+
   it("records pinned versions in the composition lock", () => {
     const composition = composeApp({ templateId: "booking-business", modules: ["payment@0.1.0"] });
     expect(composition.lock.modules.find((module) => module.id === "payment")).toMatchObject({

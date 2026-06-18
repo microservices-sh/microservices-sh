@@ -70,6 +70,43 @@
     "default": "config-hooks",
     "supported": ["config", "hooks", "overlay", "fork"]
   },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Operator Work", "path": "/operator-work", "permission": "operator-work.read", "icon": "ListTodo" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": false
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": [
+        "operator-work.getOperatorWorkbench",
+        "operator-work.listOperatorTasks",
+        "operator-work.upsertOperatorTask",
+        "operator-work.updateOperatorTaskStatus",
+        "operator-work.listFocusBlocks",
+        "operator-work.upsertFocusBlock",
+        "operator-work.listDailyReviews",
+        "operator-work.saveDailyReview"
+      ],
+      "skillPaths": ["skills/operator-work-operator/SKILL.md"],
+      "approvalRequiredFor": [
+        "operator-work.upsertOperatorTask",
+        "operator-work.updateOperatorTaskStatus",
+        "operator-work.upsertFocusBlock",
+        "operator-work.saveDailyReview"
+      ]
+    }
+  },
+  "skills": [
+    {
+      "id": "operator-work-operator",
+      "path": "skills/operator-work-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "daily-review", "agentic-workflows"]
+    }
+  ],
   "approval": {
     "risk": "medium",
     "requiresApprovalFor": [

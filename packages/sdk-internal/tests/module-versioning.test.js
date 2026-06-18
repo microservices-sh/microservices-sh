@@ -114,4 +114,20 @@ describe("SDK module version planning", () => {
       tag: "modules/auth/v0.1.0",
     });
   });
+
+  it("includes operator work agentic tools in generated docs", () => {
+    const response = getModuleDoc("operator-work@0.1.0");
+    expect(response.ok).toBe(true);
+    expect(response.data.module.id).toBe("operator-work");
+    expect(response.data.module.surfaces.agentic.tools).toEqual(
+      expect.arrayContaining([
+        "operator-work.getOperatorWorkbench",
+        "operator-work.listFocusBlocks",
+        "operator-work.upsertFocusBlock",
+        "operator-work.saveDailyReview",
+      ])
+    );
+    expect(response.data.markdown).toContain("operator-work.getOperatorWorkbench");
+    expect(response.data.markdown).toContain("operator-work.saveDailyReview");
+  });
 });

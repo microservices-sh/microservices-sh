@@ -2,6 +2,18 @@ const CONTRACT_VERSION = "2026-06-13";
 const MODULE_SOURCE_REPO = "microservices-sh/microservices-sh";
 const MODULE_SOURCE_URL = `https://github.com/${MODULE_SOURCE_REPO}.git`;
 
+function moduleSurfaces({
+  admin = null,
+  visitor = null,
+  agentic = null,
+} = {}) {
+  return {
+    admin: admin ?? { applicable: false },
+    visitor: visitor ?? { applicable: false },
+    agentic: agentic ?? { applicable: false },
+  };
+}
+
 const MODULES = Object.freeze([
   {
     id: "auth",
@@ -18,6 +30,17 @@ const MODULES = Object.freeze([
       mount: "/auth",
       bindings: ["DB"],
     },
+    surfaces: moduleSurfaces({
+      admin: {
+        applicable: true,
+        nav: [{ label: "Auth", path: "/settings/auth", permission: "auth.admin" }],
+      },
+      agentic: {
+        applicable: true,
+        tools: ["auth.mintToken", "auth.verifyToken", "auth.getJwks"],
+        approvalRequired: ["auth.mintToken", "auth.rotateSigningKey"],
+      },
+    }),
     eventsEmitted: ["auth.token_minted", "auth.key_rotated"],
     eventsConsumed: [],
     permissions: ["auth.mint", "auth.verify", "auth.admin"],
@@ -65,6 +88,17 @@ const MODULES = Object.freeze([
       mount: "/gateway",
       bindings: ["DB", "RATE_LIMIT_KV"],
     },
+    surfaces: moduleSurfaces({
+      admin: {
+        applicable: true,
+        nav: [{ label: "Gateway", path: "/settings/api-keys", permission: "gateway.admin" }],
+      },
+      agentic: {
+        applicable: true,
+        tools: ["gateway.issueToken", "gateway.inspectRateLimit"],
+        approvalRequired: ["gateway.issueToken", "gateway.createApiKey", "gateway.revokeApiKey"],
+      },
+    }),
     eventsEmitted: ["gateway.token_issued", "gateway.access_denied"],
     eventsConsumed: [],
     permissions: ["gateway.admin"],
@@ -108,6 +142,21 @@ const MODULES = Object.freeze([
       mount: "/customers",
       bindings: ["DB"],
     },
+    surfaces: moduleSurfaces({
+      admin: {
+        applicable: true,
+        nav: [{ label: "Customers", path: "/customers", permission: "customer.read", icon: "Users" }],
+      },
+      visitor: {
+        applicable: true,
+        featureKey: "memberProfile",
+      },
+      agentic: {
+        applicable: true,
+        tools: ["customer.getCustomer", "customer.listCustomers", "customer.upsertCustomer"],
+        approvalRequired: ["customer.upsertCustomer", "customer.deleteCustomer"],
+      },
+    }),
     eventsEmitted: ["customer.created", "customer.updated"],
     eventsConsumed: [],
     permissions: ["customer.read", "customer.write", "customer.admin"],
@@ -155,6 +204,21 @@ const MODULES = Object.freeze([
       mount: "/bookings",
       bindings: ["DB", "CACHE_KV", "NOTIFICATIONS"],
     },
+    surfaces: moduleSurfaces({
+      admin: {
+        applicable: true,
+        nav: [{ label: "Bookings", path: "/bookings", permission: "booking.read", icon: "CalendarDays" }],
+      },
+      visitor: {
+        applicable: true,
+        featureKey: "spaces",
+      },
+      agentic: {
+        applicable: true,
+        tools: ["booking.listBookings", "booking.getBooking", "booking.getAvailability", "booking.createBooking", "booking.cancelBooking"],
+        approvalRequired: ["booking.createBooking", "booking.cancelBooking"],
+      },
+    }),
     eventsEmitted: ["booking.created", "booking.confirmed", "booking.cancelled"],
     eventsConsumed: ["customer.created", "payment.succeeded"],
     permissions: ["booking.read", "booking.write", "booking.admin"],
@@ -214,6 +278,17 @@ const MODULES = Object.freeze([
       mount: "/audit",
       bindings: ["DB"],
     },
+    surfaces: moduleSurfaces({
+      admin: {
+        applicable: true,
+        nav: [{ label: "Audit Log", path: "/settings/audit-log", permission: "audit.read" }],
+      },
+      agentic: {
+        applicable: true,
+        tools: ["audit.listEvents", "audit.exportEvents"],
+        approvalRequired: ["audit.exportEvents"],
+      },
+    }),
     eventsEmitted: ["audit.recorded", "audit.exported"],
     eventsConsumed: [],
     permissions: ["audit.read", "audit.export", "audit.admin"],
@@ -257,6 +332,21 @@ const MODULES = Object.freeze([
       mount: "/payments",
       bindings: ["DB"],
     },
+    surfaces: moduleSurfaces({
+      admin: {
+        applicable: true,
+        nav: [{ label: "Payments", path: "/payments", permission: "payment.read", icon: "CreditCard" }],
+      },
+      visitor: {
+        applicable: true,
+        featureKey: "payments",
+      },
+      agentic: {
+        applicable: true,
+        tools: ["payment.createPaymentIntent", "payment.listPayments", "payment.refundPayment"],
+        approvalRequired: ["payment.createPaymentIntent", "payment.refundPayment"],
+      },
+    }),
     secrets: ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"],
     eventsEmitted: ["payment.checkout_created", "payment.succeeded", "payment.refunded", "payment.failed"],
     eventsConsumed: [],
@@ -305,6 +395,17 @@ const MODULES = Object.freeze([
       mount: "/billing",
       bindings: ["DB"],
     },
+    surfaces: moduleSurfaces({
+      admin: {
+        applicable: true,
+        nav: [{ label: "Billing", path: "/settings/billing", permission: "billing.read", icon: "Receipt" }],
+      },
+      agentic: {
+        applicable: true,
+        tools: ["billing.listPlans", "billing.startSubscription", "billing.changePlan", "billing.cancelSubscription"],
+        approvalRequired: ["billing.startSubscription", "billing.changePlan", "billing.cancelSubscription"],
+      },
+    }),
     eventsEmitted: [
       "subscription.started",
       "subscription.activated",
@@ -368,6 +469,12 @@ const MODULES = Object.freeze([
       mount: "/idempotency",
       bindings: ["DB"],
     },
+    surfaces: moduleSurfaces({
+      agentic: {
+        applicable: true,
+        tools: ["idempotency.getRecord", "idempotency.inspectReplay"],
+      },
+    }),
     eventsEmitted: [
       "idempotency.claimed",
       "idempotency.replayed",
@@ -425,6 +532,17 @@ const MODULES = Object.freeze([
       mount: "/webhooks",
       bindings: ["DB"],
     },
+    surfaces: moduleSurfaces({
+      admin: {
+        applicable: true,
+        nav: [{ label: "Webhooks", path: "/settings/webhooks", permission: "webhook.read" }],
+      },
+      agentic: {
+        applicable: true,
+        tools: ["webhook.listEndpoints", "webhook.registerEndpoint", "webhook.deliverTestEvent"],
+        approvalRequired: ["webhook.registerEndpoint", "webhook.deliverTestEvent"],
+      },
+    }),
     // External outbound HTTP side-effects make this approval-gated despite being
     // a sink (audit-log, also a sink, stays medium — it never leaves the account).
     approvalRisk: "high",
@@ -452,6 +570,106 @@ const MODULES = Object.freeze([
     },
     quality: {
       tests: { unit: true, integration: true, fixtures: true },
+      agentDocs: true,
+      migrations: true,
+      upgradeNotes: true,
+    },
+  },
+  {
+    id: "operator-work",
+    name: "Operator Work",
+    version: "0.1.0",
+    status: "draft",
+    category: "core",
+    summary: "Agent-readable task board, focus plan, daily review, and auditable operator work state for DOT AI OS.",
+    requires: [],
+    optional: ["org-team-rbac", "audit-log", "jobs-workflows", "calendar-google", "email"],
+    storage: ["d1"],
+    runtime: {
+      framework: "hono",
+      mount: "/operator-work",
+      bindings: ["DB"],
+    },
+    surfaces: moduleSurfaces({
+      admin: {
+        applicable: true,
+        nav: [{ label: "Operator Work", path: "/operator-work", permission: "operator-work.read", icon: "ListTodo" }],
+        referenceUi: ["reference-ui/README.md"],
+      },
+      agentic: {
+        applicable: true,
+        tools: [
+          "operator-work.getOperatorWorkbench",
+          "operator-work.listOperatorTasks",
+          "operator-work.upsertOperatorTask",
+          "operator-work.updateOperatorTaskStatus",
+          "operator-work.listFocusBlocks",
+          "operator-work.upsertFocusBlock",
+          "operator-work.listDailyReviews",
+          "operator-work.saveDailyReview",
+        ],
+        skillPaths: ["skills/operator-work-operator/SKILL.md"],
+        approvalRequired: [
+          "operator-work.upsertOperatorTask",
+          "operator-work.updateOperatorTaskStatus",
+          "operator-work.upsertFocusBlock",
+          "operator-work.saveDailyReview",
+        ],
+      },
+    }),
+    eventsEmitted: [
+      "operator-work.task.upserted",
+      "operator-work.task.status_changed",
+      "operator-work.focus_block.upserted",
+      "operator-work.daily_review.saved",
+    ],
+    eventsConsumed: [],
+    permissions: [
+      "operator-work.read",
+      "operator-work.write",
+      "operator-work.admin",
+      "operator-work.extend",
+      "operator-work.observe",
+    ],
+    rpc: [
+      { method: "getOperatorWorkbench", scope: "operator-work.read", public: false },
+      { method: "listOperatorTasks", scope: "operator-work.read", public: false },
+      { method: "upsertOperatorTask", scope: "operator-work.write", public: false },
+      { method: "updateOperatorTaskStatus", scope: "operator-work.write", public: false },
+      { method: "listFocusBlocks", scope: "operator-work.read", public: false },
+      { method: "upsertFocusBlock", scope: "operator-work.write", public: false },
+      { method: "listDailyReviews", scope: "operator-work.read", public: false },
+      { method: "saveDailyReview", scope: "operator-work.write", public: false },
+    ],
+    hooks: [
+      {
+        name: "beforeOperatorTaskUpsert",
+        timing: "pre",
+        purpose: "Normalize or guard task writes before persistence.",
+      },
+      {
+        name: "afterOperatorTaskUpdated",
+        timing: "post",
+        purpose: "Observe created or updated tasks for audit, notifications, or agent handoff workflows.",
+      },
+      {
+        name: "beforeFocusBlockUpsert",
+        timing: "pre",
+        purpose: "Normalize or guard focus plan writes before persistence.",
+      },
+      {
+        name: "beforeDailyReviewSave",
+        timing: "pre",
+        purpose: "Normalize or guard daily review saves before persistence.",
+      },
+    ],
+    customization: {
+      config: ["maxTasks", "allowAgentDrafts", "requireReviewBeforeUnlock"],
+      hooks: ["beforeOperatorTaskUpsert", "afterOperatorTaskUpdated", "beforeFocusBlockUpsert", "beforeDailyReviewSave"],
+      forkable: true,
+    },
+    quality: {
+      tests: { unit: true, integration: false, fixtures: true },
       agentDocs: true,
       migrations: true,
       upgradeNotes: true,
@@ -536,6 +754,7 @@ function moduleSummary(module) {
     mount: module.runtime.mount,
     ...(module.interactive ? { interactive: clone(module.interactive) } : {}),
     ...(module.skills ? { skills: clone(module.skills) } : {}),
+    ...(module.surfaces ? { surfaces: clone(module.surfaces) } : {}),
   };
 }
 
@@ -791,6 +1010,7 @@ export function createModuleLock(modules, template = null) {
         events: unique([...module.eventsEmitted, ...module.eventsConsumed]),
         requires: clone(module.requires),
         secrets: clone(module.secrets ?? []),
+        surfaces: clone(module.surfaces ?? {}),
       },
     })),
     customizations: {
