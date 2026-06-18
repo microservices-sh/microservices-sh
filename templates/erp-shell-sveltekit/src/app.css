@@ -252,6 +252,12 @@
     @apply py-12 md:pb-14 md:pt-12;
     animation: rise 0.5s ease both;
   }
+  /* Inside the app shell, .as-content already owns the page's vertical rhythm
+     (its own top/bottom padding), so a page-level .section must not stack a
+     second py-12 on top of it — that produced the excessive top gap. */
+  .as-content .section {
+    @apply py-0;
+  }
   .hero-grid,
   .content-grid {
     @apply grid items-start gap-6;
@@ -280,7 +286,7 @@
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   }
   .stat-card {
-    @apply grid gap-2 rounded-card border border-line bg-surface-2 p-5 text-ink no-underline
+    @apply grid gap-2 rounded-card border border-line bg-surface p-5 text-ink no-underline
       transition-[border-color,transform,box-shadow] duration-150;
   }
   a.stat-card:hover {
