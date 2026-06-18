@@ -14,6 +14,7 @@
     "validate": "node scripts/validate-content.mjs",
     "prebuild": "node scripts/validate-content.mjs",
     "build": "vite build",
+    "test": "vitest run",
     "prebuild:app": "node scripts/validate-content.mjs",
     "build:app": "vite build",
     "preview": "vite preview",

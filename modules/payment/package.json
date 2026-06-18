@@ -27,6 +27,7 @@
   },
   "scripts": {
     "build": "tsc --noEmit",
+    "test": "vitest run",
     "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path ."
   },
   "dependencies": {
