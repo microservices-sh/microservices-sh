@@ -27,6 +27,10 @@ export function createMemoryRbacStore(): RbacStore {
     async anyOrganizationExists() {
       return orgs.size > 0;
     },
+    async firstOrganization() {
+      for (const o of orgs.values()) return { ...o };
+      return null;
+    },
 
     async insertRole(role) {
       roles.set(role.id, { ...role, permissions: [...role.permissions] });

@@ -36,6 +36,10 @@ export function createD1RbacStore(db: D1Database): RbacStore {
       const r = await db.prepare("SELECT 1 FROM organizations LIMIT 1").first();
       return r != null;
     },
+    async firstOrganization() {
+      const r = await db.prepare("SELECT * FROM organizations LIMIT 1").first<Record<string, unknown>>();
+      return r ? toOrg(r) : null;
+    },
 
     async insertRole(role) {
       await db.prepare("INSERT INTO roles (id, org_id, name, permissions) VALUES (?, ?, ?, ?)")

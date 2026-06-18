@@ -10,6 +10,9 @@ export interface RbacStore {
   // True once any organization exists — lets a single-company app gate its
   // one-time first-run setup (close /signup after the company is created).
   anyOrganizationExists(): Promise<boolean>;
+  // The first/only organization, or null. A single-company app uses this to
+  // resolve "the company" for a signed-in user without a remembered org id.
+  firstOrganization(): Promise<Organization | null>;
 
   insertRole(role: Role): Promise<void>;
   getRole(id: string): Promise<Role | null>;

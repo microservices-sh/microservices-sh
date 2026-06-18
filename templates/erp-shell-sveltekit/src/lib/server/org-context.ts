@@ -34,14 +34,30 @@ export async function loadCompanyContext(
   userId: string,
   store: RbacStore
 ): Promise<CompanyContext> {
-  const orgId = readCompanyOrgId(cookies);
-  if (!orgId) return { org: null };
+  // 1. Remembered org cookie (set at setup / on first resolve). Validate membership.
+  const remembered = readCompanyOrgId(cookies);
+  if (remembered) {
+    const membership = await store.getMembership(remembered, userId);
+    if (membership && membership.status === "active") {
+      const org = await store.getOrg(remembered);
+      if (org) return { org };
+    }
+    // stale cookie (org gone / membership revoked) → fall through to re-resolve
+  }
 
-  const membership = await store.getMembership(orgId, userId);
-  if (!membership || membership.status !== "active") return { org: null };
+  // 2. No usable cookie — e.g. a returning user who just signed in via /login.
+  // Single-company shell: resolve THE company and confirm the user belongs to it,
+  // then remember it so later requests skip this lookup.
+  const company = await store.firstOrganization();
+  if (company) {
+    const membership = await store.getMembership(company.id, userId);
+    if (membership && membership.status === "active") {
+      rememberCompanyOrg(cookies, company.id);
+      return { org: company };
+    }
+  }
 
-  const org = await store.getOrg(orgId);
-  return { org: org ?? null };
+  return { org: null };
 }
 
 export interface OrgGuardResult {
