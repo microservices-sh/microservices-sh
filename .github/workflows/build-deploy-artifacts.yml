@@ -77,3 +77,6 @@ jobs:
             --file "$RUNNER_TEMP/artifact/$TEMPLATE@${ver}.tar.gz" --remote
           npx wrangler r2 object put "$R2_ARTIFACTS_BUCKET/$TEMPLATE/${ver}.manifest.json" \
             --file "$RUNNER_TEMP/artifact/manifest.json" --remote
+          # Control-plane upload shape — loaded by loadPrebuiltArtifact() per deploy.
+          npx wrangler r2 object put "$R2_ARTIFACTS_BUCKET/$TEMPLATE/${ver}.payload.json" \
+            --file "$RUNNER_TEMP/artifact/payload.json" --remote

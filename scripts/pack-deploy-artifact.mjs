@@ -82,7 +82,10 @@ for (const f of INCLUDE_FILES) {
 const entries = files.map((abs) => {
   const path = relative(appDir, abs).split("\\").join("/");
   const buf = readFileSync(abs);
-  return { path, size: buf.length, sha256: createHash("sha256").update(buf).digest("hex") };
+  const contents = buf.toString("utf8");
+  // Control-plane GeneratedFile.contents is string-only - track UTF-8 safety.
+  const utf8Safe = Buffer.from(contents, "utf8").equals(buf);
+  return { path, size: buf.length, sha256: createHash("sha256").update(buf).digest("hex"), contents, utf8Safe };
 });
 
 // Readiness gate (mirror control-plane rawSvelteKitBundleSummary).
@@ -95,9 +98,24 @@ if (!has((e) => e.path.startsWith(".svelte-kit/cloudflare/_app/"))) missing.push
 if (!has((e) => e.path.startsWith("migrations/") && e.path.endsWith(".sql"))) missing.push("migrations/*.sql");
 if (missing.length) fail(`readiness gate failed - artifact missing:\n   - ${missing.join("\n   - ")}`);
 
+// The control-plane inline artifact carries string contents only, so every file
+// must be UTF-8. Fail loud if a template ships binary assets (needs a base64
+// GeneratedFile extension before it can use the inline-artifact path).
+const binaryFiles = entries.filter((e) => !e.utf8Safe).map((e) => e.path);
+if (binaryFiles.length) {
+  fail(`artifact has ${binaryFiles.length} binary file(s) (control-plane contents are string-only):\n   - ${binaryFiles.join("\n   - ")}`);
+}
+// Control-plane inline-artifact limits (api MAX_UPLOADED_ARTIFACT_*).
+const MAX_FILES = 1000;
+const MAX_BYTES = 4 * 1024 * 1024;
+const artifactBytes = entries.reduce((n, e) => n + e.size, 0);
+if (entries.length > MAX_FILES) fail(`too many files: ${entries.length} > ${MAX_FILES}`);
+if (artifactBytes > MAX_BYTES) fail(`artifact too large: ${artifactBytes} > ${MAX_BYTES} bytes`);
+
 // Emit manifest + tarball.
 mkdirSync(outDir, { recursive: true });
-const totalBytes = entries.reduce((n, e) => n + e.size, 0);
+const totalBytes = artifactBytes;
+entries.sort((a, b) => a.path.localeCompare(b.path));
 const manifest = {
   template: templateId,
   version,
@@ -105,9 +123,33 @@ const manifest = {
   fileCount: entries.length,
   totalBytes,
   ready: true,
-  files: entries.sort((a, b) => a.path.localeCompare(b.path)),
+  files: entries.map((e) => ({ path: e.path, size: e.size, sha256: e.sha256 })),
 };
 writeFileSync(join(outDir, "manifest.json"), JSON.stringify(manifest, null, 2));
+
+// Control-plane-consumable artifact ({composition, files}) - matches the api's
+// normalizeUploadedArtifact, so createPreviewDeploymentFromArtifact can deploy
+// this prebuilt build with no user upload / no Worker-side vite build.
+const lock = existsSync(join(appDir, "microservices.lock.json"))
+  ? JSON.parse(readFileSync(join(appDir, "microservices.lock.json"), "utf8"))
+  : {};
+const cfg = existsSync(join(appDir, "microservices.config.json"))
+  ? JSON.parse(readFileSync(join(appDir, "microservices.config.json"), "utf8"))
+  : {};
+const moduleIds = (lock.modules ?? tpl.modules?.required ?? [])
+  .map((m) => (typeof m === "string" ? m : m?.id))
+  .filter(Boolean);
+const payload = {
+  source: "ci-prebuilt",
+  composition: {
+    template: { id: templateId, name: tpl.displayName ?? tpl.name ?? templateId },
+    modules: moduleIds.map((id) => ({ id })),
+    config: cfg,
+  },
+  metadata: { template: templateId, version, fileCount: entries.length, totalBytes },
+  files: entries.map((e) => ({ path: e.path, contents: e.contents })),
+};
+writeFileSync(join(outDir, "payload.json"), JSON.stringify(payload));
 
 const tarName = `${templateId}@${version}.tar.gz`;
 const tarPath = join(outDir, tarName);
@@ -117,4 +159,5 @@ const tarSize = statSync(tarPath).size;
 console.log(`OK: artifact ready: ${templateId}@${version}`);
 console.log(`  files: ${entries.length} | uncompressed: ${(totalBytes / 1024).toFixed(0)} KiB | tar.gz: ${(tarSize / 1024).toFixed(0)} KiB`);
 console.log(`  manifest: ${relative(process.cwd(), join(outDir, "manifest.json"))}`);
+console.log(`  payload:  ${relative(process.cwd(), join(outDir, "payload.json"))} (control-plane upload shape)`);
 console.log(`  tarball:  ${relative(process.cwd(), tarPath)}`);
