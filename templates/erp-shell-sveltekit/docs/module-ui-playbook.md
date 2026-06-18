@@ -38,9 +38,12 @@ generated app.
 Worked reference: `src/routes/app/customers/` (list + create) and
 `src/routes/app/invoices/` (list + multi-step create + per-row action).
 
-1. **Install the module** (if not already): `microservices add <id>`, then add
+1. **Install the module** (if not already): `microservices add <id>` (this vendors
+   it AND records it in `microservices.lock.json#modules[]`), then add
    `"@microservices-sh/<id>": "workspace:*"` (repo) / `"file:./modules/<id>"`
-   (generated app) to `package.json` and reinstall.
+   (generated app) to `package.json` and reinstall. **If you wire by hand, you
+   MUST add the lock entry yourself** — `installedModuleIds()` reads the lock, so
+   a module absent from it is treated as not installed and its routes 404.
 2. **Wire the store** — construct the module's adapter in `src/lib/server/stores.ts`
    (`db ? createD1XStore(db) : memoryXStore`), add it to `ServerStores`, assign it
    on `event.locals` in `src/hooks.server.ts`, and type it in `src/app.d.ts`.
@@ -85,7 +88,7 @@ The reference page is deliberately generic. When customizing:
 | notifications-inapp | Notifications — user feed + mark read | ✅ `app/notifications` |
 | file-media | Files — list + upload | ✅ `app/files` |
 | org-team-rbac | Team — members + invites | ✅ `app/team` |
-| payment | Payments — transactions + refunds | ⬜ to author |
+| payment | Payments — ledger + refunds | ✅ `app/payments` |
 | billing-subscriptions | Subscriptions — plans + status | ⬜ to author |
 | image-generation | Image generation — prompt + gallery | ⬜ to author |
 | ads-manager | Ads — campaigns + snapshots | ⬜ to author |

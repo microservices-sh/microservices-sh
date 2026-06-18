@@ -10,14 +10,15 @@ const internalAliases = new Map([
   ["@microservices-sh/module-contract", resolve(repoRoot, "packages/module-contract/src/index.js")],
 ]);
 
-const REPO_TEMPLATES = ["booking-sveltekit", "company-landing-astro", "wordpress-emdash-blog-astro", "saas-starter-sveltekit", "client-portal-sveltekit", "erp-shell-sveltekit"];
+const REPO_TEMPLATES = ["booking-sveltekit", "company-landing-astro", "wordpress-emdash-blog-astro", "saas-starter-sveltekit", "client-portal-sveltekit", "dot-ai-os", "erp-shell-sveltekit"];
 const REPO_TEMPLATE_MODULES = {
   "booking-sveltekit": ["gateway", "auth", "customer", "booking", "audit-log", "email", "payment", "identity"],
   "company-landing-astro": [],
   "wordpress-emdash-blog-astro": [],
   "saas-starter-sveltekit": ["auth", "org-team-rbac", "billing-subscriptions", "admin-shell", "audit-log", "image-generation", "ads-manager"],
   "client-portal-sveltekit": ["auth", "customer", "invoice", "file-media", "audit-log"],
-  "erp-shell-sveltekit": ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "invoice", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket"],
+  "dot-ai-os": ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "invoice", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket"],
+  "erp-shell-sveltekit": ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "invoice", "payment", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket"],
 };
 const REPO_TEMPLATE_PACKAGES = {
   "booking-sveltekit": ["connection-contract"],
@@ -25,6 +26,7 @@ const REPO_TEMPLATE_PACKAGES = {
   "wordpress-emdash-blog-astro": [],
   "saas-starter-sveltekit": ["connection-contract"],
   "client-portal-sveltekit": ["connection-contract"],
+  "dot-ai-os": ["connection-contract"],
   "erp-shell-sveltekit": ["connection-contract"],
 };
 const TEMPLATE_IGNORE = new Set([

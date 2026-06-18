@@ -38,6 +38,7 @@
     "@microservices-sh/jobs-workflows": "workspace:*",
     "@microservices-sh/notifications-inapp": "workspace:*",
     "@microservices-sh/org-team-rbac": "workspace:*",
+    "@microservices-sh/payment": "workspace:*",
     "@microservices-sh/support-ticket": "workspace:*",
     "@sveltejs/adapter-cloudflare": "^7.2.4",
     "@sveltejs/kit": "^2.9.0",
