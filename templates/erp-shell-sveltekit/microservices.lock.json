@@ -116,6 +116,29 @@
       }
     },
     {
+      "id": "support-ticket",
+      "version": "0.1.0",
+      "source": "registry:support-ticket@0.1.0",
+      "checksum": "sha256:preview-support-ticket-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/support",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["support.read", "support.manage"],
+        "rpc": [
+          { "method": "createTicket", "scope": "support.manage", "public": false },
+          { "method": "getTicket", "scope": "support.read", "public": false },
+          { "method": "listTickets", "scope": "support.read", "public": false },
+          { "method": "updateTicket", "scope": "support.manage", "public": false }
+        ],
+        "hooks": ["beforeTicketCreate", "afterTicketUpdated"],
+        "events": ["support-ticket.created", "support-ticket.updated", "support-ticket.status_changed"],
+        "requires": []
+      }
+    },
+    {
       "id": "invoice",
       "version": "0.1.0",
       "source": "registry:invoice@0.1.0",

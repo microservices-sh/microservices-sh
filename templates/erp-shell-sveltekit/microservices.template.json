@@ -26,7 +26,8 @@
       "audit-log",
       "customer",
       "invoice",
-      "file-media"
+      "file-media",
+      "support-ticket"
     ],
     "optional": [
       "identity",
@@ -70,6 +71,13 @@
       "activeModule": "customer",
       "allowedModules": [
         "customer"
+      ],
+      "approvalRisk": "medium"
+    },
+    "support": {
+      "activeModule": "support-ticket",
+      "allowedModules": [
+        "support-ticket"
       ],
       "approvalRisk": "medium"
     },

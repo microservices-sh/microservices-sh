@@ -587,6 +587,9 @@ importers:
       '@microservices-sh/org-team-rbac':
         specifier: workspace:*
         version: link:../../modules/org-team-rbac
+      '@microservices-sh/support-ticket':
+        specifier: workspace:*
+        version: link:../../modules/support-ticket
       '@sveltejs/adapter-cloudflare':
         specifier: ^7.2.4
         version: 7.2.8(@sveltejs/kit@2.65.1(@sveltejs/vite-plugin-svelte@4.0.4(svelte@5.56.3)(vite@5.4.21(@types/node@25.9.3)(lightningcss@1.32.0)))(svelte@5.56.3)(typescript@5.9.3)(vite@5.4.21(@types/node@25.9.3)(lightningcss@1.32.0)))(wrangler@4.100.0(@cloudflare/workers-types@4.20260613.1))

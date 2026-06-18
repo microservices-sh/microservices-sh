@@ -17,7 +17,7 @@ const REPO_TEMPLATE_MODULES = {
   "wordpress-emdash-blog-astro": [],
   "saas-starter-sveltekit": ["auth", "org-team-rbac", "billing-subscriptions", "admin-shell", "audit-log", "image-generation", "ads-manager"],
   "client-portal-sveltekit": ["auth", "customer", "invoice", "file-media", "audit-log"],
-  "erp-shell-sveltekit": ["auth", "identity", "org-team-rbac", "admin-shell", "audit-log", "customer", "invoice", "file-media", "jobs-workflows", "notifications-inapp"],
+  "erp-shell-sveltekit": ["auth", "identity", "org-team-rbac", "admin-shell", "audit-log", "customer", "invoice", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket"],
 };
 const REPO_TEMPLATE_PACKAGES = {
   "booking-sveltekit": ["connection-contract"],
@@ -76,7 +76,7 @@ await build({
 await chmod("dist/index.js", 0o755);
 
 // Bundle repo templates next to dist so the CLI can read them at runtime.
-// Module source lives in this repo (modules/<id>) — vendor it into the bundled
+// Module source lives in this repo (modules/<id>) - vendor it into the bundled
 // template so generated apps are standalone with no remote fetch.
 const templatesOut = resolve(packageRoot, "templates");
 await rm(templatesOut, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });

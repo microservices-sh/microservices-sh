@@ -3,6 +3,7 @@ import type { TableGateway } from "@microservices-sh/admin-shell/ports";
 import type { AuditEventStore } from "@microservices-sh/audit-log/ports";
 import type { SigningKeyStore } from "@microservices-sh/auth/ports";
 import type { CustomerRepository } from "@microservices-sh/customer/ports";
+import type { TicketStore } from "@microservices-sh/support-ticket/ports";
 import type { InvoiceStore, NumberAllocator } from "@microservices-sh/invoice/ports";
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
 import type { NotificationStore } from "@microservices-sh/notifications-inapp/ports";
@@ -29,6 +30,7 @@ declare global {
       auditStore: AuditEventStore;
       signingKeyStore: SigningKeyStore;
       customerRepository: CustomerRepository;
+      ticketStore: TicketStore;
       invoiceStore: InvoiceStore;
       numberAllocator: NumberAllocator;
       mediaStore: MediaStore;

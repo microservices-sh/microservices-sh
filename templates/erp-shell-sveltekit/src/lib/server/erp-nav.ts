@@ -33,12 +33,13 @@ export interface LockModule {
 const MODULE_NAV: Record<string, NavItem> = {
   customer: { label: "Customers", href: "/app/customers" },
   invoice: { label: "Invoices", href: "/app/invoices" },
+  "support-ticket": { label: "Support", href: "/app/support" },
   "file-media": { label: "Files", href: "/app/files" },
   "org-team-rbac": { label: "Team", href: "/app/team" }
 };
 
 // Which modules belong to which sidebar group (operational vs organization).
-const OPERATIONS = ["customer", "invoice", "file-media"];
+const OPERATIONS = ["customer", "invoice", "support-ticket", "file-media"];
 const ORGANIZATION = ["org-team-rbac"];
 
 function installedModuleIds(): Set<string> {

@@ -9,6 +9,8 @@
  */
 import { upsertCustomer } from "@microservices-sh/customer";
 import type { CustomerRepository } from "@microservices-sh/customer/ports";
+import { createTicket } from "@microservices-sh/support-ticket";
+import type { TicketStore } from "@microservices-sh/support-ticket/ports";
 import { createInvoice, issueInvoice } from "@microservices-sh/invoice";
 import type { InvoiceStore, NumberAllocator } from "@microservices-sh/invoice/ports";
 import { createUploadTicket, completeUpload } from "@microservices-sh/file-media";
@@ -19,6 +21,7 @@ import type { AuditEventStore } from "@microservices-sh/audit-log/ports";
 export interface DemoDeps {
   tenantId: string;
   customerRepository: CustomerRepository;
+  ticketStore: TicketStore;
   invoiceStore: InvoiceStore;
   numberAllocator: NumberAllocator;
   mediaStore: MediaStore;
@@ -31,6 +34,21 @@ let seeded = false;
 const DEMO_CUSTOMERS = [
   { name: "Acme Studios", email: "owner@acme.example", phone: "+1 555 0100", notes: "Retainer client." },
   { name: "Borealis Legal", email: "billing@borealis.example", phone: "+1 555 0123", notes: null }
+];
+
+const DEMO_TICKETS = [
+  {
+    subject: "Invoice PDF won't download",
+    description: "The download button on the latest invoice returns a 404.",
+    requesterEmail: "owner@acme.example",
+    priority: "high"
+  },
+  {
+    subject: "Add a second billing contact",
+    description: "Please CC our finance team on monthly statements.",
+    requesterEmail: "billing@borealis.example",
+    priority: "normal"
+  }
 ];
 
 export async function seedDemoData(deps: DemoDeps): Promise<void> {
@@ -118,5 +136,26 @@ export async function seedDemoData(deps: DemoDeps): Promise<void> {
         { mediaStore: deps.mediaStore, storage: deps.objectStorage }
       );
     }
+  }
+
+  // A couple of demo support tickets scoped to the company tenant.
+  for (const ticket of DEMO_TICKETS) {
+    const ticketResult = await createTicket(
+      { tenantId: deps.tenantId, ...ticket },
+      { store: deps.ticketStore }
+    );
+    if (!ticketResult.ok || !ticketResult.data) continue;
+
+    await recordEvent(
+      {
+        eventName: "support-ticket.created",
+        entityType: "support-ticket",
+        entityId: ticketResult.data.ticket.id,
+        actorId: "system:seed",
+        source: "erp-shell-seed",
+        payload: { requesterEmail: ticket.requesterEmail, priority: ticketResult.data.ticket.priority }
+      },
+      { auditStore: deps.auditStore }
+    );
   }
 }

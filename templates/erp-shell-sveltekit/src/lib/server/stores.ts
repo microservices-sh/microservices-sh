@@ -8,6 +8,8 @@ import { createD1SigningKeyStore } from "@microservices-sh/auth/adapters/d1";
 import { createMemorySigningKeyStore } from "@microservices-sh/auth/adapters/memory";
 import { createD1CustomerRepository } from "@microservices-sh/customer/adapters/d1";
 import { createMemoryCustomerRepository } from "@microservices-sh/customer/adapters/memory";
+import { createD1TicketStore } from "@microservices-sh/support-ticket/adapters/d1";
+import { createMemoryTicketStore } from "@microservices-sh/support-ticket/adapters/memory";
 import { createD1InvoiceStore, createD1NumberAllocator } from "@microservices-sh/invoice";
 import { createMemoryInvoiceStore, createMemoryNumberAllocator } from "@microservices-sh/invoice";
 import { createD1MediaStore } from "@microservices-sh/file-media/adapters/d1";
@@ -23,6 +25,7 @@ import type { TableGateway } from "@microservices-sh/admin-shell/ports";
 import type { AuditEventStore } from "@microservices-sh/audit-log/ports";
 import type { SigningKeyStore } from "@microservices-sh/auth/ports";
 import type { CustomerRepository } from "@microservices-sh/customer/ports";
+import type { TicketStore } from "@microservices-sh/support-ticket/ports";
 import type { InvoiceStore, NumberAllocator } from "@microservices-sh/invoice/ports";
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
 import type { NotificationStore } from "@microservices-sh/notifications-inapp/ports";
@@ -36,6 +39,7 @@ const memoryTableGateway = createMemoryTableGateway();
 const memoryAuditStore = createMemoryAuditEventStore();
 const memorySigningKeyStore = createMemorySigningKeyStore();
 const memoryCustomerRepository = createMemoryCustomerRepository();
+const memoryTicketStore = createMemoryTicketStore();
 const memoryInvoiceStore = createMemoryInvoiceStore();
 const memoryNumberAllocator = createMemoryNumberAllocator();
 const memoryMediaStore = createMemoryMediaStore();
@@ -49,6 +53,7 @@ export interface ServerStores {
   auditStore: AuditEventStore;
   signingKeyStore: SigningKeyStore;
   customerRepository: CustomerRepository;
+  ticketStore: TicketStore;
   invoiceStore: InvoiceStore;
   numberAllocator: NumberAllocator;
   mediaStore: MediaStore;
@@ -72,6 +77,7 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     auditStore: db ? createD1AuditEventStore(db) : memoryAuditStore,
     signingKeyStore: db ? createD1SigningKeyStore(db) : memorySigningKeyStore,
     customerRepository: db ? createD1CustomerRepository(db) : memoryCustomerRepository,
+    ticketStore: db ? createD1TicketStore(db) : memoryTicketStore,
     invoiceStore: db ? createD1InvoiceStore(db) : memoryInvoiceStore,
     numberAllocator: db ? createD1NumberAllocator(db) : memoryNumberAllocator,
     mediaStore: db ? createD1MediaStore(db) : memoryMediaStore,
@@ -85,6 +91,7 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
 // request handler reads. No-op when D1/R2 bindings are present.
 export const memoryStores = {
   customerRepository: memoryCustomerRepository,
+  ticketStore: memoryTicketStore,
   invoiceStore: memoryInvoiceStore,
   numberAllocator: memoryNumberAllocator,
   mediaStore: memoryMediaStore,

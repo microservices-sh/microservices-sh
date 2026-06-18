@@ -28,6 +28,7 @@ export const load: LayoutServerLoad = async ({ locals, cookies, platform }) => {
     await seedDemoData({
       tenantId: org.id,
       customerRepository: locals.customerRepository,
+      ticketStore: locals.ticketStore,
       invoiceStore: locals.invoiceStore,
       numberAllocator: locals.numberAllocator,
       mediaStore: locals.mediaStore,
