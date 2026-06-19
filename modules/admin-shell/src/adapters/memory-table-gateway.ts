@@ -55,7 +55,18 @@ export function createMemoryTableGateway(
 
       if (query.search && def.searchable?.length) {
         const term = query.search.toLowerCase();
-        rows = rows.filter((r) => def.searchable!.some((col) => String(r[col] ?? "").toLowerCase().includes(term)));
+        // A searchable entry may name a real column OR a computed column. For a
+        // computed column we evaluate its compute fn (mirroring the D1 gateway,
+        // which applies LIKE against the column's trusted SQL expression).
+        const computedByName = new Map((def.computed ?? []).map((c) => [c.name, c]));
+        const valueOf = (r: AdminRecord, col: string): string => {
+          if (computedByName.has(col)) {
+            const fn = compute[col];
+            return String((fn ? fn(r) : null) ?? "");
+          }
+          return String(r[col] ?? "");
+        };
+        rows = rows.filter((r) => def.searchable!.some((col) => valueOf(r, col).toLowerCase().includes(term)));
       }
       for (const [key, value] of Object.entries(query.filters ?? {})) {
         rows = rows.filter((r) => r[key] === value);

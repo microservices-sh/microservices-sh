@@ -197,3 +197,61 @@ describe("admin-shell: computed columns", () => {
     expect(res.data.rows[0]).not.toHaveProperty("order_count");
   });
 });
+
+// A resource that declares a computed column AND lists it as searchable. The
+// search box must then match the computed value (e.g. the related owner's email)
+// via LIKE against the column's trusted SQL expression — not just real columns.
+const teamDef: ResourceDefinition = {
+  name: "team",
+  table: "teams",
+  primaryKey: "id",
+  columns: [
+    { name: "id", type: "string" },
+    { name: "name", type: "string", editable: true },
+    { name: "owner_id", type: "string" }
+  ],
+  computed: [{ name: "owner_email", type: "string", expression: "(SELECT u.email FROM users u WHERE u.id = teams.owner_id LIMIT 1)" }],
+  // Mixes a real column (name) with a computed column (owner_email).
+  searchable: ["name", "owner_email"],
+  permissions: { read: "team.read", write: "team.write" }
+};
+const teamRegistry = createResourceRegistry([teamDef]);
+const teamReader: AdminActor = { id: "u-tr", permissions: ["team.read"] };
+
+function teamGateway() {
+  const users = [
+    { id: "u1", email: "alice@acme.com" },
+    { id: "u2", email: "bob@beta.com" }
+  ];
+  return createMemoryTableGateway(
+    {
+      teams: [
+        { id: "t1", name: "Alpha", owner_id: "u1" },
+        { id: "t2", name: "Bravo", owner_id: "u2" }
+      ]
+    },
+    { owner_email: (row) => users.find((u) => u.id === row.owner_id)?.email ?? null }
+  );
+}
+
+describe("admin-shell: searchable computed columns", () => {
+  it("matches a computed column's value via the search box", async () => {
+    const res = await listRecords(teamRegistry, "team", { search: "acme" }, { gateway: teamGateway(), actor: teamReader });
+    if (!res.ok) throw new Error("expected list to succeed");
+    expect(res.data.rows.map((r) => r.id)).toEqual(["t1"]);
+    // The computed column is still projected on the matched row.
+    expect(res.data.rows[0].owner_email).toBe("alice@acme.com");
+  });
+
+  it("still matches the real searchable column", async () => {
+    const res = await listRecords(teamRegistry, "team", { search: "bravo" }, { gateway: teamGateway(), actor: teamReader });
+    if (!res.ok) throw new Error("expected list to succeed");
+    expect(res.data.rows.map((r) => r.id)).toEqual(["t2"]);
+  });
+
+  it("returns no rows when neither the real nor the computed column matches", async () => {
+    const res = await listRecords(teamRegistry, "team", { search: "nomatch" }, { gateway: teamGateway(), actor: teamReader });
+    if (!res.ok) throw new Error("expected list to succeed");
+    expect(res.data.rows.length).toBe(0);
+  });
+});

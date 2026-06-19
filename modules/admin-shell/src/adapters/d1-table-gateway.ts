@@ -34,7 +34,15 @@ function buildWhere(def: ResourceDefinition, query: ListQuery): { sql: string; b
   }
 
   if (query.search && def.searchable && def.searchable.length > 0) {
-    const ors = def.searchable.map((col) => `${q(col)} LIKE ?`);
+    // A searchable entry may name a real column OR a computed column. A real
+    // column is identifier-validated + quoted; a computed column's TRUSTED
+    // registry SQL expression is wrapped in parens and matched directly. Either
+    // way the search term is a bound param.
+    const computedByName = new Map((def.computed ?? []).map((c) => [c.name, c]));
+    const ors = def.searchable.map((col) => {
+      const computed = computedByName.get(col);
+      return computed ? `(${computed.expression}) LIKE ?` : `${q(col)} LIKE ?`;
+    });
     clauses.push(`(${ors.join(" OR ")})`);
     for (const _ of def.searchable) binds.push(`%${query.search}%`);
   }

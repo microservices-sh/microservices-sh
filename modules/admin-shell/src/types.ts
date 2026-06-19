@@ -43,7 +43,9 @@ export interface ResourceDefinition {
   columns: ColumnDef[];
   // Read-only computed/subquery columns projected onto every list/get row.
   computed?: ComputedColumnDef[];
-  // Columns matched (LIKE) by the list search box.
+  // Columns matched (LIKE) by the list search box. Each entry names a real
+  // column (identifier-validated + quoted) OR a computed column (matched via LIKE
+  // against its trusted SQL `expression`); the search term is always a bound param.
   searchable?: string[];
   // Permission strings the actor must hold for read vs write actions.
   permissions: { read: string; write: string };
