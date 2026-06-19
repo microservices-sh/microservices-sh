@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "decision",
+  "name": "Decision",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Advise pillar: cited, human-owned decision briefs that close into action, with an append-only decision log.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": ["decision_briefs", "decision_logs", "domain_events"]
+    }
+  ],
+  "permissions": ["decision.read", "decision.write", "decision.admin", "decision.extend", "decision.observe"],
+  "connections": {
+    "requires": ["org-team-rbac"],
+    "optional": ["audit-log", "jobs-workflows", "operator-work", "research"],
+    "rpc": {
+      "exposes": [
+        { "method": "draftDecisionBrief", "scope": "decision.write", "public": false },
+        { "method": "recordDecision", "scope": "decision.write", "public": false },
+        { "method": "listDecisions", "scope": "decision.read", "public": false }
+      ],
+      "calls": []
+    },
+    "events": {
+      "emits": ["decision.brief_drafted", "decision.recorded"],
+      "consumes": ["research.brief_created"]
+    },
+    "hookPoints": {
+      "beforeDecisionDraft": { "kind": "filter", "scope": "decision.extend" },
+      "afterDecisionRecorded": { "kind": "observer", "scope": "decision.observe" }
+    },
+    "provides": { "hooks": [] }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Decisions", "path": "/decisions", "permission": "decision.read", "icon": "Scale" }]
+    },
+    "visitor": { "applicable": false },
+    "agentic": {
+      "applicable": true,
+      "tools": ["decision.draftDecisionBrief", "decision.recordDecision", "decision.listDecisions"],
+      "approvalRequiredFor": ["decision.draftDecisionBrief", "decision.recordDecision"]
+    }
+  },
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": ["migrations", "ai-provider-calls", "production-deploy"]
+  }
+}

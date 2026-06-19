@@ -1,0 +1,15 @@
+# @microservices-sh/decision
+
+Advise pillar: cited, human-owned decision briefs that close into action, plus an append-only decision log.
+
+Exports (src/index.ts):
+- draftDecisionBrief(input, { store, proposer, now, actor?, audit? }) -> { ok, status, data: { brief } }
+- recordDecision(input, { store, now, dispatcher?, actor?, audit? }) -> { ok, status, data: { log, brief, actionRequest? } }
+- listDecisions({ briefId }, { store }) -> { ok, status, data: { logs } }
+- createMemoryDecisionStore(): in-memory DecisionStore (+ listEvents for tests)
+- Ports: DecisionProposer, DecisionStore, ActionDispatcher, AuditSink
+
+Events: decision.brief_drafted, decision.recorded. Consumes: research.brief_created.
+Permissions: decision.read | decision.write | decision.admin | decision.extend | decision.observe.
+
+Rules: cite-or-refuse (422 DECISION_UNCITED), human-owned drafts, append-only logs, accept closes into action.

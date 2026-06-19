@@ -1,0 +1,1 @@
+{ "$schema": "http://json-schema.org/draft-07/schema#", "title": "DecisionEvents", "type": "object", "properties": { "decision.brief_drafted": { "type": "object" }, "decision.recorded": { "type": "object" } } }

@@ -1,0 +1,13 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "Decision Module", "version": "0.1.0", "description": "Advise pillar: cited decision briefs that close into action." },
+  "paths": {
+    "/decision/briefs": {
+      "post": { "summary": "Draft a decision brief (draftDecisionBrief)", "responses": { "201": { "description": "Draft created" }, "422": { "description": "Uncited recommendation" } } }
+    },
+    "/decision/briefs/{briefId}/decisions": {
+      "post": { "summary": "Record a decision (recordDecision)", "responses": { "201": { "description": "Decision recorded" }, "404": { "description": "Brief not found" } } },
+      "get": { "summary": "List decision history (listDecisions)", "responses": { "200": { "description": "Decision log" } } }
+    }
+  }
+}

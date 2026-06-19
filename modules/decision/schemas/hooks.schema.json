@@ -1,0 +1,1 @@
+{ "$schema": "http://json-schema.org/draft-07/schema#", "title": "DecisionHooks", "type": "object", "properties": { "beforeDecisionDraft": { "type": "object" }, "afterDecisionRecorded": { "type": "object" } } }
