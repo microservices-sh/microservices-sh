@@ -30,28 +30,27 @@ The api handler went from a hand-rolled query to a registry definition + a thin 
 
 We then migrated **`workspaces` and `tickets` list reads** the same way (commit `5ad8957`): joined columns (`owner_email`, `plan_id`/`billing_status` with COALESCE defaults, `member_count` excluding removed members, `deployment_count`, `workspace_name`) reproduced as correlated computed subqueries; the tickets `status` filter via admin-shell's normal column filter. SQL parity verified exactly against the deleted queries; 115 api tests green. **So all three admin LIST reads (users/workspaces/tickets) now run on `admin-shell`.**
 
-### Gaps the dogfood surfaced (the real payoff — these become admin-shell's roadmap)
-- **has-many on `getRecord`:** workspaces *detail* returns child collections (members, apiKeys, deployments) the single-record `getRecord` can't produce → kept bespoke. admin-shell needs a related-collections capability.
-- **search across joined columns:** the old workspaces search matched owner email; admin-shell's `searchable` only covers real columns on the table → name/slug search preserved, owner-email search dropped.
-- **page-size parity:** the bespoke list capped at 200; admin-shell defaults to 100 (closeable with a `maxPageSize` config — minor, internal).
-- ~~**no shipped types:** the vendored tarball has no `.d.ts`, so consumers get TS7016~~ → **FIXED** (monorepo `f5fa742`, api `72a8db8`): the build now emits self-contained bundled declarations (connection-contract + zod inlined) via `dts-bundle-generator`; api TS7016 went 3→0. The highest-leverage gap — benefits every external consumer.
+### Gaps the dogfood surfaced — ALL FOUR now closed (the real payoff: using our product drove four module improvements)
+- ✅ **has-many on `getRecord`** (monorepo `14434d1`, api `8d93fd2`): added `ResourceDefinition.relations` + a `listRelated` gateway method (SQL-safe: identifiers validated, `where`/computed from trusted registry only, `parentId` bound). **Workspaces *detail* now also runs on admin-shell** — `{ workspace, members, apiKeys, deployments }`, byte-parity-verified against the deleted bespoke handler.
+- ✅ **search across joined columns** (monorepo `c3ce7f2`, api `b330794`): `searchable` may name a computed column → `(<expression>) LIKE ?`. Workspaces owner-email search restored.
+- ✅ **page-size parity** (api `f510373`): pass `config:{ maxPageSize:200 }`; restored the old 200 cap.
+- ✅ **no shipped types** (monorepo `f5fa742`, api `72a8db8`): self-contained bundled `.d.ts` via `dts-bundle-generator`; api TS7016 3→0 — benefits every external consumer.
+
+Every fix was test-first and reviewed (incl. a dedicated SQL-injection audit on the relation/search SQL). admin-shell 23/23, api 123/123, types clean.
 
 ## What we deliberately did NOT change (and why)
 Honesty matters more than a bigger claim:
 - **Deployment / control-plane orchestration, Cloudflare OAuth, Stripe billing sync** — state-machine + external-API orchestration, not CRUD. They don't belong in `admin-shell` and weren't forced into it.
 - **Domain operations** (`setUserDisabled`, `setPlan`, `revokeKey`, ticket status) — these are actions, not generic CRUD; they stay bespoke endpoints.
 - **Passkey session minting** — kept in the host, by design.
-- **workspaces *detail*** (`GET /admin/workspaces/:id`) — returns child collections (`members`/`apiKeys`/`deployments`); kept bespoke until admin-shell gains a has-many capability.
 - **`research` / `decision` / `ai-gateway`** — draft scaffolds; not shipped, not marketed.
 
 ## The honest claim
-Not "microservices.sh runs entirely on its own modules / on the CLI." It's: **all three admin LIST reads (users, workspaces, tickets) and passkey auth now run on our own modules; doing so drove a real, shipped module improvement and surfaced four concrete gaps; the orchestration-heavy platform internals and the has-many detail view remain bespoke, on purpose.**
+Not "microservices.sh runs entirely on its own modules / on the CLI." It's: **every admin read — the users/workspaces/tickets lists AND the workspaces detail — plus passkey auth now run on our own modules; using them drove four shipped module improvements (computed columns, has-many relations, searchable computed columns, bundled types); the orchestration internals (deploy/Stripe/Cloudflare) and domain action endpoints remain bespoke, on purpose.**
 
 ## Status
 All committed locally on `main` in both repos; **not yet pushed or deployed** (gated). Reviewed at each step (spec + code-quality + a dedicated SQL-injection audit on the computed-column feature).
 
 ## Next
-- Close the surfaced admin-shell gaps (highest-value, dogfood-driven): has-many child collections on `getRecord`, searchable joined columns, ship `.d.ts`, `maxPageSize` config; then migrate workspaces *detail*.
-- Optional: forward admin-shell audit → `audit_events` once a *mutation* moves onto the module (reads don't audit).
-- Publish `passkey-auth` to npm when its name/version is approved.
-- Ship it: push monorepo + api, `wrangler deploy` the api, then publish the case-study post (so "we run on our modules" is live-true).
+- **Ship it** (makes the claim live-true): push monorepo + api, `wrangler deploy` the api, then publish the case-study post. Currently all committed locally; nothing deployed.
+- Optional: forward admin-shell audit → `audit_events` once a *mutation* moves onto the module (reads don't audit); migrate users/tickets *detail* onto relations if useful; publish `passkey-auth` to npm when name/version approved.
