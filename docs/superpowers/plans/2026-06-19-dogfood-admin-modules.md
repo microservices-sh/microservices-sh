@@ -40,7 +40,9 @@
 
 Resolves the cross-repo question before any feature work: **how does the `api/` worker consume a monorepo module?** (modules are unpublished today.)
 
-### Task 0.1: Decide + wire the module-consumption path for `api/`
+> **PHASE 0 SPIKE RESULT (2026-06-19, verified):** `api/` is a separate repo (not in the monorepo pnpm workspace). `admin-shell` ships **raw `.ts`, `private: true`, no build** (`build: tsc --noEmit`), and imports `@microservices-sh/connection-contract` (another raw-`.ts` `workspace:*` dep). A plain `file:` dep therefore **dangles** on the internal connection-contract import. **Conclusion: the module needs a built, self-contained artifact first.** Task 0.1 is reshaped accordingly: the real first step is to give `admin-shell` (+ `connection-contract`) an esbuild build that inlines deps, then consume the built artifact (`file:` tarball via `npm pack`, or publish). This *is* the distribution capability the product needs — treat it as the first dogfood win, not yard work.
+
+### Task 0.1: Build a consumable module artifact + wire it into `api/`
 **Files:** `api/package.json`, repo workspace config.
 - [ ] **Step 1:** Determine how `api/` will import `@microservices-sh/admin-shell` and `@microservices-sh/connection-contract`. Options, in order of preference: (a) pnpm workspace/`file:` path dependency to the monorepo build; (b) `npm pack` tarball vendored into `api/`; (c) publish the module to npm. Document the choice at the top of `api/src/admin-shell-registry.ts` as a comment.
 - [ ] **Step 2 (verify-only):** Confirm the entry points exist: `@microservices-sh/admin-shell` (registry + use-cases) and the `@microservices-sh/admin-shell/adapters/d1` subpath. Review already verified these are in `modules/admin-shell/package.json` `exports` — so this is a check, not an add. Note: admin-shell is `"private": true` and ships `.ts` (no build step) — confirm `api/`'s bundler (esbuild/wrangler) can consume raw `.ts` from the dep, or that the chosen consumption path provides a build.
