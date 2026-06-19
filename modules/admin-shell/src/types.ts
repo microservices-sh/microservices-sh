@@ -12,6 +12,23 @@ export interface ColumnDef {
   required?: boolean;
 }
 
+// A read-only, developer-authored computed/subquery column. `expression` is raw
+// SQL (e.g. a correlated subquery) that the D1 gateway writes into the SELECT
+// projection, aliased AS `name`. SECURITY: `expression` is TRUSTED and comes ONLY
+// from the registry definition — never from request input — so it is the
+// developer's responsibility (like any hand-written query) to keep it injection-
+// free. The alias `name` is still identifier-validated and quoted. Computed
+// columns are projected on read but never accepted for writes, and are not used
+// as filter/sort identifiers unless also declared as a real `ColumnDef`.
+export interface ComputedColumnDef {
+  name: string;
+  type: ColumnType;
+  label?: string;
+  // Trusted SQL expression from the registry. Yields the column's value, e.g.
+  // "(SELECT COUNT(*) FROM workspaces w WHERE w.owner_id = <table>.id)".
+  expression: string;
+}
+
 // Soft-delete config: delete sets `column` to `deletedValue`; the active filter
 // excludes those rows. When absent, delete is a hard DELETE.
 export interface SoftDeleteConfig {
@@ -24,6 +41,8 @@ export interface ResourceDefinition {
   table: string;
   primaryKey: string;
   columns: ColumnDef[];
+  // Read-only computed/subquery columns projected onto every list/get row.
+  computed?: ComputedColumnDef[];
   // Columns matched (LIKE) by the list search box.
   searchable?: string[];
   // Permission strings the actor must hold for read vs write actions.

@@ -1,13 +1,36 @@
 import type { TableGateway } from "../ports";
 import type { AdminRecord, ListQuery, ResourceDefinition } from "../types";
 
+// Computes a single read-only computed column's value for one row. The D1 gateway
+// evaluates the column's SQL `expression`; in memory we can't run SQL, so a
+// developer supplies the equivalent JS to keep unit tests faithful. Keyed by the
+// computed column's `name` (the alias).
+export type ComputeFns = Record<string, (row: AdminRecord) => unknown>;
+
 // In-memory gateway for local dev and tests. Seed initial rows per table name.
-export function createMemoryTableGateway(seed: Record<string, AdminRecord[]> = {}): TableGateway {
+// `compute` mirrors each ResourceDefinition.computed column (by alias) so the
+// memory gateway projects the same read-only columns the D1 gateway derives in
+// SQL — letting computed-column behaviour be unit-tested without a D1 harness.
+export function createMemoryTableGateway(
+  seed: Record<string, AdminRecord[]> = {},
+  compute: ComputeFns = {}
+): TableGateway {
   const tables = new Map<string, Map<string, AdminRecord>>();
   for (const [table, rows] of Object.entries(seed)) {
     const map = new Map<string, AdminRecord>();
     for (const row of rows) map.set(String(row.id ?? crypto.randomUUID()), { ...row });
     tables.set(table, map);
+  }
+
+  // Project read-only computed columns onto a copy of the row (read paths only).
+  function withComputed(def: ResourceDefinition, row: AdminRecord): AdminRecord {
+    if (!def.computed?.length) return { ...row };
+    const out = { ...row };
+    for (const col of def.computed) {
+      const fn = compute[col.name];
+      out[col.name] = fn ? fn(row) : null;
+    }
+    return out;
   }
 
   function tableOf(def: ResourceDefinition): Map<string, AdminRecord> {
@@ -45,12 +68,12 @@ export function createMemoryTableGateway(seed: Record<string, AdminRecord[]> = {
       }
       const limit = query.limit ?? 25;
       const offset = query.offset ?? 0;
-      return { rows: rows.slice(offset, offset + limit).map((r) => ({ ...r })), total, limit, offset };
+      return { rows: rows.slice(offset, offset + limit).map((r) => withComputed(def, r)), total, limit, offset };
     },
 
     async get(def, id) {
       const row = tableOf(def).get(id);
-      return row ? { ...row } : null;
+      return row ? withComputed(def, row) : null;
     },
 
     async insert(def, id, values) {

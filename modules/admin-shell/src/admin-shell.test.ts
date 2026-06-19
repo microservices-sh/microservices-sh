@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   createResourceRegistry,
   listRecords,
+  getRecord,
   deleteRecord,
   updateRecord,
   createMemoryTableGateway
@@ -108,5 +109,91 @@ describe("admin-shell: update rejects non-editable field", () => {
     expect(res.ok).toBe(true);
     const raw = await gateway.get(widgetDef, "w1");
     expect(raw?.name).toBe("renamed");
+  });
+});
+
+// A resource with a read-only computed column. The D1 gateway derives this in SQL
+// (a subquery aliased AS the column); the memory gateway derives it via the
+// injected compute fn so behaviour is unit-testable without a D1 harness.
+const accountDef: ResourceDefinition = {
+  name: "account",
+  table: "accounts",
+  primaryKey: "id",
+  columns: [
+    { name: "id", type: "string" },
+    { name: "email", type: "string", editable: true }
+  ],
+  computed: [{ name: "order_count", type: "number", expression: "(SELECT COUNT(*) FROM orders o WHERE o.account_id = accounts.id)" }],
+  searchable: ["email"],
+  permissions: { read: "account.read", write: "account.write" }
+};
+const accountRegistry = createResourceRegistry([accountDef]);
+const accountWriter: AdminActor = { id: "u-aw", permissions: ["account.read", "account.write"] };
+
+// Memory equivalents of the SQL expression: COUNT of orders per account.
+function accountGateway() {
+  const orders = [
+    { id: "o1", account_id: "a1" },
+    { id: "o2", account_id: "a1" },
+    { id: "o3", account_id: "a2" }
+  ];
+  return createMemoryTableGateway(
+    { accounts: [{ id: "a1", email: "one@x.com" }, { id: "a2", email: "two@x.com" }] },
+    { order_count: (row) => orders.filter((o) => o.account_id === row.id).length }
+  );
+}
+
+describe("admin-shell: computed columns", () => {
+  it("projects the computed column on list", async () => {
+    const res = await listRecords(accountRegistry, "account", { sort: { column: "id", direction: "asc" } }, { gateway: accountGateway(), actor: accountWriter });
+    if (!res.ok) throw new Error("expected list to succeed");
+    const a1 = res.data.rows.find((r) => r.id === "a1");
+    expect(a1?.order_count).toBe(2);
+    const a2 = res.data.rows.find((r) => r.id === "a2");
+    expect(a2?.order_count).toBe(1);
+  });
+
+  it("projects the computed column on get", async () => {
+    const res = await getRecord(accountRegistry, "account", "a1", { gateway: accountGateway(), actor: accountWriter });
+    if (!res.ok) throw new Error("expected get to succeed");
+    expect(res.data.record.order_count).toBe(2);
+  });
+
+  it("rejects a write that targets a computed (read-only) column", async () => {
+    const res = await updateRecord(
+      accountRegistry,
+      "account",
+      "a1",
+      { order_count: 999 },
+      { gateway: accountGateway(), actor: accountWriter, now: fixedNow(T0) }
+    );
+    expect(res.ok).toBe(false);
+    expect(res.status).toBe(400);
+    if (!res.ok) {
+      expect(res.error.code).toBe("admin-shell.VALIDATION_FAILED");
+      expect(res.error.issues).toEqual(
+        expect.arrayContaining([expect.objectContaining({ column: "order_count", message: "is not editable" })])
+      );
+    }
+  });
+
+  it("does not treat a computed column as a search/filter target", async () => {
+    // A filter on the computed column is dropped (not a known real column), so the
+    // full result set comes back rather than an injection-prone WHERE clause.
+    const res = await listRecords(
+      accountRegistry,
+      "account",
+      { filters: { order_count: 2 } },
+      { gateway: accountGateway(), actor: accountWriter }
+    );
+    if (!res.ok) throw new Error("expected list to succeed");
+    expect(res.data.rows.length).toBe(2);
+  });
+
+  it("a resource without computed columns is unaffected", async () => {
+    const gateway = createMemoryTableGateway({ widgets: [{ id: "w1", name: "A" }] });
+    const res = await listRecords(registry, "widget", {}, { gateway, actor: writerActor });
+    if (!res.ok) throw new Error("expected list to succeed");
+    expect(res.data.rows[0]).not.toHaveProperty("order_count");
   });
 });

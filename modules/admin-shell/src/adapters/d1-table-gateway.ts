@@ -14,6 +14,15 @@ function bindable(value: string | number | boolean): string | number {
   return typeof value === "boolean" ? (value ? 1 : 0) : value;
 }
 
+// The SELECT projection: the real (quoted) columns plus any read-only computed
+// columns. A computed column's `expression` is TRUSTED registry SQL written
+// verbatim; only its alias is identifier-validated and quoted.
+function projection(def: ResourceDefinition): string {
+  const real = Array.from(new Set([def.primaryKey, ...def.columns.map((c) => c.name)])).map(q);
+  const computed = (def.computed ?? []).map((c) => `(${c.expression}) AS ${q(c.name)}`);
+  return [...real, ...computed].join(", ");
+}
+
 // Build the shared WHERE (active filter + search + equality filters).
 function buildWhere(def: ResourceDefinition, query: ListQuery): { sql: string; binds: (string | number)[] } {
   const clauses: string[] = [];
@@ -41,7 +50,7 @@ function buildWhere(def: ResourceDefinition, query: ListQuery): { sql: string; b
 export function createD1TableGateway(db: D1Database): TableGateway {
   return {
     async list(def, query) {
-      const selectCols = Array.from(new Set([def.primaryKey, ...def.columns.map((c) => c.name)])).map(q).join(", ");
+      const selectCols = projection(def);
       const where = buildWhere(def, query);
       const limit = query.limit ?? 25;
       const offset = query.offset ?? 0;
@@ -63,7 +72,7 @@ export function createD1TableGateway(db: D1Database): TableGateway {
     },
 
     async get(def, id) {
-      const selectCols = Array.from(new Set([def.primaryKey, ...def.columns.map((c) => c.name)])).map(q).join(", ");
+      const selectCols = projection(def);
       const row = await db
         .prepare(`SELECT ${selectCols} FROM ${q(def.table)} WHERE ${q(def.primaryKey)} = ?`)
         .bind(id)
