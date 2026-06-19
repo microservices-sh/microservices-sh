@@ -1,0 +1,1 @@
+{ "$schema": "http://json-schema.org/draft-07/schema#", "title": "AiGatewayEvents", "type": "object", "properties": { "ai.usage_recorded": { "type": "object" } } }

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "ai-gateway",
+  "name": "AI Gateway",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Governed AI egress: provider-neutral embed/complete with BYOK, fail-closed authz, audit, token metering, and per-tenant cost caps.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [],
+  "permissions": ["ai.invoke", "ai.admin", "ai.extend", "ai.observe"],
+  "connections": {
+    "requires": ["org-team-rbac"],
+    "optional": ["audit-log", "billing-subscriptions"],
+    "rpc": {
+      "exposes": [
+        { "method": "complete", "scope": "ai.invoke", "public": false },
+        { "method": "embed", "scope": "ai.invoke", "public": false }
+      ],
+      "calls": []
+    },
+    "events": { "emits": ["ai.usage_recorded"], "consumes": [] },
+    "hookPoints": {
+      "beforeAiInvoke": { "kind": "filter", "scope": "ai.extend" }
+    },
+    "provides": { "hooks": [] }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "AI Gateway", "path": "/ai-gateway", "permission": "ai.admin", "icon": "Bot" }]
+    },
+    "visitor": { "applicable": false },
+    "agentic": { "applicable": false }
+  },
+  "approval": {
+    "risk": "high",
+    "requiresApprovalFor": ["ai-provider-calls", "production-deploy"]
+  }
+}

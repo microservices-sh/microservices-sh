@@ -1,0 +1,11 @@
+# @microservices-sh/ai-gateway
+
+Governed AI egress: provider-neutral embed/complete with BYOK, authz, audit, metering, cost caps.
+
+Exports (src/index.ts):
+- complete({ messages, maxTokens?, temperature? }, { config, providers, actor, meter?, budget?, audit? }) -> { text, usage, provider, model }
+- embed({ texts }, { config, providers, actor, meter?, budget?, audit? }) -> { vectors, usage, provider, model }
+- Ports: ProviderClient, UsageMeter, Budget, AuditSink. Config: AiConfig { provider, completeModel, embedModel }.
+
+Permissions: ai.invoke | ai.admin | ai.extend | ai.observe.
+Rules: fail-closed authz (401/403), budget check before call (429 AI_BUDGET_EXCEEDED), provider must be configured (400 AI_PROVIDER_NOT_CONFIGURED). Prompts live in callers.

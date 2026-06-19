@@ -1,0 +1,8 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "AI Gateway Module", "version": "0.1.0", "description": "Governed AI egress: embed/complete with BYOK, authz, metering, caps." },
+  "paths": {
+    "/ai/complete": { "post": { "summary": "Chat/synthesis completion (complete)", "responses": { "200": { "description": "Completion" }, "401": { "description": "Unauthenticated" }, "429": { "description": "Budget exceeded" } } } },
+    "/ai/embed": { "post": { "summary": "Embeddings (embed)", "responses": { "200": { "description": "Vectors" }, "400": { "description": "Provider not configured" } } } }
+  }
+}

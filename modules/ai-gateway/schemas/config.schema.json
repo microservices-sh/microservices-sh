@@ -1,0 +1,1 @@
+{ "$schema": "http://json-schema.org/draft-07/schema#", "title": "AiGatewayConfig", "type": "object", "additionalProperties": false, "properties": { "provider": { "type": "string", "enum": ["workers-ai", "anthropic", "openai", "gemini"], "default": "workers-ai" }, "completeModel": { "type": "string" }, "embedModel": { "type": "string" } } }
