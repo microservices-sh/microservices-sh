@@ -44,6 +44,23 @@ describe("graph: loadGraphifyOutput", () => {
     expect(found[0].ownerId).toBe("user_1");
   });
 
+  it("tolerates nodes with no source_location (e.g. images)", async () => {
+    const store = createMemoryGraphStore();
+    const withNullLoc = {
+      semantic: {
+        nodes: [{ id: "og", label: "Open Graph image", file_type: "image", source_file: "public/og.png", source_location: null as any }],
+        edges: []
+      },
+      analysis: { communities: { "0": ["og"] } },
+      labels: { "0": "Assets" }
+    };
+    const result = await loadGraphifyOutput(withNullLoc, { store, ownerId: owner.id });
+    expect(result.ok).toBe(true);
+    const found = await store.searchNodes({ text: "graph", ownerId: owner.id, limit: 10 });
+    expect(found[0].sourceLocation).toBe("");
+    expect(found[0].sourceFile).toBe("public/og.png");
+  });
+
   it("scopes node search to the owner", async () => {
     const store = createMemoryGraphStore();
     await loadGraphifyOutput(graphifyOutput, { store, ownerId: owner.id });

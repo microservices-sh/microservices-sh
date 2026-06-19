@@ -104,7 +104,7 @@ export function createMemoryGraphStore(): MemoryGraphStore {
 
 // ---- graphify output ingestion ----
 
-type GraphifyNode = { id: string; label: string; file_type?: string; source_file: string; source_location: string };
+type GraphifyNode = { id: string; label: string; file_type?: string; source_file: string; source_location: string | null };
 type GraphifyEdge = { source: string; target: string; relation: string; weight?: number };
 type GraphifyOutput = {
   semantic: { nodes: GraphifyNode[]; edges: GraphifyEdge[] };
@@ -126,7 +126,7 @@ export async function loadGraphifyOutput(input: GraphifyOutput, deps: { store: G
     label: node.label,
     fileType: node.file_type,
     sourceFile: node.source_file,
-    sourceLocation: node.source_location,
+    sourceLocation: node.source_location ?? "",
     communityId: communityOf.get(node.id),
     ownerId
   }));
