@@ -14,6 +14,7 @@
 import { build } from "esbuild";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { execFileSync } from "node:child_process";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
@@ -45,3 +46,9 @@ await build({
 });
 
 console.log("admin-shell dist build complete");
+
+// Emit self-contained .d.ts (one per packed entry), with connection-contract +
+// zod types inlined so the declarations resolve in out-of-workspace consumers.
+execFileSync(process.execPath, [resolve(here, "build-dts.mjs")], {
+  stdio: "inherit"
+});

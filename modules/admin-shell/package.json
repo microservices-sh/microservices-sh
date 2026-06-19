@@ -35,10 +35,13 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",
+    "dts-bundle-generator": "^9.5.1",
     "esbuild": "^0.27.3",
     "typescript": "^5.9.3"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "publishConfig": {
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",

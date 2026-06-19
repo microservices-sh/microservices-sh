@@ -14,7 +14,6 @@
 //
 // Default --out is ./ (cwd of the script invocation's package dir).
 
-import { build } from "esbuild";
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -29,26 +28,9 @@ const args = process.argv.slice(2);
 const outIdx = args.indexOf("--out");
 const outDir = outIdx >= 0 ? resolve(process.cwd(), args[outIdx + 1]) : root;
 
-// 1) (Re)build dist to guarantee freshness.
-const entryPoints = {
-  index: resolve(root, "src/index.ts"),
-  registry: resolve(root, "src/registry.ts"),
-  authz: resolve(root, "src/authz.ts"),
-  types: resolve(root, "src/types.ts"),
-  schemas: resolve(root, "src/schemas.ts"),
-  hooks: resolve(root, "src/hooks.ts"),
-  "adapters/d1": resolve(root, "src/adapters/d1-table-gateway.ts"),
-  "adapters/memory": resolve(root, "src/adapters/memory-table-gateway.ts")
-};
-await build({
-  entryPoints,
-  outdir: resolve(root, "dist"),
-  bundle: true,
-  format: "esm",
-  platform: "neutral",
-  target: "es2022",
-  external: [],
-  logLevel: "warning"
+// 1) (Re)build dist (JS bundle + self-contained .d.ts) to guarantee freshness.
+execFileSync(process.execPath, [resolve(here, "build-dist.mjs")], {
+  stdio: "inherit"
 });
 
 // 2) Stage a clean package: dist/ + a trimmed package.json (no deps — bundled).
@@ -60,15 +42,22 @@ const staged = {
   description: pkg.description,
   // Deps are bundled into dist/, so the consumer needs nothing installed.
   main: "./dist/index.js",
+  // Top-level + per-subpath `types` so out-of-workspace consumers (api/) resolve
+  // the self-contained declarations. The .d.ts inline connection-contract + zod
+  // types (see build-dts.mjs), mirroring how the JS bundle inlines the runtime.
+  types: "./dist/index.d.ts",
   exports: {
-    ".": "./dist/index.js",
-    "./types": "./dist/types.js",
-    "./schemas": "./dist/schemas.js",
-    "./hooks": "./dist/hooks.js",
-    "./registry": "./dist/registry.js",
-    "./authz": "./dist/authz.js",
-    "./adapters/d1": "./dist/adapters/d1.js",
-    "./adapters/memory": "./dist/adapters/memory.js"
+    ".": { types: "./dist/index.d.ts", import: "./dist/index.js" },
+    "./types": { types: "./dist/types.d.ts", import: "./dist/types.js" },
+    "./schemas": { types: "./dist/schemas.d.ts", import: "./dist/schemas.js" },
+    "./hooks": { types: "./dist/hooks.d.ts", import: "./dist/hooks.js" },
+    "./registry": { types: "./dist/registry.d.ts", import: "./dist/registry.js" },
+    "./authz": { types: "./dist/authz.d.ts", import: "./dist/authz.js" },
+    "./adapters/d1": { types: "./dist/adapters/d1.d.ts", import: "./dist/adapters/d1.js" },
+    "./adapters/memory": {
+      types: "./dist/adapters/memory.d.ts",
+      import: "./dist/adapters/memory.js"
+    }
   },
   files: ["dist"],
   license: pkg.license ?? "MIT"
