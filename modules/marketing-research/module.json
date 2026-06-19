@@ -35,5 +35,21 @@
       "afterBriefCreated": { "kind": "observer", "scope": "marketing.observe" }
     },
     "provides": { "hooks": [] }
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Marketing Research", "path": "/marketing-research", "permission": "marketing.read", "icon": "Search" }]
+    },
+    "visitor": { "applicable": false },
+    "agentic": {
+      "applicable": true,
+      "tools": ["marketing.runResearch", "marketing.getBrief"],
+      "approvalRequiredFor": ["marketing.runResearch"]
+    }
+  },
+  "approval": {
+    "risk": "low",
+    "requiresApprovalFor": ["migrations", "external-signal-fetch", "ai-provider-calls", "production-deploy"]
   }
 }
