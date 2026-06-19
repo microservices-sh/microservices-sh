@@ -28,21 +28,30 @@ The api handler went from a hand-rolled query to a registry definition + a thin 
 
 **That's the headline: we used our own product, it wasn't enough, so we made the product better — and every future consumer gets the computed-column capability.**
 
+We then migrated **`workspaces` and `tickets` list reads** the same way (commit `5ad8957`): joined columns (`owner_email`, `plan_id`/`billing_status` with COALESCE defaults, `member_count` excluding removed members, `deployment_count`, `workspace_name`) reproduced as correlated computed subqueries; the tickets `status` filter via admin-shell's normal column filter. SQL parity verified exactly against the deleted queries; 115 api tests green. **So all three admin LIST reads (users/workspaces/tickets) now run on `admin-shell`.**
+
+### Gaps the dogfood surfaced (the real payoff — these become admin-shell's roadmap)
+- **has-many on `getRecord`:** workspaces *detail* returns child collections (members, apiKeys, deployments) the single-record `getRecord` can't produce → kept bespoke. admin-shell needs a related-collections capability.
+- **search across joined columns:** the old workspaces search matched owner email; admin-shell's `searchable` only covers real columns on the table → name/slug search preserved, owner-email search dropped.
+- **page-size parity:** the bespoke list capped at 200; admin-shell defaults to 100 (closeable with a `maxPageSize` config — minor, internal).
+- **no shipped types:** the vendored tarball has no `.d.ts`, so consumers get TS7016 — admin-shell's build should emit declarations.
+
 ## What we deliberately did NOT change (and why)
 Honesty matters more than a bigger claim:
 - **Deployment / control-plane orchestration, Cloudflare OAuth, Stripe billing sync** — state-machine + external-API orchestration, not CRUD. They don't belong in `admin-shell` and weren't forced into it.
 - **Domain operations** (`setUserDisabled`, `setPlan`, `revokeKey`, ticket status) — these are actions, not generic CRUD; they stay bespoke endpoints.
 - **Passkey session minting** — kept in the host, by design.
-- **`workspaces` and `tickets` reads** — not migrated yet (the `users` slice proves the pattern; these are follow-on coverage).
-- **`research` / `decision` / `ai-gateway`** — draft scaffolds only, no implementation; not shipped, not marketed.
+- **workspaces *detail*** (`GET /admin/workspaces/:id`) — returns child collections (`members`/`apiKeys`/`deployments`); kept bespoke until admin-shell gains a has-many capability.
+- **`research` / `decision` / `ai-gateway`** — draft scaffolds; not shipped, not marketed.
 
 ## The honest claim
-Not "microservices.sh runs entirely on its own modules / on the CLI." It's: **the `users` admin read path and passkey auth now run on our own modules; doing so drove a real, shipped module improvement; the orchestration-heavy platform internals remain bespoke, on purpose.**
+Not "microservices.sh runs entirely on its own modules / on the CLI." It's: **all three admin LIST reads (users, workspaces, tickets) and passkey auth now run on our own modules; doing so drove a real, shipped module improvement and surfaced four concrete gaps; the orchestration-heavy platform internals and the has-many detail view remain bespoke, on purpose.**
 
 ## Status
 All committed locally on `main` in both repos; **not yet pushed or deployed** (gated). Reviewed at each step (spec + code-quality + a dedicated SQL-injection audit on the computed-column feature).
 
 ## Next
-- Migrate `workspaces` + `tickets` reads (same pattern; compounding deletion of bespoke code).
+- Close the surfaced admin-shell gaps (highest-value, dogfood-driven): has-many child collections on `getRecord`, searchable joined columns, ship `.d.ts`, `maxPageSize` config; then migrate workspaces *detail*.
 - Optional: forward admin-shell audit → `audit_events` once a *mutation* moves onto the module (reads don't audit).
 - Publish `passkey-auth` to npm when its name/version is approved.
+- Ship it: push monorepo + api, `wrangler deploy` the api, then publish the case-study post (so "we run on our modules" is live-true).
