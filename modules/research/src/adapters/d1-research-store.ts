@@ -1,15 +1,4 @@
-import type { DomainEvent, ResearchBrief, ResearchSource, ResearchStore } from "../index";
-
-function rowToSource(row: Record<string, unknown>): ResearchSource {
-  return {
-    id: String(row.id),
-    title: String(row.title),
-    uri: String(row.uri),
-    ownerId: String(row.owner_id),
-    chunkCount: Number(row.chunk_count),
-    createdAt: String(row.created_at)
-  };
-}
+import type { DomainEvent, ResearchBrief, ResearchStore } from "../index";
 
 function rowToBrief(row: Record<string, unknown>): ResearchBrief {
   return {
@@ -22,27 +11,11 @@ function rowToBrief(row: Record<string, unknown>): ResearchBrief {
   };
 }
 
+// D1-backed ResearchStore for clients whose research briefs live on Cloudflare.
+// (On the per-client Fly runtime the graph itself lives in local SQLite — see
+// ./sqlite-graph-store — while briefs can use either backend.)
 export function createD1ResearchStore(db: D1Database): ResearchStore {
   return {
-    async saveSource(source) {
-      await db
-        .prepare(
-          `INSERT INTO research_sources (id, title, uri, owner_id, chunk_count, created_at)
-           VALUES (?, ?, ?, ?, ?, ?)
-           ON CONFLICT(id) DO UPDATE SET title = excluded.title, uri = excluded.uri, chunk_count = excluded.chunk_count`
-        )
-        .bind(source.id, source.title, source.uri, source.ownerId, source.chunkCount, source.createdAt)
-        .run();
-    },
-
-    async listSources(ownerId) {
-      const result = await db
-        .prepare("SELECT * FROM research_sources WHERE owner_id = ? ORDER BY created_at DESC")
-        .bind(ownerId)
-        .all<Record<string, unknown>>();
-      return (result.results ?? []).map(rowToSource);
-    },
-
     async saveBrief(brief) {
       await db
         .prepare(
