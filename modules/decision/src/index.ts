@@ -121,17 +121,29 @@ export interface AuditSink {
   record(entry: AuditEntry): Promise<void>;
 }
 
-// Returns a 403 result when an actor is present but lacks the scope. A missing
-// actor means a trusted internal call (no gate) — route adapters always pass one.
-function forbiddenFor(actor: Actor | null | undefined, scope: string) {
-  if (actor && !actor.scopes.includes(scope)) {
-    return {
-      ok: false as const,
-      status: 403 as const,
-      error: { code: "FORBIDDEN", message: `Requires scope ${scope}.` }
-    };
+const ADMIN_SCOPE = "decision.admin";
+
+// Fail-closed authorization. A missing actor is never an implicit bypass:
+// trusted internal callers must construct an explicit system Actor with scopes.
+function authorize(actor: Actor | null | undefined, scope: string) {
+  if (!actor) {
+    return { ok: false as const, status: 401 as const, error: { code: "UNAUTHENTICATED", message: "Actor required." } };
+  }
+  if (!actor.scopes.includes(scope)) {
+    return { ok: false as const, status: 403 as const, error: { code: "FORBIDDEN", message: `Requires scope ${scope}.` } };
   }
   return null;
+}
+
+// Ownership gate: the brief owner, or an actor holding decision.admin.
+function canAccessBrief(actor: Actor, brief: DecisionBrief): boolean {
+  return brief.ownerId === actor.id || actor.scopes.includes(ADMIN_SCOPE);
+}
+
+// Used when a brief is absent OR not visible to the actor — identical shape for
+// both so it cannot be used as an existence oracle.
+function notFound(briefId: string) {
+  return { ok: false as const, status: 404 as const, error: { code: "DECISION_NOT_FOUND", message: `No decision brief ${briefId}.` } };
 }
 
 export type ActionRequest = {
@@ -149,13 +161,20 @@ export interface ActionDispatcher {
 
 const isoFrom = (now: () => number) => new Date(now()).toISOString();
 
+function invalidDecisionInput(issues: unknown) {
+  return {
+    ok: false as const,
+    status: 400 as const,
+    error: { code: "INVALID_DECISION_INPUT", message: "Decision input is invalid.", issues }
+  };
+}
+
 export const sourceRefSchema = z.object({ id: z.string().min(1), title: z.string(), uri: z.string() });
 
 export const draftInputSchema = z.object({
   question: z.string().min(1),
   context: z.string(),
-  sources: z.array(sourceRefSchema),
-  ownerId: z.string().min(1)
+  sources: z.array(sourceRefSchema)
 });
 
 export async function draftDecisionBrief(
@@ -163,42 +182,31 @@ export async function draftDecisionBrief(
     question: string;
     context: string;
     sources: DecisionSourceRef[];
-    ownerId: string;
   },
   deps: {
     store: DecisionStore;
     proposer: DecisionProposer;
     now: () => number;
-    actor?: Actor | null;
+    actor: Actor;
     audit?: AuditSink;
   }
 ) {
-  const parsed = draftInputSchema.safeParse(input);
-  if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      error: {
-        code: "INVALID_DECISION_INPUT",
-        message: "Decision input is invalid.",
-        issues: parsed.error.issues
-      }
-    };
-  }
-  input = parsed.data;
+  const auth = authorize(deps.actor, "decision.write");
+  if (auth) return auth;
 
-  const forbidden = forbiddenFor(deps.actor, "decision.write");
-  if (forbidden) return forbidden;
+  const parsed = draftInputSchema.safeParse(input);
+  if (!parsed.success) return invalidDecisionInput(parsed.error.issues);
+  const data = parsed.data;
 
   const proposal = await deps.proposer.propose({
-    question: input.question,
-    context: input.context,
-    sources: input.sources
+    question: data.question,
+    context: data.context,
+    sources: data.sources
   });
 
   // Cite-or-refuse: a recommendation must cite at least one provided source.
   // Uncited advice is the chatbot failure mode this module exists to prevent.
-  const providedSourceIds = new Set(input.sources.map((source) => source.id));
+  const providedSourceIds = new Set(data.sources.map((source) => source.id));
   const citedIds = proposal.recommendation.sourceIds;
   const isCited = citedIds.length > 0 && citedIds.every((id) => providedSourceIds.has(id));
   if (!isCited) {
@@ -216,14 +224,14 @@ export async function draftDecisionBrief(
 
   const brief: DecisionBrief = {
     id: `dec_${crypto.randomUUID().slice(0, 12)}`,
-    question: input.question,
-    context: input.context,
-    sources: input.sources,
+    question: data.question,
+    context: data.context,
+    sources: data.sources,
     options: proposal.options,
     risks: proposal.risks,
     assumptions: proposal.assumptions,
     recommendation: proposal.recommendation,
-    ownerId: input.ownerId,
+    ownerId: deps.actor.id,
     status: "draft",
     createdAt: isoFrom(deps.now)
   };
@@ -237,7 +245,7 @@ export async function draftDecisionBrief(
   });
   await deps.audit?.record({
     action: "decision.brief_drafted",
-    actorId: deps.actor?.id ?? null,
+    actorId: deps.actor.id,
     entityType: "decision_brief",
     entityId: brief.id
   });
@@ -248,8 +256,7 @@ export async function draftDecisionBrief(
 export const recordInputSchema = z.object({
   briefId: z.string().min(1),
   choice: z.enum(["accept", "reject", "defer"]),
-  rationale: z.string(),
-  ownerId: z.string().min(1)
+  rationale: z.string()
 });
 
 export async function recordDecision(
@@ -257,37 +264,27 @@ export async function recordDecision(
     briefId: string;
     choice: DecisionChoice;
     rationale: string;
-    ownerId: string;
   },
   deps: {
     store: DecisionStore;
     now: () => number;
     dispatcher?: ActionDispatcher;
-    actor?: Actor | null;
+    actor: Actor;
     audit?: AuditSink;
   }
 ) {
-  const parsed = recordInputSchema.safeParse(input);
-  if (!parsed.success) {
-    return {
-      ok: false as const,
-      status: 400 as const,
-      error: { code: "INVALID_DECISION_INPUT", message: "Decision input is invalid.", issues: parsed.error.issues }
-    };
-  }
-  const { briefId, choice, rationale, ownerId } = parsed.data;
+  const auth = authorize(deps.actor, "decision.write");
+  if (auth) return auth;
 
-  const forbidden = forbiddenFor(deps.actor, "decision.write");
-  if (forbidden) return forbidden;
+  const parsed = recordInputSchema.safeParse(input);
+  if (!parsed.success) return invalidDecisionInput(parsed.error.issues);
+  const { briefId, choice, rationale } = parsed.data;
 
   const brief = await deps.store.getBrief(briefId);
-  if (!brief) {
-    return {
-      ok: false as const,
-      status: 404 as const,
-      error: { code: "DECISION_NOT_FOUND", message: `No decision brief ${briefId}.` }
-    };
-  }
+  if (!brief || !canAccessBrief(deps.actor, brief)) return notFound(briefId);
+
+  // ownerId is derived from the authenticated actor, never the client payload.
+  const ownerId = deps.actor.id;
 
   const log: DecisionLog = {
     id: `dlog_${crypto.randomUUID().slice(0, 12)}`,
@@ -310,7 +307,7 @@ export async function recordDecision(
   });
   await deps.audit?.record({
     action: "decision.recorded",
-    actorId: deps.actor?.id ?? null,
+    actorId: deps.actor.id,
     entityType: "decision_brief",
     entityId: briefId
   });
@@ -335,7 +332,13 @@ export async function recordDecision(
   return { ok: true as const, status: 201 as const, data: { log, brief, actionRequest } };
 }
 
-export async function listDecisions(input: { briefId: string }, deps: { store: DecisionStore }) {
+export async function listDecisions(input: { briefId: string }, deps: { store: DecisionStore; actor: Actor }) {
+  const auth = authorize(deps.actor, "decision.read");
+  if (auth) return auth;
+
+  const brief = await deps.store.getBrief(input.briefId);
+  if (!brief || !canAccessBrief(deps.actor, brief)) return notFound(input.briefId);
+
   const logs = await deps.store.listLogs(input.briefId);
   return { ok: true as const, status: 200 as const, data: { logs } };
 }
