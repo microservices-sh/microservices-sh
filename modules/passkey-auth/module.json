@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "passkey-auth",
+  "name": "Passkey Auth",
+  "version": "0.1.0",
+  "status": "available",
+  "class": "platform",
+  "summary": "Public, source-visible passkey (WebAuthn) authentication — registration + authentication ceremonies + credential management, built on @simplewebauthn/server. Verifies assertions and returns the verified userId; the host app mints the session.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    { "type": "d1", "binding": "DB", "tables": ["passkey_credentials", "passkey_challenges"] }
+  ],
+  "permissions": ["passkey.register", "passkey.authenticate", "passkey.admin"],
+  "connections": {
+    "requires": [],
+    "optional": ["identity", "auth", "audit-log"],
+    "rpc": {
+      "exposes": [
+        { "method": "beginRegistration", "scope": "passkey.register", "public": false },
+        { "method": "verifyRegistration", "scope": "passkey.register", "public": false },
+        { "method": "beginAuthentication", "scope": "passkey.authenticate", "public": true },
+        { "method": "verifyAuthentication", "scope": "passkey.authenticate", "public": true },
+        { "method": "listCredentials", "scope": "passkey.admin", "public": false },
+        { "method": "deleteCredential", "scope": "passkey.admin", "public": false }
+      ],
+      "calls": []
+    },
+    "events": {
+      "emits": ["passkey.registered", "passkey.authenticated", "passkey.credential_deleted"],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeVerifyRegistration": { "kind": "filter", "scope": "passkey.register" },
+      "afterAuthenticated": { "kind": "observer", "scope": "passkey.authenticate" }
+    },
+    "provides": { "hooks": [] }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Passkeys", "path": "/settings/passkeys", "permission": "passkey.admin", "icon": "KeyRound" }],
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "visitor": {
+      "applicable": true,
+      "featureKey": "passkey-login",
+      "referenceUi": ["reference-ui/README.md"]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": ["passkey.listCredentials", "passkey.deleteCredential"],
+      "skillPaths": ["skills/passkey-operator/SKILL.md"],
+      "approvalRequiredFor": ["passkey.deleteCredential"]
+    }
+  },
+  "skills": [
+    {
+      "id": "passkey-operator",
+      "path": "skills/passkey-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "login-support"]
+    }
+  ],
+  "approval": {
+    "risk": "high",
+    "requiresApprovalFor": ["migrations", "secrets", "production-deploy", "external-side-effects"]
+  }
+}

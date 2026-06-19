@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Passkey Auth Module Config",
+  "type": "object",
+  "properties": {
+    "rpName": { "type": "string", "minLength": 1 },
+    "rpId": { "type": "string", "minLength": 1 },
+    "origins": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "challengeTtlSeconds": { "type": "integer", "minimum": 30, "default": 300 }
+  },
+  "additionalProperties": false
+}

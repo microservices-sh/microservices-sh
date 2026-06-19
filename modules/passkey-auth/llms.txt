@@ -1,0 +1,14 @@
+# Passkey Auth Module
+
+Module ID: passkey-auth
+Status: available
+Purpose: Public, source-visible passkey (WebAuthn) authentication — registration + authentication ceremonies + credential management, built on @simplewebauthn/server.
+Boundary: Never mints sessions. verifyAuthentication returns the verified userId; the host app mints the session.
+Entrypoint: src/index.ts
+Check: pnpm check:spec
+Build: pnpm build
+
+Use-cases: beginRegistration, verifyRegistration, beginAuthentication, verifyAuthentication, listCredentials, deleteCredential
+Ports: PasskeyStore (putChallenge, getChallenge, deleteChallenge, saveCredential, getCredentialsByUser, getCredentialById, updateCounter, deleteCredential)
+Adapters: createMemoryPasskeyStore(), createD1PasskeyStore(db)
+Events emitted: passkey.registered, passkey.authenticated, passkey.credential_deleted

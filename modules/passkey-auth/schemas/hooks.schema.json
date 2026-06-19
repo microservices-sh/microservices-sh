@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Passkey Auth Hooks",
+  "type": "object",
+  "properties": {
+    "beforeVerifyRegistration": { "type": "string" },
+    "afterAuthenticated": { "type": "string" }
+  }
+}

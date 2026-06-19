@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Passkey Auth Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": [
+        "passkey.registered",
+        "passkey.authenticated",
+        "passkey.credential_deleted"
+      ]
+    },
+    "entityType": {
+      "type": "string",
+      "enum": ["credential"]
+    }
+  },
+  "required": ["eventName", "entityType"]
+}
