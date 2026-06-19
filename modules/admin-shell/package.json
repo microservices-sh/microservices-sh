@@ -24,6 +24,7 @@
   },
   "scripts": {
     "build": "tsc --noEmit",
+    "build:dist": "node scripts/build-dist.mjs",
     "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path .",
     "test": "vitest run"
   },
@@ -33,6 +34,22 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",
+    "esbuild": "^0.27.3",
     "typescript": "^5.9.3"
+  },
+  "files": ["dist"],
+  "publishConfig": {
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": "./dist/index.js",
+      "./types": "./dist/types.js",
+      "./schemas": "./dist/schemas.js",
+      "./hooks": "./dist/hooks.js",
+      "./registry": "./dist/registry.js",
+      "./authz": "./dist/authz.js",
+      "./adapters/d1": "./dist/adapters/d1.js",
+      "./adapters/memory": "./dist/adapters/memory.js"
+    }
   }
 }
