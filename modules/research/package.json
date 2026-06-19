@@ -20,6 +20,7 @@
     "./graph": "./src/graph.ts",
     "./adapters/d1": "./src/adapters/d1-research-store.ts",
     "./adapters/sqlite-graph": "./src/adapters/sqlite-graph-store.ts",
+    "./adapters/gateway-synthesizer": "./src/adapters/gateway-synthesizer.ts",
     "./adapters/memory": "./src/index.ts"
   },
   "scripts": {
