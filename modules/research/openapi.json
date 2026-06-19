@@ -1,0 +1,16 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "Research Module", "version": "0.1.0", "description": "Research pillar: ingest, retrieve, cited briefs." },
+  "paths": {
+    "/research/sources": {
+      "post": { "summary": "Ingest a source (ingestSource)", "responses": { "201": { "description": "Ingested" }, "400": { "description": "Invalid" } } },
+      "get": { "summary": "List own sources (listSources)", "responses": { "200": { "description": "Sources" } } }
+    },
+    "/research/briefs": {
+      "post": { "summary": "Run research (research)", "responses": { "201": { "description": "Brief" }, "422": { "description": "Ungrounded / uncited" } } }
+    },
+    "/research/briefs/{briefId}": {
+      "get": { "summary": "Get a brief (getBrief)", "responses": { "200": { "description": "Brief" }, "404": { "description": "Not visible" } } }
+    }
+  }
+}

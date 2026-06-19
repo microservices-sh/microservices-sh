@@ -1,0 +1,13 @@
+# @microservices-sh/research
+
+Research pillar: ingest knowledge, retrieve by semantic search, produce cited briefs (cite-or-refuse).
+
+Exports (src/index.ts):
+- ingestSource(input, { store, vectorStore, embedder, now, actor, audit? }) -> { source }
+- research({ question, topK? }, { store, vectorStore, embedder, synthesizer, now, actor, audit? }) -> { brief }
+- getBrief({ briefId }, { store, actor }) / listSources({ store, actor })
+- createMemoryResearchStore(), createMemoryVectorStore(), chunkContent()
+- Ports: EmbeddingPort, VectorStore, Synthesizer, ResearchStore, AuditSink
+
+Events: research.source_ingested, research.brief_created. Permissions: research.read|write|admin|extend|observe.
+Rules: cite-or-refuse (422 RESEARCH_NO_SOURCES / RESEARCH_UNCITED), owner-scoped retrieval, fail-closed authz, audit.

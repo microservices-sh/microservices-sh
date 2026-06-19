@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "research",
+  "name": "Research",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Research pillar: ingest company knowledge, retrieve by semantic search, and produce cited research briefs (cite-or-refuse).",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    { "type": "d1", "binding": "DB", "tables": ["research_sources", "research_briefs", "domain_events"] },
+    { "type": "vectorize", "binding": "VECTORIZE", "index": "research-chunks" }
+  ],
+  "permissions": ["research.read", "research.write", "research.admin", "research.extend", "research.observe"],
+  "connections": {
+    "requires": ["org-team-rbac"],
+    "optional": ["audit-log", "jobs-workflows", "file-media", "decision"],
+    "rpc": {
+      "exposes": [
+        { "method": "ingestSource", "scope": "research.write", "public": false },
+        { "method": "research", "scope": "research.read", "public": false },
+        { "method": "getBrief", "scope": "research.read", "public": false },
+        { "method": "listSources", "scope": "research.read", "public": false }
+      ],
+      "calls": []
+    },
+    "events": {
+      "emits": ["research.source_ingested", "research.brief_created"],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeResearchIngest": { "kind": "filter", "scope": "research.extend" },
+      "afterBriefCreated": { "kind": "observer", "scope": "research.observe" }
+    },
+    "provides": { "hooks": [] }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Research", "path": "/research", "permission": "research.read", "icon": "Search" }]
+    },
+    "visitor": { "applicable": false },
+    "agentic": {
+      "applicable": true,
+      "tools": ["research.ingestSource", "research.research", "research.getBrief", "research.listSources"],
+      "approvalRequiredFor": ["research.ingestSource", "research.research"]
+    }
+  },
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": ["migrations", "ai-provider-calls", "production-deploy", "external-ingestion"]
+  }
+}

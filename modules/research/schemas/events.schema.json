@@ -1,0 +1,1 @@
+{ "$schema": "http://json-schema.org/draft-07/schema#", "title": "ResearchEvents", "type": "object", "properties": { "research.source_ingested": { "type": "object" }, "research.brief_created": { "type": "object" } } }
