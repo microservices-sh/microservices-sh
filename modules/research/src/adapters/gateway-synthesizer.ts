@@ -25,8 +25,10 @@ const SYSTEM = [
 function buildUser(question: string, passages: Passage[]): string {
   const lines = passages.map((p, i) => {
     const community = p.communityLabel ? `(${p.communityLabel}) ` : "";
-    const loc = p.sourceLocation ? `:${p.sourceLocation}` : "";
-    return `[${i + 1}] source_file=${p.sourceFile}${loc} | ${community}${p.label}`;
+    // Keep source_file= the BARE citable id; location goes elsewhere so the
+    // model cites the file (cite-or-refuse keys on source_file, not file:line).
+    const loc = p.sourceLocation ? ` [${p.sourceLocation}]` : "";
+    return `[${i + 1}] source_file=${p.sourceFile} | ${community}${p.label}${loc}`;
   });
   return `Question: ${question}\n\nSources:\n${lines.join("\n")}`;
 }

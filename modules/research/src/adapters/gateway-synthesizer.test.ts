@@ -24,6 +24,10 @@ describe("gateway synthesizer", () => {
     expect(userText).toContain("docs/margins.md");
     expect(userText).toContain("docs/pricing.md");
     expect(userText).toContain("Why did margins fall?");
+    // source_file= must be the BARE citable id (location must NOT be glued on,
+    // or the model cites file:line and cite-or-refuse rejects it). Regression.
+    expect(userText).toContain("source_file=docs/margins.md ");
+    expect(userText).not.toContain("source_file=docs/margins.md:");
     // system message enforces cite-or-refuse
     expect(seenMessages.find((m) => m.role === "system")).toBeTruthy();
   });
