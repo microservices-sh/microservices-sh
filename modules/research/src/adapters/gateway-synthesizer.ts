@@ -16,10 +16,11 @@ export type CompleteFn = (messages: ChatMessage[]) => Promise<CompleteResult>;
 
 const SYSTEM = [
   "You are a research assistant for a company knowledge base.",
-  "Answer ONLY from the provided sources. Do not use outside knowledge.",
-  "Cite the source_file of every source you actually use.",
-  "If the sources do not answer the question, return an empty answer and no citations.",
-  'Respond as strict JSON only: {"answer": string, "citations": string[]} where each citation is a source_file value from the sources.'
+  "Answer ONLY from the provided source excerpts. Do not use outside knowledge.",
+  "Answer as completely as the excerpts support (a partial but grounded answer is fine).",
+  "Cite the source_file of EVERY source you draw any fact from — if you used an excerpt, cite its source_file.",
+  "Only if NONE of the sources are relevant to the question, return an empty answer with an empty citations array.",
+  'Respond as strict JSON only: {"answer": string, "citations": string[]} where each citation is a source_file value copied exactly from the sources.'
 ].join(" ");
 
 function buildUser(question: string, passages: Passage[]): string {
@@ -28,7 +29,9 @@ function buildUser(question: string, passages: Passage[]): string {
     // Keep source_file= the BARE citable id; location goes elsewhere so the
     // model cites the file (cite-or-refuse keys on source_file, not file:line).
     const loc = p.sourceLocation ? ` [${p.sourceLocation}]` : "";
-    return `[${i + 1}] source_file=${p.sourceFile} | ${community}${p.label}${loc}`;
+    const head = `[${i + 1}] source_file=${p.sourceFile} | ${community}${p.label}${loc}`;
+    const excerpt = p.text ? `\n    excerpt: ${p.text.replace(/\s+/g, " ").trim().slice(0, 700)}` : "";
+    return head + excerpt;
   });
   return `Question: ${question}\n\nSources:\n${lines.join("\n")}`;
 }

@@ -90,6 +90,15 @@ describe("graph: GraphRetriever", () => {
     expect(byFile["docs/office.md"]).toBeUndefined();
   });
 
+  it("enriches passages with source text when a content reader is supplied", async () => {
+    const store = await loadedStore();
+    const reader = ({ sourceFile }: { sourceFile: string }) => `EXCERPT of ${sourceFile}`;
+    const retriever = createGraphRetriever(store, { readContent: reader });
+    const passages = await retriever.retrieve({ text: "margin", topK: 10, ownerId: owner.id });
+    const margins = passages.find((p) => p.sourceFile === "docs/margins.md");
+    expect(margins?.text).toBe("EXCERPT of docs/margins.md");
+  });
+
   it("returns nothing for another owner (graph is owner-scoped)", async () => {
     const retriever = createGraphRetriever(await loadedStore());
     const passages = await retriever.retrieve({ text: "margin", topK: 10, ownerId: stranger.id });

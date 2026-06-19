@@ -32,6 +32,17 @@ describe("gateway synthesizer", () => {
     expect(seenMessages.find((m) => m.role === "system")).toBeTruthy();
   });
 
+  it("includes the passage excerpt text in the prompt when present", async () => {
+    let seen: any[] = [];
+    const complete = async (messages: any[]) => {
+      seen = messages;
+      return { ok: true as const, data: { text: '{"answer":"x","citations":["docs/margins.md"]}' } };
+    };
+    const withText = [{ ...passages[0], text: "Gross margin fell 8% on rising COGS." }];
+    await createGatewaySynthesizer(complete).synthesize({ question: "q", passages: withText });
+    expect(seen.find((m) => m.role === "user").content).toContain("Gross margin fell 8% on rising COGS.");
+  });
+
   it("tolerates a JSON object wrapped in prose", async () => {
     const complete = async () => ({ ok: true as const, data: { text: 'Here you go:\n{"answer":"A","citations":["docs/pricing.md"]}\nHope that helps.' } });
     const result = await createGatewaySynthesizer(complete).synthesize({ question: "q", passages });

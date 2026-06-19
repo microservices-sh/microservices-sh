@@ -39,7 +39,14 @@ export type Passage = {
   label: string;
   communityLabel?: string;
   score: number;
+  // Actual source excerpt, populated when the retriever is given a content
+  // reader (graph nodes store pointers, not text). Synthesis answers from this.
+  text?: string;
 };
+
+// Reads the real source excerpt for a node's file:location. On the Fly runtime
+// this reads the volume; the graph store only holds pointers.
+export type ContentReader = (ref: { sourceFile: string; sourceLocation: string }) => Promise<string | null> | string | null;
 
 export interface GraphStore {
   upsertNodes(nodes: GraphNode[]): Promise<void>;
@@ -155,7 +162,7 @@ export async function loadGraphifyOutput(input: GraphifyOutput, deps: { store: G
 
 // ---- retrieval ----
 
-export function createGraphRetriever(store: GraphStore): Retriever {
+export function createGraphRetriever(store: GraphStore, opts?: { readContent?: ContentReader }): Retriever {
   return {
     async retrieve({ text, topK, ownerId, admin }) {
       const scope = { ownerId, admin };
@@ -187,13 +194,18 @@ export function createGraphRetriever(store: GraphStore): Retriever {
           }
           communityLabel = communityLabels.get(node.communityId);
         }
-        passages.push({
+        const passage: Passage = {
           sourceFile: node.sourceFile,
           sourceLocation: node.sourceLocation,
           label: node.label,
           communityLabel,
           score
-        });
+        };
+        if (opts?.readContent) {
+          const excerpt = await opts.readContent({ sourceFile: node.sourceFile, sourceLocation: node.sourceLocation });
+          if (excerpt) passage.text = excerpt;
+        }
+        passages.push(passage);
       }
       return passages;
     }
