@@ -33,7 +33,7 @@ function fakeVerifiers(over: Partial<Verifiers> = {}): Verifiers {
       return { challenge: "x" } as never;
     },
     async verifyAuthentication() {
-      return { verified: true, newCounter: 1 };
+      return { verified: true, newCounter: 1, userVerified: true };
     },
     ...over,
   };

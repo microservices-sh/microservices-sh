@@ -18,6 +18,11 @@ export interface VerifyAuthenticationInput {
   challengeKey: string;
   rpId: string;
   origins: string[];
+  // When true, reject assertions where the authenticator did not perform user
+  // verification (biometric/PIN). Use for sole-factor login. Defaults to false to
+  // preserve presence-only behaviour; pair with beginAuthentication's
+  // userVerification: "required". See README "Boundary".
+  requireUserVerification?: boolean;
 }
 
 // Step 2 of authentication (public). Consume the login challenge, verify the assertion
@@ -67,6 +72,13 @@ export async function verifyAuthentication(input: VerifyAuthenticationInput, dep
 
   if (!verification.verified) {
     return err(401, { code: "passkey.VERIFICATION_FAILED", message: "Passkey verification failed." }, meta);
+  }
+
+  // Sole-factor logins can demand the authenticator actually verified the user
+  // (biometric/PIN), not just user presence. The crypto already validated; this
+  // is the extra factor gate, opt-in via requireUserVerification.
+  if (input.requireUserVerification && !verification.userVerified) {
+    return err(401, { code: "passkey.USER_VERIFICATION_REQUIRED", message: "User verification (biometric/PIN) was required but not performed." }, meta);
   }
 
   // Signature-counter clone/replay protection. A legitimate authenticator's counter

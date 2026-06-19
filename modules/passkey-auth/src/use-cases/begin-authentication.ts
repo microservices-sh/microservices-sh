@@ -2,7 +2,7 @@ import { ok, err } from "@microservices-sh/connection-contract";
 import { passkeyMeta } from "../meta";
 import { CHALLENGE_TTL_SECONDS } from "../config";
 import type { PasskeyStore } from "../ports";
-import type { Verifiers } from "../webauthn";
+import type { UserVerificationRequirement, Verifiers } from "../webauthn";
 import { realVerifiers } from "../webauthn";
 
 export interface BeginAuthenticationDeps {
@@ -22,6 +22,10 @@ export interface BeginAuthenticationInput {
   origins?: string[];
   // Optional: narrow allowCredentials to a known user's passkeys.
   identifier?: string;
+  // Whether to demand user verification (biometric/PIN). Defaults to "preferred".
+  // Pass "required" when the passkey is the sole login factor; verifyAuthentication
+  // must then be called with requireUserVerification: true to enforce it.
+  userVerification?: UserVerificationRequirement;
 }
 
 // Step 1 of authentication (public). Generate WebAuthn request options and stash the
@@ -43,7 +47,11 @@ export async function beginAuthentication(input: BeginAuthenticationInput, deps:
     }
   }
 
-  const options = await verifiers.generateAuthentication({ rpId: input.rpId, allowCredentials });
+  const options = await verifiers.generateAuthentication({
+    rpId: input.rpId,
+    allowCredentials,
+    userVerification: input.userVerification,
+  });
 
   const challengeKey = `login:${crypto.randomUUID()}`;
   const createdAt = deps.now?.() ?? Date.now();

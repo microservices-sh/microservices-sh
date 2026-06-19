@@ -17,7 +17,7 @@ function fakeVerifiers(over: Partial<Verifiers> = {}): Verifiers {
     },
     async verifyAuthentication(input) {
       // Default fake: succeed and report counter+1 from the supplied stored counter.
-      return { verified: true, newCounter: input.credential.counter + 1 };
+      return { verified: true, newCounter: input.credential.counter + 1, userVerified: true };
     },
     ...over,
   };
@@ -93,7 +93,7 @@ describe("verifyAuthentication", () => {
     const challengeKey = await begin();
     await verifyAuthentication(
       { response: { id: "cred-1" } as never, challengeKey, ...RP },
-      { store, verifiers: fakeVerifiers({ async verifyAuthentication() { return { verified: true, newCounter: 9 }; } }), now }
+      { store, verifiers: fakeVerifiers({ async verifyAuthentication() { return { verified: true, newCounter: 9, userVerified: true }; } }), now }
     );
     expect((await store.getCredentialById("cred-1"))?.counter).toBe(9);
   });
@@ -104,7 +104,7 @@ describe("verifyAuthentication", () => {
     // Cloned authenticator replays an old assertion -> newCounter regresses.
     const res = await verifyAuthentication(
       { response: { id: "cred-1" } as never, challengeKey, ...RP },
-      { store, verifiers: fakeVerifiers({ async verifyAuthentication() { return { verified: true, newCounter: 4 }; } }), now }
+      { store, verifiers: fakeVerifiers({ async verifyAuthentication() { return { verified: true, newCounter: 4, userVerified: true }; } }), now }
     );
     expect(res.ok).toBe(false);
     expect((res as { status: number }).status).toBe(401);
@@ -116,7 +116,7 @@ describe("verifyAuthentication", () => {
     const challengeKey = await begin();
     const res = await verifyAuthentication(
       { response: { id: "cred-1" } as never, challengeKey, ...RP },
-      { store, verifiers: fakeVerifiers({ async verifyAuthentication() { return { verified: true, newCounter: 5 }; } }), now }
+      { store, verifiers: fakeVerifiers({ async verifyAuthentication() { return { verified: true, newCounter: 5, userVerified: true }; } }), now }
     );
     expect(res.ok).toBe(false);
     expect((res as { status: number }).status).toBe(401);
@@ -127,7 +127,7 @@ describe("verifyAuthentication", () => {
     const challengeKey = await begin();
     const res = await verifyAuthentication(
       { response: { id: "cred-1" } as never, challengeKey, ...RP },
-      { store, verifiers: fakeVerifiers({ async verifyAuthentication() { return { verified: true, newCounter: 0 }; } }), now }
+      { store, verifiers: fakeVerifiers({ async verifyAuthentication() { return { verified: true, newCounter: 0, userVerified: true }; } }), now }
     );
     expect(res.ok).toBe(true);
   });
@@ -159,11 +159,62 @@ describe("verifyAuthentication", () => {
     const challengeKey = await begin();
     const res = await verifyAuthentication(
       { response: { id: "cred-1" } as never, challengeKey, ...RP },
-      { store, verifiers: fakeVerifiers({ async verifyAuthentication() { return { verified: false, newCounter: 0 }; } }), now }
+      { store, verifiers: fakeVerifiers({ async verifyAuthentication() { return { verified: false, newCounter: 0, userVerified: false }; } }), now }
     );
     expect(res.ok).toBe(false);
     expect((res as { status: number }).status).toBe(401);
     expect((await store.getCredentialById("cred-1"))?.counter).toBe(2);
+  });
+
+  it("USER VERIFICATION: rejects when required but the authenticator only proved presence", async () => {
+    await seedCredential(store, { counter: 1 });
+    const challengeKey = await begin();
+    const res = await verifyAuthentication(
+      { response: { id: "cred-1" } as never, challengeKey, ...RP, requireUserVerification: true },
+      { store, verifiers: fakeVerifiers({ async verifyAuthentication() { return { verified: true, newCounter: 2, userVerified: false }; } }), now }
+    );
+    expect(res.ok).toBe(false);
+    expect((res as { status: number }).status).toBe(401);
+    expect((res as { error: { code: string } }).error.code).toBe("passkey.USER_VERIFICATION_REQUIRED");
+    expect((await store.getCredentialById("cred-1"))?.counter).toBe(1); // not bumped
+  });
+
+  it("USER VERIFICATION: succeeds when required and the authenticator verified the user", async () => {
+    await seedCredential(store, { counter: 1 });
+    const challengeKey = await begin();
+    const res = await verifyAuthentication(
+      { response: { id: "cred-1" } as never, challengeKey, ...RP, requireUserVerification: true },
+      { store, verifiers: fakeVerifiers({ async verifyAuthentication() { return { verified: true, newCounter: 2, userVerified: true }; } }), now }
+    );
+    expect(res.ok).toBe(true);
+  });
+
+  it("USER VERIFICATION: presence-only assertion is accepted when not required (default)", async () => {
+    await seedCredential(store, { counter: 1 });
+    const challengeKey = await begin();
+    const res = await verifyAuthentication(
+      { response: { id: "cred-1" } as never, challengeKey, ...RP },
+      { store, verifiers: fakeVerifiers({ async verifyAuthentication() { return { verified: true, newCounter: 2, userVerified: false }; } }), now }
+    );
+    expect(res.ok).toBe(true);
+  });
+
+  it("USER VERIFICATION: beginAuthentication forwards the requirement to the verifier", async () => {
+    let seen: string | undefined;
+    await beginAuthentication(
+      { ...RP, userVerification: "required" },
+      {
+        store,
+        verifiers: fakeVerifiers({
+          async generateAuthentication(input) {
+            seen = input.userVerification;
+            return { challenge: "gen-auth-chal", allowCredentials: [] } as never;
+          },
+        }),
+        now,
+      }
+    );
+    expect(seen).toBe("required");
   });
 
   it("consumes the challenge so it cannot be reused", async () => {

@@ -17,6 +17,23 @@ export type ComputeFns = Record<string, (row: AdminRecord) => unknown>;
 // (e.g. "removed_at IS NULL") without evaluating SQL — same idea as ComputeFns.
 export type RelationWhereFns = Record<string, (row: AdminRecord) => boolean>;
 
+// Mirror SQLite ORDER BY so the memory gateway agrees with the D1 gateway:
+// NULLs sort first, numbers compare numerically (NOT lexicographically — `9`
+// sorts before `100`), booleans by 0/1, everything else by binary (code-unit)
+// string comparison (SQLite's default BINARY collation). Previously this used
+// String().localeCompare(), which ordered numeric columns wrong (e.g. epoch-ms
+// timestamps across digit widths) and silently diverged from D1 in prod.
+function compareValues(a: unknown, b: unknown): number {
+  const aNull = a === null || a === undefined;
+  const bNull = b === null || b === undefined;
+  if (aNull || bNull) return aNull === bNull ? 0 : aNull ? -1 : 1;
+  if (typeof a === "number" && typeof b === "number") return a < b ? -1 : a > b ? 1 : 0;
+  if (typeof a === "boolean" && typeof b === "boolean") return (a ? 1 : 0) - (b ? 1 : 0);
+  const as = String(a);
+  const bs = String(b);
+  return as < bs ? -1 : as > bs ? 1 : 0;
+}
+
 export function createMemoryTableGateway(
   seed: Record<string, AdminRecord[]> = {},
   compute: ComputeFns = {},
@@ -82,7 +99,7 @@ export function createMemoryTableGateway(
       const total = rows.length;
       if (query.sort) {
         const { column, direction } = query.sort;
-        rows.sort((a, b) => String(a[column] ?? "").localeCompare(String(b[column] ?? "")) * (direction === "desc" ? -1 : 1));
+        rows.sort((a, b) => compareValues(a[column], b[column]) * (direction === "desc" ? -1 : 1));
       }
       const limit = query.limit ?? 25;
       const offset = query.offset ?? 0;
@@ -107,16 +124,17 @@ export function createMemoryTableGateway(
 
       if (relation.orderBy) {
         const { column, direction } = relation.orderBy;
-        rows = [...rows].sort(
-          (a, b) => String(a[column] ?? "").localeCompare(String(b[column] ?? "")) * (direction === "desc" ? -1 : 1)
-        );
+        rows = [...rows].sort((a, b) => compareValues(a[column], b[column]) * (direction === "desc" ? -1 : 1));
       }
       if (relation.limit !== undefined) rows = rows.slice(0, relation.limit);
 
       // Project the declared real columns plus any relation computed columns.
       return rows.map((r) => {
         const out: AdminRecord = {};
-        for (const col of relation.columns) out[col] = r[col];
+        // Missing declared columns become SQL NULL in D1 (`SELECT "col"` yields
+        // null); use `?? null` so the memory projection matches rather than
+        // emitting `undefined` (which JSON.stringify would drop entirely).
+        for (const col of relation.columns) out[col] = r[col] ?? null;
         for (const c of relation.computed ?? []) {
           const fn = compute[`${relation.name}.${c.name}`];
           out[c.name] = fn ? fn(r) : null;

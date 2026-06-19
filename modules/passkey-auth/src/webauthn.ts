@@ -16,12 +16,18 @@ import type {
   RegistrationResponseJSON,
 } from "@simplewebauthn/types";
 
+// Whether the authenticator must perform user verification (biometric/PIN) vs.
+// mere user presence. Mirrors the WebAuthn spec value. Defaults to "preferred".
+export type UserVerificationRequirement = "required" | "preferred" | "discouraged";
+
 export interface GenerateRegistrationInput {
   rpName: string;
   rpId: string;
   userName: string;
   userDisplayName: string;
   excludeCredentials: { id: string; transports: AuthenticatorTransportFuture[] }[];
+  // Defaults to "preferred". Set "required" to force UV at registration.
+  userVerification?: UserVerificationRequirement;
 }
 
 export interface VerifyRegistrationInput {
@@ -48,6 +54,8 @@ export interface VerifiedRegistration {
 export interface GenerateAuthenticationInput {
   rpId: string;
   allowCredentials: { id: string; transports: AuthenticatorTransportFuture[] }[];
+  // Defaults to "preferred". Set "required" to force UV (biometric/PIN) at login.
+  userVerification?: UserVerificationRequirement;
 }
 
 export interface VerifyAuthenticationInput {
@@ -66,6 +74,9 @@ export interface VerifyAuthenticationInput {
 export interface VerifiedAuthentication {
   verified: boolean;
   newCounter: number;
+  // Whether the authenticator actually performed user verification (biometric/PIN)
+  // for this assertion. The use-case can require this when UV is mandatory.
+  userVerified: boolean;
 }
 
 // The injectable verifier seam. Tests pass a fake; production passes realVerifiers.
@@ -94,7 +105,7 @@ export const realVerifiers: Verifiers = {
       })),
       authenticatorSelection: {
         residentKey: "preferred",
-        userVerification: "preferred",
+        userVerification: input.userVerification ?? "preferred",
       },
     });
   },
@@ -127,7 +138,7 @@ export const realVerifiers: Verifiers = {
     return generateAuthenticationOptions({
       rpID: input.rpId,
       allowCredentials: input.allowCredentials.map((c) => ({ id: c.id, transports: c.transports })),
-      userVerification: "preferred",
+      userVerification: input.userVerification ?? "preferred",
     });
   },
 
@@ -147,6 +158,7 @@ export const realVerifiers: Verifiers = {
     return {
       verified: verification.verified,
       newCounter: verification.authenticationInfo?.newCounter ?? input.credential.counter,
+      userVerified: verification.authenticationInfo?.userVerified ?? false,
     };
   },
 };
