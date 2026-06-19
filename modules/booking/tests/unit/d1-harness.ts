@@ -1,15 +1,14 @@
-import { createRequire } from "node:module";
+import { createTestD1 } from "@microservices-sh/test-utils";
 import { createD1BookingRepository } from "../../src/adapters/d1-booking-repository";
 import type { BookingRepository } from "../../src/ports";
 
 /**
  * Integration harness that runs the real D1 adapter SQL against an in-memory
- * SQLite database via Node's built-in `node:sqlite` (no extra dependency).
+ * SQLite via the shared @microservices-sh/test-utils helper (better-sqlite3).
  *
- * `node:sqlite` is experimental and only present when Node is started with
- * `--experimental-sqlite` (wired into the test script via NODE_OPTIONS). When it
- * is unavailable, `tryMakeD1` returns null so the suite can `skipIf` cleanly
- * instead of hard-failing.
+ * better-sqlite3 (not node:sqlite) is required because the drizzle-backed adapter
+ * reads results via D1's positional `.raw()`, which node:sqlite can't provide for
+ * joins (it collapses duplicate column names). See the test-utils rationale.
  */
 
 // Schema = customer migration (customers) + booking migrations (services,
@@ -46,65 +45,24 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_bookings_confirmed_slot
   ON bookings(service_id, starts_at) WHERE status = 'confirmed';
 `;
 
-function wrapAsD1(db: any) {
-  const makeStmt = (sql: string, params: unknown[]) => ({
-    bind(...p: unknown[]) {
-      return makeStmt(sql, p);
-    },
-    async first(col?: string) {
-      const row = db.prepare(sql).get(...params);
-      if (row == null) return null;
-      return col == null ? row : (row[col] ?? null);
-    },
-    async all() {
-      return { results: db.prepare(sql).all(...params), success: true, meta: {} };
-    },
-    async run() {
-      const info = db.prepare(sql).run(...params);
-      return {
-        success: true,
-        meta: { changes: info.changes, last_row_id: Number(info.lastInsertRowid) }
-      };
-    }
-  });
-  return {
-    prepare(sql: string) {
-      return makeStmt(sql, []);
-    }
-  };
-}
+const SEED = `
+INSERT INTO services (id,name,description,duration_minutes,price_cents,currency,status,created_at,updated_at)
+  VALUES ('svc-consultation','Consultation','60-min slot',60,0,'USD','active','2026-06-01T00:00:00.000Z','2026-06-01T00:00:00.000Z');
+INSERT INTO services (id,name,description,duration_minutes,price_cents,currency,status,created_at,updated_at)
+  VALUES ('svc-retired','Retired','',30,0,'USD','inactive','2026-06-01T00:00:00.000Z','2026-06-01T00:00:00.000Z');
+INSERT INTO customers (id,name,email,phone,notes,created_at,updated_at)
+  VALUES ('cus_ada','Ada Lovelace','ada@example.com',NULL,NULL,'2026-06-01T00:00:00.000Z','2026-06-01T00:00:00.000Z');
+`;
 
 export interface D1Harness {
   repo: BookingRepository;
-  raw: any;
+  /** Underlying better-sqlite3 handle for direct assertion queries. */
+  raw: { prepare(sql: string): { all(...params: unknown[]): Record<string, unknown>[] } };
 }
 
 export async function tryMakeD1(): Promise<D1Harness | null> {
-  let DatabaseSync: any;
-  try {
-    // createRequire loads node:sqlite at native runtime, bypassing vite's
-    // module resolver (vite 5 mishandles the node:sqlite specifier).
-    const require = createRequire(import.meta.url);
-    ({ DatabaseSync } = require("node:sqlite"));
-  } catch {
-    return null;
-  }
-
-  const db = new DatabaseSync(":memory:");
-  db.exec(SCHEMA);
-
-  const t = "2026-06-01T00:00:00.000Z";
-  db.prepare(
-    "INSERT INTO services (id,name,description,duration_minutes,price_cents,currency,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)"
-  ).run("svc-consultation", "Consultation", "60-min slot", 60, 0, "USD", "active", t, t);
-  db.prepare(
-    "INSERT INTO services (id,name,description,duration_minutes,price_cents,currency,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)"
-  ).run("svc-retired", "Retired", "", 30, 0, "USD", "inactive", t, t);
-  db.prepare(
-    "INSERT INTO customers (id,name,email,phone,notes,created_at,updated_at) VALUES (?,?,?,?,?,?,?)"
-  ).run("cus_ada", "Ada Lovelace", "ada@example.com", null, null, t, t);
-
-  return { repo: createD1BookingRepository(wrapAsD1(db) as any), raw: db };
+  const { d1, sqlite } = createTestD1(SCHEMA, SEED);
+  return { repo: createD1BookingRepository(d1), raw: sqlite };
 }
 
 export function bookingInput(overrides: Record<string, unknown> = {}) {

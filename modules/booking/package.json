@@ -25,15 +25,17 @@
   "scripts": {
     "build": "tsc --noEmit",
     "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path .",
-    "test": "NODE_OPTIONS=--experimental-sqlite vitest run",
-    "test:watch": "NODE_OPTIONS=--experimental-sqlite vitest"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@microservices-sh/customer": "workspace:*",
+    "drizzle-orm": "^0.45.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",
+    "@microservices-sh/test-utils": "workspace:*",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   }

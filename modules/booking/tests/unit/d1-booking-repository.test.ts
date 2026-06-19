@@ -65,7 +65,11 @@ describe.skipIf(!harness)("D1BookingRepository (real SQL via node:sqlite)", () =
 
   it("enforces the confirmed-slot unique index on double booking", async () => {
     await h.repo.createBooking(bookingInput());
-    await expect(h.repo.createBooking(bookingInput())).rejects.toThrow(/unique|constraint/i);
+    // drizzle wraps the driver error in DrizzleQueryError; the UNIQUE violation
+    // surfaces on `.cause`. Assert there rather than on the wrapper message.
+    const err = await h.repo.createBooking(bookingInput()).catch((e) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(String((err as { cause?: unknown }).cause ?? err)).toMatch(/unique|constraint/i);
   });
 
   it("cancelBooking flips status and frees the slot for rebooking", async () => {

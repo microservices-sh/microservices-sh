@@ -1,52 +1,106 @@
+import { drizzle } from "drizzle-orm/d1";
+import { and, desc, eq, gt, lt } from "drizzle-orm";
 import type { AvailabilitySlot, Booking, DomainEvent, Service } from "../types";
 import type { BookingRepository } from "../ports";
+import { services, bookings, customers, domainEvents, auditEvents } from "../db/schema";
 
-function rowToService(row: Record<string, unknown>): Service {
+function toService(row: {
+  id: string;
+  name: string;
+  description: string | null;
+  durationMinutes: number;
+  priceCents: number;
+  currency: string;
+  status: string;
+}): Service {
   return {
-    id: String(row.id),
-    name: String(row.name),
-    description: String(row.description ?? ""),
-    durationMinutes: Number(row.duration_minutes),
-    priceCents: Number(row.price_cents),
-    currency: String(row.currency),
-    status: row.status === "inactive" ? "inactive" : "active"
+    id: row.id,
+    name: row.name,
+    description: row.description ?? "",
+    durationMinutes: row.durationMinutes,
+    priceCents: row.priceCents,
+    currency: row.currency,
+    status: row.status === "inactive" ? "inactive" : "active",
   };
 }
 
-function rowToBooking(row: Record<string, unknown>): Booking {
+// Joined booking row (booking columns + service/customer display fields).
+function toBooking(row: {
+  id: string;
+  customerId: string;
+  serviceId: string;
+  startsAt: string;
+  endsAt: string;
+  status: string;
+  notes: string | null;
+  accessToken: string | null;
+  createdAt: string;
+  updatedAt: string;
+  serviceName: string | null;
+  customerName: string | null;
+  customerEmail: string | null;
+}): Booking {
   return {
-    id: String(row.id),
-    customerId: String(row.customer_id),
-    serviceId: String(row.service_id),
-    serviceName: String(row.service_name ?? row.service_id),
-    customerName: String(row.customer_name ?? ""),
-    customerEmail: String(row.customer_email ?? ""),
-    startsAt: String(row.starts_at),
-    endsAt: String(row.ends_at),
+    id: row.id,
+    customerId: row.customerId,
+    serviceId: row.serviceId,
+    serviceName: row.serviceName ?? row.serviceId,
+    customerName: row.customerName ?? "",
+    customerEmail: row.customerEmail ?? "",
+    startsAt: row.startsAt,
+    endsAt: row.endsAt,
     status: row.status === "cancelled" ? "cancelled" : "confirmed",
     notes: row.notes ? String(row.notes) : null,
     // Legacy rows have NULL access_token → "" (never satisfies verification).
-    accessToken: row.access_token ? String(row.access_token) : "",
-    createdAt: String(row.created_at),
-    updatedAt: String(row.updated_at)
+    accessToken: row.accessToken ? String(row.accessToken) : "",
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
   };
 }
 
-export function createD1BookingRepository(db: D1Database): BookingRepository {
+export function createD1BookingRepository(d1: D1Database): BookingRepository {
+  const db = drizzle(d1);
+
+  const serviceColumns = {
+    id: services.id,
+    name: services.name,
+    description: services.description,
+    durationMinutes: services.durationMinutes,
+    priceCents: services.priceCents,
+    currency: services.currency,
+    status: services.status,
+  };
+
+  // The service/customer columns joined onto every booking read.
+  const bookingSelection = {
+    id: bookings.id,
+    customerId: bookings.customerId,
+    serviceId: bookings.serviceId,
+    startsAt: bookings.startsAt,
+    endsAt: bookings.endsAt,
+    status: bookings.status,
+    notes: bookings.notes,
+    accessToken: bookings.accessToken,
+    createdAt: bookings.createdAt,
+    updatedAt: bookings.updatedAt,
+    serviceName: services.name,
+    customerName: customers.name,
+    customerEmail: customers.email,
+  };
+
   return {
     async listServices() {
-      const result = await db
-        .prepare("SELECT id, name, description, duration_minutes, price_cents, currency, status FROM services WHERE status = 'active' ORDER BY name")
-        .all<Record<string, unknown>>();
-      return (result.results ?? []).map(rowToService);
+      const rows = await db
+        .select(serviceColumns)
+        .from(services)
+        .where(eq(services.status, "active"))
+        .orderBy(services.name);
+      return rows.map(toService);
     },
 
     async getService(serviceId) {
-      const row = await db
-        .prepare("SELECT id, name, description, duration_minutes, price_cents, currency, status FROM services WHERE id = ?")
-        .bind(serviceId)
-        .first<Record<string, unknown>>();
-      return row ? rowToService(row) : null;
+      const row = await db.select(serviceColumns).from(services).where(eq(services.id, serviceId)).get();
+      return row ? toService(row) : null;
     },
 
     async findAvailability(input) {
@@ -61,13 +115,13 @@ export function createD1BookingRepository(db: D1Database): BookingRepository {
         const available = await this.isSlotAvailable({
           serviceId: input.serviceId,
           startsAt: starts.toISOString(),
-          endsAt: ends.toISOString()
+          endsAt: ends.toISOString(),
         });
         slots.push({
           serviceId: input.serviceId,
           startsAt: starts.toISOString(),
           endsAt: ends.toISOString(),
-          available
+          available,
         });
       }
 
@@ -75,10 +129,21 @@ export function createD1BookingRepository(db: D1Database): BookingRepository {
     },
 
     async isSlotAvailable(input) {
+      // Overlap: an existing confirmed booking that starts before this ends and
+      // ends after this starts. Touching boundaries (>=/<=) do NOT overlap.
       const row = await db
-        .prepare("SELECT id FROM bookings WHERE service_id = ? AND status = 'confirmed' AND starts_at < ? AND ends_at > ? LIMIT 1")
-        .bind(input.serviceId, input.endsAt, input.startsAt)
-        .first();
+        .select({ id: bookings.id })
+        .from(bookings)
+        .where(
+          and(
+            eq(bookings.serviceId, input.serviceId),
+            eq(bookings.status, "confirmed"),
+            lt(bookings.startsAt, input.endsAt),
+            gt(bookings.endsAt, input.startsAt)
+          )
+        )
+        .limit(1)
+        .get();
       return !row;
     },
 
@@ -97,66 +162,70 @@ export function createD1BookingRepository(db: D1Database): BookingRepository {
         notes: input.notes ?? null,
         accessToken: input.accessToken,
         createdAt: timestamp,
-        updatedAt: timestamp
+        updatedAt: timestamp,
       };
-      await db
-        .prepare(
-          "INSERT INTO bookings (id, customer_id, service_id, starts_at, ends_at, status, notes, access_token, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        )
-        .bind(
-          booking.id,
-          booking.customerId,
-          booking.serviceId,
-          booking.startsAt,
-          booking.endsAt,
-          booking.status,
-          booking.notes,
-          booking.accessToken,
-          booking.createdAt,
-          booking.updatedAt
-        )
-        .run();
+      await db.insert(bookings).values({
+        id: booking.id,
+        customerId: booking.customerId,
+        serviceId: booking.serviceId,
+        startsAt: booking.startsAt,
+        endsAt: booking.endsAt,
+        status: booking.status,
+        notes: booking.notes,
+        accessToken: booking.accessToken,
+        createdAt: booking.createdAt,
+        updatedAt: booking.updatedAt,
+      });
       return booking;
     },
 
     async listBookings() {
-      const result = await db
-        .prepare(
-          "SELECT b.*, s.name AS service_name, c.name AS customer_name, c.email AS customer_email FROM bookings b JOIN services s ON s.id = b.service_id JOIN customers c ON c.id = b.customer_id ORDER BY b.starts_at DESC LIMIT 100"
-        )
-        .all<Record<string, unknown>>();
-      return (result.results ?? []).map(rowToBooking);
+      const rows = await db
+        .select(bookingSelection)
+        .from(bookings)
+        .innerJoin(services, eq(services.id, bookings.serviceId))
+        .innerJoin(customers, eq(customers.id, bookings.customerId))
+        .orderBy(desc(bookings.startsAt))
+        .limit(100);
+      return rows.map(toBooking);
     },
 
     async getBooking(id) {
       const row = await db
-        .prepare(
-          "SELECT b.*, s.name AS service_name, c.name AS customer_name, c.email AS customer_email FROM bookings b JOIN services s ON s.id = b.service_id JOIN customers c ON c.id = b.customer_id WHERE b.id = ?"
-        )
-        .bind(id)
-        .first<Record<string, unknown>>();
-      return row ? rowToBooking(row) : null;
+        .select(bookingSelection)
+        .from(bookings)
+        .innerJoin(services, eq(services.id, bookings.serviceId))
+        .innerJoin(customers, eq(customers.id, bookings.customerId))
+        .where(eq(bookings.id, id))
+        .get();
+      return row ? toBooking(row) : null;
     },
 
     async cancelBooking(id) {
       const timestamp = new Date().toISOString();
-      await db
-        .prepare("UPDATE bookings SET status = 'cancelled', updated_at = ? WHERE id = ?")
-        .bind(timestamp, id)
-        .run();
+      await db.update(bookings).set({ status: "cancelled", updatedAt: timestamp }).where(eq(bookings.id, id));
       return this.getBooking(id);
     },
 
     async writeEvent(event: DomainEvent) {
       const timestamp = new Date().toISOString();
-      await db
-        .prepare("INSERT INTO domain_events (id, event_name, entity_type, entity_id, payload, created_at) VALUES (?, ?, ?, ?, ?, ?)")
-        .bind(`evt_${crypto.randomUUID().slice(0, 12)}`, event.eventName, event.entityType, event.entityId, JSON.stringify(event.payload), timestamp)
-        .run();
-      await db
-        .prepare("INSERT INTO audit_events (id, event_name, actor_id, entity_type, entity_id, payload, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-        .bind(`aud_${crypto.randomUUID().slice(0, 12)}`, event.eventName, String(event.payload.actorId ?? ""), event.entityType, event.entityId, JSON.stringify(event.payload), timestamp)
-        .run();
-    }
+      await db.insert(domainEvents).values({
+        id: `evt_${crypto.randomUUID().slice(0, 12)}`,
+        eventName: event.eventName,
+        entityType: event.entityType,
+        entityId: event.entityId,
+        payload: JSON.stringify(event.payload),
+        createdAt: timestamp,
+      });
+      await db.insert(auditEvents).values({
+        id: `aud_${crypto.randomUUID().slice(0, 12)}`,
+        eventName: event.eventName,
+        actorId: String(event.payload.actorId ?? ""),
+        entityType: event.entityType,
+        entityId: event.entityId,
+        payload: JSON.stringify(event.payload),
+        createdAt: timestamp,
+      });
+    },
   };
 }

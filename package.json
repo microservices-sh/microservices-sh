@@ -2,7 +2,7 @@
   "name": "microservices-sh",
   "private": true,
   "version": "0.0.0",
-  "description": "microservices.sh monorepo \u2014 agent-native application infrastructure",
+  "description": "microservices.sh monorepo — agent-native application infrastructure",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "cli": "pnpm --filter @microservices-sh/cli cli",
@@ -24,6 +24,9 @@
     "build": "pnpm -r build",
     "test": "vitest run"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["better-sqlite3"]
+  },
   "devDependencies": {
     "@microservices-sh/ads-manager": "workspace:*",
     "@microservices-sh/audit-log": "workspace:*",
@@ -31,6 +34,7 @@
     "@microservices-sh/connection-contract": "workspace:*",
     "@microservices-sh/image-generation": "workspace:*",
     "@microservices-sh/payment": "workspace:*",
+    "better-sqlite3": "^12.11.1",
     "vitest": "^3.2.4"
   }
 }

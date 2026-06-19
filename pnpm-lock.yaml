@@ -26,6 +26,9 @@ importers:
       '@microservices-sh/payment':
         specifier: workspace:*
         version: link:modules/payment
+      better-sqlite3:
+        specifier: ^12.11.1
+        version: 12.11.1
       vitest:
         specifier: ^3.2.4
         version: 3.2.6(@types/debug@4.1.13)(@types/node@25.9.3)(lightningcss@1.32.0)
@@ -131,6 +134,9 @@ importers:
       '@microservices-sh/customer':
         specifier: workspace:*
         version: link:../customer
+      drizzle-orm:
+        specifier: ^0.45.2
+        version: 0.45.2(@cloudflare/workers-types@4.20260613.1)(better-sqlite3@12.11.1)(gel@2.2.0)(kysely@0.29.2)(pg@8.21.0)
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -138,6 +144,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
         version: 4.20260613.1
+      '@microservices-sh/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -499,6 +508,19 @@ importers:
       '@microservices-sh/module-contract':
         specifier: workspace:*
         version: link:../module-contract
+
+  packages/test-utils:
+    dependencies:
+      better-sqlite3:
+        specifier: ^12.11.1
+        version: 12.11.1
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250109.0
+        version: 4.20260613.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
   packages/ui: {}
 

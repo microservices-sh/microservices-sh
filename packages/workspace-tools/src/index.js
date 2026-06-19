@@ -1000,8 +1000,8 @@ function moduleScaffoldFiles({ id, name, summary, className }) {
     { path: "src/service/index.ts", contents: `export function get${pascalId}ModuleStatus() {\n  return { id: "${id}", status: "draft" } as const;\n}\n` },
     { path: "src/ports/index.ts", contents: `export interface ${pascalId}Repository {\n  getById(id: string): Promise<unknown | null>;\n}\n` },
     { path: "src/use-cases/README.md", contents: `# ${name} Use Cases\n\nAdd framework-neutral use cases here. Do not import SvelteKit, Hono, provider clients, or secret values directly in use cases.\n` },
-    { path: "src/adapters/README.md", contents: `# ${name} Adapters\n\nAdd D1, memory, provider, or framework adapters here. Keep provider side effects behind explicit function calls.\n` },
-    { path: "tests/unit/README.md", contents: `# ${name} Tests\n\nAdd unit tests for schemas, hooks, use cases, and adapters.\n` },
+    { path: "src/adapters/README.md", contents: `# ${name} Adapters\n\nAdd D1, memory, provider, or framework adapters here. Keep provider side effects behind explicit function calls.\n\nData-access standard (docs/module-data-access-standard.md): the D1 adapter uses \`drizzle-orm/d1\` behind the repository port, with a parallel in-memory adapter for fast unit tests. \`modules/booking\` is the reference implementation.\n` },
+    { path: "tests/unit/README.md", contents: `# ${name} Tests\n\nAdd unit tests for schemas, hooks, use cases, and adapters.\n\nTest the D1 adapter against a real engine via \`createTestD1\` from \`@microservices-sh/test-utils\` (better-sqlite3) — NOT node:sqlite, which collapses duplicate join columns and can't back drizzle. See docs/module-data-access-standard.md.\n` },
     { path: "microservices.check.mjs", contents: `export default function check({ assertFileIncludes }) {\n  assertFileIncludes(\n    "migrations/0001_initial.sql",\n    "CREATE TABLE IF NOT EXISTS ${tableName}",\n    "${name} module migration owns its primary table."\n  );\n}\n` }
   ];
 }
