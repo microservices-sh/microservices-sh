@@ -235,6 +235,10 @@ try {
   const svelteCli = readFileSync(join(svelteRoot, "scripts", "microservices.js"), "utf8");
   if (
     !svelteCli.includes("\"DB\", \"--local\"") ||
+    !svelteCli.includes("appProfile.remoteApi === true") ||
+    !svelteCli.includes("localRequiresD1") ||
+    !svelteCli.includes("This remote-API app uses the hosted microservices.sh API") ||
+    !svelteCli.includes("\"--config\", wranglerConfigPath") ||
     !svelteCli.includes("microservices local setup") ||
     !svelteCli.includes("deploy preview --confirm deploy") ||
     !svelteCli.includes("/deployments/preview") ||

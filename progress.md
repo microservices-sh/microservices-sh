@@ -953,3 +953,22 @@
 | `node --check packages/create-microservices-app/src/index.js` | Source syntax passes | Passed | Pass |
 | `pnpm --filter create-microservices-app test` | Create package unit tests pass | 15/15 tests passed | Pass |
 | `pnpm --filter create-microservices-app smoke` | Packed create package generates standard and Corporate OS apps | Passed | Pass |
+
+## Session: 2026-06-19 (admin CLI dogfooding and remote-API profile)
+### Phase 38 consolidation
+- **Status:** complete
+- Goal: make the existing `admin/` app dogfood the workspace CLI contract while preserving its role as a hosted-API control-plane portal, not a local ERP/D1-owned app.
+- Added admin contract files, local CLI script, smoke script, API-boundary docs, `wrangler.jsonc`, and package scripts so `npm run dev`, local setup, smoke, and deploy planning use the CLI path.
+- Upstreamed the remote-API/control-plane profile into the shared SvelteKit shim so future generated apps can opt in through `appProfile.remoteApi` or `appProfile.kind = "control-plane"`.
+- Synced generated shims into SvelteKit templates and `create-microservices-app`; hardened deployment module ID normalization.
+- Clarified migration wording: remote-API apps skip app-local D1 migrations because they own no local migrations.
+
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm --dir admin check` | Admin Svelte diagnostics pass | 0 errors / 0 warnings | Pass |
+| `pnpm --dir admin build` | Admin Cloudflare build passes | Passed | Pass |
+| `node admin/scripts/microservices.js check --json` | Admin CLI contract checks pass | Passed | Pass |
+| `node admin/scripts/microservices.js local migrate --json` | Admin local migration skips | Skipped with remote-API reason | Pass |
+| `node admin/scripts/microservices.js deploy preview --plan --json` | Admin deploy plan uses control-plane profile | Modules: `admin-shell`; no app-owned D1 migration | Pass |
+| `pnpm check:shims -- --json` | Generated shims stay synced | Passed | Pass |
+| `pnpm --filter create-microservices-app smoke` | Create package smoke keeps default and profile-aware shims working | Passed | Pass |

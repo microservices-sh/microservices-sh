@@ -173,6 +173,17 @@ function emit(response, formatter = null, flags = { json: false }) {
 
 const manifest = readJson("microservices.template.json", {});
 const lock = readJson("microservices.lock.json", { modules: [] });
+const appProfile = isRecord(manifest.appProfile) ? manifest.appProfile : {};
+const localProfile = isRecord(appProfile.local) ? appProfile.local : {};
+const deploymentProfile = isRecord(appProfile.deployment) ? appProfile.deployment : {};
+const appId = cleanString(manifest.id) ?? cleanString(lock.template) ?? "client-portal-sveltekit";
+const appDisplayName = cleanString(manifest.displayName) ?? "Client Portal SvelteKit";
+const wranglerConfigPath = cleanString(appProfile.wranglerConfigPath) ?? "wrangler.jsonc";
+const remoteApiApp = appProfile.remoteApi === true || appProfile.kind === "control-plane";
+const localRequiresD1 = remoteApiApp ? false : localProfile.requiresD1 !== false;
+const localDevHost = cleanString(localProfile.host) ?? "127.0.0.1";
+const localDevPort = cleanString(localProfile.port) ?? "5174";
+const localD1MigrationArgs = ["d1", "migrations", "apply", "DB", "--local"];
 
 function workspaceTelemetryProps(flags, extra = {}) {
   return {
@@ -234,8 +245,8 @@ function parseArgs(argv) {
     input: null,
     deploymentId: null,
     timeoutMs: 10 * 60 * 1000,
-    host: "127.0.0.1",
-    port: "5174"
+    host: localDevHost,
+    port: localDevPort
   };
 
   function flagValue(index, option, fallback = "") {
@@ -1055,7 +1066,7 @@ function checkResponse() {
     { id: "manifest", status: existsSync("microservices.template.json") ? "pass" : "fail" },
     { id: "lockfile", status: existsSync("microservices.lock.json") ? "pass" : "fail" },
     { id: "api-boundary", status: existsSync("docs/api-boundary.md") ? "pass" : "fail" },
-    { id: "wrangler-config", status: existsSync("wrangler.jsonc") ? "pass" : "fail" },
+    { id: "wrangler-config", status: existsSync(wranglerConfigPath) ? "pass" : "fail" },
     ...declared
       .filter((check) => check && typeof check.id === "string" && typeof check.file === "string")
       .map((check) => ({ id: check.id, status: existsSync(check.file) ? "pass" : "fail" })),
@@ -1085,24 +1096,40 @@ function localSetup(flags) {
   const checks = checkResponse();
   if (!checks.ok) return checks;
 
-  return runSteps(
-    [
-      { id: "local:build", command: "vite", args: ["build"] },
-      { id: "local:migrate", command: "wrangler", args: ["d1", "migrations", "apply", "DB", "--local"] }
-    ],
-    flags,
-    ["Run microservices local dev, then microservices local smoke in another terminal."]
-  );
+  const steps = [{ id: "local:build", command: "vite", args: ["build"] }];
+  if (localRequiresD1) {
+    steps.push({ id: "local:migrate", command: "wrangler", args: localD1MigrationArgs });
+  }
+
+  return runSteps(steps, flags, ["Run microservices local dev, then microservices local smoke in another terminal."]);
 }
 
 function localDev(flags) {
   const checks = checkResponse();
   if (!checks.ok) return checks;
 
-  const migrated = runCommand("local:migrate", "wrangler", ["d1", "migrations", "apply", "DB", "--local"], flags);
-  if (!migrated.ok) return migrated;
+  if (localRequiresD1) {
+    const migrated = runCommand("local:migrate", "wrangler", localD1MigrationArgs, flags);
+    if (!migrated.ok) return migrated;
+  }
 
   return runCommand("local:dev", "vite", ["dev", "--host", flags.host, "--port", flags.port, "--strictPort"], flags);
+}
+
+function localMigrate(flags) {
+  if (!localRequiresD1) {
+    return {
+      ok: true,
+      data: {
+        id: "local:migrate",
+        command: "skipped",
+        exitCode: 0,
+        skipped: true,
+        reason: "This remote-API app uses the hosted microservices.sh API and owns no local D1 migrations."
+      }
+    };
+  }
+  return runCommand("local:migrate", "wrangler", localD1MigrationArgs, flags);
 }
 
 function readCliConfig() {
@@ -2132,26 +2159,24 @@ async function authStatus(flags) {
 
 function deploymentInput(flags, environment = "preview") {
   const config = readJson("microservices.config.json", {});
-  const wrangler = readJsonc("wrangler.jsonc", {});
+  const wrangler = readJsonc(wranglerConfigPath, {});
   const appSlug =
     config.appSlug ??
     config.appName ??
     wrangler?.vars?.MICROSERVICES_APP_SLUG ??
     wrangler?.name ??
     manifest.id ??
-    "client-portal-sveltekit";
-  const moduleIds = Array.isArray(manifest.modules?.required)
-    ? manifest.modules.required
-    : (lock.modules ?? []).map((module) => module.id).filter(Boolean);
+    appId;
+  const moduleIds = deploymentModuleIds();
 
   return {
-    templateId: manifest.id ?? config.template ?? "client-portal-sveltekit",
+    templateId: manifest.id ?? config.template ?? appId,
     modules: moduleIds,
     config: {
       ...config,
       appName: appSlug,
       appSlug,
-      template: config.template ?? manifest.id ?? "client-portal-sveltekit"
+      template: config.template ?? manifest.id ?? appId
     },
     environment,
     projectId: flags.projectId ?? undefined,
@@ -2159,6 +2184,18 @@ function deploymentInput(flags, environment = "preview") {
     target: deploymentTarget(flags),
     actor: flags.actor ?? "agent"
   };
+}
+
+function deploymentModuleIds() {
+  if (Array.isArray(deploymentProfile.modules)) {
+    return deploymentProfile.modules.map((id) => cleanString(id)).filter(Boolean);
+  }
+
+  if (Array.isArray(manifest.modules?.required)) {
+    return manifest.modules.required.map((id) => cleanString(id)).filter(Boolean);
+  }
+
+  return (lock.modules ?? []).map((module) => cleanString(module.id)).filter(Boolean);
 }
 
 function safeArtifactPath(path) {
@@ -2259,20 +2296,22 @@ function buildDeployArtifact(flags) {
 
   for (const path of [
     "package.json",
-    "wrangler.jsonc",
+    wranglerConfigPath,
     "microservices.config.json",
     "microservices.lock.json",
     "microservices.template.json"
   ]) {
     collectArtifactFile(process.cwd(), path, files);
   }
-  collectArtifactDirectory(process.cwd(), "migrations", files);
+  if (localRequiresD1) {
+    collectArtifactDirectory(process.cwd(), "migrations", files);
+  }
   collectArtifactFile(process.cwd(), `${deployBundleOutput}/_worker.js`, files);
   collectArtifactDirectory(process.cwd(), buildOutput, files);
 
   const required = [
     "package.json",
-    "wrangler.jsonc",
+    wranglerConfigPath,
     `${deployBundleOutput}/_worker.js`,
     `${buildOutput}/_worker.js`
   ];
@@ -2288,18 +2327,22 @@ function buildDeployArtifact(flags) {
 
   const checksum = artifactChecksum(files);
   const byteCount = files.reduce((total, file) => total + Buffer.byteLength(file.contents, "utf8"), 0);
+  const migrationNextStep = remoteApiApp
+    ? "No app-owned D1 migrations are packaged; this app reads and mutates through the hosted API."
+    : "Apply managed D1 migrations through microservices deploy migrate --input deployment.json.";
+
   return {
     ok: true,
     data: {
       ...input,
       artifact: {
-        source: "client-portal-sveltekit-local-build",
+        source: `${appId}-local-build`,
         schemaVersion: "2026-06-14",
         composition: {
           compositionId: checksum,
           template: {
             id: input.templateId,
-            name: "Client Portal SvelteKit"
+            name: appDisplayName
           },
           modules: input.modules.map((id) => ({ id })),
           config: input.config
@@ -2317,7 +2360,7 @@ function buildDeployArtifact(flags) {
         },
         nextSteps: [
           "Provision managed resources through microservices deploy provision --input deployment.json.",
-          "Apply managed D1 migrations through microservices deploy migrate --input deployment.json.",
+          migrationNextStep,
           "Check hosted upload readiness through microservices deploy upload-plan --input deployment.json.",
           "Use microservices deploy cleanup --input deployment.json when a disposable preview is no longer needed."
         ]
@@ -2411,7 +2454,7 @@ function deployPreviewPlan(flags) {
       notDoneLocally: [
         "no local Cloudflare resource creation",
         "no local Wrangler login",
-        "no local remote D1 migration",
+        remoteApiApp ? "no app-owned D1 migration" : "no local remote D1 migration",
         "no local Worker upload"
       ],
       nextSteps: [
@@ -2420,7 +2463,9 @@ function deployPreviewPlan(flags) {
         "For BYO Cloudflare CI, pass --target cloudflare --cloudflare-auth api-token --cloudflare-account-id <id> and provide MICROSERVICES_API_KEY plus CLOUDFLARE_API_TOKEN on deploy commands.",
         "Run microservices deploy preview --confirm deploy --output deployment.json.",
         "Run microservices deploy provision --input deployment.json --confirm provision.",
-        "Run microservices deploy migrate --input deployment.json --confirm migrate.",
+        remoteApiApp
+          ? "Skip deploy migrate; this app owns no app-local D1 migrations."
+          : "Run microservices deploy migrate --input deployment.json --confirm migrate.",
         "Run microservices deploy upload-plan --input deployment.json to see API upload readiness."
       ]
     },
@@ -2452,7 +2497,7 @@ async function deployPreview(flags) {
     const bundle = runCommand(
       "deploy:bundle",
       "wrangler",
-      ["deploy", "--dry-run", "--outdir", ".microservices/deploy-bundle"],
+      ["deploy", "--config", wranglerConfigPath, "--dry-run", "--outdir", ".microservices/deploy-bundle"],
       flags
     );
     if (!bundle.ok) return bundle;
@@ -2541,14 +2586,19 @@ function deployProvisionPlan(deploymentId, flags) {
       deploymentId: deploymentId ?? null,
       endpoint: deploymentId ? `POST /deployments/${deploymentId}/provision` : "POST /deployments/<deployment-id>/provision",
       confirmationRequired: "provision",
-      sideEffects: [
-        "ask the control-plane API to create or reuse deployment D1/KV resources",
-        "store resource ids on the deployment resource records"
-      ],
+      sideEffects: remoteApiApp
+        ? [
+            "ask the control-plane API to create or reuse deployment records and route/resource metadata",
+            "store managed deployment resource ids when the API returns resources for this app"
+          ]
+        : [
+            "ask the control-plane API to create or reuse deployment D1/KV resources",
+            "store resource ids on the deployment resource records"
+          ],
       notDoneLocally: [
         "no local wrangler d1 create",
         "no local wrangler kv namespace create",
-        "no local wrangler.jsonc mutation"
+        `no local ${wranglerConfigPath} mutation`
       ],
       nextSteps: deploymentId
         ? [`Run microservices deploy provision ${deploymentId} --confirm provision.`]
@@ -2591,6 +2641,22 @@ async function deployProvision(deploymentId, flags) {
 }
 
 function deployMigratePlan(deploymentId, flags) {
+  if (remoteApiApp) {
+    return {
+      ok: true,
+      data: {
+        status: "skipped",
+        apiUrl: resolvedApiSettings(flags).apiUrl,
+        deploymentId: deploymentId ?? null,
+        action: "deploy-migrate",
+        reason: "This remote-API app owns no app-local D1 migrations; platform data lives behind the hosted API.",
+        nextSteps: deploymentId
+          ? [`Run microservices deploy upload-plan ${deploymentId}.`]
+          : ["Run microservices deploy preview --confirm deploy first, then inspect upload readiness."]
+      }
+    };
+  }
+
   return {
     ok: true,
     data: {
@@ -2623,6 +2689,7 @@ async function deployMigrate(deploymentId, flags) {
   deploymentId = resolved.data;
 
   if (flags.plan) return deployMigratePlan(deploymentId, flags);
+  if (remoteApiApp) return deployMigratePlan(deploymentId, { ...flags, plan: true });
   if (!deploymentId) {
     return fail(
       "DEPLOYMENT_ID_REQUIRED",
@@ -3388,7 +3455,7 @@ ${latestLogs.length ? latestLogs.map((log) => `- ${log.level.toUpperCase()} ${lo
 }
 
 function usage() {
-  return `client-portal-sveltekit microservices commands:
+  return `${appId} microservices commands:
   microservices modules list                     # list installed modules
   microservices add <id[@version]>               # vendor a module into this app
   microservices docs <id>                        # show a module's agent docs
@@ -3396,7 +3463,7 @@ function usage() {
   microservices upgrade <id[@version]> [--to x] [--plan]  # upgrade or downgrade a module
   microservices check                            # verify the app against its contract
   microservices local dev [--host <h>] [--port <p>]   # run the app locally
-  microservices local setup                      # install deps + init local D1
+  microservices local setup                      # verify local readiness
   microservices auth login                       # authenticate the CLI
   microservices deploy run [--plan] [--confirm deploy]   # build + managed deploy to live
   microservices deploy inspect [deployment-id]   # status, resources, logs, and errors
@@ -3407,7 +3474,7 @@ function usage() {
 }
 
 function usageAll() {
-  return `client-portal-sveltekit microservices commands (full):
+  return `${appId} microservices commands (full):
   Global flags: [--json] [--api-url <url>] [--api-key <key>] [--input deployment.json] [--deployment-id <id>] [--output result.json]
   Deploy target flags: [--target managed|cloudflare] [--cloudflare-config '<json>']
     BYO-Cloudflare config fields (or individual --cloudflare-* flags):
@@ -3420,9 +3487,9 @@ function usageAll() {
   microservices check [--json]
   microservices local setup [--json]
   microservices local verify [--json]
-  microservices local migrate [--json]
-  microservices local dev [--host 127.0.0.1] [--port 5174]
-  microservices local smoke [--url http://127.0.0.1:5174] [--json]
+  microservices local migrate [--json]${remoteApiApp ? "  # skipped for remote-API apps" : ""}
+  microservices local dev [--host ${localDevHost}] [--port ${localDevPort}]
+  microservices local smoke [--url http://${localDevHost}:${localDevPort}] [--json]
   microservices auth login [--api-url https://api.microservices.sh] [--json]
   microservices auth login --api-key <key> [--api-url https://api.microservices.sh] [--json]
   microservices auth status [--json]
@@ -3431,7 +3498,7 @@ function usageAll() {
   microservices deploy doctor [deployment-id] [--json]
   microservices deploy preview [--plan] [--confirm deploy] [--name <name>] [--project-id <id>] [--ci] [--wait] [--timeout 10m] [--output deployment.json] [--json]
   microservices deploy provision [deployment-id] [--input deployment.json] [--plan] --confirm provision [--json]
-  microservices deploy migrate [deployment-id] [--input deployment.json] [--plan] --confirm migrate [--json]
+  microservices deploy migrate [deployment-id] [--input deployment.json] [--plan] --confirm migrate [--json]${remoteApiApp ? "  # skipped for remote-API apps" : ""}
   microservices deploy upload-plan [deployment-id] [--input deployment.json] [--json]
   microservices deploy upload [deployment-id] [--input deployment.json] [--plan] --confirm upload [--json]
   microservices deploy inspect [deployment-id] [--input deployment.json] [--search "..."] [--level info|warn|error] [--since 24h] [--limit 5] [--json]
@@ -3586,7 +3653,7 @@ async function main() {
   } else if (resource === "local" && action === "verify") {
     emit(localSetup(flags), (data) => `Local verification ${data.status}.\n`, flags);
   } else if (resource === "local" && action === "migrate") {
-    emit(runCommand("local:migrate", "wrangler", ["d1", "migrations", "apply", "DB", "--local"], flags), (data) => `Local migration exited ${data.exitCode}.\n`, flags);
+    emit(localMigrate(flags), (data) => `Local migration ${data.skipped ? "skipped" : `exited ${data.exitCode}`}.\n`, flags);
   } else if (resource === "local" && action === "dev") {
     const startedAt = Date.now();
     await track("workspace_start_attempted", workspaceTelemetryProps(flags, { kind: "local_dev" }));
@@ -3599,7 +3666,7 @@ async function main() {
     );
     emit(response, (data) => `Local dev exited ${data.exitCode}.\n`, flags);
   } else if (resource === "local" && action === "smoke") {
-    const url = flags.url || value || "http://127.0.0.1:5174";
+    const url = flags.url || value || `http://${localDevHost}:${localDevPort}`;
     const startedAt = Date.now();
     const response = runCommand("local:smoke", "node", ["scripts/smoke-http.mjs", url], flags);
     await trackResponse(
