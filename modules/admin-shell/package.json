@@ -25,6 +25,7 @@
   "scripts": {
     "build": "tsc --noEmit",
     "build:dist": "node scripts/build-dist.mjs",
+    "pack:dist": "node scripts/pack-dist.mjs",
     "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path .",
     "test": "vitest run"
   },
