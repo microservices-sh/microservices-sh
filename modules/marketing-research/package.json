@@ -6,7 +6,8 @@
   "description": "Composable, cited marketing research: pull external signals (community/competitive/keyword) through swappable ports and produce cite-or-refuse marketing briefs.",
   "exports": {
     ".": "./src/index.ts",
-    "./adapters/memory": "./src/index.ts"
+    "./adapters/memory": "./src/index.ts",
+    "./adapters/last30days": "./src/adapters/last30days-listen.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",
