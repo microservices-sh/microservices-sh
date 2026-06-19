@@ -936,3 +936,20 @@
 | `node packages/workspace-tools/src/index.js registry build --out /tmp/ms-registry-surface-check --json` | Registry build includes module surfaces | Passed; 23 modules / 7 templates | Pass |
 | `node packages/workspace-tools/src/index.js discover --path templates/dot-ai-os --json` | Discovery exposes installed module surfaces | Passed; output includes `surfaces`, `referenceUi`, and `skillFiles` for installed modules | Pass |
 | `node packages/workspace-tools/src/index.js check module modules/auth --json` | Single module check validates surface paths | Passed | Pass |
+
+## Session: 2026-06-19 (Corporate OS create-app onboarding)
+### Phase 37 kickoff
+- **Status:** complete
+- Goal: make `dot-ai-os` easier to create as a company-specific Corporate OS with durable intake context.
+- Added `--os` / `--corporate-os` mode to default create-app to `dot-ai-os`.
+- Added `--os-intake` JSON and interactive intake prompts for company profile, owner, operating loop, first workflow, research sources, recurring decisions, approval rules, and pilot metric.
+- Generated `microservices.os.json` plus `docs/company-model.md`, `docs/operating-map.md`, `docs/research-sources.md`, `docs/decision-briefs.md`, and `docs/pilot-plan.md`.
+- Updated README guidance and create-package smoke coverage for Corporate OS generation.
+- Rebuilt the create package bundle; generated template copies are ignored by Git and not committed directly.
+
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm --dir packages/create-microservices-app build` | Create package bundle and syntax check pass | Passed | Pass |
+| `node --check packages/create-microservices-app/src/index.js` | Source syntax passes | Passed | Pass |
+| `pnpm --filter create-microservices-app test` | Create package unit tests pass | 15/15 tests passed | Pass |
+| `pnpm --filter create-microservices-app smoke` | Packed create package generates standard and Corporate OS apps | Passed | Pass |

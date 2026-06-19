@@ -146,6 +146,7 @@
 - The central module catalog now needs to carry agentic surfaces, not only routes and dependencies, so CLI/SDK/MCP docs can tell agents which tools are read-only and which require approval.
 - `operator-work` should stay `draft` while the local D1/memory use cases mature, but it is still useful in the contract catalog so generated DOT AI OS apps have an inspectable operator-work tool map.
 - Workspace registry and discovery need to expose module `surfaces`, `referenceUi`, and `skillFiles` so agents can plan admin UI wiring, visitor surfaces, and approval-gated tool use without scraping individual module folders.
+- Create-app needs a first-class Corporate OS onboarding flag so users can create `dot-ai-os` as a company-specific operating system, not just as another generic template. The intake should write durable company, workflow, research, decision, and pilot docs that agents can read before making changes.
 
 ## Agentic Admin And Visitor Template Findings
 - `saas-starter-sveltekit` was marked ready while still using direct demo sessions in `/login`; production readiness requires identity-owned sessions and passwordless email-code verification.

@@ -99,6 +99,30 @@ try {
   // No --template → must resolve to the flagship default (booking-sveltekit).
   run("node", [createEntrypoint, "default-smoke", "--dir", tempRoot, "--no-install", "--json"], { stdio: "inherit" });
   run("node", [createEntrypoint, "plan-only-smoke", "--dir", tempRoot, "--template", "booking-business", "--no-install", "--json", "--modules", "payment,email"], { stdio: "inherit" });
+  run("node", [
+    createEntrypoint,
+    "corporate-os-smoke",
+    "--dir",
+    tempRoot,
+    "--os",
+    "--os-intake",
+    JSON.stringify({
+      companyName: "Acme Advisory",
+      website: "https://acme.example",
+      industry: "professional services",
+      teamSize: "35",
+      ownerName: "Ops Lead",
+      ownerEmail: "ops@example.com",
+      operatingLoop: "research-advisory",
+      firstWorkflow: "Turn client intake into a sourced recommendation and action log.",
+      knowledgeSources: ["Client briefs", "CRM", "Market research"],
+      recurringDecisions: ["Client strategy recommendation", "Weekly delivery risk"],
+      successMetric: "Cut client research turnaround from 2 days to 4 hours."
+    }),
+    "--no-install",
+    "--no-git",
+    "--json"
+  ], { stdio: "inherit" });
   run("node", [createEntrypoint, "--interactive", "--dir", tempRoot, "--no-install", "--json"], {
     env: {
       ...process.env,
@@ -114,6 +138,31 @@ try {
   if (!existsSync(join(guidedRoot, "package.json"))) {
     throw new Error(`Interactive create command did not generate the expected app at ${guidedRoot}.`);
   }
+
+  const corporateOsRoot = join(tempRoot, "corporate-os-smoke");
+  if (!existsSync(join(corporateOsRoot, "microservices.os.json"))) {
+    throw new Error("Corporate OS create command did not write microservices.os.json.");
+  }
+  for (const path of [
+    "docs/company-model.md",
+    "docs/operating-map.md",
+    "docs/research-sources.md",
+    "docs/decision-briefs.md",
+    "docs/pilot-plan.md",
+  ]) {
+    if (!existsSync(join(corporateOsRoot, path))) {
+      throw new Error(`Corporate OS create command did not write ${path}.`);
+    }
+  }
+  const corporateOsIntake = JSON.parse(readFileSync(join(corporateOsRoot, "microservices.os.json"), "utf8"));
+  assert.strictEqual(corporateOsIntake.mode, "corporate-os");
+  assert.strictEqual(corporateOsIntake.company.name, "Acme Advisory");
+  assert.strictEqual(corporateOsIntake.operatingLoop, "research-advisory");
+  const corporateOsConfig = JSON.parse(readFileSync(join(corporateOsRoot, "microservices.config.json"), "utf8"));
+  assert.strictEqual(corporateOsConfig.template, "dot-ai-os");
+  assert.strictEqual(corporateOsConfig.business.name, "Acme Advisory");
+  assert.strictEqual(corporateOsConfig.os.mode, "corporate-os");
+  assert.strictEqual(corporateOsConfig.os.firstWorkflow, "Turn client intake into a sourced recommendation and action log.");
 
   const defaultRoot = join(tempRoot, "default-smoke");
   if (!existsSync(join(defaultRoot, "svelte.config.js"))) {

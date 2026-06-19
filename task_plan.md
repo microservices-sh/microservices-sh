@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 36
+Phase 37
 
 ## Phases
 
@@ -264,6 +264,14 @@ Phase 36
 - [x] Teach workspace-tools to normalize surfaces, validate local surface files, include surfaces in registry output, and expose them in discovery output.
 - [x] Extend tests for surface normalization and checked-in module surface coverage.
 - [x] Validate workspace-tools, spec checks, registry build, and discovery output.
+- **Status:** complete
+
+### Phase 37: Corporate OS Create-App Onboarding
+- [x] Add `--os` / `--corporate-os` mode that defaults create-app to the `dot-ai-os` template.
+- [x] Add `--os-intake` and interactive Corporate OS intake prompts for company model, operating loop, workflow, research sources, decisions, and pilot metric.
+- [x] Generate `microservices.os.json` plus company model, operating map, research source, decision brief, and pilot plan docs.
+- [x] Update create-package README and smoke coverage for Corporate OS generation.
+- [x] Validate create-package build, unit tests, and smoke test.
 - **Status:** complete
 
 ### Phase 25: Agentic Cloudflare Migration Prompt Orchestrator
