@@ -253,6 +253,44 @@ export async function draftDecisionBrief(
   return { ok: true as const, status: 201 as const, data: { brief } };
 }
 
+// Edge: research -> advise. A research brief grounds a decision — its answer
+// becomes the decision context, its citations become the citeable sources.
+// Structurally typed so `decision` stays independent of `@microservices-sh/research`
+// (the composer passes a real ResearchBrief, which is shape-compatible).
+export type ResearchBriefLike = {
+  id: string;
+  question: string;
+  answer: string;
+  citations: { sourceFile: string }[];
+};
+
+export async function draftDecisionFromResearch(
+  input: { research: ResearchBriefLike; question?: string },
+  deps: {
+    store: DecisionStore;
+    proposer: DecisionProposer;
+    now: () => number;
+    actor: Actor;
+    audit?: AuditSink;
+  }
+) {
+  const { research } = input;
+  const sources: DecisionSourceRef[] = research.citations.map((citation, index) => ({
+    id: `rs_${index}`,
+    title: citation.sourceFile,
+    uri: `research://brief/${research.id}#${citation.sourceFile}`
+  }));
+
+  return draftDecisionBrief(
+    {
+      question: input.question ?? `Decision grounded in research: ${research.question}`,
+      context: research.answer,
+      sources
+    },
+    deps
+  );
+}
+
 export const recordInputSchema = z.object({
   briefId: z.string().min(1),
   choice: z.enum(["accept", "reject", "defer"]),

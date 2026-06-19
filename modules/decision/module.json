@@ -27,6 +27,7 @@
     "rpc": {
       "exposes": [
         { "method": "draftDecisionBrief", "scope": "decision.write", "public": false },
+        { "method": "draftDecisionFromResearch", "scope": "decision.write", "public": false },
         { "method": "recordDecision", "scope": "decision.write", "public": false },
         { "method": "listDecisions", "scope": "decision.read", "public": false }
       ],
@@ -54,8 +55,8 @@
     "visitor": { "applicable": false },
     "agentic": {
       "applicable": true,
-      "tools": ["decision.draftDecisionBrief", "decision.recordDecision", "decision.listDecisions"],
-      "approvalRequiredFor": ["decision.draftDecisionBrief", "decision.recordDecision"]
+      "tools": ["decision.draftDecisionBrief", "decision.draftDecisionFromResearch", "decision.recordDecision", "decision.listDecisions"],
+      "approvalRequiredFor": ["decision.draftDecisionBrief", "decision.draftDecisionFromResearch", "decision.recordDecision"]
     }
   },
   "approval": {
