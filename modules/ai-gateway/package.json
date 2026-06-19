@@ -18,7 +18,8 @@
     "./service": "./src/service/index.ts",
     "./ports": "./src/ports/index.ts",
     "./adapters/workers-ai": "./src/adapters/workers-ai.ts",
-    "./adapters/anthropic": "./src/adapters/anthropic.ts"
+    "./adapters/anthropic": "./src/adapters/anthropic.ts",
+    "./adapters/openrouter": "./src/adapters/openrouter.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",
