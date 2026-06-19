@@ -36,6 +36,7 @@
     "@microservices-sh/gateway": "workspace:*",
     "@microservices-sh/identity": "workspace:*",
     "@microservices-sh/image-generation": "workspace:*",
+    "@microservices-sh/marketing-research": "workspace:*",
     "@microservices-sh/org-team-rbac": "workspace:*",
     "@sveltejs/adapter-cloudflare": "^7.2.4",
     "@sveltejs/kit": "^2.9.0",

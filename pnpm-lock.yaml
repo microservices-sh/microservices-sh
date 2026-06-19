@@ -516,6 +516,22 @@ importers:
 
   packages/module-contract: {}
 
+  packages/research-agent-runtime:
+    dependencies:
+      '@microservices-sh/ai-gateway':
+        specifier: workspace:*
+        version: link:../../modules/ai-gateway
+      '@microservices-sh/decision':
+        specifier: workspace:*
+        version: link:../../modules/decision
+      '@microservices-sh/research':
+        specifier: workspace:*
+        version: link:../../modules/research
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/sdk-internal:
     dependencies:
       '@microservices-sh/module-contract':
@@ -817,6 +833,9 @@ importers:
       '@microservices-sh/support-ticket':
         specifier: workspace:*
         version: link:../../modules/support-ticket
+      '@microservices-sh/webhook-delivery':
+        specifier: workspace:*
+        version: link:../../modules/webhook-delivery
       '@sveltejs/adapter-cloudflare':
         specifier: ^7.2.4
         version: 7.2.8(@sveltejs/kit@2.65.1(@sveltejs/vite-plugin-svelte@4.0.4(svelte@5.56.3)(vite@5.4.21(@types/node@25.9.3)(lightningcss@1.32.0)))(svelte@5.56.3)(typescript@5.9.3)(vite@5.4.21(@types/node@25.9.3)(lightningcss@1.32.0)))(wrangler@4.100.0(@cloudflare/workers-types@4.20260613.1))
@@ -881,6 +900,9 @@ importers:
       '@microservices-sh/image-generation':
         specifier: workspace:*
         version: link:../../modules/image-generation
+      '@microservices-sh/marketing-research':
+        specifier: workspace:*
+        version: link:../../modules/marketing-research
       '@microservices-sh/org-team-rbac':
         specifier: workspace:*
         version: link:../../modules/org-team-rbac
