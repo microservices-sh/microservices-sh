@@ -34,7 +34,7 @@ We then migrated **`workspaces` and `tickets` list reads** the same way (commit 
 - **has-many on `getRecord`:** workspaces *detail* returns child collections (members, apiKeys, deployments) the single-record `getRecord` can't produce → kept bespoke. admin-shell needs a related-collections capability.
 - **search across joined columns:** the old workspaces search matched owner email; admin-shell's `searchable` only covers real columns on the table → name/slug search preserved, owner-email search dropped.
 - **page-size parity:** the bespoke list capped at 200; admin-shell defaults to 100 (closeable with a `maxPageSize` config — minor, internal).
-- **no shipped types:** the vendored tarball has no `.d.ts`, so consumers get TS7016 — admin-shell's build should emit declarations.
+- ~~**no shipped types:** the vendored tarball has no `.d.ts`, so consumers get TS7016~~ → **FIXED** (monorepo `f5fa742`, api `72a8db8`): the build now emits self-contained bundled declarations (connection-contract + zod inlined) via `dts-bundle-generator`; api TS7016 went 3→0. The highest-leverage gap — benefits every external consumer.
 
 ## What we deliberately did NOT change (and why)
 Honesty matters more than a bigger claim:
