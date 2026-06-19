@@ -26,5 +26,15 @@ export async function getRecord(
   if (!record) {
     return err(404, { code: "admin-shell.RECORD_NOT_FOUND", message: "Record not found." }, meta);
   }
+
+  // Attach declared has-many child collections (detail reads only). Each relation
+  // is fetched with one query keyed on the parent's primary key; identifiers and
+  // any extra WHERE come from the trusted registry definition, parentId is bound.
+  if (def.relations?.length) {
+    for (const relation of def.relations) {
+      record[relation.name] = await deps.gateway.listRelated(relation, id);
+    }
+  }
+
   return ok(200, { record }, meta);
 }

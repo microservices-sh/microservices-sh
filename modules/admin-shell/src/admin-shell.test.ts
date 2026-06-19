@@ -255,3 +255,124 @@ describe("admin-shell: searchable computed columns", () => {
     expect(res.data.rows.length).toBe(0);
   });
 });
+
+// A resource with has-many child collections attached on getRecord. Mirrors the
+// shape of api's workspaces detail: members (FK + removed_at filter + a joined
+// email via a relation computed column), api keys (DESC order), and deployments
+// (DESC order + LIMIT). The memory gateway models the relation `where` via a JS
+// predicate and the joined email via a relation compute fn.
+const orgDef: ResourceDefinition = {
+  name: "org",
+  table: "orgs",
+  primaryKey: "id",
+  columns: [
+    { name: "id", type: "string" },
+    { name: "name", type: "string" }
+  ],
+  relations: [
+    {
+      name: "members",
+      table: "org_members",
+      foreignKey: "org_id",
+      columns: ["user_id", "role", "created_at"],
+      computed: [{ name: "email", expression: "(SELECT u.email FROM users u WHERE u.id = org_members.user_id LIMIT 1)" }],
+      where: "removed_at IS NULL",
+      orderBy: { column: "created_at", direction: "asc" }
+    },
+    {
+      name: "keys",
+      table: "org_keys",
+      foreignKey: "org_id",
+      columns: ["id", "name", "created_at"],
+      orderBy: { column: "created_at", direction: "desc" }
+    },
+    {
+      name: "deployments",
+      table: "org_deployments",
+      foreignKey: "org_id",
+      columns: ["id", "status", "created_at"],
+      orderBy: { column: "created_at", direction: "desc" },
+      limit: 2
+    }
+  ],
+  permissions: { read: "org.read", write: "org.write" }
+};
+const orgRegistry = createResourceRegistry([orgDef]);
+const orgReader: AdminActor = { id: "u-or", permissions: ["org.read"] };
+
+function orgGateway() {
+  const users = [
+    { id: "u1", email: "one@x.com" },
+    { id: "u2", email: "two@x.com" }
+  ];
+  return createMemoryTableGateway(
+    {
+      orgs: [{ id: "org1", name: "Org One" }, { id: "org2", name: "Org Two" }],
+      org_members: [
+        { org_id: "org1", user_id: "u1", role: "owner", created_at: 100, removed_at: null },
+        { org_id: "org1", user_id: "u2", role: "member", created_at: 200, removed_at: null },
+        { org_id: "org1", user_id: "u3", role: "member", created_at: 300, removed_at: 999 }, // removed → excluded
+        { org_id: "org2", user_id: "u1", role: "owner", created_at: 100, removed_at: null }
+      ],
+      org_keys: [
+        { id: "k1", org_id: "org1", name: "old", created_at: 100 },
+        { id: "k2", org_id: "org1", name: "new", created_at: 200 }
+      ],
+      org_deployments: [
+        { id: "d1", org_id: "org1", status: "live", created_at: 100 },
+        { id: "d2", org_id: "org1", status: "live", created_at: 200 },
+        { id: "d3", org_id: "org1", status: "live", created_at: 300 }
+      ]
+    },
+    { "members.email": (row) => users.find((u) => u.id === row.user_id)?.email ?? null },
+    { members: (row) => row.removed_at === null || row.removed_at === undefined }
+  );
+}
+
+describe("admin-shell: has-many relations on getRecord", () => {
+  it("attaches child collections to the detail record", async () => {
+    const res = await getRecord(orgRegistry, "org", "org1", { gateway: orgGateway(), actor: orgReader });
+    if (!res.ok) throw new Error("expected get to succeed");
+    const rec = res.data.record;
+    expect(rec.id).toBe("org1");
+    expect(Array.isArray(rec.members)).toBe(true);
+    expect(Array.isArray(rec.keys)).toBe(true);
+    expect(Array.isArray(rec.deployments)).toBe(true);
+  });
+
+  it("applies the relation where filter and asc ordering, with the joined computed column", async () => {
+    const res = await getRecord(orgRegistry, "org", "org1", { gateway: orgGateway(), actor: orgReader });
+    if (!res.ok) throw new Error("expected get to succeed");
+    const members = res.data.record.members as Array<Record<string, unknown>>;
+    // u3 removed → excluded; remaining ordered by created_at ASC.
+    expect(members.map((m) => m.user_id)).toEqual(["u1", "u2"]);
+    expect(members[0].email).toBe("one@x.com");
+    expect(members[1].email).toBe("two@x.com");
+    // Only the declared columns + computed are projected (no removed_at leaked).
+    expect(members[0]).not.toHaveProperty("removed_at");
+    expect(Object.keys(members[0]).sort()).toEqual(["created_at", "email", "role", "user_id"]);
+  });
+
+  it("applies desc ordering and the row limit", async () => {
+    const res = await getRecord(orgRegistry, "org", "org1", { gateway: orgGateway(), actor: orgReader });
+    if (!res.ok) throw new Error("expected get to succeed");
+    const keys = res.data.record.keys as Array<Record<string, unknown>>;
+    expect(keys.map((k) => k.id)).toEqual(["k2", "k1"]); // DESC by created_at
+    const deployments = res.data.record.deployments as Array<Record<string, unknown>>;
+    expect(deployments.map((d) => d.id)).toEqual(["d3", "d2"]); // DESC + LIMIT 2
+  });
+
+  it("scopes children to the parent (no cross-parent leakage)", async () => {
+    const res = await getRecord(orgRegistry, "org", "org2", { gateway: orgGateway(), actor: orgReader });
+    if (!res.ok) throw new Error("expected get to succeed");
+    const members = res.data.record.members as Array<Record<string, unknown>>;
+    expect(members.map((m) => m.user_id)).toEqual(["u1"]);
+    expect((res.data.record.keys as unknown[]).length).toBe(0);
+  });
+
+  it("a resource without relations attaches nothing", async () => {
+    const res = await getRecord(teamRegistry, "team", "t1", { gateway: teamGateway(), actor: teamReader });
+    if (!res.ok) throw new Error("expected get to succeed");
+    expect(res.data.record).not.toHaveProperty("members");
+  });
+});

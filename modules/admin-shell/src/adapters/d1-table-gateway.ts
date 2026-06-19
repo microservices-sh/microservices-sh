@@ -1,5 +1,5 @@
 import type { TableGateway } from "../ports";
-import type { AdminRecord, ListQuery, ResourceDefinition } from "../types";
+import type { AdminRecord, ListQuery, RelationDef, ResourceDefinition } from "../types";
 
 // Identifiers come from the ResourceDefinition (trusted registry), never from the
 // request. We still validate their shape and quote them, and bind every value —
@@ -86,6 +86,29 @@ export function createD1TableGateway(db: D1Database): TableGateway {
         .bind(id)
         .first<AdminRecord>();
       return row ?? null;
+    },
+
+    async listRelated(relation: RelationDef, parentId) {
+      // Projection: real (quoted) columns + any trusted computed expressions
+      // (aliased AS the validated/quoted alias) — same rules as projection().
+      const real = relation.columns.map(q);
+      const computed = (relation.computed ?? []).map((c) => `(${c.expression}) AS ${q(c.name)}`);
+      const cols = [...real, ...computed].join(", ");
+
+      // WHERE: FK match (bound parentId) ANDed with the optional trusted `where`.
+      let whereSql = `${q(relation.foreignKey)} = ?`;
+      if (relation.where) whereSql += ` AND (${relation.where})`;
+
+      const order = relation.orderBy
+        ? ` ORDER BY ${q(relation.orderBy.column)} ${relation.orderBy.direction === "desc" ? "DESC" : "ASC"}`
+        : "";
+      const limit = relation.limit !== undefined ? ` LIMIT ${Number(relation.limit) | 0}` : "";
+
+      const result = await db
+        .prepare(`SELECT ${cols} FROM ${q(relation.table)} WHERE ${whereSql}${order}${limit}`)
+        .bind(parentId)
+        .all<AdminRecord>();
+      return result.results ?? [];
     },
 
     async insert(def, id, values) {

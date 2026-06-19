@@ -36,6 +36,42 @@ export interface SoftDeleteConfig {
   deletedValue: string;
 }
 
+// A has-many child collection attached to a record on `getRecord`. For a parent
+// row, the gateway runs:
+//   SELECT <columns [+ computed]> FROM <table>
+//    WHERE <foreignKey> = <parentId> [AND (<where>)] [ORDER BY <orderBy>]
+// and attaches the rows as record[name]. SECURITY: `table`, `foreignKey`,
+// `columns`, `orderBy.column`, and any computed alias are identifier-validated +
+// quoted; `where` and computed `expression` are TRUSTED registry SQL (developer-
+// authored, never request input), mirroring ResourceDefinition.computed. The
+// parentId is always a bound param.
+export interface RelationComputedDef {
+  // Alias for the projected value (identifier-validated + quoted).
+  name: string;
+  // Trusted SQL expression yielding the value, e.g. a correlated subquery.
+  expression: string;
+}
+
+export interface RelationDef {
+  // Key attached to the parent record (record[name] = rows[]).
+  name: string;
+  // Child table and the column that references the parent's primary key.
+  table: string;
+  foreignKey: string;
+  // Real child columns to project (identifier-validated + quoted).
+  columns: string[];
+  // Optional read-only computed columns (trusted SQL expression, like the
+  // resource-level `computed`) — e.g. a related row joined in via subquery.
+  computed?: RelationComputedDef[];
+  // Optional extra TRUSTED filter SQL, ANDed with the foreign-key match
+  // (e.g. "removed_at IS NULL"). Comes ONLY from the registry, never input.
+  where?: string;
+  // Optional ordering; the column is identifier-validated + quoted.
+  orderBy?: { column: string; direction: "asc" | "desc" };
+  // Optional row cap.
+  limit?: number;
+}
+
 export interface ResourceDefinition {
   name: string;
   table: string;
@@ -43,6 +79,8 @@ export interface ResourceDefinition {
   columns: ColumnDef[];
   // Read-only computed/subquery columns projected onto every list/get row.
   computed?: ComputedColumnDef[];
+  // Has-many child collections attached on `getRecord` (detail read only).
+  relations?: RelationDef[];
   // Columns matched (LIKE) by the list search box. Each entry names a real
   // column (identifier-validated + quoted) OR a computed column (matched via LIKE
   // against its trusted SQL `expression`); the search term is always a bound param.

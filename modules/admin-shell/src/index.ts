@@ -13,7 +13,7 @@ export { updateRecord } from "./use-cases/update-record";
 export { deleteRecord } from "./use-cases/delete-record";
 export { createD1TableGateway } from "./adapters/d1-table-gateway";
 export { createMemoryTableGateway } from "./adapters/memory-table-gateway";
-export type { ComputeFns } from "./adapters/memory-table-gateway";
+export type { ComputeFns, RelationWhereFns } from "./adapters/memory-table-gateway";
 export type { ResourceRegistry } from "./registry";
 export type { TableGateway } from "./ports";
 export type {
@@ -21,6 +21,8 @@ export type {
   ColumnDef,
   ColumnType,
   ComputedColumnDef,
+  RelationDef,
+  RelationComputedDef,
   SoftDeleteConfig,
   AdminActor,
   AdminRecord,

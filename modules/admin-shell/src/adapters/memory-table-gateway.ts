@@ -1,19 +1,26 @@
 import type { TableGateway } from "../ports";
-import type { AdminRecord, ListQuery, ResourceDefinition } from "../types";
+import type { AdminRecord, ListQuery, RelationDef, ResourceDefinition } from "../types";
 
 // Computes a single read-only computed column's value for one row. The D1 gateway
 // evaluates the column's SQL `expression`; in memory we can't run SQL, so a
 // developer supplies the equivalent JS to keep unit tests faithful. Keyed by the
-// computed column's `name` (the alias).
+// computed column's `name` (the alias). Relation-level computed columns are keyed
+// "<relation.name>.<computed.name>" to avoid collisions with resource columns.
 export type ComputeFns = Record<string, (row: AdminRecord) => unknown>;
 
 // In-memory gateway for local dev and tests. Seed initial rows per table name.
 // `compute` mirrors each ResourceDefinition.computed column (by alias) so the
 // memory gateway projects the same read-only columns the D1 gateway derives in
 // SQL — letting computed-column behaviour be unit-tested without a D1 harness.
+// JS predicates mirroring each relation's trusted SQL `where`, keyed by the
+// relation's `name`. Lets the memory gateway faithfully model a relation filter
+// (e.g. "removed_at IS NULL") without evaluating SQL — same idea as ComputeFns.
+export type RelationWhereFns = Record<string, (row: AdminRecord) => boolean>;
+
 export function createMemoryTableGateway(
   seed: Record<string, AdminRecord[]> = {},
-  compute: ComputeFns = {}
+  compute: ComputeFns = {},
+  relationWhere: RelationWhereFns = {}
 ): TableGateway {
   const tables = new Map<string, Map<string, AdminRecord>>();
   for (const [table, rows] of Object.entries(seed)) {
@@ -85,6 +92,37 @@ export function createMemoryTableGateway(
     async get(def, id) {
       const row = tableOf(def).get(id);
       return row ? withComputed(def, row) : null;
+    },
+
+    async listRelated(relation: RelationDef, parentId) {
+      const table = tables.get(relation.table);
+      let rows = table ? [...table.values()] : [];
+      // FK match. The optional trusted `where` is SQL the memory adapter can't
+      // evaluate; a relation that uses `where` should supply a JS predicate via
+      // the relation's `whereFn` (see createMemoryTableGateway extra arg) — but to
+      // keep parity faithful without SQL we apply the registered predicate if any.
+      rows = rows.filter((r) => r[relation.foreignKey] === parentId);
+      const predicate = relationWhere[relation.name];
+      if (predicate) rows = rows.filter(predicate);
+
+      if (relation.orderBy) {
+        const { column, direction } = relation.orderBy;
+        rows = [...rows].sort(
+          (a, b) => String(a[column] ?? "").localeCompare(String(b[column] ?? "")) * (direction === "desc" ? -1 : 1)
+        );
+      }
+      if (relation.limit !== undefined) rows = rows.slice(0, relation.limit);
+
+      // Project the declared real columns plus any relation computed columns.
+      return rows.map((r) => {
+        const out: AdminRecord = {};
+        for (const col of relation.columns) out[col] = r[col];
+        for (const c of relation.computed ?? []) {
+          const fn = compute[`${relation.name}.${c.name}`];
+          out[c.name] = fn ? fn(r) : null;
+        }
+        return out;
+      });
     },
 
     async insert(def, id, values) {
