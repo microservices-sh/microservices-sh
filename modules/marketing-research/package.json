@@ -1,0 +1,17 @@
+{
+  "name": "@microservices-sh/marketing-research",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Composable, cited marketing research: pull external signals (community/competitive/keyword) through swappable ports and produce cite-or-refuse marketing briefs.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./adapters/memory": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path ."
+  },
+  "dependencies": { "zod": "^4.4.3" },
+  "devDependencies": { "@cloudflare/workers-types": "^4.20250109.0", "typescript": "^5.9.3" }
+}

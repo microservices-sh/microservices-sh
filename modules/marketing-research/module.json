@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "marketing-research",
+  "name": "Marketing Research",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "provider",
+  "summary": "Composable, cited marketing research: pull external demand, competitive, and community signals through swappable ports, snapshot over time, and produce cite-or-refuse marketing briefs (no fake proof). v0 covers community listening + cited synthesis.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    { "type": "d1", "binding": "DB", "tables": ["marketing_briefs", "signal_snapshots", "domain_events"] }
+  ],
+  "permissions": ["marketing.read", "marketing.run", "marketing.admin", "marketing.observe"],
+  "connections": {
+    "requires": ["org-team-rbac"],
+    "optional": ["ai-gateway", "audit-log", "jobs-workflows", "notifications-inapp", "research"],
+    "rpc": {
+      "exposes": [
+        { "method": "runResearch", "scope": "marketing.run", "public": false },
+        { "method": "getBrief", "scope": "marketing.read", "public": false }
+      ],
+      "calls": []
+    },
+    "events": {
+      "emits": ["marketing.brief_created", "marketing.signal_alert"],
+      "consumes": []
+    },
+    "hookPoints": {
+      "afterBriefCreated": { "kind": "observer", "scope": "marketing.observe" }
+    },
+    "provides": { "hooks": [] }
+  }
+}
