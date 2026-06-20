@@ -96,6 +96,7 @@ const buildTrigger = createBuildTrigger(
 );
 
 createServer(async (req, res) => {
+ try {
   if (req.url === "/health") {
     // Unauthenticated (Fly health checks) — must not leak config.
     res.writeHead(200, { "content-type": "application/json" });
@@ -145,4 +146,14 @@ createServer(async (req, res) => {
   }
   res.writeHead(404);
   res.end();
+ } catch (err) {
+  // A provider/AI error (or any handler failure) must not crash the process.
+  console.error("request failed:", err instanceof Error ? err.message : err);
+  if (!res.headersSent) {
+    res.writeHead(502, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: false, error: { code: "RUNTIME_ERROR", message: "Request failed." } }));
+  } else {
+    res.end();
+  }
+ }
 }).listen(PORT, () => console.log(`research-agent-runtime listening on :${PORT} (db=${DB_PATH}, model=${MODEL})`));
