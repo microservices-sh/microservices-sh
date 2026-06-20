@@ -23,6 +23,7 @@
     "@microservices-sh/jobs-workflows": "workspace:*",
     "@microservices-sh/marketing-research": "workspace:*",
     "@microservices-sh/notifications-inapp": "workspace:*",
+    "@microservices-sh/operator-work": "workspace:*",
     "@microservices-sh/org-team-rbac": "workspace:*",
     "@microservices-sh/payment": "workspace:*",
     "@microservices-sh/support-ticket": "workspace:*",
