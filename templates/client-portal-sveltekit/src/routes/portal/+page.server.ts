@@ -1,7 +1,7 @@
 import type { PageServerLoad } from "./$types";
 import { redirect } from "@sveltejs/kit";
-import { listInvoices } from "@microservices-sh/invoice";
-import { listFiles } from "@microservices-sh/file-media";
+import { listInvoicesScoped, authContext } from "@microservices-sh/invoice";
+import { listFilesScoped } from "@microservices-sh/file-media";
 
 export const load: PageServerLoad = async ({ locals }) => {
   const user = locals.user;
@@ -9,13 +9,13 @@ export const load: PageServerLoad = async ({ locals }) => {
     throw redirect(303, "/login");
   }
 
+  // Enforced boundary (plan 33): the tenant comes from the session (locals.tenantId).
+  // Within that tenant, customerId/ownerId narrows to the signed-in customer's own
+  // records — both come from the resolved session, never from request input.
+  const ctx = authContext({ orgId: locals.tenantId, actorId: user.id, roles: ["customer"] });
   const [invoicesResult, filesResult] = await Promise.all([
-    // Customer-scoped: a customer only ever sees invoices for their own id.
-    listInvoices(
-      { tenantId: locals.tenantId, customerId: user.customerId },
-      { invoiceStore: locals.invoiceStore }
-    ),
-    listFiles({ tenantId: locals.tenantId, ownerId: user.customerId, status: "active" }, { mediaStore: locals.mediaStore })
+    listInvoicesScoped(ctx, { customerId: user.customerId }, { invoiceStore: locals.invoiceStore }),
+    listFilesScoped(ctx, { ownerId: user.customerId, status: "active" }, { mediaStore: locals.mediaStore })
   ]);
 
   const invoices = invoicesResult.ok ? invoicesResult.data.invoices : [];

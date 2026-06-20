@@ -1,6 +1,6 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
-import { listFiles, createUploadTicket, completeUpload } from "@microservices-sh/file-media";
+import { listFilesScoped, createUploadTicketScoped, completeUploadScoped, authContext } from "@microservices-sh/file-media";
 
 export const load: PageServerLoad = async ({ locals }) => {
   const user = locals.user;
@@ -8,8 +8,12 @@ export const load: PageServerLoad = async ({ locals }) => {
     throw redirect(303, "/login");
   }
 
-  const result = await listFiles(
-    { tenantId: locals.tenantId, ownerId: user.customerId, status: "active" },
+  // Enforced boundary (plan 33): tenant from the session; ownerId narrows to the
+  // signed-in customer's own files within that tenant.
+  const ctx = authContext({ orgId: locals.tenantId, actorId: user.id, roles: ["customer"] });
+  const result = await listFilesScoped(
+    ctx,
+    { ownerId: user.customerId, status: "active" },
     { mediaStore: locals.mediaStore }
   );
   return {
@@ -29,15 +33,20 @@ export const actions: Actions = {
       return fail(401, { error: "Sign in to upload." });
     }
 
+    // Enforced boundary (plan 33): the upload's tenant comes from the session; the
+    // object key is tenant-prefixed by the module so bytes can't land under another
+    // tenant's prefix. ownerId still ties the file to the signed-in customer.
+    const ctx = authContext({ orgId: locals.tenantId, actorId: user.id, roles: ["customer"] });
+
     const form = await request.formData();
     const file = form.get("file");
     if (!(file instanceof File) || file.size === 0) {
       return fail(400, { error: "Choose a file to upload." });
     }
 
-    const ticket = await createUploadTicket(
+    const ticket = await createUploadTicketScoped(
+      ctx,
       {
-        tenantId: locals.tenantId,
         ownerId: user.customerId,
         originalName: file.name,
         contentType: file.type || "application/octet-stream",
@@ -57,8 +66,9 @@ export const actions: Actions = {
       { size: bytes.byteLength, contentType: ticket.data.contentType }
     );
 
-    const completed = await completeUpload(
-      { ticketId: ticket.data.ticketId, tenantId: locals.tenantId },
+    const completed = await completeUploadScoped(
+      ctx,
+      { ticketId: ticket.data.ticketId },
       { mediaStore: locals.mediaStore, storage: locals.objectStorage }
     );
     if (!completed.ok) {

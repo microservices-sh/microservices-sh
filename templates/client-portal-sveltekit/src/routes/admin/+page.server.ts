@@ -1,8 +1,8 @@
 import type { PageServerLoad } from "./$types";
 import { redirect } from "@sveltejs/kit";
-import { listInvoices } from "@microservices-sh/invoice";
+import { listInvoicesScoped, authContext } from "@microservices-sh/invoice";
 import { listCustomers } from "@microservices-sh/customer";
-import { listFiles } from "@microservices-sh/file-media";
+import { listFilesScoped } from "@microservices-sh/file-media";
 import { listEvents } from "@microservices-sh/audit-log";
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -10,10 +10,13 @@ export const load: PageServerLoad = async ({ locals }) => {
     throw redirect(303, "/login");
   }
 
+  // Enforced boundary (plan 33): the tenant comes from the server-resolved
+  // session (locals.tenantId), never request input.
+  const ctx = authContext({ orgId: locals.tenantId, actorId: locals.user.id, roles: ["staff"] });
   const [invoicesResult, customersResult, filesResult, eventsResult] = await Promise.all([
-    listInvoices({ tenantId: locals.tenantId }, { invoiceStore: locals.invoiceStore }),
+    listInvoicesScoped(ctx, {}, { invoiceStore: locals.invoiceStore }),
     listCustomers({ customerRepository: locals.customerRepository }),
-    listFiles({ tenantId: locals.tenantId, status: "active" }, { mediaStore: locals.mediaStore }),
+    listFilesScoped(ctx, { status: "active" }, { mediaStore: locals.mediaStore }),
     listEvents({ limit: 8 }, { auditStore: locals.auditStore })
   ]);
 

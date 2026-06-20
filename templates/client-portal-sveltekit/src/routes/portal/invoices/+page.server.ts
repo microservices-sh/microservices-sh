@@ -1,6 +1,6 @@
 import type { PageServerLoad } from "./$types";
 import { redirect } from "@sveltejs/kit";
-import { listInvoices } from "@microservices-sh/invoice";
+import { listInvoicesScoped, authContext } from "@microservices-sh/invoice";
 
 export const load: PageServerLoad = async ({ locals }) => {
   const user = locals.user;
@@ -8,8 +8,12 @@ export const load: PageServerLoad = async ({ locals }) => {
     throw redirect(303, "/login");
   }
 
-  const result = await listInvoices(
-    { tenantId: locals.tenantId, customerId: user.customerId },
+  // Enforced boundary (plan 33): tenant from the session; customerId narrows to
+  // the signed-in customer's own invoices within that tenant.
+  const ctx = authContext({ orgId: locals.tenantId, actorId: user.id, roles: ["customer"] });
+  const result = await listInvoicesScoped(
+    ctx,
+    { customerId: user.customerId },
     { invoiceStore: locals.invoiceStore }
   );
 
