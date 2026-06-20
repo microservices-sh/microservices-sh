@@ -141,9 +141,6 @@
   >
     <span id={valueId} class="custom-select__value">
       <strong>{selected?.label ?? placeholder}</strong>
-      {#if selected?.meta}
-        <small>{selected.meta}</small>
-      {/if}
     </span>
     {#if selected?.badge}
       <Badge tone={selected.tone ?? "neutral"}>{selected.badge}</Badge>

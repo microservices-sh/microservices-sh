@@ -9,7 +9,7 @@ use std::io::{BufReader, Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
 
@@ -54,6 +54,16 @@ struct ModelInstallResult {
     model: String,
     output: String,
     settings: RuntimeSettings,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ModelProbeResult {
+    model: String,
+    ready: bool,
+    latency_ms: u64,
+    output: String,
+    warnings: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -371,6 +381,15 @@ async fn install_gemma_model(
 }
 
 #[tauri::command]
+async fn test_gemma_model(model: String) -> Result<ModelProbeResult, String> {
+    validate_model_name(&model)?;
+    let selected_model = model.trim().to_string();
+    tauri::async_runtime::spawn_blocking(move || probe_gemma_model(&selected_model))
+        .await
+        .map_err(|error| format!("Failed to join Ollama test task: {error}"))?
+}
+
+#[tauri::command]
 fn extract_document(app: tauri::AppHandle, job_id: String) -> Result<ExtractionResult, String> {
     let queue = open_queue(&app)?;
     let settings = queue.runtime_settings()?;
@@ -470,7 +489,10 @@ fn desktop_import_request(
         .ok_or_else(|| format!("Approved draft has no extraction payload: {job_id}"))?;
 
     Ok(ErpImportRequest {
-        endpoint: format!("{}/api/desktop/import", settings.base_url.trim_end_matches('/')),
+        endpoint: format!(
+            "{}/api/desktop/import",
+            settings.base_url.trim_end_matches('/')
+        ),
         token: settings.token,
         payload: ErpImportPayload {
             local_job_id: job.id,
@@ -1261,6 +1283,63 @@ fn ollama_local_models() -> Vec<String> {
     models
 }
 
+fn probe_gemma_model(model: &str) -> Result<ModelProbeResult, String> {
+    let mut warnings = Vec::new();
+    if !ollama_installed() {
+        warnings.push(
+            "Ollama CLI is not on PATH; the local HTTP service may still be reachable.".to_string(),
+        );
+    }
+
+    if !ollama_model_available(model) {
+        return Err(format!(
+            "Selected model {model} is not installed in Ollama. Install it before testing."
+        ));
+    }
+
+    let started = Instant::now();
+    let output = ollama_generate_probe(model)?;
+    let elapsed = started.elapsed().as_millis();
+
+    Ok(ModelProbeResult {
+        model: model.to_string(),
+        ready: true,
+        latency_ms: if elapsed > u64::MAX as u128 {
+            u64::MAX
+        } else {
+            elapsed as u64
+        },
+        output,
+        warnings,
+    })
+}
+
+fn ollama_generate_probe(model: &str) -> Result<String, String> {
+    let body = json!({
+        "model": model,
+        "prompt": "Reply with exactly: ready",
+        "stream": false,
+        "options": {
+            "temperature": 0,
+            "num_predict": 8
+        }
+    });
+    let response = ollama_http(
+        "POST",
+        "/api/generate",
+        Some(&body.to_string()),
+        Duration::from_secs(60),
+    )?;
+    let json = serde_json::from_str::<Value>(&response)
+        .map_err(|error| format!("Ollama returned invalid JSON: {error}"))?;
+
+    json.get("response")
+        .and_then(Value::as_str)
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| "Ollama test response did not include generated content.".to_string())
+}
+
 fn ollama_chat(model: &str, job: &QueueJob, raw_text: &str) -> Result<String, String> {
     let system_prompt = [
         "You convert OCR text from scanned business documents into strict JSON.",
@@ -1824,7 +1903,9 @@ impl DraftQueue {
             return Err("Configure the ERP app URL before importing approved drafts.".to_string());
         }
         if token.trim().is_empty() {
-            return Err("Configure the desktop import token before importing approved drafts.".to_string());
+            return Err(
+                "Configure the desktop import token before importing approved drafts.".to_string(),
+            );
         }
 
         Ok(ErpImportTransport {
@@ -2079,6 +2160,7 @@ fn main() {
             runtime_settings,
             save_runtime_settings,
             install_gemma_model,
+            test_gemma_model,
             extract_document,
             document_draft,
             enqueue_sample_documents,

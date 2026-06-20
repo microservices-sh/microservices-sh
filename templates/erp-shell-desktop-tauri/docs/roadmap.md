@@ -75,7 +75,7 @@ Built:
 - Gemma vision fallback for scanned image extraction when Tesseract is not
   installed and the selected Ollama model is ready.
 - Settings panel for selected Gemma model, OCR language, local runtime checks,
-  and explicit Ollama model install.
+  explicit Ollama model install, and selected-model readiness testing.
 - Deterministic fallback draft when OCR/model runtime is missing.
 - Queue action and draft review panel in the desktop UI.
 - Human review and correction: inline field editing, plus approve/reject, with
@@ -114,6 +114,8 @@ Started:
 
 - Runtime status checks for optional Tesseract OCR and the configured Ollama
   Gemma model.
+- A selected-model probe that sends a tiny local Ollama generation request and
+  reports response latency/output to the operator.
 - Local SQLite runtime settings for model/language selection, with env vars as
   defaults for first launch.
 - No silent model download or bundled model weights.

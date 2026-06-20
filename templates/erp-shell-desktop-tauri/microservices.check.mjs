@@ -13,9 +13,11 @@ export default function check({ assertFileIncludesAll }) {
       "MetricStrip",
       "ResourceTable",
       "Drop or Select Documents",
+      "Review Drafts",
       "ERP import",
       "Submit Selected",
-      "Runtime settings"
+      "Runtime settings",
+      "Test Selected Model"
     ],
     "Desktop MVP uses the ERP shell chrome and shared UI primitives."
   );
@@ -54,13 +56,13 @@ export default function check({ assertFileIncludesAll }) {
   );
   assertFileIncludesAll(
     "src-tauri/src/main.rs",
-    ["tesseract", "MICROSERVICES_DESKTOP_GEMMA_MODEL", "ollama", "normalize_with_gemma", "normalize_with_gemma_images", "install_gemma_model"],
+    ["tesseract", "MICROSERVICES_DESKTOP_GEMMA_MODEL", "ollama", "normalize_with_gemma", "normalize_with_gemma_images", "install_gemma_model", "test_gemma_model"],
     "Desktop extraction uses optional local OCR and an explicit local Gemma/Ollama adapter boundary."
   );
   assertFileIncludesAll(
     "src-tauri/src/main.rs",
-    ["app_settings", "runtime_settings", "save_runtime_settings", "runtime_settings_persist_selected_model_and_ocr_language"],
-    "Desktop runtime settings persist local OCR/model choices."
+    ["app_settings", "runtime_settings", "save_runtime_settings", "probe_gemma_model", "runtime_settings_persist_selected_model_and_ocr_language"],
+    "Desktop runtime settings persist local OCR/model choices and can test the selected local LLM."
   );
   assertFileIncludesAll(
     "src-tauri/src/main.rs",
@@ -87,6 +89,7 @@ export default function check({ assertFileIncludesAll }) {
       "extract_document",
       "document_draft",
       "install_gemma_model",
+      "test_gemma_model",
       "silently download model weights",
       "update_draft_field",
       "approve_job",

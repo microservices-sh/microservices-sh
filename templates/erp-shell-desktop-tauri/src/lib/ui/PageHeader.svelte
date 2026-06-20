@@ -60,7 +60,7 @@
 		font-size: clamp(1.5rem, 3vw, 1.95rem);
 		font-weight: 500;
 		line-height: 1.1;
-		letter-spacing: -0.02em;
+		letter-spacing: 0;
 		color: var(--color-ink);
 	}
 	.ph__desc {

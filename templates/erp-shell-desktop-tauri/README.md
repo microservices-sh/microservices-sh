@@ -50,8 +50,9 @@ The desktop template now includes the first local extraction adapter:
   model can extract directly from scanned page images;
 - Gemma normalization is attempted only when a configured local Ollama model is
   already present and reachable;
-- the Settings panel can save the selected Gemma model/OCR language locally and
-  run an explicit Ollama model install;
+- the Runtime Settings page can save the selected Gemma model/OCR language,
+  run an explicit Ollama model install, and test the selected model before
+  extraction;
 - the app never downloads model weights silently and does not bundle LLM weights
   in the default installer.
 
@@ -63,12 +64,13 @@ brew install --cask ollama
 pnpm dev:desktop
 ```
 
-Then open Settings, select a Gemma model and OCR language, and click
-`Install Model`. If your Ollama library uses a different Gemma 4 tag, enter it
-in the custom model field before installing. Without Tesseract, the app uses
-Gemma vision when the selected model is installed. Without Ollama/Gemma, OCR
-still works through Tesseract and the app falls back to deterministic review
-fields.
+Then open Runtime Settings, select a Gemma model and OCR language, and click
+`Install Model`. Use `Test Model` to confirm the selected Ollama model responds
+before running extraction. If your Ollama library uses a different Gemma 4 tag,
+enter it in the custom model field before installing. Without Tesseract, the app
+uses Gemma vision when the selected model is installed and responds. Without
+Ollama/Gemma, OCR still works through Tesseract and the app falls back to
+deterministic review fields.
 
 ## Linux Docker Check
 
@@ -93,8 +95,9 @@ before installing dependencies, so host `node_modules`, `dist`, and Cargo
 - Tauri shell for macOS and Windows bundles.
 - Rust commands for file/folder selection, drag/drop path import, SQLite queue
   persistence, runtime status, PDF rasterization + local OCR extraction, optional
-  local Gemma vision/normalization, runtime settings, explicit model install, audited
-  field correction / approve / reject, and remote ERP import status.
+  local Gemma vision/normalization, runtime settings, explicit model install,
+  selected-model readiness tests, audited field correction / approve / reject,
+  and remote ERP import status.
 - PDF intake: multi-page PDFs are rasterized with poppler `pdftoppm` and OCR'd
   page by page (the first document-heavy vertical is invoices, which are mostly
   PDF).

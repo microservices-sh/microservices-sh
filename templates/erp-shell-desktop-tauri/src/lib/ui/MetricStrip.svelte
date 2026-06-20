@@ -84,7 +84,7 @@
 		font-size: 1.9rem;
 		font-weight: 500;
 		line-height: 1;
-		letter-spacing: -0.02em;
+		letter-spacing: 0;
 		font-variant-numeric: tabular-nums;
 		color: var(--color-ink);
 	}

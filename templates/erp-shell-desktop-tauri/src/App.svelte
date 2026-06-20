@@ -31,6 +31,7 @@
     selectImportFiles,
     selectImportFolder,
     submitApprovedDraft,
+    testGemmaModel,
     type ErpImportSettings,
     updateDraftField,
     type ExtractionDraft,
@@ -38,6 +39,7 @@
     type ImportStatus,
     type ImportFolder,
     type ImportResult,
+    type ModelProbeResult,
     type QueueJob,
     type RuntimeSettings,
     type RuntimeStatus,
@@ -79,6 +81,7 @@
   let decidingJobId: string | null = null;
   let confirmingRejectId: string | null = null;
   let installingModel = false;
+  let testingModel = false;
   let savingSettings = false;
   let savingImportSettings = false;
   let submittingImportJobId: string | null = null;
@@ -91,18 +94,59 @@
   let erpImportBaseUrl = "http://localhost:5173";
   let erpImportToken = "";
   let settingsMessage = "Runtime settings are local to this desktop app.";
+  let modelTest: ModelProbeResult | null = null;
+  let modelTestMessage = "Run a model test after changing the selected Gemma tag.";
   let importMessage = "Select a folder to create local draft jobs.";
   let erpSubmitMessage = "Approved drafts submit to the remote ERP database. Local storage remains draft-only.";
   let metrics: Metric[] = [];
 
+  const pageDetails: Record<string, { eyebrow: string; title: string; description: string }> = {
+    "#import": {
+      eyebrow: "Document intake",
+      title: "Import queue",
+      description: "Collect PDFs and scanned images into the local draft database before extraction."
+    },
+    "#review": {
+      eyebrow: "Human approval",
+      title: "Review drafts",
+      description: "Inspect extracted fields, correct low-confidence values, then approve or reject the local draft."
+    },
+    "#runtime": {
+      eyebrow: "Local AI runtime",
+      title: "Local runtime",
+      description: "Check OCR and Ollama readiness, then run a live probe against the selected Gemma model."
+    },
+    "#erp-import": {
+      eyebrow: "Remote ERP handoff",
+      title: "ERP import",
+      description: "Submit approved local drafts to the authenticated ERP Worker and remote D1-backed queue."
+    },
+    "#settings": {
+      eyebrow: "Runtime configuration",
+      title: "Runtime settings",
+      description: "Choose the Gemma model, OCR language, and local model installation target for this desktop app."
+    }
+  };
+
   const desktopNav = [
     {
-      section: "Workspace",
+      section: "Intake",
       items: [
         { href: "#import", label: "Import Queue", icon: "folder" },
+        { href: "#review", label: "Review Drafts", icon: "clipboard" }
+      ]
+    },
+    {
+      section: "Runtime",
+      items: [
         { href: "#runtime", label: "Local Runtime", icon: "bot" },
-        { href: "#erp-import", label: "ERP Import", icon: "workflow" },
-        { href: "#settings", label: "Settings", icon: "settings" }
+        { href: "#settings", label: "Runtime Settings", icon: "settings" }
+      ]
+    },
+    {
+      section: "ERP",
+      items: [
+        { href: "#erp-import", label: "ERP Import", icon: "workflow" }
       ]
     }
   ];
@@ -146,6 +190,22 @@
   $: importedCount = folder?.newDocuments ?? jobs.length;
   $: selectedJob = jobs.find((job) => job.id === selectedJobId) ?? jobs.find((job) => job.draft) ?? null;
   $: activeDraft = selectedJob?.draft ?? selectedDraft;
+  $: activePage = pageDetails[activePathname] ? activePathname : "#import";
+  $: page = pageDetails[activePage];
+  $: pageMetaPrimary =
+    activePage === "#runtime" || activePage === "#settings"
+      ? settingsDraftModel
+      : activePage === "#erp-import"
+        ? erpImport.baseUrl
+        : folder?.path ?? "No folder selected";
+  $: pageMetaSecondary =
+    activePage === "#runtime"
+      ? modelTestMessage
+      : activePage === "#settings"
+        ? settingsMessage
+        : activePage === "#erp-import"
+          ? erpSubmitMessage
+          : importMessage;
   $: modelOptions = Array.from(
     new Set(
       [...runtimeSettings.suggestedModels, ...runtimeSettings.installedModels, settingsDraftModel]
@@ -155,12 +215,13 @@
   );
   $: selectedModelInstalled = isModelInstalled(settingsDraftModel);
   $: modelSelectOptions = modelOptions.map(modelOption);
-  $: ocrSelectOptions = ocrLanguageOptions.map((option) => ({
-    ...option,
-    meta: option.value
-  }));
+  $: ocrSelectOptions = ocrLanguageOptions;
   $: llmDetail = runtimeLlmDetail();
   $: ocrDetail = runtimeOcrDetail();
+  $: if (modelTest && modelTest.model !== settingsDraftModel) {
+    modelTest = null;
+    modelTestMessage = "Run a model test after changing the selected Gemma tag.";
+  }
   $: metrics = [
     { label: "Queued", value: jobs.length, tone: jobs.length > 0 ? "info" : "neutral", hint: "local drafts" },
     { label: "Imported", value: importedCount, tone: importedCount > 0 ? "good" : "neutral", hint: "new documents" },
@@ -202,7 +263,6 @@
     return {
       value: model,
       label: model,
-      meta: installed ? "Installed locally" : "Available to install",
       badge: installed ? "Installed" : "Pull",
       tone: installed ? "good" : "warn"
     } as const;
@@ -277,6 +337,7 @@
   async function selectJob(job: QueueJob) {
     selectedJobId = job.id;
     selectedDraft = job.draft ?? (await loadDocumentDraft(job.id));
+    navigateToPage("#review");
   }
 
   async function runExtraction(job: QueueJob) {
@@ -293,6 +354,7 @@
       erpImport = { ...erpImport, pendingDrafts: approvedImportCount(), importedDrafts: importedDraftCount };
       importMessage = `${result.job.name} converted to a review draft`;
       runtime = await getRuntimeStatus();
+      navigateToPage("#review");
     } catch (error) {
       importMessage = error instanceof Error ? error.message : "Extraction failed";
     } finally {
@@ -471,8 +533,38 @@
     }
   }
 
+  async function testSelectedModel() {
+    if (testingModel) return;
+
+    testingModel = true;
+    modelTest = null;
+    modelTestMessage = `Testing ${settingsDraftModel} with local Ollama`;
+
+    try {
+      const result = await testGemmaModel(settingsDraftModel);
+      modelTest = result;
+      runtime = await getRuntimeStatus();
+      modelTestMessage = result.ready
+        ? `${result.model} responded in ${result.latencyMs} ms`
+        : `${result.model} did not complete the readiness probe`;
+    } catch (error) {
+      modelTestMessage = error instanceof Error ? error.message : "Model test failed";
+    } finally {
+      testingModel = false;
+    }
+  }
+
+  function navigateToPage(href: string) {
+    if (window.location.hash === href) {
+      activePathname = href;
+      return;
+    }
+    window.location.hash = href;
+  }
+
   function updateActivePathname() {
-    activePathname = window.location.hash || "#import";
+    const next = window.location.hash || "#import";
+    activePathname = pageDetails[next] ? next : "#import";
   }
 
   function toneForStatus(status: StatusKey): Tone {
@@ -520,7 +612,7 @@
 
 <AppShell
   nav={desktopNav}
-  pathname={activePathname}
+  pathname={activePage}
   brandHref="#import"
   footer={{ title: "ERP Shell Desktop", subtitle: runtime.mode === "tauri" ? "Desktop companion" : "Browser preview" }}
   status={{
@@ -539,21 +631,24 @@
     <Button variant="primary" size="sm" onclick={chooseFiles} disabled={busy}>{busy ? "Scanning" : "Select Files"}</Button>
   {/snippet}
 
-  <section class="desktop-page" aria-label="Desktop intake workspace">
+  <section class="desktop-page" aria-label={page.title}>
     <PageHeader
-      eyebrow="Connected companion"
-      title="Local intake bridge"
-      description="Import scanned documents into a local draft queue, review extraction state, then submit approved records into ERP Shell."
+      eyebrow={page.eyebrow}
+      title={page.title}
+      description={page.description}
     >
       {#snippet meta()}
-        <span>{folder?.path ?? "No folder selected"}</span>
-        <span>{importMessage}</span>
+        <span>{pageMetaPrimary}</span>
+        <span>{pageMetaSecondary}</span>
       {/snippet}
     </PageHeader>
 
-    <MetricStrip {metrics} />
+    {#if activePage === "#import" || activePage === "#review"}
+      <MetricStrip {metrics} />
+    {/if}
 
-    <div class="content-grid">
+    {#if activePage === "#import"}
+    <div class="page-panel">
       <section id="import" class="import-section" aria-labelledby="import-title">
         <Card title="Import queue" class="queue-card">
           {#snippet header()}
@@ -619,8 +714,10 @@
           {/if}
         </Card>
       </section>
+    </div>
 
-      <div id="runtime" class="side-section side-stack">
+    {:else if activePage === "#runtime"}
+      <div id="runtime" class="runtime-page-grid">
         <Card title="Local runtime" class="side-card">
           {#snippet header()}
             <Badge tone={toneForStatus(runtime.ocr)}>{statusLabel[runtime.ocr]}</Badge>
@@ -641,6 +738,49 @@
           </dl>
         </Card>
 
+        <Card title="Selected LLM test" class="side-card">
+          {#snippet header()}
+            <Badge tone={modelTest?.ready ? "good" : testingModel ? "warn" : selectedModelInstalled ? "info" : "warn"}>
+              {modelTest?.ready ? "Responding" : testingModel ? "Testing" : selectedModelInstalled ? "Installed" : "Install Needed"}
+            </Badge>
+          {/snippet}
+
+          <dl class="status-list">
+            <div>
+              <dt>Selected</dt>
+              <dd>{settingsDraftModel}</dd>
+            </div>
+            <div>
+              <dt>Ollama</dt>
+              <dd><Badge tone={runtimeSettings.ollamaInstalled ? "good" : "bad"}>{runtimeSettings.ollamaInstalled ? "Ready" : "Missing"}</Badge> local HTTP {runtime.llmEngine ?? "ollama"}</dd>
+            </div>
+            <div>
+              <dt>Probe</dt>
+              <dd>{modelTest ? `${modelTest.latencyMs} ms · ${modelTest.output}` : "Not tested in this session"}</dd>
+            </div>
+          </dl>
+
+          {#if modelTest?.warnings.length}
+            <ul class="warning-list model-warning-list" aria-label="Model test warnings">
+              {#each modelTest.warnings as warning}
+                <li>{warning}</li>
+              {/each}
+            </ul>
+          {/if}
+
+          <div class="settings-actions runtime-actions">
+            <Button type="button" variant="primary" size="sm" onclick={() => void testSelectedModel()} disabled={testingModel || !settingsDraftModel}>
+              {testingModel ? "Testing" : "Test Selected Model"}
+            </Button>
+            <Button href="#settings" size="sm">Change Model</Button>
+          </div>
+
+          <p class="settings-message" aria-live="polite">{modelTestMessage}</p>
+        </Card>
+      </div>
+
+    {:else if activePage === "#review"}
+      <div id="review" class="review-page-grid">
         <Card title="Extraction draft" class="side-card draft-card">
           {#snippet header()}
             <Badge tone={selectedJob ? toneForStatus(selectedJob.status) : "neutral"}>
@@ -768,8 +908,38 @@
             <EmptyState title="No extraction draft" description="Run Extract on a scanned image to create a local review draft." />
           {/if}
         </Card>
+
+        <Card title="Draft queue" class="side-card review-picker-card">
+          {#snippet header()}
+            <Badge tone={reviewCount ? "warn" : approvedCount ? "good" : "neutral"}>
+              {reviewCount ? `${reviewCount} Review` : approvedCount ? `${approvedCount} Approved` : "Empty"}
+            </Badge>
+          {/snippet}
+
+          {#if jobs.length}
+            <div class="review-job-list" aria-label="Draft queue">
+              {#each jobs as job}
+                <button
+                  type="button"
+                  class="review-job"
+                  class:is-active={job.id === selectedJob?.id}
+                  onclick={() => void selectJob(job)}
+                >
+                  <span>
+                    <strong>{job.name}</strong>
+                    <small>{kindLabel[job.kind]} · {confidenceLabel(job.confidence)}</small>
+                  </span>
+                  <Badge tone={toneForStatus(job.status)}>{statusLabel[job.status]}</Badge>
+                </button>
+              {/each}
+            </div>
+          {:else}
+            <EmptyState title="No drafts" description="Import documents first, then extract them for review." />
+          {/if}
+        </Card>
       </div>
 
+    {:else if activePage === "#erp-import"}
       <div id="erp-import" class="side-section">
         <Card title="ERP import" class="side-card">
           {#snippet header()}
@@ -847,6 +1017,7 @@
         </Card>
       </div>
 
+    {:else if activePage === "#settings"}
       <section id="settings" class="settings-section" aria-label="Runtime settings">
         <Card title="Runtime settings" class="settings-card">
           {#snippet header()}
@@ -866,7 +1037,10 @@
                 label="Gemma model"
                 options={modelSelectOptions}
                 value={settingsDraftModel}
-                onChange={(value) => (settingsDraftModel = value)}
+                onChange={(value) => {
+                  settingsDraftModel = value;
+                  modelTestMessage = "Run a model test after changing the selected Gemma tag.";
+                }}
               />
 
               <CustomSelect
@@ -879,7 +1053,12 @@
 
               <label class="setting-field custom-model-field" for="custom-gemma-model">
                 <span>Custom model tag</span>
-                <input id="custom-gemma-model" bind:value={settingsDraftModel} spellcheck="false" />
+                <input
+                  id="custom-gemma-model"
+                  bind:value={settingsDraftModel}
+                  spellcheck="false"
+                  oninput={() => (modelTestMessage = "Run a model test after changing the selected Gemma tag.")}
+                />
               </label>
             </div>
 
@@ -890,22 +1069,31 @@
             </div>
 
             <div class="settings-actions">
-              <Button type="submit" size="sm" disabled={savingSettings || installingModel}>{savingSettings ? "Saving" : "Save Settings"}</Button>
+              <Button type="submit" size="sm" disabled={savingSettings || installingModel || testingModel}>{savingSettings ? "Saving" : "Save Settings"}</Button>
+              <Button
+                type="button"
+                size="sm"
+                onclick={() => void testSelectedModel()}
+                disabled={testingModel || savingSettings || !settingsDraftModel}
+              >
+                {testingModel ? "Testing" : "Test Model"}
+              </Button>
               <Button
                 type="button"
                 variant="primary"
                 size="sm"
                 onclick={() => void installSelectedModel()}
-                disabled={installingModel || !settingsDraftModel}
+                disabled={installingModel || testingModel || !settingsDraftModel}
               >
                 {installingModel ? "Installing" : selectedModelInstalled ? "Reinstall Model" : "Install Model"}
               </Button>
             </div>
 
             <p class="settings-message">{settingsMessage}</p>
+            <p class="settings-message" aria-live="polite">{modelTestMessage}</p>
           </form>
         </Card>
       </section>
-    </div>
+    {/if}
   </section>
 </AppShell>

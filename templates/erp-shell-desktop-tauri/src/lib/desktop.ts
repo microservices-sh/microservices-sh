@@ -27,6 +27,14 @@ export type ModelInstallResult = {
   settings: RuntimeSettings;
 };
 
+export type ModelProbeResult = {
+  model: string;
+  ready: boolean;
+  latencyMs: number;
+  output: string;
+  warnings: string[];
+};
+
 export type ImportStatus = {
   baseUrl: string;
   state: "connected" | "not-configured" | "offline";
@@ -160,6 +168,20 @@ export async function installGemmaModel(model: string) {
         installedModels: Array.from(new Set([...sampleRuntimeSettings().installedModels, model])),
         selectedModelInstalled: true
       }
+    }
+  );
+}
+
+export async function testGemmaModel(model: string) {
+  return call<ModelProbeResult>(
+    "test_gemma_model",
+    { model },
+    {
+      model,
+      ready: true,
+      latencyMs: 42,
+      output: "ready",
+      warnings: ["Browser preview uses sample runtime data; run Tauri desktop mode to test Ollama."]
     }
   );
 }

@@ -27,6 +27,32 @@ a {
   min-inline-size: 0;
 }
 
+.page-panel,
+.runtime-page-grid,
+.review-page-grid {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+  min-inline-size: 0;
+}
+
+.page-panel {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.runtime-page-grid,
+.review-page-grid {
+  grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1fr);
+}
+
+.review-page-grid > :first-child {
+  order: 2;
+}
+
+.review-page-grid > :last-child {
+  order: 1;
+}
+
 .content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.85fr);
@@ -229,6 +255,14 @@ meter {
   gap: 16px;
 }
 
+.model-warning-list {
+  margin-block-start: 14px;
+}
+
+.runtime-actions {
+  margin-block-start: 16px;
+}
+
 .draft-card {
   contain: layout style;
 }
@@ -366,6 +400,60 @@ meter {
   margin-block-start: 14px;
 }
 
+.review-job-list {
+  display: grid;
+  gap: 8px;
+}
+
+.review-job {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  inline-size: 100%;
+  min-block-size: 54px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  padding: 9px 10px;
+  background: var(--color-panel-subtle);
+  color: var(--color-ink);
+  cursor: pointer;
+  text-align: start;
+  transition:
+    border-color 160ms var(--ease),
+    background 160ms var(--ease),
+    box-shadow 160ms var(--ease);
+}
+
+.review-job:hover,
+.review-job.is-active {
+  border-color: var(--color-act);
+  background: var(--color-green-soft);
+  box-shadow: var(--shadow-sm);
+}
+
+.review-job span {
+  display: grid;
+  gap: 3px;
+  min-inline-size: 0;
+}
+
+.review-job strong,
+.review-job small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-job strong {
+  font-size: 0.86rem;
+}
+
+.review-job small {
+  color: var(--color-ink-faint);
+  font-size: 0.74rem;
+}
+
 /* destructive intent carried by the confirm copy + the two-step gate, using the
    shared danger token — no Button variant fork. */
 .confirm-prompt {
@@ -497,6 +585,16 @@ meter {
 }
 
 @container (max-width: 880px) {
+  .runtime-page-grid,
+  .review-page-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .review-page-grid > :first-child,
+  .review-page-grid > :last-child {
+    order: initial;
+  }
+
   .content-grid {
     grid-template-columns: 1fr 1fr;
   }

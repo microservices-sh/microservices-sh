@@ -18,6 +18,8 @@ Local extraction:
   model and OCR language in local SQLite.
 - `install_gemma_model` runs an explicit Ollama pull for the selected model only
   after the user clicks install.
+- `test_gemma_model` runs a small local Ollama readiness probe for the selected
+  model and reports latency/output to the UI.
 - `extract_document` converts queued scanned images through local Tesseract
   when installed, then falls back to Gemma vision when the selected Ollama model
   is installed.

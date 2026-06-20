@@ -22,7 +22,7 @@ Rust commands own native capabilities:
 The Svelte UI calls Rust through Tauri commands and renders state. Current
 intake commands are `select_import_files`, `select_import_folder`, `import_document_paths`,
 `queue_documents`, `runtime_settings`, `save_runtime_settings`,
-`install_gemma_model`, `extract_document`, `document_draft`,
+`install_gemma_model`, `test_gemma_model`, `extract_document`, `document_draft`,
 `update_draft_field`, `approve_job`, `reject_job`, `import_status`,
 `erp_import_settings`, `save_erp_import_settings`, `desktop_import_request`,
 and `mark_job_imported`. `sync_status` remains a compatibility alias for older
@@ -40,6 +40,8 @@ module. The native app may:
   either to normalize OCR text or to extract directly from scanned page images;
 - save selected OCR language and Gemma model in the local app settings table;
 - install a selected Gemma model only after the user clicks the install action;
+- run an explicit selected-model readiness probe against local Ollama before
+  extraction is attempted;
 - persist draft JSON in local SQLite for human review;
 - let an operator edit extracted field values, then approve or reject a draft;
 - record every field edit and approve/reject decision in a local `draft_edits`
