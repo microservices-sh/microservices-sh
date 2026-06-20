@@ -11,7 +11,8 @@ import {
   createMemoryObjectStorage as createMemoryImageStorage,
   createR2ObjectStorage as createR2ImageStorage
 } from "@microservices-sh/image-generation";
-import { reportRuntimeError } from "$lib/server/observability";
+import { reportRuntimeError, logRequest, generateRequestId } from "$lib/server/observability";
+import { readCompanyOrgId } from "$lib/server/org-context";
 
 // Memory rate limiter for local dev / when no KV binding exists. Per-isolate and
 // non-durable — KV (RATE_LIMIT_KV) is used in production for shared, durable limits.
@@ -26,6 +27,13 @@ const memoryImageStorage = createMemoryImageStorage();
 // D1/R2-backed in production and memory-backed locally. Route adapters consume
 // only the module port interfaces and the resolved user — never adapters directly.
 export const handle: Handle = async ({ event, resolve }) => {
+  // Per-request observability: stamp a request id up front and start the clock.
+  // Stored on locals so handleError can correlate a runtime error with the
+  // request log line even when resolve throws.
+  const requestId = generateRequestId();
+  event.locals.requestId = requestId;
+  const startedAt = Date.now();
+
   const env = event.platform?.env;
   const db = env?.DB;
   const bucket = env?.MEDIA_BUCKET;
@@ -73,10 +81,42 @@ export const handle: Handle = async ({ event, resolve }) => {
     sessionStore: stores.sessionStore
   });
 
-  return resolve(event);
+  // Resolve the request, then emit one structured request log line. Wrapping is
+  // additive: store-wiring and the user resolution above are untouched, and we
+  // log on both success and failure paths (without swallowing the error).
+  let response: Response | undefined;
+  try {
+    response = await resolve(event);
+    return response;
+  } finally {
+    // Tenant = the remembered company org (cookie); actor = the session user.
+    // Read after resolve so a route that just set the cookie is reflected.
+    const tenantId = readCompanyOrgId(event.cookies);
+    event.locals.tenantId = tenantId;
+    logRequest(
+      {
+        requestId,
+        method: event.request.method,
+        path: event.url.pathname,
+        status: response?.status ?? 500,
+        durationMs: Date.now() - startedAt,
+        tenantId,
+        actorId: event.locals.user?.id ?? null
+      },
+      event.platform
+    );
+  }
 };
 
 export const handleError: HandleServerError = ({ error, event, status, message }) => {
-  reportRuntimeError(error, event, { status, message });
+  // Enrich with the request-scoped context the handle hook stamped onto locals
+  // (requestId/tenantId) plus the resolved actor, when available.
+  reportRuntimeError(error, event, {
+    status,
+    message,
+    requestId: event.locals.requestId ?? null,
+    tenantId: event.locals.tenantId ?? null,
+    actorId: event.locals.user?.id ?? null
+  });
   return { message };
 };

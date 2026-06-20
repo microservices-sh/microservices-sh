@@ -29,6 +29,9 @@ declare global {
         RATE_LIMIT_KV?: KVNamespace;
         STRIPE_SECRET_KEY?: string;
         IMAGE_BUCKET?: R2Bucket;
+        // Optional Workers Analytics Engine dataset for per-request data points.
+        // Absent by default — the observability sink no-ops without it.
+        OBSERVABILITY?: AnalyticsEngineDataset;
         KIEAI_API_KEY?: string;
         KIEAI_BASE_URL?: string;
         GEMINI_ENDPOINT?: string;
@@ -81,6 +84,11 @@ declare global {
       // The signed-in principal, resolved from the session store each request.
       // isSuperAdmin is derived from the account's isAdmin flag, never the cookie.
       user: { id: string; email: string; isSuperAdmin: boolean } | null;
+      // Per-request observability context, set by the request hook so handleError
+      // can correlate runtime errors with the request log line. Optional — absent
+      // until the hook assigns it.
+      requestId?: string;
+      tenantId?: string | null;
     }
   }
 }
