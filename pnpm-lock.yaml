@@ -67,6 +67,12 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
         version: 4.20260613.1
+      '@microservices-sh/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      svelte:
+        specifier: ^5.0.0
+        version: 5.56.3
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -571,6 +577,9 @@ importers:
 
   modules/research:
     dependencies:
+      '@microservices-sh/ops-token':
+        specifier: workspace:*
+        version: link:../../packages/ops-token
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -660,6 +669,9 @@ importers:
 
   packages/module-preview:
     dependencies:
+      '@microservices-sh/ads-manager':
+        specifier: workspace:*
+        version: link:../../modules/ads-manager
       '@microservices-sh/ai-gateway':
         specifier: workspace:*
         version: link:../../modules/ai-gateway
@@ -733,6 +745,15 @@ importers:
       vite:
         specifier: ^5.0.0
         version: 5.4.21(@types/node@25.9.3)(lightningcss@1.32.0)
+
+  packages/ops-token:
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250109.0
+        version: 4.20260613.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
   packages/research-agent-runtime:
     dependencies:

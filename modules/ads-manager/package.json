@@ -6,6 +6,7 @@
   "description": "Prebuilt microservices.sh ads-manager module: cross-platform ad monitoring (Meta, Google) over an upstream ads service, D1 insight snapshots, anomaly alerts, entitlement-gated paid connector.",
   "exports": {
     ".": "./src/index.ts",
+    "./preview": "./reference-ui/Preview.svelte",
     "./types": "./src/types.ts",
     "./schemas": "./src/schemas.ts",
     "./hooks": "./src/hooks.ts",
@@ -34,6 +35,8 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",
+    "@microservices-sh/ui": "workspace:*",
+    "svelte": "^5.0.0",
     "typescript": "^5.9.3"
   }
 }
