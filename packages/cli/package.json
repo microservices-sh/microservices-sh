@@ -1,13 +1,26 @@
 {
   "name": "@microservices-sh/cli",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "The microservices.sh CLI — scaffold, compose, check, and deploy governed Cloudflare apps.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/microservices-sh/microservices-sh.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://microservices.sh",
   "type": "module",
   "engines": {
     "node": ">=20"
   },
   "bin": {
     "microservices": "src/index.js"
+  },
+  "files": [
+    "src"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "cli": "node src/index.js",
@@ -16,7 +29,9 @@
   },
   "dependencies": {
     "@microservices-sh/connection-contract": "workspace:*",
-    "@microservices-sh/ops-token": "workspace:*",
     "@microservices-sh/sdk-internal": "workspace:*"
+  },
+  "devDependencies": {
+    "@microservices-sh/ops-token": "workspace:*"
   }
 }

@@ -7,7 +7,6 @@ import { stdin as nodeStdin, stdout as nodeStdout } from "node:process";
 import { createInterface } from "node:readline/promises";
 import { track, telemetryNotice } from "./telemetry.js";
 import { buildHoneycomb, formatHoneycomb, formatIssues } from "./graph.js";
-import { planOpsProvisioning } from "@microservices-sh/ops-token/provisioning";
 import {
   composeApp,
   checkUpdates,
@@ -1002,6 +1001,22 @@ async function handleHermesAgentCommand(args, flags) {
         "HERMES_OPERATE_APP_REQUIRED",
         "The operate app name is required to emit the verify-secret command.",
         "Pass --operate-app <cloudflare-worker-name>."
+      );
+      return flags.json ? writeJson(response) : printHuman(response, () => "");
+    }
+    // ops-credentials mints an operator OPS_TOKEN from the grant secret. That
+    // minting lives in @microservices-sh/ops-token, which is intentionally NOT a
+    // runtime dependency of the public CLI (it's control-plane code). Load it
+    // lazily: present in the monorepo / internal operator toolkit, absent — and
+    // gracefully reported — in the published CLI.
+    let planOpsProvisioning;
+    try {
+      ({ planOpsProvisioning } = await import("@microservices-sh/ops-token/provisioning"));
+    } catch {
+      const response = failResponse(
+        "OPS_PROVISIONING_UNAVAILABLE",
+        "ops-credentials is an internal operator command that requires @microservices-sh/ops-token, which is not bundled with the public CLI.",
+        "Run it from the microservices.sh monorepo or an environment where @microservices-sh/ops-token is installed."
       );
       return flags.json ? writeJson(response) : printHuman(response, () => "");
     }

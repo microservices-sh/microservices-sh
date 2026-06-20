@@ -668,12 +668,13 @@ importers:
       '@microservices-sh/connection-contract':
         specifier: workspace:*
         version: link:../connection-contract
-      '@microservices-sh/ops-token':
-        specifier: workspace:*
-        version: link:../ops-token
       '@microservices-sh/sdk-internal':
         specifier: workspace:*
         version: link:../sdk-internal
+    devDependencies:
+      '@microservices-sh/ops-token':
+        specifier: workspace:*
+        version: link:../ops-token
 
   packages/connection-contract:
     dependencies:
