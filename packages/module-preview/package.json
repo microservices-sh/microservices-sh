@@ -19,6 +19,7 @@
     "@microservices-sh/file-media": "workspace:*",
     "@microservices-sh/forms-intake": "workspace:*",
     "@microservices-sh/invoice": "workspace:*",
+    "@microservices-sh/jobs-workflows": "workspace:*",
     "@microservices-sh/marketing-research": "workspace:*",
     "@microservices-sh/notifications-inapp": "workspace:*",
     "@microservices-sh/org-team-rbac": "workspace:*",
