@@ -6,6 +6,7 @@
   "description": "Research pillar: ingest company knowledge, retrieve by semantic search, and produce cited research briefs (cite-or-refuse).",
   "exports": {
     ".": "./src/index.ts",
+    "./preview": "./reference-ui/Preview.svelte",
     "./types": "./src/types.ts",
     "./schemas": "./src/schemas.ts",
     "./hooks": "./src/hooks.ts",
@@ -24,6 +25,11 @@
     "./adapters/libsql-graph": "./src/adapters/libsql-graph.ts",
     "./adapters/sqlite-research-store": "./src/adapters/sqlite-research-store.ts",
     "./adapters/gateway-synthesizer": "./src/adapters/gateway-synthesizer.ts",
+    "./adapters/operate-http": "./src/adapters/operate-http-client.ts",
+    "./ops": "./src/ops.ts",
+    "./ops-server": "./src/ops-server.ts",
+    "./ops-http": "./src/ops-http.ts",
+    "./ops-token": "./src/ops-token.ts",
     "./adapters/memory": "./src/index.ts"
   },
   "scripts": {
@@ -31,5 +37,5 @@
     "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path ."
   },
   "dependencies": { "zod": "^4.4.3" },
-  "devDependencies": { "@cloudflare/workers-types": "^4.20250109.0", "typescript": "^5.9.3" }
+  "devDependencies": { "@cloudflare/workers-types": "^4.20250109.0", "@microservices-sh/ui": "workspace:*", "svelte": "^5.0.0", "typescript": "^5.9.3" }
 }

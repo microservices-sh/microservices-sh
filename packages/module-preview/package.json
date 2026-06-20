@@ -26,6 +26,7 @@
     "@microservices-sh/operator-work": "workspace:*",
     "@microservices-sh/org-team-rbac": "workspace:*",
     "@microservices-sh/payment": "workspace:*",
+    "@microservices-sh/research": "workspace:*",
     "@microservices-sh/support-ticket": "workspace:*",
     "@microservices-sh/webhook-delivery": "workspace:*",
     "@microservices-sh/ui": "workspace:*"
