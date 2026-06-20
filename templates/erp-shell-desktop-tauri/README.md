@@ -47,6 +47,8 @@ The desktop template now includes the first local extraction adapter:
 - scanned image text is saved as a local `document-extraction` shaped draft;
 - Gemma normalization is attempted only when a configured local Ollama model is
   already present and reachable;
+- the Settings panel can save the selected Gemma model/OCR language locally and
+  run an explicit Ollama model install;
 - the app never downloads model weights silently and does not bundle LLM weights
   in the default installer.
 
@@ -55,17 +57,15 @@ For a Mac pilot:
 ```bash
 brew install tesseract
 brew install --cask ollama
-ollama pull gemma4:e4b
-export MICROSERVICES_DESKTOP_GEMMA_MODEL=gemma4:e4b
-export MICROSERVICES_DESKTOP_OCR_LANG=eng
 pnpm dev:desktop
 ```
 
-If your Ollama library uses a different Gemma 4 tag, set
-`MICROSERVICES_DESKTOP_GEMMA_MODEL` to that exact local model name. Without
-Tesseract, imported files still queue locally but extraction drafts will contain
-runtime setup warnings. Without Ollama/Gemma, OCR still works and the app falls
-back to deterministic review fields.
+Then open Settings, select a Gemma model and OCR language, and click
+`Install Model`. If your Ollama library uses a different Gemma 4 tag, enter it
+in the custom model field before installing. Without Tesseract, imported files
+still queue locally but extraction drafts will contain runtime setup warnings.
+Without Ollama/Gemma, OCR still works and the app falls back to deterministic
+review fields.
 
 ## Linux Docker Check
 
@@ -90,7 +90,7 @@ before installing dependencies, so host `node_modules`, `dist`, and Cargo
 - Tauri shell for macOS and Windows bundles.
 - Rust commands for folder selection, drag/drop path import, SQLite queue
   persistence, runtime status, local OCR extraction, optional local Gemma
-  normalization, and sync status.
+  normalization, runtime settings, explicit model install, and sync status.
 - Browser preview fallback so the interface can be reviewed without launching
   Tauri.
 

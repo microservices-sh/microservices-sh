@@ -15,6 +15,14 @@ use tauri_plugin_dialog::DialogExt;
 
 const DEFAULT_GEMMA_MODEL: &str = "gemma4:e4b";
 const OLLAMA_HOST: &str = "127.0.0.1:11434";
+const DEFAULT_OCR_LANGUAGE: &str = "eng";
+const SUGGESTED_GEMMA_MODELS: [&str; 5] = [
+    "gemma4:e2b",
+    "gemma4:e4b",
+    "gemma4:12b",
+    "gemma4:26b",
+    "gemma4:31b",
+];
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -25,6 +33,26 @@ struct RuntimeStatus {
     mode: &'static str,
     ocr_engine: &'static str,
     llm_engine: &'static str,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RuntimeSettings {
+    gemma_model: String,
+    ocr_language: String,
+    suggested_models: Vec<String>,
+    installed_models: Vec<String>,
+    selected_model_installed: bool,
+    ollama_installed: bool,
+    tesseract_installed: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ModelInstallResult {
+    model: String,
+    output: String,
+    settings: RuntimeSettings,
 }
 
 #[derive(Serialize)]
@@ -117,22 +145,22 @@ struct ExtractionResult {
 }
 
 #[tauri::command]
-fn runtime_status() -> RuntimeStatus {
-    let gemma_model = configured_gemma_model();
-    let llm_ready = ollama_model_available(&gemma_model);
+fn runtime_status(app: tauri::AppHandle) -> Result<RuntimeStatus, String> {
+    let settings = open_queue(&app)?.runtime_settings()?;
+    let llm_ready = ollama_model_available(&settings.gemma_model);
 
-    RuntimeStatus {
+    Ok(RuntimeStatus {
         ocr: if tesseract_available() {
             "ready"
         } else {
             "missing"
         },
         llm: if llm_ready { "ready" } else { "missing" },
-        model: gemma_model,
+        model: settings.gemma_model,
         mode: "tauri",
         ocr_engine: "tesseract",
         llm_engine: "ollama",
-    }
+    })
 }
 
 #[tauri::command]
@@ -187,23 +215,80 @@ fn queue_documents(app: tauri::AppHandle) -> Result<Vec<QueueJob>, String> {
 }
 
 #[tauri::command]
+fn runtime_settings(app: tauri::AppHandle) -> Result<RuntimeSettings, String> {
+    open_queue(&app)?.runtime_settings()
+}
+
+#[tauri::command]
+fn save_runtime_settings(
+    app: tauri::AppHandle,
+    gemma_model: String,
+    ocr_language: String,
+) -> Result<RuntimeSettings, String> {
+    let queue = open_queue(&app)?;
+    queue.save_runtime_settings(&gemma_model, &ocr_language)?;
+    queue.runtime_settings()
+}
+
+#[tauri::command]
+async fn install_gemma_model(
+    app: tauri::AppHandle,
+    model: String,
+) -> Result<ModelInstallResult, String> {
+    validate_model_name(&model)?;
+    let pull_model = model.clone();
+    let output = tauri::async_runtime::spawn_blocking(move || {
+        Command::new("ollama").arg("pull").arg(&pull_model).output()
+    })
+    .await
+    .map_err(|error| format!("Failed to join Ollama install task: {error}"))?
+    .map_err(|error| format!("Failed to run Ollama. Install Ollama first: {error}"))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    if !output.status.success() {
+        return Err(format!(
+            "Ollama failed to install {model}{}",
+            if stderr.is_empty() {
+                ".".to_string()
+            } else {
+                format!(": {stderr}")
+            }
+        ));
+    }
+
+    let queue = open_queue(&app)?;
+    let current = queue.runtime_settings()?;
+    queue.save_runtime_settings(&model, &current.ocr_language)?;
+    let settings = queue.runtime_settings()?;
+
+    Ok(ModelInstallResult {
+        model,
+        output: if stdout.is_empty() { stderr } else { stdout },
+        settings,
+    })
+}
+
+#[tauri::command]
 fn extract_document(app: tauri::AppHandle, job_id: String) -> Result<ExtractionResult, String> {
     let queue = open_queue(&app)?;
+    let settings = queue.runtime_settings()?;
     let job = queue
         .get_job(&job_id)?
         .ok_or_else(|| format!("Draft job not found: {job_id}"))?;
 
     queue.update_status(&job.id, "extracting", job.confidence)?;
 
-    let (raw_text, mut warnings) = extract_document_text(Path::new(&job.path));
+    let (raw_text, mut warnings) =
+        extract_document_text(Path::new(&job.path), &settings.ocr_language);
     let mut draft = normalize_document_draft(&job, &raw_text, Vec::new());
 
     if !raw_text.trim().is_empty() {
-        match normalize_with_gemma(&job, &raw_text) {
+        match normalize_with_gemma(&job, &raw_text, &settings.gemma_model) {
             Ok(Some(gemma_draft)) => draft = gemma_draft,
             Ok(None) => warnings.push(format!(
                 "Gemma normalization skipped because Ollama model {} is not ready.",
-                configured_gemma_model()
+                settings.gemma_model
             )),
             Err(error) => warnings.push(format!("Gemma normalization failed: {error}")),
         }
@@ -403,7 +488,7 @@ fn estimate_pages(path: &Path) -> u32 {
     1
 }
 
-fn extract_document_text(path: &Path) -> (String, Vec<String>) {
+fn extract_document_text(path: &Path, ocr_language: &str) -> (String, Vec<String>) {
     let mut warnings = Vec::new();
 
     if !path.exists() {
@@ -438,7 +523,7 @@ fn extract_document_text(path: &Path) -> (String, Vec<String>) {
         );
     }
 
-    match run_tesseract(path) {
+    match run_tesseract(path, ocr_language) {
         Ok(text) if !text.trim().is_empty() => (text, warnings),
         Ok(_) => {
             warnings.push(
@@ -473,11 +558,8 @@ fn tesseract_available() -> bool {
         .is_ok_and(|status| status.success())
 }
 
-fn run_tesseract(path: &Path) -> Result<String, String> {
-    let language = std::env::var("MICROSERVICES_DESKTOP_OCR_LANG")
-        .ok()
-        .filter(|value| !value.trim().is_empty())
-        .unwrap_or_else(|| "eng".to_string());
+fn run_tesseract(path: &Path, ocr_language: &str) -> Result<String, String> {
+    let language = normalize_ocr_language(ocr_language);
     let output = Command::new("tesseract")
         .arg(path)
         .arg("stdout")
@@ -715,13 +797,16 @@ fn last_amount_like_token(line: &str) -> Option<String> {
         .map(str::to_string)
 }
 
-fn normalize_with_gemma(job: &QueueJob, raw_text: &str) -> Result<Option<ExtractionDraft>, String> {
-    let model = configured_gemma_model();
-    if !ollama_model_available(&model) {
+fn normalize_with_gemma(
+    job: &QueueJob,
+    raw_text: &str,
+    model: &str,
+) -> Result<Option<ExtractionDraft>, String> {
+    if !ollama_model_available(model) {
         return Ok(None);
     }
 
-    let response = ollama_chat(&model, job, raw_text)?;
+    let response = ollama_chat(model, job, raw_text)?;
     let parsed = parse_json_object(&response)?;
     let mut draft: ExtractionDraft = serde_json::from_value(parsed).map_err(|error| {
         format!("Gemma response did not match extraction draft schema: {error}")
@@ -730,7 +815,7 @@ fn normalize_with_gemma(job: &QueueJob, raw_text: &str) -> Result<Option<Extract
     draft.schema_id = schema_id_for_job(job).to_string();
     draft.target_type = target_type_for_job(job).to_string();
     draft.runtime = "sidecar".to_string();
-    draft.model = Some(model);
+    draft.model = Some(model.to_string());
     draft.raw_text = Some(raw_text.trim().to_string());
     draft.confidence = draft.confidence.clamp(0.0, 1.0);
 
@@ -744,27 +829,93 @@ fn configured_gemma_model() -> String {
         .unwrap_or_else(|| DEFAULT_GEMMA_MODEL.to_string())
 }
 
+fn configured_ocr_language() -> String {
+    std::env::var("MICROSERVICES_DESKTOP_OCR_LANG")
+        .ok()
+        .map(|value| normalize_ocr_language(&value))
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| DEFAULT_OCR_LANGUAGE.to_string())
+}
+
+fn normalize_ocr_language(value: &str) -> String {
+    value
+        .trim()
+        .chars()
+        .filter(|ch| ch.is_ascii_alphanumeric() || *ch == '_' || *ch == '-')
+        .take(24)
+        .collect::<String>()
+}
+
+fn validate_model_name(model: &str) -> Result<(), String> {
+    let trimmed = model.trim();
+    if trimmed.is_empty() {
+        return Err("Select a Gemma model before installing.".to_string());
+    }
+
+    if trimmed.len() > 96
+        || !trimmed
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, ':' | '.' | '_' | '-'))
+    {
+        return Err(
+            "Model names may only contain letters, numbers, colon, dot, dash, and underscore."
+                .to_string(),
+        );
+    }
+
+    Ok(())
+}
+
+fn ollama_installed() -> bool {
+    Command::new("ollama")
+        .arg("--version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok_and(|status| status.success())
+}
+
 fn ollama_model_available(model: &str) -> bool {
-    let Ok(response) = ollama_http("GET", "/api/tags", None, Duration::from_millis(500)) else {
-        return false;
+    ollama_local_models()
+        .iter()
+        .any(|name| name == model || name.starts_with(&format!("{model}:")))
+}
+
+fn ollama_local_models() -> Vec<String> {
+    let Ok(response) = ollama_http("GET", "/api/tags", None, Duration::from_millis(700)) else {
+        return Vec::new();
     };
     let Ok(json) = serde_json::from_str::<Value>(&response) else {
-        return false;
+        return Vec::new();
     };
 
-    json.get("models")
+    let mut models = json
+        .get("models")
         .and_then(Value::as_array)
-        .is_some_and(|models| {
-            models.iter().any(|entry| {
-                entry
-                    .get("name")
-                    .and_then(Value::as_str)
-                    .is_some_and(|name| name == model || name.starts_with(&format!("{model}:")))
-            })
+        .map(|entries| {
+            entries
+                .iter()
+                .filter_map(|entry| {
+                    entry
+                        .get("name")
+                        .and_then(Value::as_str)
+                        .map(str::to_string)
+                })
+                .collect::<Vec<_>>()
         })
+        .unwrap_or_default();
+    models.sort();
+    models
 }
 
 fn ollama_chat(model: &str, job: &QueueJob, raw_text: &str) -> Result<String, String> {
+    let system_prompt = [
+        "You convert OCR text from scanned business documents into strict JSON.",
+        "Return only JSON with: schemaId, targetType, fields, tables, rawText, summary, confidence, runtime, model, warnings.",
+        "Every field must include name, value, confidence, and needsReview when uncertain.",
+        "Do not invent values; use null with low confidence when the source is unclear.",
+    ]
+    .join(" ");
     let body = json!({
         "model": model,
         "stream": false,
@@ -772,12 +923,7 @@ fn ollama_chat(model: &str, job: &QueueJob, raw_text: &str) -> Result<String, St
         "messages": [
             {
                 "role": "system",
-                "content": [
-                    "You convert OCR text from scanned business documents into strict JSON.",
-                    "Return only JSON with: schemaId, targetType, fields, tables, rawText, summary, confidence, runtime, model, warnings.",
-                    "Every field must include name, value, confidence, and needsReview when uncertain.",
-                    "Do not invent values; use null with low confidence when the source is unclear."
-                ].join(" ")
+                "content": system_prompt
             },
             {
                 "role": "user",
@@ -945,6 +1091,10 @@ impl DraftQueue {
       );
       CREATE INDEX IF NOT EXISTS idx_draft_jobs_imported_at
         ON draft_jobs(imported_at DESC);
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
       ",
         )
         .map_err(|error| format!("Failed to initialize draft queue: {error}"))?;
@@ -1073,6 +1223,71 @@ impl DraftQueue {
                 |row| row.get::<_, u32>(0),
             )
             .map_err(|error| format!("Failed to count pending drafts: {error}"))
+    }
+
+    fn runtime_settings(&self) -> Result<RuntimeSettings, String> {
+        let gemma_model = self
+            .setting("gemma_model")?
+            .unwrap_or_else(configured_gemma_model);
+        let ocr_language = self
+            .setting("ocr_language")?
+            .unwrap_or_else(configured_ocr_language);
+        let installed_models = ollama_local_models();
+
+        Ok(RuntimeSettings {
+            selected_model_installed: installed_models.iter().any(|model| {
+                model == &gemma_model || model.starts_with(&format!("{gemma_model}:"))
+            }),
+            gemma_model,
+            ocr_language,
+            suggested_models: SUGGESTED_GEMMA_MODELS
+                .iter()
+                .map(|model| (*model).to_string())
+                .collect(),
+            installed_models,
+            ollama_installed: ollama_installed(),
+            tesseract_installed: tesseract_available(),
+        })
+    }
+
+    fn save_runtime_settings(&self, gemma_model: &str, ocr_language: &str) -> Result<(), String> {
+        validate_model_name(gemma_model)?;
+        let normalized_language = normalize_ocr_language(ocr_language);
+        if normalized_language.is_empty() {
+            return Err("Select an OCR language before saving settings.".to_string());
+        }
+
+        self.set_setting("gemma_model", gemma_model.trim())?;
+        self.set_setting("ocr_language", &normalized_language)?;
+        Ok(())
+    }
+
+    fn setting(&self, key: &str) -> Result<Option<String>, String> {
+        let mut statement = self
+            .conn
+            .prepare("SELECT value FROM app_settings WHERE key = ?1")
+            .map_err(|error| format!("Failed to prepare settings lookup: {error}"))?;
+        let mut rows = statement
+            .query_map(params![key], |row| row.get::<_, String>(0))
+            .map_err(|error| format!("Failed to query settings: {error}"))?;
+
+        rows.next()
+            .transpose()
+            .map_err(|error| format!("Failed to decode settings: {error}"))
+    }
+
+    fn set_setting(&self, key: &str, value: &str) -> Result<(), String> {
+        self.conn
+            .execute(
+                "
+        INSERT INTO app_settings (key, value)
+        VALUES (?1, ?2)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+        ",
+                params![key, value],
+            )
+            .map_err(|error| format!("Failed to save settings: {error}"))?;
+        Ok(())
     }
 }
 
@@ -1222,6 +1437,9 @@ fn main() {
             import_folder_path,
             import_document_paths,
             queue_documents,
+            runtime_settings,
+            save_runtime_settings,
+            install_gemma_model,
             extract_document,
             document_draft,
             enqueue_sample_documents
@@ -1347,5 +1565,37 @@ mod tests {
             persisted.draft.expect("draft").warnings,
             vec!["sample warning"]
         );
+    }
+
+    #[test]
+    fn runtime_settings_persist_selected_model_and_ocr_language() {
+        let workspace = tempdir().expect("temp workspace");
+        let queue = DraftQueue::open(workspace.path().join("drafts.sqlite3")).expect("draft queue");
+
+        queue
+            .save_runtime_settings("gemma4:12b", "eng")
+            .expect("settings saved");
+
+        let reopened =
+            DraftQueue::open(workspace.path().join("drafts.sqlite3")).expect("reopen queue");
+        let settings = reopened.runtime_settings().expect("runtime settings");
+
+        assert_eq!(settings.gemma_model, "gemma4:12b");
+        assert_eq!(settings.ocr_language, "eng");
+        assert!(settings
+            .suggested_models
+            .contains(&"gemma4:e4b".to_string()));
+    }
+
+    #[test]
+    fn runtime_settings_rejects_unsafe_model_names() {
+        let workspace = tempdir().expect("temp workspace");
+        let queue = DraftQueue::open(workspace.path().join("drafts.sqlite3")).expect("draft queue");
+
+        let error = queue
+            .save_runtime_settings("gemma4:e4b;rm", "eng")
+            .expect_err("unsafe model rejected");
+
+        assert!(error.contains("Model names may only contain"));
     }
 }

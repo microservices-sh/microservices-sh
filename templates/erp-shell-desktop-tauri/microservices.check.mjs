@@ -6,7 +6,7 @@ export default function check({ assertFileIncludesAll }) {
   );
   assertFileIncludesAll(
     "src/App.svelte",
-    ["AppShell", "PageHeader", "MetricStrip", "ResourceTable", "Drop or Select Documents"],
+    ["AppShell", "PageHeader", "MetricStrip", "ResourceTable", "Drop or Select Documents", "Runtime settings"],
     "Desktop MVP uses the ERP shell chrome and shared UI primitives."
   );
   assertFileIncludesAll(
@@ -31,12 +31,17 @@ export default function check({ assertFileIncludesAll }) {
   );
   assertFileIncludesAll(
     "src-tauri/src/main.rs",
-    ["tesseract", "MICROSERVICES_DESKTOP_GEMMA_MODEL", "ollama", "normalize_with_gemma"],
+    ["tesseract", "MICROSERVICES_DESKTOP_GEMMA_MODEL", "ollama", "normalize_with_gemma", "install_gemma_model"],
     "Desktop extraction uses local OCR and an explicit local Gemma/Ollama adapter boundary."
   );
   assertFileIncludesAll(
+    "src-tauri/src/main.rs",
+    ["app_settings", "runtime_settings", "save_runtime_settings", "runtime_settings_persist_selected_model_and_ocr_language"],
+    "Desktop runtime settings persist local OCR/model choices."
+  );
+  assertFileIncludesAll(
     "docs/api-boundary.md",
-    ["extract_document", "document_draft", "silently download model weights"],
+    ["extract_document", "document_draft", "install_gemma_model", "silently download model weights"],
     "Desktop API boundary documents local extraction commands and the no-silent-download rule."
   );
 }

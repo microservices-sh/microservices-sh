@@ -14,18 +14,22 @@
   } from "./lib/ui";
   import {
     extractDocument,
+    getRuntimeSettings,
     getRuntimeStatus,
     getSyncStatus,
     importDocumentPaths,
+    installGemmaModel,
     loadDocumentDraft,
     loadQueueDocuments,
     listenForDroppedDocuments,
+    saveRuntimeSettings,
     selectImportFolder,
     type ExtractionDraft,
     type ExtractedField,
     type ImportFolder,
     type ImportResult,
     type QueueJob,
+    type RuntimeSettings,
     type RuntimeStatus,
     type SyncStatus
   } from "./lib/desktop";
@@ -40,15 +44,29 @@
     ocrEngine: "tesseract",
     llmEngine: "ollama"
   };
+  let runtimeSettings: RuntimeSettings = {
+    gemmaModel: "gemma4:e4b",
+    ocrLanguage: "eng",
+    suggestedModels: ["gemma4:e2b", "gemma4:e4b", "gemma4:12b", "gemma4:26b", "gemma4:31b"],
+    installedModels: [],
+    selectedModelInstalled: false,
+    ollamaInstalled: false,
+    tesseractInstalled: false
+  };
   let sync: SyncStatus = { baseUrl: "http://localhost:5174", state: "not-configured", pendingDrafts: 0 };
   let folder: ImportFolder | null = null;
   let jobs: QueueJob[] = [];
   let busy = false;
   let extractingJobId: string | null = null;
+  let installingModel = false;
+  let savingSettings = false;
   let dragActive = false;
   let activePathname = "#import";
   let selectedJobId: string | null = null;
   let selectedDraft: ExtractionDraft | null = null;
+  let settingsDraftModel = "gemma4:e4b";
+  let settingsDraftOcrLanguage = "eng";
+  let settingsMessage = "Runtime settings are local to this desktop app.";
   let importMessage = "Select a folder to create local draft jobs.";
   let metrics: Metric[] = [];
 
@@ -58,9 +76,21 @@
       items: [
         { href: "#import", label: "Import Queue", icon: "folder" },
         { href: "#runtime", label: "Local Runtime", icon: "bot" },
-        { href: "#sync", label: "Sync Status", icon: "workflow" }
+        { href: "#sync", label: "Sync Status", icon: "workflow" },
+        { href: "#settings", label: "Settings", icon: "settings" }
       ]
     }
+  ];
+
+  const ocrLanguageOptions = [
+    { value: "eng", label: "English" },
+    { value: "chi_sim", label: "Chinese Simplified" },
+    { value: "chi_tra", label: "Chinese Traditional" },
+    { value: "spa", label: "Spanish" },
+    { value: "fra", label: "French" },
+    { value: "deu", label: "German" },
+    { value: "jpn", label: "Japanese" },
+    { value: "kor", label: "Korean" }
   ];
 
   const statusLabel: Record<StatusKey, string> = {
@@ -88,6 +118,16 @@
   $: importedCount = folder?.newDocuments ?? jobs.length;
   $: selectedJob = jobs.find((job) => job.id === selectedJobId) ?? jobs.find((job) => job.draft) ?? null;
   $: activeDraft = selectedJob?.draft ?? selectedDraft;
+  $: modelOptions = Array.from(
+    new Set(
+      [...runtimeSettings.suggestedModels, ...runtimeSettings.installedModels, settingsDraftModel]
+        .map((model) => model.trim())
+        .filter(Boolean)
+    )
+  );
+  $: selectedModelInstalled = runtimeSettings.installedModels.some(
+    (model) => model === settingsDraftModel || model.startsWith(`${settingsDraftModel}:`)
+  );
   $: metrics = [
     { label: "Queued", value: jobs.length, tone: jobs.length > 0 ? "info" : "neutral", hint: "local drafts" },
     { label: "Imported", value: importedCount, tone: importedCount > 0 ? "good" : "neutral", hint: "new documents" },
@@ -97,14 +137,16 @@
   ];
 
   async function refresh() {
-    const [runtimeStatus, syncStatus, queued] = await Promise.all([
+    const [runtimeStatus, syncStatus, queued, settings] = await Promise.all([
       getRuntimeStatus(),
       getSyncStatus(),
-      jobs.length ? Promise.resolve(jobs) : loadQueueDocuments()
+      jobs.length ? Promise.resolve(jobs) : loadQueueDocuments(),
+      getRuntimeSettings()
     ]);
     runtime = runtimeStatus;
     sync = syncStatus;
     jobs = queued;
+    applyRuntimeSettings(settings);
     selectedJobId = selectedJobId ?? queued.find((job) => job.draft)?.id ?? queued[0]?.id ?? null;
   }
 
@@ -192,7 +234,47 @@
   }
 
   async function refreshRuntime() {
-    runtime = await getRuntimeStatus();
+    const [runtimeStatus, settings] = await Promise.all([getRuntimeStatus(), getRuntimeSettings()]);
+    runtime = runtimeStatus;
+    applyRuntimeSettings(settings);
+  }
+
+  function applyRuntimeSettings(settings: RuntimeSettings) {
+    runtimeSettings = settings;
+    settingsDraftModel = settings.gemmaModel;
+    settingsDraftOcrLanguage = settings.ocrLanguage;
+  }
+
+  async function saveSettings() {
+    savingSettings = true;
+    settingsMessage = "Saving runtime settings";
+
+    try {
+      const settings = await saveRuntimeSettings(settingsDraftModel, settingsDraftOcrLanguage);
+      applyRuntimeSettings(settings);
+      runtime = await getRuntimeStatus();
+      settingsMessage = "Runtime settings saved";
+    } catch (error) {
+      settingsMessage = error instanceof Error ? error.message : "Settings save failed";
+    } finally {
+      savingSettings = false;
+    }
+  }
+
+  async function installSelectedModel() {
+    installingModel = true;
+    settingsMessage = `Installing ${settingsDraftModel}`;
+
+    try {
+      const result = await installGemmaModel(settingsDraftModel);
+      applyRuntimeSettings(result.settings);
+      runtime = await getRuntimeStatus();
+      settingsMessage = `${result.model} installed`;
+    } catch (error) {
+      settingsMessage = error instanceof Error ? error.message : "Model install failed";
+    } finally {
+      installingModel = false;
+    }
   }
 
   function updateActivePathname() {
@@ -444,6 +526,68 @@
           </dl>
         </Card>
       </div>
+
+      <section id="settings" class="settings-section" aria-labelledby="settings-title">
+        <Card title="Runtime settings" class="settings-card">
+          {#snippet header()}
+            <Badge tone={selectedModelInstalled ? "good" : "warn"}>{selectedModelInstalled ? "Model Ready" : "Install Needed"}</Badge>
+          {/snippet}
+
+          <form
+            class="settings-form"
+            onsubmit={(event) => {
+              event.preventDefault();
+              void saveSettings();
+            }}
+          >
+            <div class="settings-grid">
+              <label class="setting-field" for="gemma-model">
+                <span id="settings-title">Gemma model</span>
+                <select id="gemma-model" bind:value={settingsDraftModel}>
+                  {#each modelOptions as model}
+                    <option value={model}>{model}</option>
+                  {/each}
+                </select>
+              </label>
+
+              <label class="setting-field" for="ocr-language">
+                <span>OCR language</span>
+                <select id="ocr-language" bind:value={settingsDraftOcrLanguage}>
+                  {#each ocrLanguageOptions as option}
+                    <option value={option.value}>{option.label} · {option.value}</option>
+                  {/each}
+                </select>
+              </label>
+
+              <label class="setting-field custom-model-field" for="custom-gemma-model">
+                <span>Custom model tag</span>
+                <input id="custom-gemma-model" bind:value={settingsDraftModel} spellcheck="false" />
+              </label>
+            </div>
+
+            <div class="runtime-checks" aria-label="Runtime checks">
+              <span><Badge tone={runtimeSettings.tesseractInstalled ? "good" : "bad"}>{runtimeSettings.tesseractInstalled ? "Ready" : "Missing"}</Badge> Tesseract</span>
+              <span><Badge tone={runtimeSettings.ollamaInstalled ? "good" : "bad"}>{runtimeSettings.ollamaInstalled ? "Ready" : "Missing"}</Badge> Ollama</span>
+              <span><Badge tone={selectedModelInstalled ? "good" : "warn"}>{selectedModelInstalled ? "Installed" : "Not Installed"}</Badge> {settingsDraftModel}</span>
+            </div>
+
+            <div class="settings-actions">
+              <Button type="submit" size="sm" disabled={savingSettings || installingModel}>{savingSettings ? "Saving" : "Save Settings"}</Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onclick={() => void installSelectedModel()}
+                disabled={installingModel || !settingsDraftModel}
+              >
+                {installingModel ? "Installing" : selectedModelInstalled ? "Reinstall Model" : "Install Model"}
+              </Button>
+            </div>
+
+            <p class="settings-message">{settingsMessage}</p>
+          </form>
+        </Card>
+      </section>
     </div>
   </section>
 </AppShell>

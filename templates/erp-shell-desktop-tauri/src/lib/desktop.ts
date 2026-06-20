@@ -11,6 +11,22 @@ export type RuntimeStatus = {
   llmEngine?: string;
 };
 
+export type RuntimeSettings = {
+  gemmaModel: string;
+  ocrLanguage: string;
+  suggestedModels: string[];
+  installedModels: string[];
+  selectedModelInstalled: boolean;
+  ollamaInstalled: boolean;
+  tesseractInstalled: boolean;
+};
+
+export type ModelInstallResult = {
+  model: string;
+  output: string;
+  settings: RuntimeSettings;
+};
+
 export type SyncStatus = {
   baseUrl: string;
   state: "connected" | "not-configured" | "offline";
@@ -100,6 +116,39 @@ export async function getRuntimeStatus() {
     ocrEngine: "tesseract",
     llmEngine: "ollama"
   });
+}
+
+export async function getRuntimeSettings() {
+  return call<RuntimeSettings>("runtime_settings", undefined, sampleRuntimeSettings());
+}
+
+export async function saveRuntimeSettings(gemmaModel: string, ocrLanguage: string) {
+  return call<RuntimeSettings>(
+    "save_runtime_settings",
+    { gemmaModel, ocrLanguage },
+    {
+      ...sampleRuntimeSettings(),
+      gemmaModel,
+      ocrLanguage
+    }
+  );
+}
+
+export async function installGemmaModel(model: string) {
+  return call<ModelInstallResult>(
+    "install_gemma_model",
+    { model },
+    {
+      model,
+      output: "Preview mode does not download models.",
+      settings: {
+        ...sampleRuntimeSettings(),
+        gemmaModel: model,
+        installedModels: Array.from(new Set([...sampleRuntimeSettings().installedModels, model])),
+        selectedModelInstalled: true
+      }
+    }
+  );
 }
 
 export async function getSyncStatus() {
@@ -224,6 +273,18 @@ function sampleDraft(job: QueueJob): ExtractionDraft {
     runtime: "sidecar",
     model: "gemma4:e4b",
     warnings: ["Preview data only; run in Tauri desktop mode for local OCR."]
+  };
+}
+
+function sampleRuntimeSettings(): RuntimeSettings {
+  return {
+    gemmaModel: "gemma4:e4b",
+    ocrLanguage: "eng",
+    suggestedModels: ["gemma4:e2b", "gemma4:e4b", "gemma4:12b", "gemma4:26b", "gemma4:31b"],
+    installedModels: ["gemma4:e4b"],
+    selectedModelInstalled: true,
+    ollamaInstalled: true,
+    tesseractInstalled: true
   };
 }
 

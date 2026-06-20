@@ -70,6 +70,8 @@ Built:
 - Local scanned image OCR adapter through installed Tesseract.
 - SQLite `draft_json` persistence for document-extraction-shaped drafts.
 - Optional Gemma 4 normalization through a configured local Ollama model.
+- Settings panel for selected Gemma model, OCR language, local runtime checks,
+  and explicit Ollama model install.
 - Deterministic fallback draft when OCR/model runtime is missing.
 - Queue action and draft review panel in the desktop UI.
 
@@ -103,7 +105,8 @@ Scope:
 Started:
 
 - Runtime status checks for Tesseract and the configured Ollama Gemma model.
-- `MICROSERVICES_DESKTOP_GEMMA_MODEL` configuration for local model selection.
+- Local SQLite runtime settings for model/language selection, with env vars as
+  defaults for first launch.
 - No silent model download or bundled model weights.
 
 Acceptance:

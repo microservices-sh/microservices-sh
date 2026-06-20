@@ -19,7 +19,8 @@ Rust commands own native capabilities:
 
 The Svelte UI calls Rust through Tauri commands and renders state. Current
 intake commands are `select_import_folder`, `import_document_paths`,
-`queue_documents`, `extract_document`, `document_draft`, and `sync_status`.
+`queue_documents`, `runtime_settings`, `save_runtime_settings`,
+`install_gemma_model`, `extract_document`, `document_draft`, and `sync_status`.
 
 ## Local Extraction Boundary
 
@@ -29,6 +30,8 @@ module. The native app may:
 
 - run Tesseract for scanned image OCR when it is installed locally;
 - call a configured local Ollama Gemma model when it is already installed;
+- save selected OCR language and Gemma model in the local app settings table;
+- install a selected Gemma model only after the user clicks the install action;
 - persist draft JSON in local SQLite for human review;
 - keep source file paths, hashes, confidence, warnings, and raw OCR text.
 

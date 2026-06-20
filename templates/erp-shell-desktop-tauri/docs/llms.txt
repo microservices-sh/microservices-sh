@@ -14,6 +14,10 @@ control, or batch import into a generated ERP Shell app.
 Local extraction:
 - Rust owns OCR/model commands; Svelte only invokes Tauri commands and renders
   drafts.
+- `runtime_settings` and `save_runtime_settings` persist the selected Gemma
+  model and OCR language in local SQLite.
+- `install_gemma_model` runs an explicit Ollama pull for the selected model only
+  after the user clicks install.
 - `extract_document` converts queued scanned images through local Tesseract
   when installed.
 - `document_draft` reads the persisted local extraction draft.
