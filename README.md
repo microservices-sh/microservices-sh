@@ -6,7 +6,7 @@
 [![CI](https://github.com/microservices-sh/microservices-sh/actions/workflows/ci.yml/badge.svg)](https://github.com/microservices-sh/microservices-sh/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/node/v/create-microservices-app.svg)](https://nodejs.org)
 
-Production foundations for AI-built apps on Cloudflare.
+Production foundations for AI-built apps on Cloudflare — a contract-checked Cloudflare SaaS boilerplate / starter for Workers, D1, and SvelteKit, with verified auth, payments, and multi-tenant modules.
 
 For developers using Claude Code, Cursor, Codex, or another coding agent on Cloudflare: start from working Workers, D1, and SvelteKit apps with source-visible, contract-checked modules for the dangerous production 30% — auth, identity, payments, webhooks, email, audit logs, tenant boundaries, and deploy checks. Your coding agent can inspect the docs, plan changes, run checks, and deploy when you are ready. Local generation does not require a microservices.sh account or a Cloudflare account.
 
