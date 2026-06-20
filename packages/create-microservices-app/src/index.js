@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, normalize, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
@@ -9,12 +9,14 @@ import { generateProject, listModuleDocs, listModules, listTemplates } from "@mi
 import { loadFrameworks, resolveFramework, buildC3Command, applyFrameworkHook, frameworkNextSteps } from "./framework-starter.js";
 import { track, telemetryNotice } from "./telemetry.js";
 
-const PACKAGE_VERSION = "0.2.6";
+const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
+const PACKAGE_ROOT = resolve(MODULE_DIR, "..");
+const PACKAGE_VERSION = readOwnPackageVersion(PACKAGE_ROOT);
 const USER_CWD = process.env.INIT_CWD || process.cwd();
 
 // Repo-style templates bundled into the package (see scripts/build.js). These
 // are copied verbatim instead of generated procedurally from module-contract.
-const TEMPLATES_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "..", "templates");
+const TEMPLATES_DIR = resolve(PACKAGE_ROOT, "templates");
 const REPO_TEMPLATES = {
   "booking-sveltekit": {
     id: "booking-sveltekit",
@@ -82,6 +84,15 @@ const BUNDLED_MODULES = [
   "payment",
   "support-ticket",
 ];
+
+function readOwnPackageVersion(packageRoot) {
+  try {
+    const packageJson = JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8"));
+    return typeof packageJson.version === "string" && packageJson.version ? packageJson.version : "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
 const BUNDLED_PACKAGES = new Map([
   ["@microservices-sh/connection-contract", "connection-contract"],
 ]);

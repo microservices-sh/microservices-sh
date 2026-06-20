@@ -1,0 +1,16 @@
+{
+  "name": "@microservices-sh/ops-token",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Canonical per-tenant ops-access token codec (HMAC-SHA256) shared by the minter (control-plane provisioning) and the verifier (operate app). Single source of truth — mint and verify can never drift.",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "exports": {
+    ".": { "types": "./src/index.d.ts", "import": "./src/index.js", "default": "./src/index.js" },
+    "./provisioning": { "types": "./src/provisioning.d.ts", "import": "./src/provisioning.js", "default": "./src/provisioning.js" }
+  },
+  "files": ["src"],
+  "scripts": { "build": "node --check src/index.js && node --check src/provisioning.js" },
+  "devDependencies": { "@cloudflare/workers-types": "^4.20250109.0", "typescript": "^5.9.3" }
+}

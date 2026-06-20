@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@microservices-sh/connection-contract": "workspace:*",
+    "@microservices-sh/ops-token": "workspace:*",
     "@microservices-sh/sdk-internal": "workspace:*"
   }
 }

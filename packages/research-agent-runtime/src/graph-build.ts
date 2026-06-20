@@ -18,15 +18,19 @@ const run = promisify(execFile);
 const DB_PATH = process.env.DB_PATH ?? "/data/graph.db";
 const SOURCES_DIR = process.env.SOURCES_DIR ?? "/data/sources";
 const OWNER_ID = process.env.OWNER_ID ?? "owner";
-// graphify CLI invocation (no shell — arg array). Override via env if needed.
+// graphify CLI invocation (no shell — arg array). The path comes FIRST (bare
+// `graphify <dir> [flags]` build form in graphifyy 0.3.21, pinned in the image).
+// 0.3.21 extracts via tree-sitter (no LLM key needed) and writes the
+// .graphify_*.json the loader reads; newer builds changed both the CLI and the
+// output layout and require an LLM key, so the pin matters.
 const GRAPHIFY_CMD = process.env.GRAPHIFY_CMD ?? "graphify";
 const GRAPHIFY_ARGS = (process.env.GRAPHIFY_ARGS ?? "--no-viz").split(" ").filter(Boolean);
 // Where graphify wrote the .graphify_*.json (varies by version; default = sources dir).
 const GRAPH_OUT_DIR = process.env.GRAPH_OUT_DIR ?? SOURCES_DIR;
 
 async function main() {
-  console.log(`graphify build: ${GRAPHIFY_CMD} ${[...GRAPHIFY_ARGS, SOURCES_DIR].join(" ")}`);
-  const { stdout } = await run(GRAPHIFY_CMD, [...GRAPHIFY_ARGS, SOURCES_DIR], { cwd: SOURCES_DIR, maxBuffer: 64 * 1024 * 1024 });
+  console.log(`graphify build: ${GRAPHIFY_CMD} ${[SOURCES_DIR, ...GRAPHIFY_ARGS].join(" ")}`);
+  const { stdout } = await run(GRAPHIFY_CMD, [SOURCES_DIR, ...GRAPHIFY_ARGS], { cwd: SOURCES_DIR, maxBuffer: 64 * 1024 * 1024 });
   if (stdout) console.log(stdout.slice(-500));
 
   const raw = new DatabaseSync(DB_PATH);

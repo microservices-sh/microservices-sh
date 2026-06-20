@@ -12,7 +12,7 @@ FROM node:22-slim
 WORKDIR /app
 # graphify (pip: graphifyy) for the on-box graph build job.
 RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip \
- && pip3 install graphifyy --break-system-packages -q \
+ && pip3 install "graphifyy==0.3.21" --break-system-packages -q \
  && rm -rf /var/lib/apt/lists/*
 # Self-contained bundles (workspace deps + migrations inlined by esbuild).
 COPY --from=build /app/packages/research-agent-runtime/dist/server.mjs ./server.mjs

@@ -4,12 +4,15 @@
 // Dockerfile bundles this with esbuild). Provider key comes from a Fly secret.
 import { createServer } from "node:http";
 import { readFileSync, realpathSync } from "node:fs";
-import { resolve, sep } from "node:path";
+import { resolve, sep, dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { execFile } from "node:child_process";
 import { timingSafeEqual } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { createNodeSqliteDatabase, runMigration } from "@microservices-sh/research/adapters/node-sqlite-graph";
 import { createOpenRouterProvider } from "@microservices-sh/ai-gateway/adapters/openrouter";
 import { bootResearchRuntime } from "./runtime.js";
+import { createBuildTrigger } from "./graph-build-trigger.js";
 // Migrations bundled as text (esbuild --loader:.sql=text) so they survive into
 // the image — no runtime file reads / node_modules symlink dependency.
 import researchMigration from "../../../modules/research/migrations/0001_research.sql";
@@ -63,11 +66,40 @@ const runtime = bootResearchRuntime({
   ai: { config: { provider: "openrouter", completeModel: MODEL, embedModel: "" }, providers: { openrouter: createOpenRouterProvider({ apiKey: KEY }) } }
 });
 
+// On-box graph (re)build: spawn the bundled job as a child process so graphify
+// runs out-of-band, then it reloads the graph into this same SQLite file. The
+// child inherits our env (OWNER_ID, keys, DB/SOURCES paths). One build at a time.
+const GRAPH_BUILD_SCRIPT = process.env.GRAPH_BUILD_SCRIPT
+  ?? join(dirname(fileURLToPath(import.meta.url)), "graph-build.mjs");
+const buildTrigger = createBuildTrigger(
+  (onDone) => {
+    execFile(process.execPath, [GRAPH_BUILD_SCRIPT], { env: process.env, maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) => {
+      onDone(!err, `${stdout ?? ""}${stderr ?? ""}`.slice(-2000));
+    });
+  },
+  () => new Date().toISOString()
+);
+
 createServer(async (req, res) => {
   if (req.url === "/health") {
     // Unauthenticated (Fly health checks) — must not leak config.
     res.writeHead(200, { "content-type": "application/json" });
     return res.end(JSON.stringify({ ok: true }));
+  }
+  if (req.url === "/graph-build") {
+    if (!authorized(req.headers.authorization)) {
+      res.writeHead(401, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ ok: false, error: { code: "UNAUTHORIZED" } }));
+    }
+    if (req.method === "POST") {
+      const started = buildTrigger.start();
+      res.writeHead(started ? 202 : 409, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ ok: started, status: buildTrigger.status() }));
+    }
+    if (req.method === "GET") {
+      res.writeHead(200, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ ok: true, status: buildTrigger.status() }));
+    }
   }
   if (req.method === "POST" && req.url === "/research") {
     if (!authorized(req.headers.authorization)) {

@@ -7,6 +7,7 @@ import { stdin as nodeStdin, stdout as nodeStdout } from "node:process";
 import { createInterface } from "node:readline/promises";
 import { track, telemetryNotice } from "./telemetry.js";
 import { buildHoneycomb, formatHoneycomb, formatIssues } from "./graph.js";
+import { planOpsProvisioning } from "@microservices-sh/ops-token/provisioning";
 import {
   composeApp,
   checkUpdates,
@@ -53,6 +54,12 @@ function parseArgs(argv) {
     pageUrl: null,
     url: null,
     hostname: null,
+    app: process.env.HERMES_FLY_APP ?? null,
+    org: process.env.HERMES_FLY_ORG ?? process.env.FLY_ORG ?? null,
+    region: process.env.HERMES_FLY_REGION ?? null,
+    volume: process.env.HERMES_FLY_VOLUME ?? null,
+    machineId: null,
+    dashboardUser: process.env.HERMES_DASHBOARD_BASIC_AUTH_USERNAME ?? null,
     search: null,
     level: null,
     source: null,
@@ -106,6 +113,9 @@ function parseArgs(argv) {
     } else if (value === "--api-url") {
       flags.apiUrl = argv[index + 1];
       index += 1;
+    } else if (value === "--operate-app") {
+      flags.operateApp = argv[index + 1];
+      index += 1;
     } else if (value === "--actor") {
       flags.actor = argv[index + 1];
       index += 1;
@@ -144,6 +154,24 @@ function parseArgs(argv) {
       index += 1;
     } else if (value === "--hostname") {
       flags.hostname = argv[index + 1];
+      index += 1;
+    } else if (value === "--app") {
+      flags.app = argv[index + 1];
+      index += 1;
+    } else if (value === "--org") {
+      flags.org = argv[index + 1];
+      index += 1;
+    } else if (value === "--region") {
+      flags.region = argv[index + 1];
+      index += 1;
+    } else if (value === "--volume") {
+      flags.volume = argv[index + 1];
+      index += 1;
+    } else if (value === "--machine-id") {
+      flags.machineId = argv[index + 1];
+      index += 1;
+    } else if (value === "--dashboard-user" || value === "--dashboard-username") {
+      flags.dashboardUser = argv[index + 1];
       index += 1;
     } else if (value === "--search" || value === "--q" || value === "--query") {
       flags.search = argv[index + 1];
@@ -352,6 +380,10 @@ Deploy and debug:
   microservices logs <deployment-id> [--search "..."] [--level info|warn|error]
   microservices observe logs <deployment-id> [--search "..."] [--level error]
   microservices observe errors <deployment-id> [--search "..."]
+  microservices agents hermes plan [--mode hosted|byo-fly]
+  microservices agents hermes create --mode hosted [--name "Test Hermes"]
+  microservices agents hermes list
+  microservices agents hermes status <runtime-id>
 
 Explore:
   microservices templates list
@@ -393,6 +425,12 @@ Usage:
   microservices billing status [--api-url https://api.microservices.sh] [--api-key <key>] [--json]  # alias for account billing
   microservices billing usage [--api-url https://api.microservices.sh] [--api-key <key>] [--json]  # alias for account billing
   microservices usage [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices agents hermes plan [--mode hosted|byo-fly] [--name "Test Hermes"] [--json]
+  microservices agents hermes setup --mode byo-fly [--app <fly-app>] [--org <fly-org>] [--region iad] [--json]
+  microservices agents hermes create --mode hosted [--name "Test Hermes"] [--dashboard-user admin] [--json]
+  microservices agents hermes list [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices agents hermes status <runtime-id> [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices agents hermes ops-credentials <runtime-id> --operate-app <cf-worker> [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices support ticket [--subject "..."] [--description "..."] [--category bug|feature_request|account|billing|general|other] [--priority critical|high|medium|low] [--email owner@example.com] [--project-id <id>] [--deployment-id <id>] [--url <page-url>] [--json]
   microservices support tickets [--limit 25] [--json]
   microservices analyze <project-dir> --target cloudflare --agent [--json]
@@ -765,6 +803,219 @@ async function handleAccountBilling(flags, action, options = {}) {
   }
 
   const response = unknownAccountBillingCommand(action, Boolean(options.legacyAlias));
+  return flags.json ? writeJson(response) : printHuman(response, () => "");
+}
+
+async function defaultHermesMode(flags) {
+  if (flags.mode) return flags.mode;
+  const settings = await resolvedApiSettings(flags);
+  return settings.apiKey ? "hosted" : "byo-fly";
+}
+
+function hermesByoPlan(flags) {
+  const app = flags.app || "my-hermes-agent";
+  const org = flags.org || "<fly-org>";
+  const region = flags.region || "iad";
+  const volume = flags.volume || "hermes_data";
+  const dashboardUser = flags.dashboardUser || "admin";
+  const out = flags.out || "deploy/hermes-agent";
+  return {
+    ok: true,
+    requestId: `local_${Date.now().toString(36)}`,
+    data: {
+      kind: "hermes",
+      mode: "byo-fly",
+      provider: "fly",
+      target: {
+        app,
+        org,
+        region,
+        volume,
+        dashboardUser,
+        outputDirectory: out,
+      },
+      sideEffects: [
+        "create or reuse a Fly app in the customer's Fly organization",
+        "create a persistent Fly volume mounted at /opt/data",
+        "set dashboard auth and provider secrets",
+        "deploy the Hermes wrapper image",
+        "allocate shared public ingress only after auth is configured",
+      ],
+      commands: [
+        `fly apps create ${shellArg(app)} --org ${shellArg(org)}`,
+        `fly volumes create ${shellArg(volume)} --app ${shellArg(app)} --region ${shellArg(region)} --size 1`,
+        `fly secrets set HERMES_DASHBOARD_BASIC_AUTH_USERNAME=${shellArg(dashboardUser)} HERMES_DASHBOARD_BASIC_AUTH_PASSWORD='<password>' HERMES_DASHBOARD_BASIC_AUTH_SECRET='<session-secret>' -a ${shellArg(app)}`,
+        `fly deploy --config ${shellArg(`${out}/fly.toml`)} --dockerfile ${shellArg(`${out}/Dockerfile`)}`,
+        `fly ips allocate-v4 -a ${shellArg(app)} --shared`,
+      ],
+      nextSteps: [
+        "Generate or copy the Hermes Fly recipe files.",
+        "Review the side effects, then run the commands in order from a shell authenticated to the target Fly org.",
+        "Use hosted mode instead if microservices.sh should own the Fly runtime and billing gate.",
+      ],
+    },
+    warnings: org === "<fly-org>" ? ["Pass --org <fly-org> before running the BYO Fly commands."] : [],
+  };
+}
+
+function formatHermesPlan(result) {
+  const access = result.access ?? {};
+  const quota = access.quota ?? {};
+  const target = result.target ?? {};
+  return `Hermes runtime plan: ${result.mode}
+Provider: ${result.provider}
+Allowed: ${result.allowed ?? "manual"}
+Billing: ${access.planId ?? "n/a"} (${access.billingStatus ?? "n/a"})
+Quota: ${quota.used ?? 0}/${quota.limit ?? "unlimited"} ${quota.key ?? ""}
+Target: ${formatHermesTarget(target)}
+Next:
+${formatBulletList(result.nextSteps)}
+`;
+}
+
+function formatBulletList(items) {
+  return (items ?? []).map((item) => `- ${item}`).join("\n");
+}
+
+function formatHermesTarget(target) {
+  const name = target.appName ?? target.app ?? target.appNamePattern ?? "not assigned";
+  return `${name}${target.region ? ` in ${target.region}` : ""}`;
+}
+
+function formatHermesOpsCredentials(result) {
+  const plan = result.plan ?? result;
+  return `Ops read-back credentials — run these to provision:
+
+# 1. Hermes machine (Fly) — set the agent's OPS_TOKEN:
+${plan.hermesSecretCommand}
+
+# 2. Operate app (Cloudflare) — set the per-tenant OPS_VERIFY_SECRET:
+${plan.operateSecretCommand}
+
+Token expires: ${isoTime(plan.expiresAt)}
+`;
+}
+
+function formatHermesRuntime(result) {
+  const runtime = result.runtime ?? result;
+  const fly = runtime.fly ?? {};
+  return `Hermes runtime: ${runtime.id}
+Status: ${runtime.status}
+Mode: ${runtime.mode}
+Fly app: ${fly.app ?? "not provisioned"}
+URL: ${runtime.publicUrl ?? "not ready"}
+Next:
+${formatBulletList(result.nextSteps) || "- Check status later."}
+`;
+}
+
+function formatHermesRuntimeList(result) {
+  const runtimes = Array.isArray(result.runtimes) ? result.runtimes : [];
+  if (!runtimes.length) return "No hosted Hermes runtimes found.\n";
+  return `${runtimes
+    .map((runtime) => `${runtime.id} ${runtime.status} ${runtime.publicUrl ?? runtime.fly?.app ?? ""}`.trim())
+    .join("\n")}\n`;
+}
+
+async function handleHermesAgentCommand(args, flags) {
+  const command = args[2] || "plan";
+  const runtimeId = args[3];
+  const mode = await defaultHermesMode(flags);
+
+  if ((command === "plan" || command === "setup") && mode === "byo-fly") {
+    const response = hermesByoPlan(flags);
+    return flags.json ? writeJson(response) : printHuman(response, formatHermesPlan);
+  }
+
+  if (command === "setup" && mode === "hosted") {
+    const response = failResponse(
+      "HERMES_HOSTED_CREATE_REQUIRED",
+      "Hosted Hermes setup must go through the server-side billing gate.",
+      "Run `microservices agents hermes plan --mode hosted`, then `microservices agents hermes create --mode hosted`."
+    );
+    return flags.json ? writeJson(response) : printHuman(response, () => "");
+  }
+
+  if (command === "plan") {
+    const response = await apiRequest(flags, "/agents/hermes/runtimes/plan", {
+      method: "POST",
+      body: JSON.stringify({ name: flags.name ?? undefined }),
+    });
+    return flags.json ? writeJson(response) : printApiHuman(response, formatHermesPlan);
+  }
+
+  if (command === "create") {
+    if (mode !== "hosted") {
+      const response = failResponse(
+        "HERMES_HOSTED_MODE_REQUIRED",
+        "Creating a managed Hermes runtime is only supported in hosted mode.",
+        "Use `microservices agents hermes setup --mode byo-fly` for BYO Fly, or rerun with `--mode hosted`."
+      );
+      return flags.json ? writeJson(response) : printHuman(response, () => "");
+    }
+    const response = await apiRequest(flags, "/agents/hermes/runtimes", {
+      method: "POST",
+      body: JSON.stringify({
+        name: flags.name ?? undefined,
+        dashboardUser: flags.dashboardUser ?? undefined,
+        config: flags.config ?? undefined,
+      }),
+    });
+    return flags.json ? writeJson(response) : printApiHuman(response, formatHermesRuntime);
+  }
+
+  if (command === "list") {
+    const response = await apiRequest(flags, "/agents/hermes/runtimes");
+    return flags.json ? writeJson(response) : printApiHuman(response, formatHermesRuntimeList);
+  }
+
+  if (command === "status") {
+    if (!runtimeId) {
+      const response = failResponse(
+        "HERMES_RUNTIME_ID_REQUIRED",
+        "Missing hosted Hermes runtime id.",
+        "Run `microservices agents hermes list`, then `microservices agents hermes status <runtime-id>`."
+      );
+      return flags.json ? writeJson(response) : printHuman(response, () => "");
+    }
+    const response = await apiRequest(flags, `/agents/hermes/runtimes/${encodeURIComponent(runtimeId)}`);
+    return flags.json ? writeJson(response) : printApiHuman(response, formatHermesRuntime);
+  }
+
+  if (command === "ops-credentials") {
+    if (!runtimeId) {
+      const response = failResponse(
+        "HERMES_RUNTIME_ID_REQUIRED",
+        "Missing hosted Hermes runtime id.",
+        "Run `microservices agents hermes ops-credentials <runtime-id> --operate-app <name>`."
+      );
+      return flags.json ? writeJson(response) : printHuman(response, () => "");
+    }
+    const grantResponse = await apiRequest(flags, `/agents/hermes/runtimes/${encodeURIComponent(runtimeId)}/ops-grant`);
+    if (!grantResponse?.ok) {
+      return flags.json ? writeJson(grantResponse) : printApiHuman(grantResponse, () => "");
+    }
+    const { grant, target } = grantResponse.data;
+    const operateApp = flags.operateApp || target?.operateApp;
+    if (!operateApp) {
+      const response = failResponse(
+        "HERMES_OPERATE_APP_REQUIRED",
+        "The operate app name is required to emit the verify-secret command.",
+        "Pass --operate-app <cloudflare-worker-name>."
+      );
+      return flags.json ? writeJson(response) : printHuman(response, () => "");
+    }
+    const plan = await planOpsProvisioning({ grant, hermesApp: target?.hermesApp, operateApp });
+    const response = { ok: true, data: { plan } };
+    return flags.json ? writeJson(response) : printApiHuman(response, formatHermesOpsCredentials);
+  }
+
+  const response = failResponse(
+    "UNKNOWN_HERMES_COMMAND",
+    `Unknown Hermes command: ${command}.`,
+    "Use `plan`, `setup`, `create`, `list`, `status`, or `ops-credentials`.",
+    { command }
+  );
   return flags.json ? writeJson(response) : printHuman(response, () => "");
 }
 
@@ -3345,6 +3596,10 @@ API:       ${result.apiUrl}
   if (resource === "usage") {
     response = await apiRequest(flags, "/usage");
     return flags.json ? writeJson(response) : printApiHuman(response, formatUsageStatus);
+  }
+
+  if (resource === "agents" && action === "hermes") {
+    return handleHermesAgentCommand(args, flags);
   }
 
   if (resource === "support" && (action === "ticket" || action === "create")) {
