@@ -1755,6 +1755,7 @@ impl DraftQueue {
             .map_err(|error| format!("Failed to count draft edits: {error}"))
     }
 
+    #[cfg(test)]
     fn pending_count(&self) -> Result<u32, String> {
         self.conn
             .query_row(
