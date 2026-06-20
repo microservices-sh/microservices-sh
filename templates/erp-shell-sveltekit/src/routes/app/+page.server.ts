@@ -1,8 +1,8 @@
 import type { PageServerLoad } from "./$types";
 import { listMembers } from "@microservices-sh/org-team-rbac";
 import { listCustomers } from "@microservices-sh/customer";
-import { listInvoices } from "@microservices-sh/invoice";
-import { listTickets } from "@microservices-sh/support-ticket";
+import { listInvoicesScoped, authContext } from "@microservices-sh/invoice";
+import { listTicketsScoped } from "@microservices-sh/support-ticket";
 import { listEvents } from "@microservices-sh/audit-log";
 import { listNotifications } from "@microservices-sh/notifications-inapp";
 import { money, relativeTime, humanizeEvent } from "$lib/format";
@@ -26,11 +26,14 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
   // joined in-memory by customer id / email so the page tells one story.
   // The /app layout guarantees locals.user, so notifications scope to it directly.
   const userId = locals.user!.id;
+  // Enforced boundary (plan 33): the dashboard reads go through the session-scoped
+  // wrappers, so tenantId is the active org, never request-derived.
+  const ctx = authContext({ orgId: activeOrgId, actorId: userId, roles: [] });
   const [members, customers, invoices, tickets, events, notifications] = await Promise.all([
     listMembers(activeOrgId, { store: locals.rbacStore }),
     listCustomers({ customerRepository: locals.customerRepository }),
-    listInvoices({ tenantId: activeOrgId }, { invoiceStore: locals.invoiceStore }),
-    listTickets({ tenantId: activeOrgId }, { store: locals.ticketStore }),
+    listInvoicesScoped(ctx, {}, { invoiceStore: locals.invoiceStore }),
+    listTicketsScoped(ctx, {}, { store: locals.ticketStore }),
     listEvents({ limit: 8 }, { auditStore: locals.auditStore }),
     listNotifications(
       { userId, unreadOnly: true, limit: 5 },

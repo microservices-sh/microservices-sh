@@ -1,9 +1,9 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { error, fail, redirect } from "@sveltejs/kit";
 import { getCustomer, upsertCustomer } from "@microservices-sh/customer";
-import { listInvoices } from "@microservices-sh/invoice";
-import { listFiles } from "@microservices-sh/file-media";
-import { listTickets } from "@microservices-sh/support-ticket";
+import { listInvoicesScoped, authContext } from "@microservices-sh/invoice";
+import { listFilesScoped } from "@microservices-sh/file-media";
+import { listTicketsScoped } from "@microservices-sh/support-ticket";
 import { listEvents, recordEvent } from "@microservices-sh/audit-log";
 import { requireOrgPermission, loadCompanyContext } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
@@ -44,10 +44,13 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
 
   // Cross-module 360: invoices by customerId, files by ownerId, tickets by
   // requester email, history from the audit log scoped to this customer entity.
+  // Enforced boundary (plan 33): each read is scoped to the session org; the
+  // customerId/ownerId narrow within that scope, they don't set the tenant.
+  const ctx = authContext({ orgId: activeOrgId, actorId: locals.user.id, roles: permissions });
   const [invoicesResult, filesResult, ticketsResult, eventsResult] = await Promise.all([
-    listInvoices({ tenantId: activeOrgId, customerId: customer.id }, { invoiceStore: locals.invoiceStore }),
-    listFiles({ tenantId: activeOrgId, ownerId: customer.id }, { mediaStore: locals.mediaStore }),
-    listTickets({ tenantId: activeOrgId }, { store: locals.ticketStore }),
+    listInvoicesScoped(ctx, { customerId: customer.id }, { invoiceStore: locals.invoiceStore }),
+    listFilesScoped(ctx, { ownerId: customer.id }, { mediaStore: locals.mediaStore }),
+    listTicketsScoped(ctx, {}, { store: locals.ticketStore }),
     listEvents({ entityType: "customer", entityId: customer.id, limit: 20 }, { auditStore: locals.auditStore })
   ]);
 
