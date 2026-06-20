@@ -5,7 +5,7 @@
 [![license](https://img.shields.io/npm/l/create-microservices-app.svg)](https://www.npmjs.com/package/create-microservices-app)
 [![node](https://img.shields.io/node/v/create-microservices-app.svg)](https://nodejs.org)
 
-Scaffold a Cloudflare-native SaaS app - Workers, D1, SvelteKit or Hono, with source-visible [microservices.sh](https://microservices.sh) modules and a project CLI - in one command.
+The Cloudflare SaaS starter / boilerplate that scaffolds a production-shaped app in one command — Cloudflare Workers, D1, and your choice of SvelteKit or Hono, wired to source-visible [microservices.sh](https://microservices.sh) modules (auth, booking, payment, email) and a project CLI.
 
 ## Quick start
 
@@ -33,6 +33,26 @@ Requires **Node.js >= 20**. The first argument (`my-app`) is the app directory a
 - `microservices.lock.json` and LLM-readable module docs under `docs/`
 - A project CLI exposed as `<pm> microservices` — `modules list`, `add --plan`, `upgrade --plan`, `check`, `updates`, and managed deploy commands
 - In Corporate OS mode, a company intake file plus operating, research, advisory, and pilot docs
+
+## Why this
+
+Most "SaaS boilerplate" generators hand you a Vercel/Node + Postgres stack and a pile of files to maintain. This one is Cloudflare-native and module-based:
+
+- **Edge-native by default** — Cloudflare Workers + D1, deployed to the edge, no separate database service to provision.
+- **Source-visible modules, not a black box** — auth, booking, payment, email, billing, and more are real contract-checked modules you can read, upgrade (`add --plan` / `upgrade --plan`), and own.
+- **A CLI that stays with the project** — `<pm> microservices` keeps managing modules, checks, and managed deploys after scaffolding, instead of running once and disappearing.
+
+### Compared to other starters
+
+| | create-microservices-app | `create-t3-app` | Generic SaaS boilerplate |
+|---|---|---|---|
+| Runtime | Cloudflare Workers (edge) | Node / serverless | Node / Vercel |
+| Database | Cloudflare D1 (built in) | bring your own (Postgres) | bring your own |
+| Backend modules | contract-checked, upgradeable | none (libraries only) | copy-paste, you maintain |
+| Post-scaffold CLI | yes (`<pm> microservices`) | no | no |
+| Frontend | SvelteKit or Hono | Next.js | varies |
+
+See the full breakdown at [microservices.sh/compare/create-t3-app](https://microservices.sh/compare/create-t3-app).
 
 ## Templates
 
