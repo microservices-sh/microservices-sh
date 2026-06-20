@@ -18,6 +18,10 @@ export {
   listSubmissionsScoped,
   reviewSubmissionScoped
 } from "./use-cases/scoped";
+// Re-export the auth primitive so consumers of the *Scoped use-cases have a
+// validated way to build the AuthContext they require (plan 33).
+export { authContext } from "@microservices-sh/connection-contract";
+export type { AuthContext } from "@microservices-sh/connection-contract";
 export { validateSubmission, validateAttachment } from "./validate-submission";
 export { createD1FormStore } from "./adapters/d1-form-store";
 export { createMemoryFormStore } from "./adapters/memory-form-store";

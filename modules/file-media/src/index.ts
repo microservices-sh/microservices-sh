@@ -15,6 +15,10 @@ export {
   deleteFileScoped,
   getFileScoped
 } from "./use-cases/scoped";
+// Re-export the auth primitive so consumers of the *Scoped use-cases have a
+// validated way to build the AuthContext they require (plan 33).
+export { authContext } from "@microservices-sh/connection-contract";
+export type { AuthContext } from "@microservices-sh/connection-contract";
 export { buildObjectKey, sanitizeFileName, keyBelongsToTenant } from "./keys";
 export { createD1MediaStore } from "./adapters/d1-media-store";
 export { createMemoryMediaStore } from "./adapters/memory-media-store";
