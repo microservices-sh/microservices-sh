@@ -13,6 +13,7 @@
     "@microservices-sh/audit-log": "workspace:*",
     "@microservices-sh/billing-subscriptions": "workspace:*",
     "@microservices-sh/booking": "workspace:*",
+    "@microservices-sh/calendar-google": "workspace:*",
     "@microservices-sh/customer": "workspace:*",
     "@microservices-sh/file-media": "workspace:*",
     "@microservices-sh/forms-intake": "workspace:*",
