@@ -22,7 +22,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-  | sh -s -- -y --profile minimal --default-toolchain 1.95.0
+  | sh -s -- -y --profile minimal --default-toolchain 1.88.0
 
 RUN corepack enable pnpm \
   && corepack prepare pnpm@10.33.0 --activate

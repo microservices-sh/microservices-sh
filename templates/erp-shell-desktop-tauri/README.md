@@ -22,6 +22,21 @@ pnpm check:spec
 pnpm microservices check --json
 ```
 
+## macOS Development
+
+Install Xcode Command Line Tools and Rust first:
+
+```bash
+xcode-select --install
+rustup toolchain install 1.88.0
+rustup default 1.88.0
+```
+
+The template also includes `rust-toolchain.toml`, so `cargo` and `pnpm
+dev:desktop` use Rust `1.88.0` when run from this directory. If Cargo reports
+that crates such as `darling`, `plist`, `serde_with`, or `time` require Rust
+`1.88.0`, update the Mac's Rust toolchain with the commands above.
+
 ## Linux Docker Check
 
 The host machine needs GTK/WebKit development packages to compile Tauri on
