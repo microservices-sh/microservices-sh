@@ -8,7 +8,18 @@ Boots the GraphRAG research/advise agent for **one client** on its own Fly machi
 - `src/server.ts` — Fly entrypoint: opens node:sqlite over `/data/graph.db`, runs
   the module migrations, builds a volume-backed `ContentReader`, picks the
   OpenRouter provider (BYOK via `OPENROUTER_API_KEY` secret), serves `/health` + `POST /research`.
-- Graph is built off-box by `graphify` and loaded via `runtime.loadGraph(...)`.
+- `src/graph-build.ts` — on-box build job: runs `graphify` over `/data/sources`,
+  then loads the resulting `.graphify_*.json` into the SQLite graph via
+  `loadGraphFromDir` → `runtime.loadGraph`. Run on a cron or manually.
+- `src/graph-load.ts` — pure bridge (graphify JSON → `runtime.loadGraph`), tested.
+
+## Build / refresh the graph (per client)
+Drop the client's files in `/data/sources`, then:
+```
+fly ssh console -a acme-research-agent -C "node /app/graph-build.mjs"
+# or schedule it: fly machine run ... node graph-build.mjs   (nightly/weekly)
+```
+graphify runs on the box (it's in the image); the query path never runs graphify.
 
 ## Deploy (per client)
 ```
