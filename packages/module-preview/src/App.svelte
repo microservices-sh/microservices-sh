@@ -1,11 +1,12 @@
 <script lang="ts">
-  // Shared design-system tokens — the single source of truth. No hardcoded hex.
+  // Shared design-system tokens + the canonical app shell. The preview renders
+  // INSIDE the real AppShell (same one the ERP/SaaS templates use) — single
+  // source of truth for shell + module surfaces, no hardcoded chrome.
   import "@microservices-sh/ui/tokens.css";
+  import { AppShell, Button } from "@microservices-sh/ui";
+  import { onMount } from "svelte";
   import MarketingResearchPreview from "@microservices-sh/marketing-research/preview";
 
-  // Demo states (real community-listening findings) so previews render without a
-  // live engine. Each registered module supplies its Preview + demo data; adding
-  // a module here is the whole cost of giving it a standard, DS-consistent preview.
   const DEMO_BRIEF = {
     topic: "Cloudflare Workers",
     summary: "Builders are hand-rolling the 30% (auth, multi-tenant, webhooks); cited 3 signals.",
@@ -28,15 +29,24 @@
   };
 
   const MODULES = [{ id: "marketing-research", name: "Marketing Research", Preview: MarketingResearchPreview }];
-  let activeId = $state(MODULES[0].id);
-  const active = $derived(MODULES.find((m) => m.id === activeId)!);
+
+  // Hash-based nav (no router): AppShell highlights the item whose href matches pathname.
+  let pathname = $state(`/${MODULES[0].id}`);
+  onMount(() => {
+    const sync = () => (pathname = location.hash ? `/${location.hash.slice(1)}` : `/${MODULES[0].id}`);
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  });
+  const activeId = $derived(pathname.replace(/^\//, "") || MODULES[0].id);
+  const active = $derived(MODULES.find((m) => m.id === activeId) ?? MODULES[0]);
+
+  const nav = [{ section: "Modules", items: MODULES.map((m) => ({ href: `#${m.id}`, label: m.name })) }];
 
   let brief = $state<any>(DEMO_BRIEF);
   let refused = $state<any>(null);
   let busy = $state(false);
 
-  // Live: POST to the dev middleware which runs the real module + /last30days.
-  // Static build (no backend) falls back to a demo brief.
   async function onrun(topic: string, channels: string[]) {
     busy = true;
     try {
@@ -58,39 +68,12 @@
   }
 </script>
 
-<div class="shell">
-  <aside>
-    <div class="brand">microservices.sh<span> · module preview</span></div>
-    <nav>
-      {#each MODULES as m}
-        <button class:active={m.id === activeId} onclick={() => (activeId = m.id)}>{m.name}</button>
-      {/each}
-    </nav>
-    <div class="states">
-      <span class="lbl">demo state</span>
-      <button onclick={showRefusalDemo}>Preview refusal</button>
-    </div>
-    <p class="note">Live in <code>vite dev</code> (real /last30days engine); demo data in the static build. Same Preview component as the template route. DS tokens from @microservices-sh/ui.</p>
-  </aside>
-  <main>
-    {#key activeId}
-      {@const Preview = active.Preview}
-      <Preview {brief} {refused} {busy} {onrun} />
-    {/key}
-  </main>
-</div>
-
-<style>
-  :global(body) { margin: 0; background: var(--color-paper); color: var(--color-ink); font-family: var(--font-sans); }
-  .shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
-  aside { border-right: 1px solid var(--color-line); padding: 1.4rem 1.1rem; background: var(--color-panel-subtle); display: flex; flex-direction: column; gap: 1.1rem; }
-  .brand { font-weight: 650; font-size: 0.95rem; }
-  .brand span { color: var(--color-ink-faint); font-weight: 400; }
-  nav { display: flex; flex-direction: column; gap: 0.3rem; }
-  nav button, .states button { text-align: left; background: transparent; border: 1px solid transparent; color: var(--color-ink-soft); padding: 0.45rem 0.6rem; border-radius: 8px; cursor: pointer; font: inherit; }
-  nav button.active, .states button.active { background: var(--color-panel); border-color: var(--color-line-strong); color: var(--color-ink); }
-  .states { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
-  .states .lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-ink-faint); width: 100%; }
-  .note { font-size: 0.7rem; color: var(--color-ink-faint); margin-top: auto; line-height: 1.4; }
-  main { padding: 2rem 2.4rem; max-width: 860px; }
-</style>
+<AppShell {nav} {pathname} brandHref="#" footer={{ title: "Module Preview", subtitle: "@microservices-sh/ui" }} status="dev · demo synthesizer">
+  {#snippet actions()}
+    <Button variant="ghost" size="sm" onclick={showRefusalDemo}>Preview refusal</Button>
+  {/snippet}
+  {#key activeId}
+    {@const Preview = active.Preview}
+    <Preview {brief} {refused} {busy} {onrun} />
+  {/key}
+</AppShell>
