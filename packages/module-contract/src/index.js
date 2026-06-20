@@ -576,6 +576,102 @@ const MODULES = Object.freeze([
     },
   },
   {
+    id: "document-extraction",
+    name: "Document Extraction",
+    version: "0.1.0",
+    status: "draft",
+    category: "core",
+    summary:
+      "Local-first scanned document extraction: file references, OCR/LLM drafts, schema normalization, source evidence, human review, and governed Gemma/AI fallback.",
+    requires: [],
+    optional: ["auth", "org-team-rbac", "audit-log", "file-media", "forms-intake", "ai-gateway", "jobs-workflows", "invoice", "customer", "support-ticket"],
+    storage: ["d1"],
+    runtime: {
+      framework: "hono",
+      mount: "/documents",
+      bindings: ["DB"],
+    },
+    surfaces: moduleSurfaces({
+      admin: {
+        applicable: true,
+        nav: [{ label: "Documents", path: "/documents", permission: "document-extraction.read", icon: "FileText" }],
+      },
+      visitor: {
+        applicable: true,
+        featureKey: "documentIntake",
+      },
+      agentic: {
+        applicable: true,
+        tools: [
+          "document-extraction.createExtractionJob",
+          "document-extraction.submitExtractionDraft",
+          "document-extraction.reviewExtraction",
+          "document-extraction.getExtractionJob",
+          "document-extraction.listExtractionJobs",
+          "document-extraction.normalizeExtraction",
+        ],
+        approvalRequired: [
+          "document-extraction.reviewExtraction",
+          "document-extraction.normalizeExtraction",
+          "document-extraction.modelDownload",
+          "ai-gateway.complete",
+        ],
+      },
+    }),
+    eventsEmitted: [
+      "document-extraction.job_created",
+      "document-extraction.draft_submitted",
+      "document-extraction.approved",
+      "document-extraction.rejected",
+      "document-extraction.failed",
+    ],
+    eventsConsumed: [],
+    permissions: [
+      "document-extraction.read",
+      "document-extraction.write",
+      "document-extraction.review",
+      "document-extraction.admin",
+      "document-extraction.extend",
+      "document-extraction.observe",
+    ],
+    rpc: [
+      { method: "createExtractionJob", scope: "document-extraction.write", public: false },
+      { method: "submitExtractionDraft", scope: "document-extraction.write", public: false },
+      { method: "reviewExtraction", scope: "document-extraction.review", public: false },
+      { method: "getExtractionJob", scope: "document-extraction.read", public: false },
+      { method: "listExtractionJobs", scope: "document-extraction.read", public: false },
+      { method: "normalizeExtraction", scope: "document-extraction.write", public: false },
+    ],
+    hooks: [
+      {
+        name: "beforeExtractionJobCreate",
+        timing: "pre",
+        purpose: "Guard document intake, schema selection, and file references before a review job is created.",
+      },
+      {
+        name: "beforeExtractionDraftSubmit",
+        timing: "pre",
+        purpose: "Reject or adjust OCR/LLM drafts before they enter the review queue.",
+      },
+      {
+        name: "afterExtractionReviewed",
+        timing: "post",
+        purpose: "Observe approval/rejection for audit, notifications, or target-record creation.",
+      },
+    ],
+    customization: {
+      config: ["mode", "reviewRequired", "minConfidenceForApproval", "localBrowser", "gatewayFallback", "sidecar"],
+      hooks: ["beforeExtractionJobCreate", "beforeExtractionDraftSubmit", "afterExtractionReviewed"],
+      forkable: true,
+    },
+    quality: {
+      tests: { unit: true, integration: false, fixtures: true },
+      agentDocs: true,
+      migrations: true,
+      upgradeNotes: true,
+    },
+  },
+  {
     id: "operator-work",
     name: "Operator Work",
     version: "0.1.0",

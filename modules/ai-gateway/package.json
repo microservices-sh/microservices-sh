@@ -19,12 +19,15 @@
     "./ports": "./src/ports/index.ts",
     "./adapters/workers-ai": "./src/adapters/workers-ai.ts",
     "./adapters/anthropic": "./src/adapters/anthropic.ts",
-    "./adapters/openrouter": "./src/adapters/openrouter.ts"
+    "./adapters/openrouter": "./src/adapters/openrouter.ts",
+    "./adapters/gemma-ollama": "./src/adapters/gemma-ollama.ts",
+    "./adapters/gemma-openai-compatible": "./src/adapters/gemma-openai-compatible.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",
-    "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path ."
+    "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path .",
+    "test": "vitest run --root ../.. modules/ai-gateway/src/ai-gateway.test.ts modules/ai-gateway/src/adapters/adapters.test.ts"
   },
   "dependencies": { "zod": "^4.4.3" },
-  "devDependencies": { "@cloudflare/workers-types": "^4.20250109.0", "typescript": "^5.9.3" }
+  "devDependencies": { "@cloudflare/workers-types": "^4.20250109.0", "typescript": "^5.9.3", "vitest": "^3.2.4" }
 }

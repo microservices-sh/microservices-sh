@@ -1,0 +1,19 @@
+# Document Extraction Module
+
+Module ID: document-extraction
+Status: draft
+Purpose: Local-first scanned document extraction with schema-normalized drafts,
+human review, source evidence, and governed Gemma/AI fallback.
+Entrypoint: src/index.ts
+Check: pnpm check:spec
+Build: pnpm build
+
+Use cases:
+- Create extraction jobs for uploaded/scanned files.
+- Submit extracted drafts from browser OCR/local LLM, ai-gateway, or sidecar runtimes.
+- Review and approve/reject extracted output before writing business records.
+
+Model boundary:
+- Use `createGemmaExtractionNormalizer` for OCR-text-to-schema normalization.
+- Use `ai-gateway` Gemma adapters for Ollama or OpenAI-compatible Gemma 4 endpoints.
+- Do not silently download models or bypass human review.

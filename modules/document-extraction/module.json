@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "document-extraction",
+  "name": "Document Extraction",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Local-first scanned document extraction: file references, OCR/LLM drafts, schema normalization, source evidence, human review, and governed Gemma/AI fallback.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    { "type": "d1", "binding": "DB", "tables": ["document_extraction_jobs"] }
+  ],
+  "permissions": [
+    "document-extraction.read",
+    "document-extraction.write",
+    "document-extraction.review",
+    "document-extraction.admin",
+    "document-extraction.extend",
+    "document-extraction.observe"
+  ],
+  "connections": {
+    "requires": [],
+    "optional": ["auth", "org-team-rbac", "audit-log", "file-media", "forms-intake", "ai-gateway", "jobs-workflows", "invoice", "customer", "support-ticket"],
+    "rpc": {
+      "exposes": [
+        { "method": "createExtractionJob", "scope": "document-extraction.write", "public": false },
+        { "method": "submitExtractionDraft", "scope": "document-extraction.write", "public": false },
+        { "method": "reviewExtraction", "scope": "document-extraction.review", "public": false },
+        { "method": "getExtractionJob", "scope": "document-extraction.read", "public": false },
+        { "method": "listExtractionJobs", "scope": "document-extraction.read", "public": false },
+        { "method": "normalizeExtraction", "scope": "document-extraction.write", "public": false }
+      ],
+      "calls": [
+        { "module": "ai-gateway", "method": "complete", "scope": "ai.invoke", "optional": true }
+      ]
+    },
+    "events": {
+      "emits": [
+        "document-extraction.job_created",
+        "document-extraction.draft_submitted",
+        "document-extraction.approved",
+        "document-extraction.rejected",
+        "document-extraction.failed"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeExtractionJobCreate": { "kind": "filter", "scope": "document-extraction.extend" },
+      "beforeExtractionDraftSubmit": { "kind": "filter", "scope": "document-extraction.extend" },
+      "afterExtractionReviewed": { "kind": "observer", "scope": "document-extraction.observe" }
+    },
+    "provides": { "hooks": [] }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Documents", "path": "/documents", "permission": "document-extraction.read", "icon": "FileText" }],
+      "referenceUi": ["reference-ui/admin/README.md"]
+    },
+    "visitor": {
+      "applicable": true,
+      "featureKey": "documentIntake",
+      "referenceUi": ["reference-ui/visitor/README.md"]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": [
+        "document-extraction.createExtractionJob",
+        "document-extraction.submitExtractionDraft",
+        "document-extraction.reviewExtraction",
+        "document-extraction.getExtractionJob",
+        "document-extraction.listExtractionJobs",
+        "document-extraction.normalizeExtraction"
+      ],
+      "skillPaths": ["skills/document-extraction-operator/SKILL.md"],
+      "approvalRequiredFor": [
+        "document-extraction.reviewExtraction",
+        "document-extraction.normalizeExtraction",
+        "document-extraction.modelDownload",
+        "ai-gateway.complete"
+      ]
+    }
+  },
+  "skills": [
+    {
+      "id": "document-extraction-operator",
+      "path": "skills/document-extraction-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "document-intake", "data-migration", "provider-costs"]
+    }
+  ],
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": ["migrations", "pii-fields", "model-download", "ai-provider-calls", "production-deploy", "external-side-effects"]
+  }
+}

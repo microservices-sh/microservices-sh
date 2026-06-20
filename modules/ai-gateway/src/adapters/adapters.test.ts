@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createWorkersAiProvider } from "./workers-ai";
 import { createAnthropicProvider } from "./anthropic";
+import { createGemmaOllamaProvider } from "./gemma-ollama";
+import { createGemmaOpenAiCompatibleProvider } from "./gemma-openai-compatible";
 
 describe("workers-ai adapter", () => {
   it("completes via env.AI.run and maps response + usage", async () => {
@@ -76,5 +78,58 @@ describe("anthropic adapter", () => {
   it("does not support embeddings (Anthropic has no embeddings API)", async () => {
     const provider = createAnthropicProvider({ messages: { async create() { return {}; } } });
     await expect(provider.embed({ model: "x", texts: ["a"] })).rejects.toThrow(/embedding/i);
+  });
+});
+
+describe("gemma ollama adapter", () => {
+  it("maps Ollama chat responses and usage", async () => {
+    const calls: any[] = [];
+    const provider = createGemmaOllamaProvider({
+      baseUrl: "http://ollama.test",
+      fetch: async (url: any, init: any) => {
+        calls.push({ url, body: JSON.parse(init.body) });
+        return new Response(JSON.stringify({ message: { content: "{\"ok\":true}" }, prompt_eval_count: 11, eval_count: 4 }));
+      }
+    });
+
+    const result = await provider.complete({
+      model: "gemma4:e2b",
+      messages: [{ role: "user", content: "extract" }],
+      maxTokens: 128,
+      temperature: 0
+    });
+
+    expect(result.text).toBe("{\"ok\":true}");
+    expect(result.usage).toEqual({ inputTokens: 11, outputTokens: 4 });
+    expect(calls[0].url).toBe("http://ollama.test/api/chat");
+    expect(calls[0].body).toMatchObject({ model: "gemma4:e2b", stream: false, options: { num_predict: 128, temperature: 0 } });
+  });
+});
+
+describe("gemma openai-compatible adapter", () => {
+  it("maps OpenAI-compatible chat responses and optional auth", async () => {
+    const calls: any[] = [];
+    const provider = createGemmaOpenAiCompatibleProvider({
+      baseUrl: "https://vllm.test/v1/",
+      apiKey: "sk-test",
+      fetch: async (url: any, init: any) => {
+        calls.push({ url, headers: init.headers, body: JSON.parse(init.body) });
+        return new Response(JSON.stringify({
+          choices: [{ message: { content: "{\"vendor\":\"Acme\"}" } }],
+          usage: { prompt_tokens: 22, completion_tokens: 8 }
+        }));
+      }
+    });
+
+    const result = await provider.complete({
+      model: "google/gemma-4-12b-it",
+      messages: [{ role: "user", content: "normalize invoice" }]
+    });
+
+    expect(result.text).toBe("{\"vendor\":\"Acme\"}");
+    expect(result.usage).toEqual({ inputTokens: 22, outputTokens: 8 });
+    expect(calls[0].url).toBe("https://vllm.test/v1/chat/completions");
+    expect(calls[0].headers.Authorization).toBe("Bearer sk-test");
+    expect(calls[0].body.model).toBe("google/gemma-4-12b-it");
   });
 });

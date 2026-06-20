@@ -9,7 +9,14 @@ import { z } from "zod";
 
 export type Actor = { id: string; tenantId?: string; scopes: string[] };
 
-export type AiProviderId = "workers-ai" | "anthropic" | "openai" | "gemini";
+export type AiProviderId =
+  | "workers-ai"
+  | "anthropic"
+  | "openai"
+  | "gemini"
+  | "openrouter"
+  | "gemma-ollama"
+  | "gemma-openai-compatible";
 
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
