@@ -14,6 +14,7 @@
     "@microservices-sh/forms-intake": "workspace:*",
     "@microservices-sh/invoice": "workspace:*",
     "@microservices-sh/marketing-research": "workspace:*",
+    "@microservices-sh/support-ticket": "workspace:*",
     "@microservices-sh/ui": "workspace:*"
   },
   "devDependencies": {
