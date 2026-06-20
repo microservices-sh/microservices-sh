@@ -61,8 +61,108 @@ export type JobHandler = (payload: Record<string, unknown>, job: Job) => Promise
 // (Plan 25 §4). `name` matches the manifest connections.events.emits set.
 export type JobEventName = "job.enqueued" | "job.succeeded" | "job.retried" | "job.dead" | "job.scheduled";
 
+export type WorkflowDefinitionStatus = "draft" | "active" | "archived";
+export type WorkflowRunStatus = "queued" | "running" | "waiting" | "succeeded" | "failed" | "canceled";
+export type WorkflowStepRunStatus = "pending" | "running" | "waiting" | "succeeded" | "failed" | "dead" | "skipped";
+export type WorkflowStepKind = "tool" | "agent" | "approval" | "condition" | "wait" | "emit";
+
+export interface WorkflowStepDefinition {
+  id: string;
+  kind: WorkflowStepKind;
+  name?: string;
+  // Handler reference. A host app can register "agent:research" or just
+  // "research"; the runner also falls back to the step kind.
+  ref?: string;
+  input: Record<string, unknown>;
+  maxAttempts: number;
+  next: string | null;
+  onSuccess: string | null;
+  onFailure: string | null;
+}
+
+export interface WorkflowDefinition {
+  id: string;
+  ownerId: string;
+  name: string;
+  version: number;
+  status: WorkflowDefinitionStatus;
+  trigger: Record<string, unknown> | null;
+  steps: WorkflowStepDefinition[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkflowRun {
+  id: string;
+  ownerId: string;
+  definitionId: string;
+  definitionVersion: number;
+  status: WorkflowRunStatus;
+  trigger: Record<string, unknown>;
+  input: Record<string, unknown>;
+  context: Record<string, unknown>;
+  currentStepId: string | null;
+  idempotencyKey: string | null;
+  // Snapshot of the definition steps used by this run. The runner never reads a
+  // mutable definition after start, so in-flight runs stay deterministic.
+  stepDefinitions: WorkflowStepDefinition[];
+  createdAt: string;
+  updatedAt: string;
+  finishedAt: string | null;
+}
+
+export interface WorkflowStepRun {
+  id: string;
+  ownerId: string;
+  workflowRunId: string;
+  stepId: string;
+  kind: WorkflowStepKind;
+  status: WorkflowStepRunStatus;
+  attempt: number;
+  maxAttempts: number;
+  input: Record<string, unknown>;
+  output: Record<string, unknown> | null;
+  error: string | null;
+  runAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkflowStepContext {
+  workflowRun: WorkflowRun;
+  stepRun: WorkflowStepRun;
+  step: WorkflowStepDefinition;
+  correlationId: string;
+  now: () => number;
+}
+
+export interface WorkflowStepResult {
+  status?: "succeeded" | "waiting" | "failed";
+  output?: Record<string, unknown>;
+  error?: string;
+  nextStepId?: string | null;
+  contextPatch?: Record<string, unknown>;
+}
+
+export type WorkflowStepHandler = (
+  input: Record<string, unknown>,
+  context: WorkflowStepContext
+) => Promise<void | WorkflowStepResult>;
+
+export type WorkflowStepHandlerRegistry = Record<string, WorkflowStepHandler>;
+
+export type WorkflowEventName =
+  | "workflow.defined"
+  | "workflow.started"
+  | "workflow.step.succeeded"
+  | "workflow.waiting"
+  | "workflow.succeeded"
+  | "workflow.failed";
+
 export interface DomainEvent {
-  name: JobEventName;
+  name: JobEventName | WorkflowEventName;
   correlationId: string;
   payload: Record<string, unknown>;
 }

@@ -1,6 +1,7 @@
 # ERP Shell Desktop Roadmap
 
-Status: M1 local intake foundation validated on Linux native checks.
+Status: M1 local intake foundation validated on Linux native checks; M2 local
+image OCR slice started.
 
 This template is the desktop companion for generated ERP Shell apps. It is not
 the canonical ERP database. Its job is to make local document intake,
@@ -14,7 +15,7 @@ on macOS and Windows.
 | `browser-preview` | Review the UI without launching Tauri. | Built |
 | `desktop-connected` | Read local files, keep draft state locally, sync to the ERP backend. | In progress |
 | `desktop-local-first` | Queue and review extraction while offline; sync after approval. | Later |
-| `offline-extraction` | Run OCR and local LLM extraction without cloud dependency. | Later |
+| `offline-extraction` | Run OCR and local LLM extraction without cloud dependency. | Started for scanned images |
 
 ## Milestones
 
@@ -62,6 +63,16 @@ Acceptance:
 
 ### M2 — OCR and Extraction Review
 
+State: started.
+
+Built:
+
+- Local scanned image OCR adapter through installed Tesseract.
+- SQLite `draft_json` persistence for document-extraction-shaped drafts.
+- Optional Gemma 4 normalization through a configured local Ollama model.
+- Deterministic fallback draft when OCR/model runtime is missing.
+- Queue action and draft review panel in the desktop UI.
+
 Scope:
 
 - OCR adapter for scanned images and image-only PDFs.
@@ -88,6 +99,12 @@ Scope:
 - Adapter boundary for Ollama, llama.cpp/GGUF, and future cloud fallback.
 - Gemma-family models as one supported option when available in the selected
   local runtime.
+
+Started:
+
+- Runtime status checks for Tesseract and the configured Ollama Gemma model.
+- `MICROSERVICES_DESKTOP_GEMMA_MODEL` configuration for local model selection.
+- No silent model download or bundled model weights.
 
 Acceptance:
 
@@ -156,9 +173,10 @@ not when it merely proves local OCR.
 
 ## Next Engineering Slice
 
-1. Add watched folder configuration and a persisted import source list.
-2. Add PDF/image metadata extraction beyond the current one-page placeholder.
-3. Add a real `desktop-connected` configuration shape for backend sync URL and
+1. Add image preprocessing and image-only PDF page extraction before OCR.
+2. Add editable field review and approve/reject controls for saved drafts.
+3. Add watched folder configuration and a persisted import source list.
+4. Add a real `desktop-connected` configuration shape for backend sync URL and
    workspace identity.
-4. Add document-extraction sync API contracts.
-5. Keep Docker Linux checks green while adding macOS/Windows CI packaging.
+5. Add document-extraction sync API contracts.
+6. Keep Docker Linux checks green while adding macOS/Windows CI packaging.

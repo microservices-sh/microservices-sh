@@ -1,4 +1,13 @@
-import type { Job, JobFilter, JobRun, JobSchedule } from "../types";
+import type {
+  Job,
+  JobFilter,
+  JobRun,
+  JobSchedule,
+  WorkflowDefinition,
+  WorkflowRun,
+  WorkflowRunStatus,
+  WorkflowStepRun
+} from "../types";
 
 export interface JobStore {
   insert(job: Job): Promise<void>;
@@ -30,4 +39,32 @@ export interface ScheduleStore {
 // remains the source of truth; the queue is only a wake-up signal.
 export interface QueueProducer {
   send(jobId: string): Promise<void>;
+}
+
+export interface WorkflowDefinitionStore {
+  insert(definition: WorkflowDefinition): Promise<void>;
+  get(id: string): Promise<WorkflowDefinition | null>;
+}
+
+export interface WorkflowRunFilter {
+  ownerId?: string;
+  definitionId?: string;
+  status?: WorkflowRunStatus;
+  limit?: number;
+}
+
+export interface WorkflowRunStore {
+  insert(run: WorkflowRun): Promise<void>;
+  get(id: string): Promise<WorkflowRun | null>;
+  findByIdempotencyKey(ownerId: string, key: string): Promise<WorkflowRun | null>;
+  update(run: WorkflowRun): Promise<void>;
+  list(filter: WorkflowRunFilter): Promise<WorkflowRun[]>;
+}
+
+export interface WorkflowStepRunStore {
+  insert(stepRun: WorkflowStepRun): Promise<void>;
+  get(id: string): Promise<WorkflowStepRun | null>;
+  getForRunStep(workflowRunId: string, stepId: string): Promise<WorkflowStepRun | null>;
+  update(stepRun: WorkflowStepRun): Promise<void>;
+  listForRun(workflowRunId: string): Promise<WorkflowStepRun[]>;
 }

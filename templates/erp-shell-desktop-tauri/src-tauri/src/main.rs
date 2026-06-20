@@ -122,7 +122,11 @@ fn runtime_status() -> RuntimeStatus {
     let llm_ready = ollama_model_available(&gemma_model);
 
     RuntimeStatus {
-        ocr: if tesseract_available() { "ready" } else { "missing" },
+        ocr: if tesseract_available() {
+            "ready"
+        } else {
+            "missing"
+        },
         llm: if llm_ready { "ready" } else { "missing" },
         model: gemma_model,
         mode: "tauri",
@@ -216,8 +220,13 @@ fn extract_document(app: tauri::AppHandle, job_id: String) -> Result<ExtractionR
 }
 
 #[tauri::command]
-fn document_draft(app: tauri::AppHandle, job_id: String) -> Result<Option<ExtractionDraft>, String> {
-    Ok(open_queue(&app)?.get_job(&job_id)?.and_then(|job| job.draft))
+fn document_draft(
+    app: tauri::AppHandle,
+    job_id: String,
+) -> Result<Option<ExtractionDraft>, String> {
+    Ok(open_queue(&app)?
+        .get_job(&job_id)?
+        .and_then(|job| job.draft))
 }
 
 #[tauri::command]
@@ -400,7 +409,10 @@ fn extract_document_text(path: &Path) -> (String, Vec<String>) {
     if !path.exists() {
         return (
             String::new(),
-            vec![format!("Source file is no longer available: {}", path.display())],
+            vec![format!(
+                "Source file is no longer available: {}",
+                path.display()
+            )],
         );
     }
 
@@ -429,7 +441,9 @@ fn extract_document_text(path: &Path) -> (String, Vec<String>) {
     match run_tesseract(path) {
         Ok(text) if !text.trim().is_empty() => (text, warnings),
         Ok(_) => {
-            warnings.push("OCR completed but returned no text; this scan needs manual review.".to_string());
+            warnings.push(
+                "OCR completed but returned no text; this scan needs manual review.".to_string(),
+            );
             (String::new(), warnings)
         }
         Err(error) => {
@@ -545,7 +559,11 @@ fn infer_fields(job: &QueueJob, raw_text: &str) -> Vec<ExtractedField> {
         ));
     }
 
-    if let Some(value) = find_value_after_keywords(&lines, &["invoice", "receipt", "statement"], &["number", "no", "#"]) {
+    if let Some(value) = find_value_after_keywords(
+        &lines,
+        &["invoice", "receipt", "statement"],
+        &["number", "no", "#"],
+    ) {
         fields.push(text_field("documentNumber", value, 0.72, None));
     }
 
@@ -569,7 +587,12 @@ fn infer_fields(job: &QueueJob, raw_text: &str) -> Vec<ExtractedField> {
     fields
 }
 
-fn text_field(name: &str, value: String, confidence: f32, source_text: Option<&str>) -> ExtractedField {
+fn text_field(
+    name: &str,
+    value: String,
+    confidence: f32,
+    source_text: Option<&str>,
+) -> ExtractedField {
     ExtractedField {
         name: name.to_string(),
         value: Value::String(value),
@@ -607,7 +630,11 @@ fn target_type_for_job(job: &QueueJob) -> &'static str {
     }
 }
 
-fn find_value_after_keywords(lines: &[&str], primary: &[&str], secondary: &[&str]) -> Option<String> {
+fn find_value_after_keywords(
+    lines: &[&str],
+    primary: &[&str],
+    secondary: &[&str],
+) -> Option<String> {
     for line in lines {
         let normalized = line.to_ascii_lowercase();
         if primary.iter().any(|keyword| normalized.contains(keyword))
@@ -640,7 +667,8 @@ fn value_after_separator(line: &str) -> Option<String> {
 fn find_date(lines: &[&str]) -> Option<String> {
     for line in lines {
         for token in line.split_whitespace() {
-            let cleaned = token.trim_matches(|c: char| !c.is_ascii_alphanumeric() && c != '/' && c != '-');
+            let cleaned =
+                token.trim_matches(|c: char| !c.is_ascii_alphanumeric() && c != '/' && c != '-');
             let digit_count = cleaned.chars().filter(|c| c.is_ascii_digit()).count();
             if digit_count >= 6 && (cleaned.contains('/') || cleaned.contains('-')) {
                 return Some(cleaned.to_string());
@@ -675,9 +703,11 @@ fn find_total(lines: &[&str]) -> Option<String> {
 fn last_amount_like_token(line: &str) -> Option<String> {
     line.split_whitespace()
         .rev()
-        .map(|token| token.trim_matches(|c: char| {
-            !(c.is_ascii_digit() || c == '$' || c == '.' || c == ',' || c == '-')
-        }))
+        .map(|token| {
+            token.trim_matches(|c: char| {
+                !(c.is_ascii_digit() || c == '$' || c == '.' || c == ',' || c == '-')
+            })
+        })
         .find(|token| {
             let digits = token.chars().filter(|c| c.is_ascii_digit()).count();
             digits > 0 && (token.contains('.') || token.contains('$'))
@@ -693,8 +723,9 @@ fn normalize_with_gemma(job: &QueueJob, raw_text: &str) -> Result<Option<Extract
 
     let response = ollama_chat(&model, job, raw_text)?;
     let parsed = parse_json_object(&response)?;
-    let mut draft: ExtractionDraft = serde_json::from_value(parsed)
-        .map_err(|error| format!("Gemma response did not match extraction draft schema: {error}"))?;
+    let mut draft: ExtractionDraft = serde_json::from_value(parsed).map_err(|error| {
+        format!("Gemma response did not match extraction draft schema: {error}")
+    })?;
 
     draft.schema_id = schema_id_for_job(job).to_string();
     draft.target_type = target_type_for_job(job).to_string();
@@ -1056,8 +1087,11 @@ fn ensure_column(conn: &Connection, name: &str, definition: &str) -> Result<(), 
         .map_err(|error| format!("Failed to decode draft queue schema: {error}"))?;
 
     if !columns.iter().any(|column| column == name) {
-        conn.execute(&format!("ALTER TABLE draft_jobs ADD COLUMN {name} {definition}"), [])
-            .map_err(|error| format!("Failed to migrate draft queue schema: {error}"))?;
+        conn.execute(
+            &format!("ALTER TABLE draft_jobs ADD COLUMN {name} {definition}"),
+            [],
+        )
+        .map_err(|error| format!("Failed to migrate draft queue schema: {error}"))?;
     }
 
     Ok(())
@@ -1075,8 +1109,7 @@ fn row_to_job(row: &rusqlite::Row<'_>) -> rusqlite::Result<QueueJob> {
         file_hash: row.get(6)?,
         path: row.get(7)?,
         imported_at: row.get(8)?,
-        draft: draft_json
-            .and_then(|value| serde_json::from_str::<ExtractionDraft>(&value).ok()),
+        draft: draft_json.and_then(|value| serde_json::from_str::<ExtractionDraft>(&value).ok()),
     })
 }
 
@@ -1151,13 +1184,23 @@ fn sample_documents() -> Vec<QueueJob> {
     ]
 }
 
-fn sample_draft(name: &str, target_type: &str, schema_id: &str, confidence: f32) -> ExtractionDraft {
+fn sample_draft(
+    name: &str,
+    target_type: &str,
+    schema_id: &str,
+    confidence: f32,
+) -> ExtractionDraft {
     ExtractionDraft {
         schema_id: schema_id.to_string(),
         target_type: target_type.to_string(),
         fields: vec![
             text_field("documentTitle", name.to_string(), confidence, Some(name)),
-            text_field("total", "$1,240.00".to_string(), confidence, Some("Total $1,240.00")),
+            text_field(
+                "total",
+                "$1,240.00".to_string(),
+                confidence,
+                Some("Total $1,240.00"),
+            ),
         ],
         tables: Vec::new(),
         raw_text: Some(format!("{name}\nTotal $1,240.00")),
@@ -1287,12 +1330,22 @@ mod tests {
         assert_eq!(saved.status, "review");
         assert!(saved.draft.is_some());
         assert_eq!(
-            saved.draft.as_ref().and_then(|draft| draft.raw_text.as_deref()),
+            saved
+                .draft
+                .as_ref()
+                .and_then(|draft| draft.raw_text.as_deref()),
             Some("Repair Shop\nReceipt # RS-9\nTotal $88.00")
         );
 
-        let reopened = DraftQueue::open(workspace.path().join("drafts.sqlite3")).expect("reopen queue");
-        let persisted = reopened.get_job(&job.id).expect("persisted job").expect("job");
-        assert_eq!(persisted.draft.expect("draft").warnings, vec!["sample warning"]);
+        let reopened =
+            DraftQueue::open(workspace.path().join("drafts.sqlite3")).expect("reopen queue");
+        let persisted = reopened
+            .get_job(&job.id)
+            .expect("persisted job")
+            .expect("job");
+        assert_eq!(
+            persisted.draft.expect("draft").warnings,
+            vec!["sample warning"]
+        );
     }
 }

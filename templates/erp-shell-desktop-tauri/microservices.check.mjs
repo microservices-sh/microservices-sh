@@ -26,7 +26,17 @@ export default function check({ assertFileIncludesAll }) {
   );
   assertFileIncludesAll(
     "src-tauri/src/main.rs",
-    ["import_document_paths", "draft_queue_dedupes_by_file_hash"],
-    "Desktop intake supports dropped files/folders and tests queue dedupe."
+    ["import_document_paths", "draft_queue_dedupes_by_file_hash", "extract_document", "draft_json"],
+    "Desktop intake supports dropped files/folders, queue dedupe, and persisted extraction drafts."
+  );
+  assertFileIncludesAll(
+    "src-tauri/src/main.rs",
+    ["tesseract", "MICROSERVICES_DESKTOP_GEMMA_MODEL", "ollama", "normalize_with_gemma"],
+    "Desktop extraction uses local OCR and an explicit local Gemma/Ollama adapter boundary."
+  );
+  assertFileIncludesAll(
+    "docs/api-boundary.md",
+    ["extract_document", "document_draft", "silently download model weights"],
+    "Desktop API boundary documents local extraction commands and the no-silent-download rule."
   );
 }

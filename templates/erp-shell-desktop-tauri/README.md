@@ -39,6 +39,34 @@ dev:desktop` use Rust `1.88.0` when run from this directory. If Cargo reports
 that crates such as `darling`, `plist`, `serde_with`, or `time` require Rust
 `1.88.0`, update the Mac's Rust toolchain with the commands above.
 
+## Local OCR and Gemma
+
+The desktop template now includes the first local extraction adapter:
+
+- scanned image OCR runs through a local `tesseract` command when installed;
+- scanned image text is saved as a local `document-extraction` shaped draft;
+- Gemma normalization is attempted only when a configured local Ollama model is
+  already present and reachable;
+- the app never downloads model weights silently and does not bundle LLM weights
+  in the default installer.
+
+For a Mac pilot:
+
+```bash
+brew install tesseract
+brew install --cask ollama
+ollama pull gemma4:e4b
+export MICROSERVICES_DESKTOP_GEMMA_MODEL=gemma4:e4b
+export MICROSERVICES_DESKTOP_OCR_LANG=eng
+pnpm dev:desktop
+```
+
+If your Ollama library uses a different Gemma 4 tag, set
+`MICROSERVICES_DESKTOP_GEMMA_MODEL` to that exact local model name. Without
+Tesseract, imported files still queue locally but extraction drafts will contain
+runtime setup warnings. Without Ollama/Gemma, OCR still works and the app falls
+back to deterministic review fields.
+
 ## Linux Docker Check
 
 The host machine needs GTK/WebKit development packages to compile Tauri on
@@ -61,7 +89,8 @@ before installing dependencies, so host `node_modules`, `dist`, and Cargo
   `src/lib/ui`, including the canonical `AppShell` sidebar and `Logo`.
 - Tauri shell for macOS and Windows bundles.
 - Rust commands for folder selection, drag/drop path import, SQLite queue
-  persistence, runtime status, and sync status.
+  persistence, runtime status, local OCR extraction, optional local Gemma
+  normalization, and sync status.
 - Browser preview fallback so the interface can be reviewed without launching
   Tauri.
 
@@ -74,5 +103,5 @@ acceptance criteria, and the next engineering slice.
 
 - Add watched folder configuration.
 - Add document-extraction module sync endpoints.
-- Add local OCR/model sidecar supervision.
+- Add image/PDF preprocessing and model sidecar supervision.
 - Add signed release builds for macOS and Windows.
