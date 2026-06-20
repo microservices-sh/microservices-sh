@@ -16,6 +16,7 @@
     "@microservices-sh/calendar-google": "workspace:*",
     "@microservices-sh/customer": "workspace:*",
     "@microservices-sh/decision": "workspace:*",
+    "@microservices-sh/document-extraction": "workspace:*",
     "@microservices-sh/file-media": "workspace:*",
     "@microservices-sh/forms-intake": "workspace:*",
     "@microservices-sh/invoice": "workspace:*",

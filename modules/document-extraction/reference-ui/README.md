@@ -10,3 +10,7 @@ Reference UI should expose:
 
 Never silently download a model or call a paid/provider-backed runtime without an
 approval-gated UI state.
+
+`Preview.svelte` provides an interactive local test surface for the module preview
+harness. It simulates Gemma download/connect states and extraction review without
+performing real model downloads, OCR, or provider calls.
