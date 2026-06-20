@@ -1,6 +1,6 @@
 # Plan 33 — Enforced tenant/actor authorization boundary (P0 linchpin)
 
-**Status:** in progress — foundation landed; 4 modules migrated via additive strangler (see Rollout). The breaking cutover (removing the legacy input-trusting paths) is still gated.
+**Status:** L1–L5 complete for the 4 operational modules (`invoice`, `support-ticket`, `file-media`, `forms-intake`) — built, adopted across all 3 consuming templates, and regression-guarded in CI, all via the additive strangler (no breaking changes). See the Checkpoint. Remaining items are optional follow-ups (other modules, marketing proof).
 
 ## Goal
 Make cross-user / cross-tenant data leaks **impossible by construction**, or else **loudly caught in CI**, in generated apps. This is the single most-cited failure of AI-built apps (CVE-2025-48757 — an RLS/scoping miss exposed data across **170+ Lovable apps**). It is also our sharpest differentiator:
@@ -32,7 +32,7 @@ Make cross-user / cross-tenant data leaks **impossible by construction**, or els
    - ✅ `support-ticket` `5eac710` · ✅ `invoice` `1796742` · ✅ `file-media` `55756f3` · ✅ `forms-intake` `25e14d7`
    - remaining tenant-scoped data modules: `booking` (scopes by `customerId`; no `connection-contract` dep yet), `billing-subscriptions` / `notifications-inapp` (scope by subscriber/user id, not `tenantId` — need a per-module scope mapping).
 4. ✅ Template adoption — every route handler that touches a migrated module now calls the `*Scoped` wrappers (grep-verified zero raw input-trusting calls across `templates/*/src/routes`): `erp-shell` (`fcb1ee3`/`fc59f84`/`fa87fc9`/`dce4986`/`4e907e7`), `client-portal` (`475ec0e`), `dot-ai-os` (`214c364`). Each module's index re-exports `authContext`/`AuthContext` so templates build the ctx without a direct `connection-contract` dep. Seed code (`demo.ts`) and the public `submitForm` stay on raw paths by design.
-5. ⏳ Enable the L5 lint guard — a `check:spec` rule that flags any raw input-trusting tenant use-case imported in `templates/*/src/routes` (so a *new* route can't regress). The legacy use-cases stay (the `*Scoped` wrappers delegate to them; module tests + seed use them) — the guard polices request paths, not the module internals.
+5. ✅ L5 lint guard — `workspace-tools` `check:spec` now runs `template:enforced-tenant-boundary`, failing if any `templates/*/src/routes` file imports a raw input-trusting tenant use-case that has a `*Scoped` variant. So a *new* route can't regress. The legacy use-cases stay (the `*Scoped` wrappers delegate to them; module tests + seed use them) — the guard polices request paths, not module internals. Committed `3eb0ecd`. Verified: green across 38 targets + fires on a planted raw import.
 
 ### Strangler approach (what actually shipped)
 Each migrated module gained a `src/use-cases/scoped.ts` exporting `*Scoped(ctx, …)`
@@ -55,7 +55,9 @@ wrappers and are exercised by module tests + seed data).
 - Strength = "all access goes through the scoped store"; L5 is what guards the perimeter.
 - **DO-per-tenant** (each tenant = its own Durable Object SQLite) is the *physical*-isolation option for high-assurance cases — reserved, since it loses easy cross-tenant queries and adds complexity.
 
-## ⚑ Checkpoint
-Steps 1–4 shipped via the **additive strangler** (no breaking changes; every step kept `pnpm -r build`, `pnpm test`, `pnpm spec:check:all` green). The boundary is built (4 modules + leak tests) AND exercised by every app (all three consuming templates adopted, grep-verified). What remains:
-- **L5 lint guard (step 5)** — the next codeable step: a `check:spec` rule flagging raw tenant use-cases imported in `templates/*/src/routes`, so a new route can't regress. Non-breaking.
-- **More modules** — `booking`/`billing-subscriptions`/`notifications-inapp` scope by customer/subscriber/user id, not `tenantId`; each needs a per-module scope-column decision before migrating. Lower priority — the high-traffic operational modules (invoice/files/tickets/forms) are done.
+## ⚑ Checkpoint — L1–L5 complete for the operational modules
+All five defense layers shipped via the **additive strangler** (no breaking changes; every step kept `pnpm -r build`, `pnpm test`, `pnpm spec:check:all` green): L1 scope-from-session + L2 required `AuthContext` + L3 forced tenant predicate (the `*Scoped` wrappers), L4 per-module cross-tenant leak tests, L5 the `check:spec` route guard. The boundary is built, exercised by every consuming app, and protected against regression — for `invoice` / `support-ticket` / `file-media` / `forms-intake`.
+
+Optional follow-ups (lower priority — not blocking the differentiator claim):
+- **More modules** — `booking`/`billing-subscriptions`/`notifications-inapp` scope by customer/subscriber/user id, not `tenantId`; each needs a per-module scope-column decision before migrating.
+- **Marketing proof** — the leak tests + guard are the demonstrable artifact behind "a cross-tenant read fails our build"; wire one into a buyer-facing demo.
