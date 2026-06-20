@@ -31,7 +31,8 @@ Make cross-user / cross-tenant data leaks **impossible by construction**, or els
 3. 🔄 Roll module-by-module — DONE so far (each with its own cross-tenant leak test, the L4 artifact):
    - ✅ `support-ticket` `5eac710` · ✅ `invoice` `1796742` · ✅ `file-media` `55756f3` · ✅ `forms-intake` `25e14d7`
    - remaining tenant-scoped data modules: `booking` (scopes by `customerId`; no `connection-contract` dep yet), `billing-subscriptions` / `notifications-inapp` (scope by subscriber/user id, not `tenantId` — need a per-module scope mapping).
-4. ⏳ Enable the L5 lint guard once all scoped tables route through the scoped store **and** the legacy input-trusting use-cases are retired (see strangler note below).
+4. ✅ Template adoption — every route handler that touches a migrated module now calls the `*Scoped` wrappers (grep-verified zero raw input-trusting calls across `templates/*/src/routes`): `erp-shell` (`fcb1ee3`/`fc59f84`/`fa87fc9`/`dce4986`/`4e907e7`), `client-portal` (`475ec0e`), `dot-ai-os` (`214c364`). Each module's index re-exports `authContext`/`AuthContext` so templates build the ctx without a direct `connection-contract` dep. Seed code (`demo.ts`) and the public `submitForm` stay on raw paths by design.
+5. ⏳ Enable the L5 lint guard — a `check:spec` rule that flags any raw input-trusting tenant use-case imported in `templates/*/src/routes` (so a *new* route can't regress). The legacy use-cases stay (the `*Scoped` wrappers delegate to them; module tests + seed use them) — the guard polices request paths, not the module internals.
 
 ### Strangler approach (what actually shipped)
 Each migrated module gained a `src/use-cases/scoped.ts` exporting `*Scoped(ctx, …)`
@@ -39,9 +40,10 @@ wrappers **alongside** the existing use-cases (which are unchanged). The wrapper
 take a server-resolved `AuthContext` and source the tenant from `ctx.orgId`,
 never from caller input — closing the L1 leak — while the legacy paths keep
 working so no template breaks. This means build/test/spec:check stay green at
-every step. The *breaking* cutover (deleting the legacy paths + L5 lint guard
-that bans input-trusted tenant access) is deferred until every template adopts
-the scoped wrappers; doing it now would red-flag the still-present legacy paths.
+every step. Template adoption is now complete (step 4), so the L5 guard (step 5)
+can land next — scoped to request paths (`templates/*/src/routes`), NOT a blanket
+deletion of the legacy use-cases (those are still the delegation target for the
+wrappers and are exercised by module tests + seed data).
 
 ## Done =
 - A scoped module's data access is **uncallable without `AuthContext`** (compile error otherwise).
@@ -54,7 +56,6 @@ the scoped wrappers; doing it now would red-flag the still-present legacy paths.
 - **DO-per-tenant** (each tenant = its own Durable Object SQLite) is the *physical*-isolation option for high-assurance cases — reserved, since it loses easy cross-tenant queries and adds complexity.
 
 ## ⚑ Checkpoint
-Steps 1–3 shipped via the **additive strangler** (no breaking changes; every step kept `pnpm -r build`, `pnpm test`, `pnpm spec:check:all` green). What remains and still wants review before landing:
-- **Template adoption** — wire `erp-shell` / `client-portal` / `saas-starter` / `booking` route handlers to call the `*Scoped` wrappers (resolving `AuthContext` from `org-team-rbac`) instead of the raw use-cases. Until then the boundary exists but isn't exercised by the apps.
-- **Breaking cutover (step 4)** — only after adoption: retire the legacy input-trusting use-cases and turn on the L5 lint/grep guard.
-- **Non-`tenantId` modules** — `booking`/`billing-subscriptions`/`notifications-inapp` need a per-module decision on what their scope column is before migrating.
+Steps 1–4 shipped via the **additive strangler** (no breaking changes; every step kept `pnpm -r build`, `pnpm test`, `pnpm spec:check:all` green). The boundary is built (4 modules + leak tests) AND exercised by every app (all three consuming templates adopted, grep-verified). What remains:
+- **L5 lint guard (step 5)** — the next codeable step: a `check:spec` rule flagging raw tenant use-cases imported in `templates/*/src/routes`, so a new route can't regress. Non-breaking.
+- **More modules** — `booking`/`billing-subscriptions`/`notifications-inapp` scope by customer/subscriber/user id, not `tenantId`; each needs a per-module scope-column decision before migrating. Lower priority — the high-traffic operational modules (invoice/files/tickets/forms) are done.
