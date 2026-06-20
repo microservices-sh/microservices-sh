@@ -2,7 +2,14 @@ import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { BUNDLED_MODULES, BUNDLED_PACKAGES, PUBLISHED_ALLOWLIST } from "../src/bundled-deps.js";
+import {
+  BUNDLED_MODULES,
+  BUNDLED_PACKAGES,
+  PUBLISHED_ALLOWLIST,
+  REPO_TEMPLATES,
+  REPO_TEMPLATE_MODULES,
+  REPO_TEMPLATE_PACKAGES,
+} from "../src/bundled-deps.js";
 
 // Guards the class of break behind the "research" CI red (commit 0faf068): a
 // template gained an @microservices-sh dependency the scaffolder doesn't bundle,
@@ -37,7 +44,8 @@ function srcPkgFor(name) {
   return null;
 }
 
-function unbundledClosure(templateId) {
+// Full transitive @microservices-sh dependency closure of a template.
+function depClosure(templateId) {
   const closure = new Set(msDeps(resolve(templatesDir, templateId, "package.json")));
   const queue = [...closure];
   const seen = new Set();
@@ -53,7 +61,7 @@ function unbundledClosure(templateId) {
       }
     }
   }
-  return [...closure].filter((name) => !allowed.has(name)).sort();
+  return [...closure];
 }
 
 const templates = readdirSync(templatesDir).filter((dir) =>
@@ -61,19 +69,48 @@ const templates = readdirSync(templatesDir).filter((dir) =>
 );
 
 describe("template bundle closure (generated apps install standalone)", () => {
+  // Half 1 — "rewritten": every dep in the closure is bundleable, so the
+  // scaffolder rewrites it to a file: path instead of leaving it `workspace:*`.
   it.each(templates)("%s bundles every @microservices-sh dependency", (tpl) => {
-    const unbundled = unbundledClosure(tpl);
+    const unbundled = depClosure(tpl).filter((name) => !allowed.has(name)).sort();
     expect(
       unbundled,
       `${tpl} depends (transitively) on @microservices-sh packages the scaffolder won't vendor: ` +
         `${unbundled.join(", ")}. Add them to BUNDLED_MODULES/BUNDLED_PACKAGES (src/bundled-deps.js) ` +
-        `AND the per-template copy lists in scripts/build.js, or the generated app's install will fail.`
+        `AND the per-template copy lists (REPO_TEMPLATE_MODULES/PACKAGES), or the install will fail.`
     ).toEqual([]);
   });
 
-  it("single-sources the bundle lists (sanity)", () => {
+  // Half 2 — "copied": every module/package in a scaffoldable template's closure
+  // is in its copy list, so the file: dep the scaffolder writes points at source
+  // that actually got bundled (not a missing dir).
+  it.each(REPO_TEMPLATES)("%s copies the source for every dep it rewrites", (tpl) => {
+    const closure = depClosure(tpl);
+    const neededModules = closure
+      .map((name) => name.slice(MS.length))
+      .filter((id) => BUNDLED_MODULES.includes(id));
+    const neededPackages = closure.filter((name) => BUNDLED_PACKAGES.has(name));
+
+    const copiedModules = new Set(REPO_TEMPLATE_MODULES[tpl] ?? []);
+    const copiedPackages = new Set((REPO_TEMPLATE_PACKAGES[tpl] ?? []).map((dir) => dir));
+
+    const missingModules = neededModules.filter((id) => !copiedModules.has(id)).sort();
+    const missingPackages = neededPackages
+      .filter((name) => !copiedPackages.has(BUNDLED_PACKAGES.get(name)))
+      .sort();
+
+    expect(
+      { missingModules, missingPackages },
+      `${tpl}: these deps are rewritten to file: paths but their source isn't copied ` +
+        `(add to REPO_TEMPLATE_MODULES/PACKAGES in src/bundled-deps.js): ` +
+        `modules=${missingModules.join(",") || "none"} packages=${missingPackages.join(",") || "none"}`
+    ).toEqual({ missingModules: [], missingPackages: [] });
+  });
+
+  it("single-sources the manifest (sanity)", () => {
     expect(BUNDLED_MODULES).toContain("research");
     expect(BUNDLED_PACKAGES.has("@microservices-sh/ops-token")).toBe(true);
+    expect(REPO_TEMPLATES.length).toBeGreaterThanOrEqual(5);
     expect(templates.length).toBeGreaterThanOrEqual(5);
   });
 });

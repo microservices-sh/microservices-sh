@@ -2,6 +2,7 @@ import { chmod, cp, mkdir, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
+import { REPO_TEMPLATES, REPO_TEMPLATE_MODULES, REPO_TEMPLATE_PACKAGES } from "../src/bundled-deps.js";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = resolve(packageRoot, "../..");
@@ -9,26 +10,6 @@ const internalAliases = new Map([
   ["@microservices-sh/sdk-internal", resolve(repoRoot, "packages/sdk-internal/src/index.js")],
   ["@microservices-sh/module-contract", resolve(repoRoot, "packages/module-contract/src/index.js")],
 ]);
-
-const REPO_TEMPLATES = ["booking-sveltekit", "company-landing-astro", "wordpress-emdash-blog-astro", "saas-starter-sveltekit", "client-portal-sveltekit", "dot-ai-os", "erp-shell-sveltekit"];
-const REPO_TEMPLATE_MODULES = {
-  "booking-sveltekit": ["gateway", "auth", "customer", "booking", "audit-log", "email", "payment", "identity", "research"],
-  "company-landing-astro": [],
-  "wordpress-emdash-blog-astro": [],
-  "saas-starter-sveltekit": ["auth", "identity", "email", "gateway", "org-team-rbac", "billing-subscriptions", "admin-shell", "audit-log", "image-generation", "ads-manager", "marketing-research"],
-  "client-portal-sveltekit": ["auth", "identity", "email", "gateway", "customer", "invoice", "file-media", "audit-log"],
-  "dot-ai-os": ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "invoice", "file-media", "jobs-workflows", "notifications-inapp", "operator-work", "support-ticket"],
-  "erp-shell-sveltekit": ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "invoice", "payment", "billing-subscriptions", "image-generation", "ads-manager", "forms-intake", "booking", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket", "webhook-delivery"],
-};
-const REPO_TEMPLATE_PACKAGES = {
-  "booking-sveltekit": ["connection-contract", "ops-token"],
-  "company-landing-astro": [],
-  "wordpress-emdash-blog-astro": [],
-  "saas-starter-sveltekit": ["connection-contract"],
-  "client-portal-sveltekit": ["connection-contract"],
-  "dot-ai-os": ["connection-contract"],
-  "erp-shell-sveltekit": ["connection-contract"],
-};
 const TEMPLATE_IGNORE = new Set([
   "node_modules",
   ".svelte-kit",
