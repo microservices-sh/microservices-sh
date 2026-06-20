@@ -36,6 +36,13 @@ jobs:
       - name: Run unit & integration tests
         run: pnpm test
 
+      # create-microservices-app ships a node:test suite (scaffolder shim sync,
+      # module versioning, framework starters) that the root vitest run doesn't
+      # pick up — run it so scaffolder-tooling regressions fail CI too. Fast,
+      # self-contained (no network/dist; a fake-git stub).
+      - name: Test create-microservices-app (node:test)
+        run: pnpm --filter create-microservices-app test
+
       - name: Check workspace contracts
         run: pnpm spec:check:all
 
