@@ -83,4 +83,35 @@ describe.skipIf(!DatabaseSync)("bootResearchRuntime (real node:sqlite, fake prov
     expect(history.data.logs).toHaveLength(1);
     expect(history.data.logs[0].choice).toBe("accept");
   });
+
+  it("assist blends the local graph with a live ops read-back when an opsClient is wired", async () => {
+    const opsActor = { id: "acme", tenantId: "acme", scopes: ["research.read", "ai.invoke", "ops.invoice.read"] };
+    const opsCalls: string[] = [];
+    const raw = new DatabaseSync(":memory:");
+    runMigration(raw, readFileSync("modules/research/migrations/0001_research.sql", "utf8"));
+    runMigration(raw, readFileSync("modules/decision/migrations/0001_decision.sql", "utf8"));
+    const rt = bootResearchRuntime({
+      db: createNodeSqliteDatabase(raw),
+      readContent: ({ sourceFile }) => `EXCERPT of ${sourceFile}: margins fell on rising costs.`,
+      ai: { config: { provider: "openrouter", completeModel: "fake", embedModel: "" }, providers: { openrouter: provider } },
+      now: () => Date.parse("2026-06-19T00:00:00.000Z"),
+      opsClient: {
+        async read(call) {
+          opsCalls.push(call.tool);
+          return call.tool === "ops.invoice.read"
+            ? [{ module: "invoice", entityId: "inv_9", asOf: 1, label: "Invoice inv_9", text: "ACME overdue $1,200" }]
+            : [];
+        }
+      }
+    });
+    await rt.loadGraph(graphify, "acme");
+
+    const r = await rt.assist({ question: "Summarize the margin report — and what does ACME owe?" }, opsActor);
+    expect(r.ok).toBe(true);
+    if (!r.ok) throw new Error("expected ok");
+    // The planner routed the "owe" question to the invoice tool, and it was read.
+    expect(opsCalls).toContain("ops.invoice.read");
+    expect(r.data.planes.ops).toBe(1);
+    expect(r.data.planes.graph).toBeGreaterThan(0);
+  });
 });

@@ -29,6 +29,8 @@ declare global {
         STRIPE_SECRET_KEY?: string;
         /** Stripe webhook signing secret for /api/payments/webhook. */
         STRIPE_WEBHOOK_SECRET?: string;
+        /** Per-tenant secret verifying the Hermes agent's ops read-back token (Plan 32, /ops). */
+        OPS_VERIFY_SECRET?: string;
       };
     }
 

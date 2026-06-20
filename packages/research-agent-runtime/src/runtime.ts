@@ -7,11 +7,13 @@
 // retrieval, governed AI egress, cite-or-refuse, persistence, and audit.
 import { complete, type AiConfig, type ProviderRegistry } from "@microservices-sh/ai-gateway";
 import {
+  assistedBrief,
   createGraphRetriever,
   getBrief,
   loadGraphifyOutput,
   research,
-  type ContentReader
+  type ContentReader,
+  type OpsClient
 } from "@microservices-sh/research";
 import type { SqlDatabase } from "@microservices-sh/research/adapters/sqlite-graph";
 import { createSqliteGraphStore } from "@microservices-sh/research/adapters/sqlite-graph";
@@ -31,6 +33,9 @@ export function bootResearchRuntime(opts: {
   readContent: ContentReader;
   ai: { config: AiConfig; providers: ProviderRegistry };
   now?: () => number;
+  // Optional read-back into the client's operate app (Plan 32). When wired, the
+  // agent can blend live operational records with the local knowledge graph.
+  opsClient?: OpsClient;
 }) {
   const graph = createSqliteGraphStore(opts.db);
   const researchStore = createSqliteResearchStore(opts.db);
@@ -52,6 +57,18 @@ export function bootResearchRuntime(opts: {
     /** Research a question → cited brief grounded in the owner's graph. */
     research: (input: { question: string; topK?: number }, actor: RuntimeActor) =>
       research(input, { store: researchStore, retriever, synthesizer: createGatewaySynthesizer(completeFor(actor)), now, actor }),
+
+    /** Assist a question → blended brief over the local graph (knowledge) AND a
+     *  live operate-plane read-back (ops), when an opsClient is wired. */
+    assist: (input: { question: string; topK?: number }, actor: RuntimeActor) =>
+      assistedBrief(input, {
+        graphRetriever: retriever,
+        client: opts.opsClient ?? { async read() { return []; } },
+        store: researchStore,
+        synthesizer: createGatewaySynthesizer(completeFor(actor)),
+        now,
+        actor
+      }),
 
     getResearchBrief: (briefId: string, actor: RuntimeActor) => getBrief({ briefId }, { store: researchStore, actor }),
 

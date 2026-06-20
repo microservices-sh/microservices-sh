@@ -11,6 +11,7 @@ import { timingSafeEqual } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { createNodeSqliteDatabase, runMigration } from "@microservices-sh/research/adapters/node-sqlite-graph";
 import { createOpenRouterProvider } from "@microservices-sh/ai-gateway/adapters/openrouter";
+import { createOperateHttpClient } from "@microservices-sh/research/adapters/operate-http";
 import { bootResearchRuntime } from "./runtime.js";
 import { createBuildTrigger } from "./graph-build-trigger.js";
 // Migrations bundled as text (esbuild --loader:.sql=text) so they survive into
@@ -60,11 +61,25 @@ const readContent = ({ sourceFile, sourceLocation }: { sourceFile: string; sourc
   }
 };
 
+// Operations read-back (Plan 32): when this client's operate app URL + the minted
+// OPS_TOKEN are set as Fly secrets, the agent can blend live operational records
+// with the local graph via /assist. Absent ⇒ /assist stays graph-only.
+const OPERATE_APP_URL = process.env.OPERATE_APP_URL;
+const OPS_TOKEN = process.env.OPS_TOKEN;
+const opsClient =
+  OPERATE_APP_URL && OPS_TOKEN
+    ? createOperateHttpClient({ baseUrl: OPERATE_APP_URL, serviceToken: OPS_TOKEN, fetch: (url, init) => fetch(url, init) })
+    : undefined;
+
 const runtime = bootResearchRuntime({
   db: createNodeSqliteDatabase(raw),
   readContent,
-  ai: { config: { provider: "openrouter", completeModel: MODEL, embedModel: "" }, providers: { openrouter: createOpenRouterProvider({ apiKey: KEY }) } }
+  ai: { config: { provider: "openrouter", completeModel: MODEL, embedModel: "" }, providers: { openrouter: createOpenRouterProvider({ apiKey: KEY }) } },
+  opsClient
 });
+
+// Ops read scopes the box-owner actor carries when blending (read-only).
+const OPS_READ_SCOPES = ["ops.customer.read", "ops.invoice.read", "ops.booking.read", "ops.support_ticket.read", "ops.calendar.read"];
 
 // On-box graph (re)build: spawn the bundled job as a child process so graphify
 // runs out-of-band, then it reloads the graph into this same SQLite file. The
@@ -112,6 +127,19 @@ createServer(async (req, res) => {
     // Actor identity comes from server-side config, NOT the request body.
     const actor = { id: OWNER_ID, tenantId: OWNER_ID, scopes: ["research.read", "ai.invoke"] };
     const result = await runtime.research({ question: String(body.question ?? "") }, actor);
+    res.writeHead(result.ok ? 200 : 422, { "content-type": "application/json" });
+    return res.end(JSON.stringify(result));
+  }
+  if (req.method === "POST" && req.url === "/assist") {
+    if (!authorized(req.headers.authorization)) {
+      res.writeHead(401, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ ok: false, error: { code: "UNAUTHORIZED" } }));
+    }
+    const chunks: Buffer[] = [];
+    for await (const c of req) chunks.push(c as Buffer);
+    const body = JSON.parse(Buffer.concat(chunks).toString() || "{}");
+    const actor = { id: OWNER_ID, tenantId: OWNER_ID, scopes: ["research.read", "ai.invoke", ...OPS_READ_SCOPES] };
+    const result = await runtime.assist({ question: String(body.question ?? "") }, actor);
     res.writeHead(result.ok ? 200 : 422, { "content-type": "application/json" });
     return res.end(JSON.stringify(result));
   }
