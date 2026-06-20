@@ -157,6 +157,7 @@ export type WorkflowEventName =
   | "workflow.defined"
   | "workflow.started"
   | "workflow.step.succeeded"
+  | "workflow.step.failed"
   | "workflow.waiting"
   | "workflow.succeeded"
   | "workflow.failed";

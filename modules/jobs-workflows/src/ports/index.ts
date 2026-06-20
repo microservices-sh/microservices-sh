@@ -56,6 +56,7 @@ export interface WorkflowRunFilter {
 export interface WorkflowRunStore {
   insert(run: WorkflowRun): Promise<void>;
   get(id: string): Promise<WorkflowRun | null>;
+  getForOwner(ownerId: string, id: string): Promise<WorkflowRun | null>;
   findByIdempotencyKey(ownerId: string, key: string): Promise<WorkflowRun | null>;
   update(run: WorkflowRun): Promise<void>;
   list(filter: WorkflowRunFilter): Promise<WorkflowRun[]>;
@@ -64,7 +65,8 @@ export interface WorkflowRunStore {
 export interface WorkflowStepRunStore {
   insert(stepRun: WorkflowStepRun): Promise<void>;
   get(id: string): Promise<WorkflowStepRun | null>;
-  getForRunStep(workflowRunId: string, stepId: string): Promise<WorkflowStepRun | null>;
+  getForOwnerRunStep(ownerId: string, workflowRunId: string, stepId: string): Promise<WorkflowStepRun | null>;
+  claimPending(ownerId: string, workflowRunId: string, stepId: string, nowIso: string): Promise<WorkflowStepRun | null>;
   update(stepRun: WorkflowStepRun): Promise<void>;
-  listForRun(workflowRunId: string): Promise<WorkflowStepRun[]>;
+  listForRun(ownerId: string, workflowRunId: string): Promise<WorkflowStepRun[]>;
 }

@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "status": "available",
   "class": "platform",
-  "summary": "Durable background jobs with idempotent execution, exponential-backoff retries, a dead-letter sink, and catch-up scheduling. The async backbone other modules build on.",
+  "summary": "Durable background jobs plus deterministic workflow runs with typed step dispatch, waiting/resume gates, exponential-backoff retries, and dead-letter handling. The async backbone other modules build on.",
   "runtime": {
     "language": "typescript",
     "platform": "cloudflare-workers",
@@ -14,16 +14,16 @@
   },
   "entrypoint": "src/index.ts",
   "resources": [
-    { "type": "d1", "binding": "DB", "tables": ["jobs", "job_runs", "job_schedules"] },
+    { "type": "d1", "binding": "DB", "tables": ["jobs", "job_runs", "job_schedules", "workflow_definitions", "workflow_runs", "workflow_step_runs"] },
     { "type": "queue", "binding": "JOBS_QUEUE", "optional": true }
   ],
-  "permissions": ["jobs.enqueue", "jobs.read", "jobs.admin", "jobs-workflows.extend"],
+  "permissions": ["jobs.enqueue", "jobs.read", "jobs.admin", "workflows.define", "workflows.run", "workflows.read", "workflows.admin", "jobs-workflows.extend"],
   "connections": {
     "requires": [],
     "optional": ["audit-log"],
     "rpc": { "exposes": [], "calls": [] },
     "events": {
-      "emits": ["job.enqueued", "job.succeeded", "job.retried", "job.dead", "job.scheduled"],
+      "emits": ["job.enqueued", "job.succeeded", "job.retried", "job.dead", "job.scheduled", "workflow.defined", "workflow.started", "workflow.step.succeeded", "workflow.step.failed", "workflow.waiting", "workflow.succeeded", "workflow.failed"],
       "consumes": []
     },
     "hookPoints": {
@@ -40,7 +40,7 @@
   "surfaces": {
     "admin": {
       "applicable": true,
-      "nav": [{ "label": "Jobs", "path": "/settings/jobs", "permission": "jobs.read", "icon": "Workflow" }],
+      "nav": [{ "label": "Workflows", "path": "/settings/workflows", "permission": "workflows.read", "icon": "Workflow" }],
       "referenceUi": ["reference-ui/README.md"]
     },
     "visitor": {
@@ -48,9 +48,9 @@
     },
     "agentic": {
       "applicable": true,
-      "tools": ["jobs-workflows.enqueueJob", "jobs-workflows.listJobs", "jobs-workflows.listSchedules", "jobs-workflows.runJob", "jobs-workflows.runDueJobs", "jobs-workflows.upsertSchedule", "jobs-workflows.dueScheduledJobs"],
+      "tools": ["jobs-workflows.enqueueJob", "jobs-workflows.listJobs", "jobs-workflows.listSchedules", "jobs-workflows.runJob", "jobs-workflows.runDueJobs", "jobs-workflows.upsertSchedule", "jobs-workflows.dueScheduledJobs", "jobs-workflows.defineWorkflow", "jobs-workflows.startWorkflowRun", "jobs-workflows.runNextWorkflowStep", "jobs-workflows.resumeWorkflowStep"],
       "skillPaths": ["skills/jobs-workflows-operator/SKILL.md"],
-      "approvalRequiredFor": ["jobs-workflows.enqueueJob", "jobs-workflows.runJob", "jobs-workflows.runDueJobs", "jobs-workflows.upsertSchedule"]
+      "approvalRequiredFor": ["jobs-workflows.enqueueJob", "jobs-workflows.runJob", "jobs-workflows.runDueJobs", "jobs-workflows.upsertSchedule", "jobs-workflows.defineWorkflow", "jobs-workflows.startWorkflowRun", "jobs-workflows.runNextWorkflowStep", "jobs-workflows.resumeWorkflowStep"]
     }
   },
   "skills": [

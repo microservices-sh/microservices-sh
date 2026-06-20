@@ -22,23 +22,47 @@ export function createMemoryWorkflowStepRunStore(): WorkflowStepRunStore {
       return stepRun ? cloneStepRun(stepRun) : null;
     },
 
-    async getForRunStep(workflowRunId, stepId) {
+    async getForOwnerRunStep(ownerId, workflowRunId, stepId) {
       for (const stepRun of stepRuns.values()) {
-        if (stepRun.workflowRunId === workflowRunId && stepRun.stepId === stepId) {
+        if (stepRun.ownerId === ownerId && stepRun.workflowRunId === workflowRunId && stepRun.stepId === stepId) {
           return cloneStepRun(stepRun);
         }
       }
       return null;
     },
 
+    async claimPending(ownerId, workflowRunId, stepId, nowIso) {
+      for (const stepRun of stepRuns.values()) {
+        if (
+          stepRun.ownerId === ownerId &&
+          stepRun.workflowRunId === workflowRunId &&
+          stepRun.stepId === stepId &&
+          stepRun.status === "pending" &&
+          stepRun.runAt <= nowIso
+        ) {
+          const claimed: WorkflowStepRun = {
+            ...stepRun,
+            status: "running",
+            attempt: stepRun.attempt + 1,
+            startedAt: nowIso,
+            updatedAt: nowIso
+          };
+          stepRuns.set(stepRun.id, cloneStepRun(claimed));
+          return cloneStepRun(claimed);
+        }
+      }
+      return null;
+    },
+
     async update(stepRun) {
-      if (!stepRuns.has(stepRun.id)) return;
+      const existing = stepRuns.get(stepRun.id);
+      if (!existing || existing.ownerId !== stepRun.ownerId) return;
       stepRuns.set(stepRun.id, cloneStepRun(stepRun));
     },
 
-    async listForRun(workflowRunId) {
+    async listForRun(ownerId, workflowRunId) {
       return [...stepRuns.values()]
-        .filter((stepRun) => stepRun.workflowRunId === workflowRunId)
+        .filter((stepRun) => stepRun.ownerId === ownerId && stepRun.workflowRunId === workflowRunId)
         .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
         .map(cloneStepRun);
     }

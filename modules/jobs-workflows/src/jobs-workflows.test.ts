@@ -5,9 +5,16 @@ import {
   dueScheduledJobs,
   upsertSchedule,
   listSchedules,
+  defineWorkflow,
+  startWorkflowRun,
+  runNextWorkflowStep,
+  resumeWorkflowStep,
   createMemoryJobStore,
   createMemoryJobRunStore,
   createMemoryScheduleStore,
+  createMemoryWorkflowDefinitionStore,
+  createMemoryWorkflowRunStore,
+  createMemoryWorkflowStepRunStore,
   computeBackoffMs
 } from "./index";
 import type { JobHandler } from "./types";
@@ -166,5 +173,324 @@ describe("jobs-workflows: scheduled catch-up", () => {
     if (!listed.ok) throw new Error("expected ok");
     expect(listed.data.count).toBe(1);
     expect(listed.data.schedules[0].type).toBe("daily-task");
+  });
+});
+
+describe("jobs-workflows: workflow orchestration", () => {
+  it("defines a workflow and starts an idempotent run with the first step pending", async () => {
+    const definitionStore = createMemoryWorkflowDefinitionStore();
+    const runStore = createMemoryWorkflowRunStore();
+    const stepRunStore = createMemoryWorkflowStepRunStore();
+
+    const defined = await defineWorkflow(
+      {
+        ownerId: "org_1",
+        name: "Research workflow",
+        status: "active",
+        steps: [{ id: "research", kind: "agent", ref: "research" }]
+      },
+      { definitionStore, now: fixedNow(T0) }
+    );
+    expect(defined.ok).toBe(true);
+    if (!defined.ok) throw new Error("expected ok");
+
+    const first = await startWorkflowRun(
+      {
+        ownerId: "org_1",
+        definitionId: defined.data.definition.id,
+        input: { topic: "tenant isolation" },
+        idempotencyKey: "run:1"
+      },
+      { definitionStore, runStore, stepRunStore, now: fixedNow(T0) }
+    );
+    expect(first.ok).toBe(true);
+    if (!first.ok) throw new Error("expected ok");
+    expect(first.data.deduped).toBe(false);
+    expect(first.data.run.status).toBe("running");
+    if (!first.data.firstStepRun) throw new Error("expected first step run");
+    expect(first.data.firstStepRun.stepId).toBe("research");
+    expect(first.data.firstStepRun.status).toBe("pending");
+
+    const duplicate = await startWorkflowRun(
+      {
+        ownerId: "org_1",
+        definitionId: defined.data.definition.id,
+        input: { topic: "tenant isolation" },
+        idempotencyKey: "run:1"
+      },
+      { definitionStore, runStore, stepRunStore, now: fixedNow(T0) }
+    );
+    expect(duplicate.ok).toBe(true);
+    if (!duplicate.ok) throw new Error("expected ok");
+    expect(duplicate.data.deduped).toBe(true);
+    expect(duplicate.data.run.id).toBe(first.data.run.id);
+  });
+
+  it("runs step handlers in order and snapshots context for the next step", async () => {
+    const definitionStore = createMemoryWorkflowDefinitionStore();
+    const runStore = createMemoryWorkflowRunStore();
+    const stepRunStore = createMemoryWorkflowStepRunStore();
+
+    const defined = await defineWorkflow(
+      {
+        ownerId: "org_1",
+        name: "Two step workflow",
+        status: "active",
+        steps: [
+          { id: "collect", kind: "tool", ref: "collect", next: "summarize" },
+          { id: "summarize", kind: "tool", ref: "summarize" }
+        ]
+      },
+      { definitionStore, now: fixedNow(T0) }
+    );
+    if (!defined.ok) throw new Error("expected ok");
+    const started = await startWorkflowRun(
+      { ownerId: "org_1", definitionId: defined.data.definition.id, input: { topic: "permissions" } },
+      { definitionStore, runStore, stepRunStore, now: fixedNow(T0) }
+    );
+    if (!started.ok) throw new Error("expected ok");
+
+    const first = await runNextWorkflowStep(
+      started.data.run.id,
+      {
+        "tool:collect": async () => ({ output: { collected: true }, contextPatch: { docId: "doc_1" } }),
+        "tool:summarize": async (input) => {
+          expect(input.context).toEqual({ docId: "doc_1" });
+          return { output: { summary: "ok" } };
+        }
+      },
+      { ownerId: "org_1", runStore, stepRunStore, now: fixedNow(T0 + 1) }
+    );
+    expect(first.ok).toBe(true);
+    if (!first.ok) throw new Error("expected ok");
+    expect(first.data.run.status).toBe("running");
+    expect(first.data.run.currentStepId).toBe("summarize");
+
+    const second = await runNextWorkflowStep(
+      started.data.run.id,
+      {
+        "tool:collect": async () => ({ output: { collected: true }, contextPatch: { docId: "doc_1" } }),
+        "tool:summarize": async (input) => {
+          expect(input.context).toEqual({ docId: "doc_1" });
+          return { output: { summary: "ok" } };
+        }
+      },
+      { ownerId: "org_1", runStore, stepRunStore, now: fixedNow(T0 + 2) }
+    );
+    expect(second.ok).toBe(true);
+    if (!second.ok) throw new Error("expected ok");
+    expect(second.data.run.status).toBe("succeeded");
+    expect(second.data.run.currentStepId).toBe(null);
+  });
+
+  it("parks an async agent step as waiting and resumes it with an external result", async () => {
+    const definitionStore = createMemoryWorkflowDefinitionStore();
+    const runStore = createMemoryWorkflowRunStore();
+    const stepRunStore = createMemoryWorkflowStepRunStore();
+
+    const defined = await defineWorkflow(
+      {
+        ownerId: "org_1",
+        name: "Agent dispatch",
+        status: "active",
+        steps: [{ id: "agent", kind: "agent", ref: "research" }]
+      },
+      { definitionStore, now: fixedNow(T0) }
+    );
+    if (!defined.ok) throw new Error("expected ok");
+    const started = await startWorkflowRun(
+      { ownerId: "org_1", definitionId: defined.data.definition.id, input: { topic: "data isolation" } },
+      { definitionStore, runStore, stepRunStore, now: fixedNow(T0) }
+    );
+    if (!started.ok) throw new Error("expected ok");
+
+    const dispatched = await runNextWorkflowStep(
+      started.data.run.id,
+      {
+        "agent:research": async () => ({
+          status: "waiting",
+          output: { agentRunId: "agent_run_1" },
+          contextPatch: { agentRunId: "agent_run_1" }
+        })
+      },
+      { ownerId: "org_1", runStore, stepRunStore, now: fixedNow(T0 + 1) }
+    );
+    expect(dispatched.ok).toBe(true);
+    if (!dispatched.ok) throw new Error("expected ok");
+    expect(dispatched.data.run.status).toBe("waiting");
+    const waitingStepRun = (dispatched.data as { stepRun?: { status: string } }).stepRun;
+    if (!waitingStepRun) throw new Error("expected step run");
+    expect(waitingStepRun.status).toBe("waiting");
+
+    const resumed = await resumeWorkflowStep(
+      {
+        ownerId: "org_1",
+        workflowRunId: started.data.run.id,
+        status: "succeeded",
+        output: { reportId: "report_1" },
+        contextPatch: { reportId: "report_1" }
+      },
+      { runStore, stepRunStore, now: fixedNow(T0 + 2) }
+    );
+    expect(resumed.ok).toBe(true);
+    if (!resumed.ok) throw new Error("expected ok");
+    expect(resumed.data.run.status).toBe("succeeded");
+    expect(resumed.data.run.context).toEqual({ agentRunId: "agent_run_1", reportId: "report_1" });
+  });
+
+  it("rejects cyclic workflow definitions", async () => {
+    const definitionStore = createMemoryWorkflowDefinitionStore();
+
+    const defined = await defineWorkflow(
+      {
+        ownerId: "org_1",
+        name: "Bad cycle",
+        status: "active",
+        steps: [
+          { id: "a", kind: "tool", next: "b" },
+          { id: "b", kind: "tool", next: "a" }
+        ]
+      },
+      { definitionStore, now: fixedNow(T0) }
+    );
+
+    expect(defined.ok).toBe(false);
+    if (!defined.ok) {
+      expect(defined.error.code).toBe("jobs-workflows.INVALID_WORKFLOW_DEFINITION");
+    }
+  });
+
+  it("requires owner scope to run or resume workflow steps", async () => {
+    const definitionStore = createMemoryWorkflowDefinitionStore();
+    const runStore = createMemoryWorkflowRunStore();
+    const stepRunStore = createMemoryWorkflowStepRunStore();
+
+    const defined = await defineWorkflow(
+      {
+        ownerId: "org_1",
+        name: "Scoped workflow",
+        status: "active",
+        steps: [{ id: "agent", kind: "agent", ref: "research" }]
+      },
+      { definitionStore, now: fixedNow(T0) }
+    );
+    if (!defined.ok) throw new Error("expected ok");
+    const started = await startWorkflowRun(
+      { ownerId: "org_1", definitionId: defined.data.definition.id },
+      { definitionStore, runStore, stepRunStore, now: fixedNow(T0) }
+    );
+    if (!started.ok) throw new Error("expected ok");
+
+    const deniedRun = await runNextWorkflowStep(
+      started.data.run.id,
+      { "agent:research": async () => ({ status: "waiting" }) },
+      { ownerId: "org_2", runStore, stepRunStore, now: fixedNow(T0 + 1) }
+    );
+    expect(deniedRun.ok).toBe(false);
+    if (!deniedRun.ok) expect(deniedRun.error.code).toBe("jobs-workflows.WORKFLOW_RUN_NOT_FOUND");
+
+    const dispatched = await runNextWorkflowStep(
+      started.data.run.id,
+      { "agent:research": async () => ({ status: "waiting", output: { agentRunId: "agent_run_1" } }) },
+      { ownerId: "org_1", runStore, stepRunStore, now: fixedNow(T0 + 2) }
+    );
+    expect(dispatched.ok).toBe(true);
+
+    const deniedResume = await resumeWorkflowStep(
+      { ownerId: "org_2", workflowRunId: started.data.run.id, status: "succeeded" },
+      { runStore, stepRunStore, now: fixedNow(T0 + 3) }
+    );
+    expect(deniedResume.ok).toBe(false);
+    if (!deniedResume.ok) expect(deniedResume.error.code).toBe("jobs-workflows.WORKFLOW_RUN_NOT_FOUND");
+  });
+
+  it("claims a pending step once so concurrent workers do not double-dispatch", async () => {
+    const definitionStore = createMemoryWorkflowDefinitionStore();
+    const runStore = createMemoryWorkflowRunStore();
+    const stepRunStore = createMemoryWorkflowStepRunStore();
+
+    const defined = await defineWorkflow(
+      {
+        ownerId: "org_1",
+        name: "Claim workflow",
+        status: "active",
+        steps: [{ id: "agent", kind: "agent", ref: "research" }]
+      },
+      { definitionStore, now: fixedNow(T0) }
+    );
+    if (!defined.ok) throw new Error("expected ok");
+    const started = await startWorkflowRun(
+      { ownerId: "org_1", definitionId: defined.data.definition.id },
+      { definitionStore, runStore, stepRunStore, now: fixedNow(T0) }
+    );
+    if (!started.ok) throw new Error("expected ok");
+
+    let release!: () => void;
+    const blocker = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let calls = 0;
+    const first = runNextWorkflowStep(
+      started.data.run.id,
+      {
+        "agent:research": async () => {
+          calls += 1;
+          await blocker;
+          return { status: "waiting", output: { agentRunId: "agent_run_1" } };
+        }
+      },
+      { ownerId: "org_1", runStore, stepRunStore, now: fixedNow(T0 + 1) }
+    );
+    await Promise.resolve();
+
+    const second = await runNextWorkflowStep(
+      started.data.run.id,
+      { "agent:research": async () => ({ status: "waiting", output: { agentRunId: "agent_run_2" } }) },
+      { ownerId: "org_1", runStore, stepRunStore, now: fixedNow(T0 + 1) }
+    );
+    expect(second.ok).toBe(true);
+    if (!second.ok) throw new Error("expected ok");
+    const skipped = (second.data as { skipped?: boolean }).skipped;
+    expect(skipped).toBe(true);
+    expect(calls).toBe(1);
+
+    release();
+    const firstResult = await first;
+    expect(firstResult.ok).toBe(true);
+    expect(calls).toBe(1);
+  });
+
+  it("returns a failed workflow outcome with an event when a step exhausts attempts", async () => {
+    const definitionStore = createMemoryWorkflowDefinitionStore();
+    const runStore = createMemoryWorkflowRunStore();
+    const stepRunStore = createMemoryWorkflowStepRunStore();
+
+    const defined = await defineWorkflow(
+      {
+        ownerId: "org_1",
+        name: "Failure workflow",
+        status: "active",
+        steps: [{ id: "fail", kind: "tool", ref: "fail", maxAttempts: 1 }]
+      },
+      { definitionStore, now: fixedNow(T0) }
+    );
+    if (!defined.ok) throw new Error("expected ok");
+    const started = await startWorkflowRun(
+      { ownerId: "org_1", definitionId: defined.data.definition.id },
+      { definitionStore, runStore, stepRunStore, now: fixedNow(T0) }
+    );
+    if (!started.ok) throw new Error("expected ok");
+
+    const failed = await runNextWorkflowStep(
+      started.data.run.id,
+      { "tool:fail": async () => ({ status: "failed", error: "boom" }) },
+      { ownerId: "org_1", runStore, stepRunStore, now: fixedNow(T0 + 1) }
+    );
+    expect(failed.ok).toBe(true);
+    if (!failed.ok) throw new Error("expected ok");
+    const failedData = failed.data as unknown as { status: string; run: { status: string }; event: { name: string } };
+    expect(failedData.status).toBe("failed");
+    expect(failedData.run.status).toBe("failed");
+    expect(failedData.event.name).toBe("workflow.failed");
   });
 });

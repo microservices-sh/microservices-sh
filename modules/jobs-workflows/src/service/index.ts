@@ -5,3 +5,7 @@ export { dueScheduledJobs } from "../use-cases/due-scheduled-jobs";
 export { upsertSchedule } from "../use-cases/upsert-schedule";
 export { listJobs } from "../use-cases/list-jobs";
 export { listSchedules } from "../use-cases/list-schedules";
+export { defineWorkflow } from "../use-cases/define-workflow";
+export { startWorkflowRun } from "../use-cases/start-workflow-run";
+export { runNextWorkflowStep } from "../use-cases/run-next-workflow-step";
+export { resumeWorkflowStep } from "../use-cases/resume-workflow-step";

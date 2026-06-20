@@ -31,6 +31,11 @@ export function createMemoryWorkflowRunStore(): WorkflowRunStore {
       return run ? cloneRun(run) : null;
     },
 
+    async getForOwner(ownerId, id) {
+      const run = runs.get(id);
+      return run && run.ownerId === ownerId ? cloneRun(run) : null;
+    },
+
     async findByIdempotencyKey(ownerId, key) {
       for (const run of runs.values()) {
         if (run.ownerId === ownerId && run.idempotencyKey === key) return cloneRun(run);
@@ -39,7 +44,8 @@ export function createMemoryWorkflowRunStore(): WorkflowRunStore {
     },
 
     async update(run) {
-      if (!runs.has(run.id)) return;
+      const existing = runs.get(run.id);
+      if (!existing || existing.ownerId !== run.ownerId) return;
       runs.set(run.id, cloneRun(run));
     },
 

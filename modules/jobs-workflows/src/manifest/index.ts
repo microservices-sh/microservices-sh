@@ -5,7 +5,7 @@ export const manifest = {
   version: "0.1.0",
   status: "available",
   class: "platform",
-  summary: "Durable background jobs with idempotent execution, exponential-backoff retries, a dead-letter sink, and catch-up scheduling. The async backbone other modules build on.",
+  summary: "Durable background jobs plus deterministic workflow runs with typed step dispatch, waiting/resume gates, exponential-backoff retries, and dead-letter handling. The async backbone other modules build on.",
   entrypoint: "src/index.ts"
 } as const;
 

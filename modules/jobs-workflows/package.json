@@ -19,8 +19,8 @@
     "./service": "./src/service/index.ts",
     "./ports": "./src/ports/index.ts",
     "./backoff": "./src/backoff.ts",
-    "./adapters/d1": "./src/adapters/d1-job-store.ts",
-    "./adapters/memory": "./src/adapters/memory-job-store.ts",
+    "./adapters/d1": "./src/adapters/d1.ts",
+    "./adapters/memory": "./src/adapters/memory.ts",
     "./adapters/cf-queue": "./src/adapters/cf-queue-producer.ts"
   },
   "scripts": {

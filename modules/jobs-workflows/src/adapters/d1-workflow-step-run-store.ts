@@ -59,10 +59,28 @@ export function createD1WorkflowStepRunStore(db: D1Database): WorkflowStepRunSto
       return row ? rowToWorkflowStepRun(row) : null;
     },
 
-    async getForRunStep(workflowRunId, stepId) {
+    async getForOwnerRunStep(ownerId, workflowRunId, stepId) {
       const row = await db
-        .prepare(`SELECT ${COLUMNS} FROM workflow_step_runs WHERE workflow_run_id = ? AND step_id = ?`)
-        .bind(workflowRunId, stepId)
+        .prepare(`SELECT ${COLUMNS} FROM workflow_step_runs WHERE owner_id = ? AND workflow_run_id = ? AND step_id = ?`)
+        .bind(ownerId, workflowRunId, stepId)
+        .first<Record<string, unknown>>();
+      return row ? rowToWorkflowStepRun(row) : null;
+    },
+
+    async claimPending(ownerId, workflowRunId, stepId, nowIso) {
+      const result = await db
+        .prepare(
+          `UPDATE workflow_step_runs
+           SET status = 'running', attempt = attempt + 1, started_at = ?, updated_at = ?
+           WHERE owner_id = ? AND workflow_run_id = ? AND step_id = ? AND status = 'pending' AND run_at <= ?`
+        )
+        .bind(nowIso, nowIso, ownerId, workflowRunId, stepId, nowIso)
+        .run();
+      const changes = Number((result.meta as { changes?: number }).changes ?? 0);
+      if (changes === 0) return null;
+      const row = await db
+        .prepare(`SELECT ${COLUMNS} FROM workflow_step_runs WHERE owner_id = ? AND workflow_run_id = ? AND step_id = ?`)
+        .bind(ownerId, workflowRunId, stepId)
         .first<Record<string, unknown>>();
       return row ? rowToWorkflowStepRun(row) : null;
     },
@@ -72,7 +90,7 @@ export function createD1WorkflowStepRunStore(db: D1Database): WorkflowStepRunSto
         .prepare(
           `UPDATE workflow_step_runs
            SET status = ?, attempt = ?, input = ?, output = ?, error = ?, run_at = ?, started_at = ?, finished_at = ?, updated_at = ?
-           WHERE id = ?`
+           WHERE id = ? AND owner_id = ?`
         )
         .bind(
           stepRun.status,
@@ -84,15 +102,16 @@ export function createD1WorkflowStepRunStore(db: D1Database): WorkflowStepRunSto
           stepRun.startedAt,
           stepRun.finishedAt,
           stepRun.updatedAt,
-          stepRun.id
+          stepRun.id,
+          stepRun.ownerId
         )
         .run();
     },
 
-    async listForRun(workflowRunId) {
+    async listForRun(ownerId, workflowRunId) {
       const result = await db
-        .prepare(`SELECT ${COLUMNS} FROM workflow_step_runs WHERE workflow_run_id = ? ORDER BY created_at ASC`)
-        .bind(workflowRunId)
+        .prepare(`SELECT ${COLUMNS} FROM workflow_step_runs WHERE owner_id = ? AND workflow_run_id = ? ORDER BY created_at ASC`)
+        .bind(ownerId, workflowRunId)
         .all<Record<string, unknown>>();
       return (result.results ?? []).map(rowToWorkflowStepRun);
     }

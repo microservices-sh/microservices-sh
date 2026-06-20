@@ -55,6 +55,14 @@ export function createD1WorkflowRunStore(db: D1Database): WorkflowRunStore {
       return row ? rowToWorkflowRun(row) : null;
     },
 
+    async getForOwner(ownerId, id) {
+      const row = await db
+        .prepare(`SELECT ${COLUMNS} FROM workflow_runs WHERE owner_id = ? AND id = ?`)
+        .bind(ownerId, id)
+        .first<Record<string, unknown>>();
+      return row ? rowToWorkflowRun(row) : null;
+    },
+
     async findByIdempotencyKey(ownerId, key) {
       const row = await db
         .prepare(`SELECT ${COLUMNS} FROM workflow_runs WHERE owner_id = ? AND idempotency_key = ?`)
@@ -68,9 +76,9 @@ export function createD1WorkflowRunStore(db: D1Database): WorkflowRunStore {
         .prepare(
           `UPDATE workflow_runs
            SET status = ?, context = ?, current_step_id = ?, updated_at = ?, finished_at = ?
-           WHERE id = ?`
+           WHERE id = ? AND owner_id = ?`
         )
-        .bind(run.status, JSON.stringify(run.context), run.currentStepId, run.updatedAt, run.finishedAt, run.id)
+        .bind(run.status, JSON.stringify(run.context), run.currentStepId, run.updatedAt, run.finishedAt, run.id, run.ownerId)
         .run();
     },
 

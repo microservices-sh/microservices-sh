@@ -43,21 +43,47 @@ function validateWorkflowEdges(
   ctx: z.RefinementCtx
 ) {
   const ids = new Set<string>();
+  const indexById = new Map<string, number>();
   value.steps.forEach((step, index) => {
     if (ids.has(step.id)) {
       ctx.addIssue({ code: "custom", path: ["steps", index, "id"], message: "Step ids must be unique." });
     }
     ids.add(step.id);
+    indexById.set(step.id, index);
   });
 
+  const edges = new Map<string, string[]>();
   value.steps.forEach((step, index) => {
+    const targets: string[] = [];
     (["next", "onSuccess", "onFailure"] as const).forEach((field) => {
       const target = step[field];
       if (target && !ids.has(target)) {
         ctx.addIssue({ code: "custom", path: ["steps", index, field], message: `Unknown step id "${target}".` });
       }
+      if (target) targets.push(target);
     });
+    edges.set(step.id, targets);
   });
+
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+  let cycleReported = false;
+  const visit = (id: string): void => {
+    if (cycleReported || visited.has(id)) return;
+    if (visiting.has(id)) {
+      const index = indexById.get(id) ?? 0;
+      ctx.addIssue({ code: "custom", path: ["steps", index, "id"], message: "Workflow steps must form an acyclic graph." });
+      cycleReported = true;
+      return;
+    }
+    visiting.add(id);
+    for (const target of edges.get(id) ?? []) {
+      if (ids.has(target)) visit(target);
+    }
+    visiting.delete(id);
+    visited.add(id);
+  };
+  for (const id of ids) visit(id);
 }
 
 export const defineWorkflowInputSchema = z
@@ -81,6 +107,7 @@ export const startWorkflowRunInputSchema = z.object({
 });
 
 export const resumeWorkflowStepInputSchema = z.object({
+  ownerId: z.string().min(1),
   workflowRunId: z.string().min(1),
   stepId: z.string().min(1).optional(),
   status: z.enum(["succeeded", "failed"]),
