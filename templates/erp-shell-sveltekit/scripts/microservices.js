@@ -2804,10 +2804,10 @@ function deploymentUrlForHostname(hostname) {
 
 function ensureDomainDeployBundle(flags) {
   const missing = [buildOutput, deployBundleWorker].filter((path) => !existsSync(path));
-  if (!missing.length) {
-    return { ok: true, data: { built: false, missing: [] } };
-  }
   if (flags.noBuild) {
+    if (!missing.length) {
+      return { ok: true, data: { built: false, missing: [] } };
+    }
     return fail(
       "DOMAIN_BUNDLE_MISSING",
       "The local Cloudflare build bundle is missing.",
@@ -2855,7 +2855,7 @@ function deployDomainAddPlan(deploymentId, hostname, flags) {
       url: deploymentUrlForHostname(hostname),
       confirmationRequired: "domain",
       sideEffects: [
-        "run local build and Wrangler dry-run bundle if the deploy bundle is missing",
+        "run local build and Wrangler dry-run bundle so the Worker manifest and static assets stay in sync",
         "run wrangler deploy against the existing deployment Worker name with --domain",
         "upload SvelteKit static assets through Wrangler",
         "record the custom URL on the control-plane deployment via deploy activate"
