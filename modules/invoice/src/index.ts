@@ -10,6 +10,14 @@ export { recordPayment } from "./use-cases/record-payment";
 export { voidInvoice } from "./use-cases/void-invoice";
 export { listInvoices } from "./use-cases/list-invoices";
 export { dueForReminder } from "./use-cases/due-for-reminder";
+export {
+  listInvoicesScoped,
+  getInvoiceScoped,
+  issueInvoiceScoped,
+  recordPaymentScoped,
+  voidInvoiceScoped,
+  addLineItemScoped
+} from "./use-cases/scoped";
 export { computeTotals, lineAmountCents, lineTaxCents } from "./totals";
 export { createD1InvoiceStore } from "./adapters/d1-invoice-store";
 export { createD1NumberAllocator } from "./adapters/d1-number-allocator";
