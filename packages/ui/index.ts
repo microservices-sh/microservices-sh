@@ -14,3 +14,4 @@ export { default as UsageBar } from "./components/UsageBar.svelte";
 export { default as Logo } from "./components/Logo.svelte";
 export { default as NavProgress } from "./components/NavProgress.svelte";
 export { default as AppShell } from "./components/AppShell.svelte";
+export { default as Loader } from "./components/Loader.svelte";

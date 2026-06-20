@@ -1,0 +1,30 @@
+/* Global reset the AppShell expects from a consuming app (mirrors the ERP/SaaS
+   templates' app.css base layer). Without body { margin:0; min-height } the
+   shell grid + sticky sidebar + fixed status bar mislay. Tokens come from the DS. */
+@import "@microservices-sh/ui/tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-block-size: 100dvh;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#app {
+  min-block-size: 100dvh;
+}

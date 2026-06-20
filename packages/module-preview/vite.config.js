@@ -38,6 +38,7 @@ export default defineConfig({
     }
   },
   server: {
-    fs: { allow: [".."] }
+    // reach module .svelte previews + module.json across the monorepo
+    fs: { allow: ["../.."] }
   }
 });

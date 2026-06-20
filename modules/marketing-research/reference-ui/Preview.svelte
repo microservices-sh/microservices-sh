@@ -6,7 +6,7 @@
   components carry the tokens.
 -->
 <script lang="ts">
-  import { Eyebrow, Card, Button, Field, Alert, Badge } from "@microservices-sh/ui";
+  import { Eyebrow, Card, Button, Field, Alert, Badge, Loader } from "@microservices-sh/ui";
 
   type Citation = { sourceUrl: string; title: string };
   type Coverage = { searched: string[]; returned: string[]; note?: string };
@@ -56,7 +56,9 @@
   </form>
 </Card>
 
-{#if refused}
+{#if busy}
+  <div class="mr-loading"><Loader size={30} /><span>Running the engine…</span></div>
+{:else if refused}
   <Alert tone="error">Refused — {refused.code}: {refused.message}</Alert>
   {#if refused.coverage}
     <p class="mr-cov-line">searched {refused.coverage.searched.join(", ")} · returned {refused.coverage.returned.join(", ") || "none"}</p>
@@ -94,6 +96,7 @@
 {/if}
 
 <style>
+  .mr-loading { display: flex; align-items: center; gap: 0.7rem; margin-top: 1.2rem; color: var(--color-ink-soft); font-size: 0.9rem; }
   .mr-h1 { margin: 0.4rem 0 0.3rem; }
   .mr-lede { color: var(--color-ink-soft); max-width: 60ch; margin: 0 0 1.4rem; }
   .mr-form { display: flex; flex-direction: column; gap: 0.85rem; max-width: 460px; }
