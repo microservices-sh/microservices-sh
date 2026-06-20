@@ -38,7 +38,7 @@ function authorized(header: string | undefined): boolean {
   return got.length === want.length && timingSafeEqual(got, want);
 }
 
-const raw = new DatabaseSync(DB_PATH);
+let raw = new DatabaseSync(DB_PATH);
 runMigration(raw, researchMigration);
 runMigration(raw, decisionMigration);
 
@@ -71,12 +71,20 @@ const opsClient =
     ? createOperateHttpClient({ baseUrl: OPERATE_APP_URL, serviceToken: OPS_TOKEN, fetch: (url, init) => fetch(url, init) })
     : undefined;
 
-const runtime = bootResearchRuntime({
-  db: createNodeSqliteDatabase(raw),
-  readContent,
-  ai: { config: { provider: "openrouter", completeModel: MODEL, embedModel: "" }, providers: { openrouter: createOpenRouterProvider({ apiKey: KEY }) } },
-  opsClient
-});
+const ai = { config: { provider: "openrouter", completeModel: MODEL, embedModel: "" }, providers: { openrouter: createOpenRouterProvider({ apiKey: KEY }) } };
+let runtime = bootResearchRuntime({ db: createNodeSqliteDatabase(raw), readContent, ai, opsClient });
+
+// After an on-box rebuild the DB file is replaced, leaving the original handle
+// stale (reads the old graph; writes hit "attempt to write a readonly database").
+// Re-open the DB and rebuild the runtime so the next request sees the fresh graph
+// with a writable handle — no machine restart needed.
+function reopenRuntime() {
+  try { raw.close(); } catch { /* already closed/unlinked */ }
+  raw = new DatabaseSync(DB_PATH);
+  runMigration(raw, researchMigration);
+  runMigration(raw, decisionMigration);
+  runtime = bootResearchRuntime({ db: createNodeSqliteDatabase(raw), readContent, ai, opsClient });
+}
 
 // Ops read scopes the box-owner actor carries when blending (read-only).
 const OPS_READ_SCOPES = ["ops.customer.read", "ops.invoice.read", "ops.booking.read", "ops.support_ticket.read", "ops.calendar.read"];
@@ -89,6 +97,11 @@ const GRAPH_BUILD_SCRIPT = process.env.GRAPH_BUILD_SCRIPT
 const buildTrigger = createBuildTrigger(
   (onDone) => {
     execFile(process.execPath, [GRAPH_BUILD_SCRIPT], { env: process.env, maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) => {
+      // On success the DB was rebuilt by the child — re-open so the server picks
+      // up the fresh graph (and a writable handle) without a restart.
+      if (!err) {
+        try { reopenRuntime(); } catch (e) { console.error("reopen after build failed:", e instanceof Error ? e.message : e); }
+      }
       onDone(!err, `${stdout ?? ""}${stderr ?? ""}`.slice(-2000));
     });
   },
