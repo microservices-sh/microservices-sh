@@ -1,6 +1,6 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
-import { createTicket } from "@microservices-sh/support-ticket";
+import { createTicketScoped, authContext } from "@microservices-sh/support-ticket";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { requireOrgPermission, loadCompanyContext } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
@@ -23,7 +23,8 @@ export const actions: Actions = {
     const activeOrgId = org.id;
 
     // Write gate: opening tickets requires member.manage in the company org.
-    await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+    const ctx = authContext({ orgId: activeOrgId, actorId: locals.user.id, roles: permissions });
 
     const form = await request.formData();
     const subject = String(form.get("subject") ?? "").trim();
@@ -38,8 +39,11 @@ export const actions: Actions = {
       });
     }
 
-    const result = await createTicket(
-      { tenantId: activeOrgId, subject, description, requesterEmail, priority },
+    // Enforced boundary (plan 33): the ticket's tenant is stamped from the session
+    // org, not request input.
+    const result = await createTicketScoped(
+      ctx,
+      { subject, description, requesterEmail, priority },
       { store: locals.ticketStore }
     );
     if (!result.ok || !result.data) {

@@ -1,6 +1,6 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
-import { listForms, createForm } from "@microservices-sh/forms-intake";
+import { listFormsScoped, createFormScoped, authContext } from "@microservices-sh/forms-intake";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { requireOrgPermission, loadCompanyContext } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
@@ -15,7 +15,8 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
 
   const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "org.read", locals.rbacStore);
 
-  const formsResult = await listForms({ tenantId: activeOrgId }, { formStore: locals.formStore });
+  const ctx = authContext({ orgId: activeOrgId, actorId: locals.user.id, roles: permissions });
+  const formsResult = await listFormsScoped(ctx, {}, { formStore: locals.formStore });
   const forms = formsResult.ok ? formsResult.data.forms : [];
 
   return {
@@ -29,7 +30,8 @@ export const actions: Actions = {
     if (!locals.user) return fail(403, { error: "Not signed in to a company." });
     const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
     if (!org) return fail(403, { error: "Not signed in to a company." });
-    await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+    const ctx = authContext({ orgId: org.id, actorId: locals.user.id, roles: permissions });
 
     const form = await request.formData();
     const name = String(form.get("name") ?? "").trim();
@@ -37,9 +39,11 @@ export const actions: Actions = {
     if (!name) return fail(400, { error: "Enter a form name." });
 
     // Fields start empty — a real form is built up via updateForm; this sample
-    // creates the form shell so submissions can be wired against it.
-    const result = await createForm(
-      { tenantId: org.id, name, fields: [], requireTurnstile },
+    // creates the form shell so submissions can be wired against it. Enforced
+    // boundary (plan 33): the form's tenant is stamped from the session org.
+    const result = await createFormScoped(
+      ctx,
+      { name, fields: [], requireTurnstile },
       { formStore: locals.formStore }
     );
     if (!result.ok) return fail(result.status ?? 400, { error: result.error?.message ?? "Could not create the form." });

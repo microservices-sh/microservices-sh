@@ -6,6 +6,7 @@ import {
   getTicket,
   listTickets,
   updateTicket,
+  createTicketScoped,
   getTicketScoped,
   listTicketsScoped,
   updateTicketScoped,
@@ -192,6 +193,11 @@ describe("support-ticket: enforced tenant boundary (cross-tenant leak test)", ()
     expect(foreignWrite.status).toBe(404);
     const bStill = await getTicket({ id: b1.data.ticket.id }, d);
     if (bStill.ok) expect(bStill.data.ticket.status).toBe("open");
+
+    // CREATE as A while forging tenant-2 still stamps the ticket with tenant-1.
+    const opened = await createTicketScoped(ctxA, { ...baseInput, tenantId: "tenant-2", subject: "A3" }, d);
+    expect(opened.ok).toBe(true);
+    if (opened.ok) expect(opened.data.ticket.tenantId).toBe("tenant-1");
 
     // A call lacking an org scope is refused (403), not run against an unknown tenant.
     const noScope = await listTicketsScoped(

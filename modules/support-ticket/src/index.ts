@@ -7,7 +7,7 @@ export { createTicket } from "./use-cases/create-ticket";
 export { getTicket } from "./use-cases/get-ticket";
 export { listTickets } from "./use-cases/list-tickets";
 export { updateTicket } from "./use-cases/update-ticket";
-export { getTicketScoped, listTicketsScoped, updateTicketScoped } from "./use-cases/scoped";
+export { createTicketScoped, getTicketScoped, listTicketsScoped, updateTicketScoped } from "./use-cases/scoped";
 // Re-export the auth primitive so consumers of the *Scoped use-cases have a
 // validated way to build the AuthContext they require (plan 33).
 export { authContext } from "@microservices-sh/connection-contract";

@@ -2,6 +2,7 @@ import { err, enforceScope } from "@microservices-sh/connection-contract";
 import type { AuthContext } from "@microservices-sh/connection-contract";
 import { ticketIdSchema } from "../schemas";
 import { supportTicketMeta } from "../meta";
+import { createTicket } from "./create-ticket";
 import { getTicket } from "./get-ticket";
 import { listTickets } from "./list-tickets";
 import { updateTicket } from "./update-ticket";
@@ -26,6 +27,15 @@ function requireScope(ctx: AuthContext | undefined, deps: ScopedDeps) {
     );
   }
   return null;
+}
+
+// Open a ticket in the active org. Any tenantId on `input` is overridden with the
+// session's org, so a ticket can never be created under another tenant.
+export async function createTicketScoped(ctx: AuthContext, input: unknown, deps: ScopedDeps) {
+  const denied = requireScope(ctx, deps);
+  if (denied) return denied;
+  const base = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
+  return createTicket({ ...base, tenantId: ctx.orgId }, deps);
 }
 
 // List the active org's tickets. Any tenantId on `input` is overridden with the
