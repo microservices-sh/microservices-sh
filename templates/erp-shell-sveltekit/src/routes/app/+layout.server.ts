@@ -17,10 +17,14 @@ export const load: LayoutServerLoad = async ({ locals, cookies, platform }) => {
 
   const user = { email: locals.user.email, isSuperAdmin: locals.user.isSuperAdmin };
 
-  // No company yet → straight into one-time setup. Sending the user here (rather
-  // than rendering an intermediate "set up your company" card under /app) means
-  // any /app/* URL a not-yet-set-up employee lands on takes them to the wizard.
-  if (!org) throw redirect(303, "/signup");
+  // No active company membership. If the company has not been bootstrapped yet,
+  // send the user to first-run setup. If a company already exists, this signed-in
+  // account is simply not invited; route back to login so the page can explain
+  // the access problem instead of bouncing /app → /signup → /login forever.
+  if (!org) {
+    if (await locals.rbacStore.anyOrganizationExists()) throw redirect(303, "/login?reason=no-company-access");
+    throw redirect(303, "/signup");
+  }
 
   // Local dev (no D1/R2): seed demo data scoped to this company org so the
   // dashboard is not empty. Idempotent (seedDemoData guards once per session);

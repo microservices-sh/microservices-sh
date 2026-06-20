@@ -116,6 +116,13 @@
       ],
       "approvalRisk": "low"
     },
+    "webhooks": {
+      "activeModule": "webhook-delivery",
+      "allowedModules": [
+        "webhook-delivery"
+      ],
+      "approvalRisk": "high"
+    },
     "messaging": {
       "activeModule": null,
       "allowedModules": [

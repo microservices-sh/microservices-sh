@@ -50,7 +50,7 @@ export const actions: Actions = {
     if (!result.ok) return fail(result.status, { error: result.error?.message ?? "Invite failed." });
 
     await recordEvent(
-      { eventName: "member.invited", actorId: locals.user.id, entityType: "organization", entityId: orgId, source: "team", payload: { invitationId: result.data.id } },
+      { eventName: "member.invited", actorId: locals.user.id, entityType: "organization", entityId: orgId, source: "app/settings/team", payload: { invitationId: result.data.id } },
       { auditStore: locals.auditStore }
     );
     return { ok: true, invited: true, token: result.data.token };
@@ -70,7 +70,7 @@ export const actions: Actions = {
     if (!result.ok) return fail(result.status, { error: result.error?.message ?? "Role change failed." });
 
     await recordEvent(
-      { eventName: "role.updated", actorId: locals.user.id, entityType: "membership", entityId: result.data.userId, source: "team", payload: { roleId: result.data.roleId } },
+      { eventName: "role.updated", actorId: locals.user.id, entityType: "membership", entityId: result.data.userId, source: "app/settings/team", payload: { roleId: result.data.roleId } },
       { auditStore: locals.auditStore }
     );
     return { ok: true, roleChanged: true };

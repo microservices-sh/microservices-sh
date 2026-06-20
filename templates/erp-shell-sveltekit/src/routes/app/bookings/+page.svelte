@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { enhance } from "$app/forms";
-  import { Card, Eyebrow, Badge, Button, Alert } from "$lib/ui";
+  import { PageHeader, Card, Badge, ResourceTable, EmptyState } from "$lib/ui";
 
-  let { data, form } = $props();
+  let { data } = $props();
 
   const when = (iso: string) => new Date(iso).toLocaleString();
 
@@ -25,50 +24,66 @@
 </svelte:head>
 
 <main class="section">
-  <Eyebrow>Appointments</Eyebrow>
-  <h1>Bookings</h1>
-  <p>Scheduled appointments for your company, powered by the booking module.</p>
+  <PageHeader
+    eyebrow="Appointments"
+    title="Bookings"
+    description="Scheduled appointments for your company, powered by the booking module."
+  />
 
-  {#if form?.cancelled}
-    <Alert tone="success">Booking cancelled.</Alert>
-  {:else if form?.error}
-    <Alert tone="error">{form.error}</Alert>
-  {/if}
-
-  <Card class="mt-6">
-    <h2>Schedule</h2>
+  <Card title="Schedule">
+    {#snippet header()}
+      <Badge tone="neutral">{data.bookings.length}</Badge>
+    {/snippet}
     {#if data.bookings.length > 0}
-      <ul class="list" role="list">
-        {#each data.bookings as b}
-          <li class="list-item row-item">
-            <span><strong>{b.customerName}</strong> · {b.serviceName}<span class="bk-meta">{when(b.startsAt)}</span></span>
-            <span class="nav" style="align-items: center;">
-              <Badge tone={tone(b.status)}>{b.status}</Badge>
-              {#if data.canManage && b.status !== "cancelled"}
-                <form method="POST" action="?/cancel" use:enhance>
-                  <input type="hidden" name="id" value={b.id} />
-                  <Button type="submit" variant="ghost" size="sm">Cancel</Button>
-                </form>
-              {/if}
-            </span>
-          </li>
+      <ResourceTable class="flush" caption="Booking schedule">
+        {#snippet head()}
+          <tr>
+            <th>Customer</th>
+            <th>Service</th>
+            <th>When</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        {/snippet}
+        {#each data.bookings as b (b.id)}
+          <tr>
+            <td data-label="Customer">
+              <a class="table-primary" href={`/app/bookings/${b.id}`}>{b.customerName}</a>
+            </td>
+            <td data-label="Service">{b.serviceName}</td>
+            <td data-label="When" class="table-muted">{when(b.startsAt)}</td>
+            <td data-label="Status"><Badge tone={tone(b.status)}>{b.status}</Badge></td>
+            <td class="row-go" aria-hidden="true">
+              <a href={`/app/bookings/${b.id}`} tabindex="-1">→</a>
+            </td>
+          </tr>
         {/each}
-      </ul>
+      </ResourceTable>
     {:else}
-      <p class="empty">No bookings yet. Appointments appear here once booked against a service.</p>
+      <EmptyState
+        title="No bookings yet"
+        description="Appointments appear here once booked against a service."
+      />
     {/if}
   </Card>
 </main>
 
 <style>
-  .bk-meta {
-    display: block;
-    font-size: 0.78rem;
-    font-family: var(--font-mono);
-    color: var(--color-ink-faint);
+  .row-go {
+    text-align: end;
+    inline-size: 1%;
+    white-space: nowrap;
   }
-  .empty {
+  .row-go a {
     color: var(--color-ink-faint);
-    font-size: 0.9rem;
+    font-family: var(--font-mono);
+    text-decoration: none;
+    transition: transform 150ms var(--ease), color 150ms var(--ease);
+    display: inline-block;
+  }
+  /* Nudge + tint the chevron when its row is hovered (row hover lives in ResourceTable). */
+  :global(.resource-table tbody tr:hover) .row-go a {
+    color: var(--color-act);
+    transform: translateX(3px);
   }
 </style>

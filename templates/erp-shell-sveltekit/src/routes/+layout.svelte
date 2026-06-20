@@ -27,11 +27,15 @@
 {:else}
   <div class="shell">
     <header class="topbar">
-      <Logo href={data.user ? "/app" : "/login"} />
+      <Logo href={data.user && data.hasCompanyAccess ? "/app" : "/login"} />
 
       <nav class="nav" aria-label="Primary">
         {#if data.user}
-          <a href="/app">Open app</a>
+          {#if data.hasCompanyAccess}
+            <a href="/app">Open app</a>
+          {:else}
+            <span class="nav-state" title="No workspace access">No access</span>
+          {/if}
           <form method="POST" action="/logout">
             <Button type="submit" variant="ghost">Log out</Button>
           </form>
@@ -59,3 +63,20 @@
     </footer>
   </div>
 {/if}
+
+<style>
+  .nav-state {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 32px;
+    padding-inline: 10px;
+    border: 1px solid rgb(202 138 4 / 0.28);
+    border-radius: var(--radius-md);
+    background: var(--color-amber-soft);
+    color: var(--color-amber);
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+  }
+</style>

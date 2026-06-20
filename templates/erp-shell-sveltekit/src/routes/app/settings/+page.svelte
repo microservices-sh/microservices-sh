@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Card, Eyebrow, Badge, Button, Field, Alert } from "$lib/ui";
+  import { Card, PageHeader, Badge, Button, Field, Alert } from "$lib/ui";
 
   let { data, form } = $props();
 
@@ -20,9 +20,11 @@
 </svelte:head>
 
 <main class="section">
-  <Eyebrow>Organization settings</Eyebrow>
-  <h1>{data.org.name}</h1>
-  <p>Settings, your effective permissions, and recent org activity.</p>
+  <PageHeader
+    eyebrow="Organization settings"
+    title={data.org.name}
+    description="Settings, your effective permissions, and recent org activity."
+  />
 
   {#if form?.renamed}
     <Alert tone="success">Company details updated.</Alert>
@@ -31,8 +33,7 @@
   {/if}
 
   <div class="content-grid mt-6">
-    <Card>
-      <h2>Organization</h2>
+    <Card title="Organization">
       {#if data.canManage}
         <form method="POST" action="?/rename" class="rename">
           <Field label="Company name" id="name">

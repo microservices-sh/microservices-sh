@@ -345,6 +345,24 @@
         "events": ["notification.created", "notification.read"],
         "requires": []
       }
+    },
+    {
+      "id": "webhook-delivery",
+      "version": "0.1.0",
+      "source": "registry:webhook-delivery@0.1.0",
+      "checksum": "sha256:preview-webhook-delivery-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/webhooks",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["webhook.read", "webhook.write", "webhook.admin", "webhook-delivery.extend"],
+        "rpc": [],
+        "hooks": ["beforeWebhookDeliver", "afterWebhookDelivered"],
+        "events": ["webhook.delivered", "webhook.failed"],
+        "requires": []
+      }
     }
   ],
   "customizations": {

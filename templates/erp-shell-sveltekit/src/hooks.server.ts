@@ -43,6 +43,9 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.objectStorage = stores.objectStorage;
   event.locals.notificationStore = stores.notificationStore;
   event.locals.jobStore = stores.jobStore;
+  event.locals.scheduleStore = stores.scheduleStore;
+  event.locals.webhookEndpointStore = stores.webhookEndpointStore;
+  event.locals.webhookDeliveryLog = stores.webhookDeliveryLog;
   event.locals.accountStore = stores.accountStore;
   event.locals.loginCodeStore = stores.loginCodeStore;
   event.locals.sessionStore = stores.sessionStore;

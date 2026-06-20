@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Card, Eyebrow, Button, Field, Alert } from "$lib/ui";
+  import { PageHeader, Card, Button, Badge, ResourceTable, EmptyState } from "$lib/ui";
 
-  let { data, form } = $props();
+  let { data } = $props();
 </script>
 
 <svelte:head>
@@ -9,49 +9,76 @@
 </svelte:head>
 
 <main class="section">
-  <Eyebrow>Customer book</Eyebrow>
-  <h1>Customers</h1>
-  <p>Customer records for your company, powered by the customer module.</p>
-
-  {#if form?.created}
-    <Alert tone="success">Customer saved.</Alert>
-  {:else if form?.error}
-    <Alert tone="error">{form.error}</Alert>
-  {/if}
-
-  <div class="content-grid mt-6">
-    <Card>
-      <h2>Directory</h2>
-      {#if data.customers.length > 0}
-        <ul class="list" role="list">
-          {#each data.customers as customer}
-            <li class="list-item row-item">
-              <span><strong>{customer.name}</strong> · {customer.email}</span>
-              <span>{customer.phone ?? ""}</span>
-            </li>
-          {/each}
-        </ul>
-      {:else}
-        <p>No customers yet.</p>
+  <PageHeader
+    eyebrow="Customer book"
+    title="Customers"
+    description="Customer records for your company, powered by the customer module."
+  >
+    {#snippet actions()}
+      {#if data.canManage}
+        <Button href="/app/customers/new" variant="primary">New customer</Button>
       {/if}
-    </Card>
+    {/snippet}
+  </PageHeader>
 
-    {#if data.canManage}
-      <Card>
-        <h2>Add a customer</h2>
-        <form method="POST" action="?/create">
-          <Field label="Name" id="name">
-            <input id="name" name="name" required value={form?.values?.name ?? ""} />
-          </Field>
-          <Field label="Email" id="email">
-            <input id="email" name="email" type="email" required value={form?.values?.email ?? ""} />
-          </Field>
-          <Field label="Phone (optional)" id="phone">
-            <input id="phone" name="phone" value={form?.values?.phone ?? ""} />
-          </Field>
-          <Button type="submit" variant="primary">Save customer</Button>
-        </form>
-      </Card>
+  <Card title="Directory">
+    {#snippet header()}
+      <Badge tone="neutral">{data.customers.length}</Badge>
+    {/snippet}
+
+    {#if data.customers.length > 0}
+      <ResourceTable class="flush" caption="Customer directory">
+        {#snippet head()}
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th></th>
+          </tr>
+        {/snippet}
+        {#each data.customers as customer (customer.id)}
+          <tr>
+            <td data-label="Name">
+              <a class="table-primary" href={`/app/customers/${customer.id}`}>{customer.name}</a>
+            </td>
+            <td data-label="Email">{customer.email}</td>
+            <td data-label="Phone" class="table-muted">{customer.phone ?? "—"}</td>
+            <td class="row-go" aria-hidden="true">
+              <a href={`/app/customers/${customer.id}`} tabindex="-1">→</a>
+            </td>
+          </tr>
+        {/each}
+      </ResourceTable>
+    {:else if data.canManage}
+      <EmptyState title="No customers yet" description="Add your first customer to start billing and tracking work.">
+        {#snippet action()}
+          <Button href="/app/customers/new" variant="primary">New customer</Button>
+        {/snippet}
+      </EmptyState>
+    {:else}
+      <EmptyState title="No customers yet" description="Customers added by your team will appear here." />
     {/if}
-  </div>
+  </Card>
 </main>
+
+<style>
+  /* Trailing chevron column — row navigates to the customer detail page. */
+  .row-go {
+    text-align: end;
+    inline-size: 1%;
+    white-space: nowrap;
+  }
+  .row-go a {
+    display: inline-block;
+    color: var(--color-ink-faint);
+    font-family: var(--font-mono);
+    text-decoration: none;
+    transition:
+      transform 150ms var(--ease),
+      color 150ms var(--ease);
+  }
+  :global(.resource-table tbody tr:hover) .row-go a {
+    color: var(--color-act);
+    transform: translateX(3px);
+  }
+</style>

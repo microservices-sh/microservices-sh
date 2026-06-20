@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, Field, Card, Eyebrow } from "$lib/ui";
+  import { Button, Field, Card, Eyebrow, ResourceTable } from "$lib/ui";
 
   let { data } = $props();
 
@@ -26,20 +26,28 @@
   </form>
 </Card>
 
-<Card class="mt-6">
-  {#if data.rows.length > 0}
-    <ul class="list" role="list">
+{#if data.rows.length > 0}
+  <div class="mt-6">
+    <ResourceTable caption={`${data.resource} records`}>
+      {#snippet head()}
+        <tr>
+          {#each data.columns as column}
+            <th scope="col">{column.label}</th>
+          {/each}
+        </tr>
+      {/snippet}
+
       {#each data.rows as row}
-        <li class="list-item">
-          <dl class="detail-list">
-            {#each data.columns as column}
-              <div><dt>{column.label}</dt><dd>{cell(row, column.name)}</dd></div>
-            {/each}
-          </dl>
-        </li>
+        <tr>
+          {#each data.columns as column}
+            <td data-label={column.label}>{cell(row, column.name)}</td>
+          {/each}
+        </tr>
       {/each}
-    </ul>
-  {:else}
+    </ResourceTable>
+  </div>
+{:else}
+  <Card class="mt-6">
     <p>No records found.</p>
-  {/if}
-</Card>
+  </Card>
+{/if}

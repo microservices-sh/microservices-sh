@@ -11,10 +11,10 @@ area gives schema-driven CRUD over the underlying tables.
 ## Modules
 
 Wired: auth, identity, org-team-rbac, admin-shell, audit-log, customer, invoice,
-file-media, jobs-workflows, notifications-inapp.
+file-media, jobs-workflows, notifications-inapp, webhook-delivery.
 
-User-facing modules get a sidebar entry; infra modules (auth, identity,
-audit-log, jobs-workflows, notifications-inapp) do not.
+User-facing modules get a sidebar entry; pure infra modules (auth, identity,
+audit-log, gateway) do not.
 
 ## Routes
 
@@ -27,6 +27,8 @@ audit-log, jobs-workflows, notifications-inapp) do not.
 | `/app/customers` | Customer book (list + add), customer module |
 | `/app/invoices` | Invoice ledger, invoice module |
 | `/app/files` | Stored files (metadata), file-media module |
+| `/app/jobs` | Queue health and recurring schedules, jobs-workflows module |
+| `/app/webhooks` | Endpoint inventory and delivery attempts, webhook-delivery module |
 | `/app/team` | Members, invitations, role changes (RBAC-gated) |
 | `/app/team/accept` | Accept a single-use, expiring invitation |
 | `/app/settings` | Company details, your permissions, recent audit activity |

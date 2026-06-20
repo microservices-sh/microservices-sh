@@ -45,6 +45,7 @@
     "@microservices-sh/org-team-rbac": "workspace:*",
     "@microservices-sh/payment": "workspace:*",
     "@microservices-sh/support-ticket": "workspace:*",
+    "@microservices-sh/webhook-delivery": "workspace:*",
     "@sveltejs/adapter-cloudflare": "^7.2.4",
     "@sveltejs/kit": "^2.9.0",
     "svelte": "^5.0.0",

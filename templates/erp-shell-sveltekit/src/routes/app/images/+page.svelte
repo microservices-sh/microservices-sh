@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
-  import { Card, Eyebrow, Badge, Button, Field, Alert } from "$lib/ui";
+  import { Card, PageHeader, Badge, Button, Field, Alert } from "$lib/ui";
 
   let { data, form } = $props();
   let generating = $state(false);
@@ -13,9 +13,11 @@
 </svelte:head>
 
 <main class="section">
-  <Eyebrow>AI image studio</Eyebrow>
-  <h1>Images</h1>
-  <p>Generate and manage images for your company, powered by the image-generation module.</p>
+  <PageHeader
+    eyebrow="AI image studio"
+    title="Images"
+    description="Generate and manage images for your company, powered by the image-generation module."
+  />
 
   {#if form?.generated}
     <Alert tone="success">Image generated.</Alert>

@@ -19,9 +19,9 @@ It is the authoritative guide; the summary:
 - `requireModule(id, platform)` in each module route's `load` returns 404 when the
   module is disabled, so turning a module off (omit it in `modules.config.ts`)
   hides the nav entry **and** blocks the routes — not just cosmetic.
-- **Infra modules get no nav entry** (`auth`, `identity`, `email`, `gateway`,
-  `audit-log`, `jobs-workflows`, `idempotency`, `webhook-delivery`): they power the
-  shell but expose no user surface.
+- **Pure infra modules get no nav entry** (`auth`, `identity`, `email`, `gateway`,
+  `audit-log`, `idempotency`). Platform modules with operator consoles
+  (`jobs-workflows`, `webhook-delivery`) can be mapped in `erp-nav.ts`.
 
 To surface a module: add a `MODULE_NAV` row + a route under `src/routes/app/<section>`
 (call `requireModule(...)` first). The existing pages (`customers`, `invoices`,

@@ -57,7 +57,12 @@ export const POST: RequestHandler = async ({ request, platform, locals, cookies 
     );
     if (!res.ok) return json({ ok: false, error: res.error }, { status: res.status });
     setSessionCookie(cookies, res.data.sessionId);
-    return json({ ok: true, user: res.data.user });
+
+    const company = await locals.rbacStore.firstOrganization();
+    const membership = company ? await locals.rbacStore.getMembership(company.id, res.data.user.id) : null;
+    const hasCompanyAccess = company ? membership?.status === "active" : true;
+
+    return json({ ok: true, user: res.data.user, hasCompanyAccess });
   }
 
   return json({ ok: false, error: { code: "identity.BAD_ACTION", message: "Unknown action." } }, { status: 400 });

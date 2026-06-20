@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { enhance } from "$app/forms";
-  import { Card, Eyebrow, Badge, Button, Alert } from "$lib/ui";
+  import { PageHeader, Card, Badge, ResourceTable, EmptyState } from "$lib/ui";
 
-  let { data, form } = $props();
+  let { data } = $props();
 
   const money = (cents: number, currency = "USD") =>
     new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
@@ -28,58 +27,68 @@
 </svelte:head>
 
 <main class="section">
-  <Eyebrow>Payment ledger</Eyebrow>
-  <h1>Payments</h1>
-  <p>Captured payments for your company, powered by the payment module.</p>
+  <PageHeader
+    eyebrow="Payment ledger"
+    title="Payments"
+    description="Captured payments for your company, powered by the payment module."
+  />
 
-  {#if form?.refunded}
-    <Alert tone="success">Payment refunded.</Alert>
-  {:else if form?.error}
-    <Alert tone="error">{form.error}</Alert>
-  {/if}
-
-  <Card class="mt-6">
-    <h2>Transactions</h2>
+  <Card title="Transactions">
+    {#snippet header()}
+      <Badge tone="neutral">{data.payments.length}</Badge>
+    {/snippet}
     {#if data.payments.length > 0}
-      <ul class="list" role="list">
-        {#each data.payments as p}
-          <li class="list-item row-item">
-            <span>
-              <strong>{money(p.amount, p.currency)}</strong> · {p.customer}
-              {#if p.description}<span class="pay-desc">— {p.description}</span>{/if}
-              <span class="pay-meta">{when(p.createdAt)}</span>
-            </span>
-            <span class="nav" style="align-items: center;">
-              <Badge tone={tone(p.status)}>{p.status}</Badge>
-              {#if data.canManage && p.status !== "refunded"}
-                <form method="POST" action="?/refund" use:enhance>
-                  <input type="hidden" name="intentId" value={p.intentId} />
-                  <Button type="submit" variant="ghost" size="sm">Refund</Button>
-                </form>
-              {/if}
-            </span>
-          </li>
+      <ResourceTable class="flush" caption="Payment transactions">
+        {#snippet head()}
+          <tr>
+            <th>Customer</th>
+            <th>Description</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th class="table-num">Amount</th>
+            <th></th>
+          </tr>
+        {/snippet}
+        {#each data.payments as p (p.id)}
+          <tr>
+            <td data-label="Customer">
+              <a class="table-primary" href={`/app/payments/${p.id}`}>{p.customer}</a>
+            </td>
+            <td data-label="Description" class="table-muted">{p.description ?? "—"}</td>
+            <td data-label="Date" class="table-muted">{when(p.createdAt)}</td>
+            <td data-label="Status"><Badge tone={tone(p.status)}>{p.status}</Badge></td>
+            <td data-label="Amount" class="table-num">{money(p.amount, p.currency)}</td>
+            <td class="row-go" aria-hidden="true">
+              <a href={`/app/payments/${p.id}`} tabindex="-1">→</a>
+            </td>
+          </tr>
         {/each}
-      </ul>
+      </ResourceTable>
     {:else}
-      <p class="empty">No payments yet. They appear here once captured through checkout (createPaymentIntent → webhook).</p>
+      <EmptyState
+        title="No payments yet"
+        description="They appear here once captured through checkout (createPaymentIntent → webhook)."
+      />
     {/if}
   </Card>
 </main>
 
 <style>
-  .pay-desc {
-    color: var(--color-ink-soft);
-    font-size: 0.9rem;
+  .row-go {
+    text-align: end;
+    inline-size: 1%;
+    white-space: nowrap;
   }
-  .pay-meta {
-    display: block;
+  .row-go a {
     color: var(--color-ink-faint);
-    font-size: 0.78rem;
     font-family: var(--font-mono);
+    text-decoration: none;
+    transition: transform 150ms var(--ease), color 150ms var(--ease);
+    display: inline-block;
   }
-  .empty {
-    color: var(--color-ink-faint);
-    font-size: 0.9rem;
+  /* Nudge + tint the chevron when its row is hovered (row hover lives in ResourceTable). */
+  :global(.resource-table tbody tr:hover) .row-go a {
+    color: var(--color-act);
+    transform: translateX(3px);
   }
 </style>

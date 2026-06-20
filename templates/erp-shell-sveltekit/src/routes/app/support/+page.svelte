@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Card, Eyebrow, Button, Field, Badge, Alert } from "$lib/ui";
+  import { PageHeader, Card, Button, Badge, ResourceTable, EmptyState } from "$lib/ui";
 
-  let { data, form } = $props();
+  let { data } = $props();
 
   // Ticket status -> Badge tone. open = warn, pending = neutral,
   // resolved/closed = good.
@@ -25,102 +25,81 @@
 </svelte:head>
 
 <main class="section">
-  <Eyebrow>Support queue</Eyebrow>
-  <h1>Support</h1>
-  <p>Support tickets for your company, powered by the support-ticket module.</p>
-
-  {#if form?.created}
-    <Alert tone="success">Ticket opened.</Alert>
-  {:else if form?.updated}
-    <Alert tone="success">Ticket updated.</Alert>
-  {:else if form?.error}
-    <Alert tone="error">{form.error}</Alert>
-  {/if}
-
-  <div class="content-grid mt-6">
-    <Card>
-      <h2>Tickets</h2>
-      {#if data.tickets.length > 0}
-        <ul class="list" role="list">
-          {#each data.tickets as ticket}
-            <li class="list-item row-item">
-              <span><strong>{ticket.subject}</strong> - {ticket.requesterEmail}</span>
-              <span class="ticket-actions">
-                <Badge tone={tone(ticket.status)}>{ticket.status}</Badge>
-                <span>{ticket.priority}</span>
-                {#if data.canManage}
-                  <form method="POST" action="?/updateStatus" class="status-form">
-                    <input type="hidden" name="id" value={ticket.id} />
-                    <select name="status" aria-label="Ticket status" value={ticket.status}>
-                      <option value="open">Open</option>
-                      <option value="pending">Pending</option>
-                      <option value="resolved">Resolved</option>
-                      <option value="closed">Closed</option>
-                    </select>
-                    <Button type="submit" size="sm">Update</Button>
-                  </form>
-                {/if}
-              </span>
-            </li>
-          {/each}
-        </ul>
-      {:else}
-        <p>No tickets yet.</p>
+  <PageHeader
+    eyebrow="Support queue"
+    title="Support"
+    description="Support tickets for your company, powered by the support-ticket module."
+  >
+    {#snippet actions()}
+      {#if data.canManage}
+        <Button href="/app/support/new" variant="primary">New ticket</Button>
       {/if}
-    </Card>
+    {/snippet}
+  </PageHeader>
 
-    {#if data.canManage}
-      <Card>
-        <h2>Open a ticket</h2>
-        <form method="POST" action="?/create">
-          <Field label="Subject" id="subject">
-            <input id="subject" name="subject" required value={form?.values?.subject ?? ""} />
-          </Field>
-          <Field label="Requester email" id="requesterEmail">
-            <input
-              id="requesterEmail"
-              name="requesterEmail"
-              type="email"
-              required
-              value={form?.values?.requesterEmail ?? ""}
-            />
-          </Field>
-          <Field label="Priority" id="priority">
-            <select id="priority" name="priority" value={form?.values?.priority ?? "normal"}>
-              <option value="low">Low</option>
-              <option value="normal">Normal</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
-            </select>
-          </Field>
-          <Field label="Description (optional)" id="description">
-            <textarea id="description" name="description">{form?.values?.description ?? ""}</textarea>
-          </Field>
-          <Button type="submit" variant="primary">Open ticket</Button>
-        </form>
-      </Card>
+  <Card title="Tickets">
+    {#snippet header()}
+      <Badge tone="neutral">{data.tickets.length}</Badge>
+    {/snippet}
+
+    {#if data.tickets.length > 0}
+      <ResourceTable class="flush" caption="Support tickets">
+        {#snippet head()}
+          <tr>
+            <th>Subject</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        {/snippet}
+        {#each data.tickets as ticket (ticket.id)}
+          <tr>
+            <td data-label="Subject">
+              <a class="table-primary" href={`/app/support/${ticket.id}`}>{ticket.subject}</a>
+              <span class="table-muted">{ticket.requesterEmail}</span>
+            </td>
+            <td data-label="Priority" class="table-muted">{ticket.priority}</td>
+            <td data-label="Status"><Badge tone={tone(ticket.status)}>{ticket.status}</Badge></td>
+            <td class="row-go" aria-hidden="true">
+              <a href={`/app/support/${ticket.id}`} tabindex="-1">→</a>
+            </td>
+          </tr>
+        {/each}
+      </ResourceTable>
+    {:else if data.canManage}
+      <EmptyState title="No tickets yet" description="Open your first ticket to start tracking support requests.">
+        {#snippet action()}
+          <Button href="/app/support/new" variant="primary">New ticket</Button>
+        {/snippet}
+      </EmptyState>
+    {:else}
+      <EmptyState title="No tickets yet" description="Opened tickets will appear here." />
     {/if}
-  </div>
+  </Card>
 </main>
 
 <style>
-  .ticket-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.5rem;
+  /* Stack the subject + requester email inside the primary cell. */
+  .table-primary {
+    display: block;
   }
 
-  .status-form {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
+  /* Trailing chevron column — row navigates to the ticket detail page. */
+  .row-go {
+    text-align: end;
+    inline-size: 1%;
+    white-space: nowrap;
   }
-
-  .status-form select {
-    min-block-size: 32px;
-    inline-size: auto;
-    padding-block: 0.25rem;
+  .row-go a {
+    color: var(--color-ink-faint);
+    font-family: var(--font-mono);
+    text-decoration: none;
+    transition: transform 150ms var(--ease), color 150ms var(--ease);
+    display: inline-block;
+  }
+  /* Nudge + tint the chevron when its row is hovered (row hover lives in ResourceTable). */
+  :global(.resource-table tbody tr:hover) .row-go a {
+    color: var(--color-act);
+    transform: translateX(3px);
   }
 </style>

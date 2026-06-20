@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { enhance } from "$app/forms";
-  import { Card, Eyebrow, Badge, Button, Field, Alert } from "$lib/ui";
+  import { PageHeader, Card, Badge, Button, Alert, ResourceTable, EmptyState } from "$lib/ui";
 
   let { data, form } = $props();
 
@@ -16,65 +15,104 @@
 </svelte:head>
 
 <main class="section">
-  <Eyebrow>Intake forms</Eyebrow>
-  <h1>Forms</h1>
-  <p>Define intake forms and review submissions, powered by the forms-intake module.</p>
+  <PageHeader
+    eyebrow="Intake forms"
+    title="Forms"
+    description="Review intake submissions, powered by the forms-intake module."
+  >
+    {#snippet actions()}
+      <Button href="/app/settings/forms" variant="ghost">Manage forms</Button>
+    {/snippet}
+  </PageHeader>
 
-  {#if form?.created}
-    <Alert tone="success">Form created.</Alert>
-  {:else if form?.error}
+  {#if form?.error}
     <Alert tone="error">{form.error}</Alert>
   {/if}
 
-  <div class="content-grid mt-6">
-    <Card>
-      <h2>Forms</h2>
+  <div class="cols">
+    <Card title="Forms">
+      {#snippet header()}
+        <Badge tone="neutral">{data.forms.length}</Badge>
+      {/snippet}
       {#if data.forms.length > 0}
-        <ul class="list" role="list">
-          {#each data.forms as f}
-            <li class="list-item row-item">
-              <span><strong>{f.name}</strong> · {f.fieldCount} field{f.fieldCount === 1 ? "" : "s"}</span>
-              <span class="nav" style="align-items: center;">
+        <ResourceTable class="flush" caption="Intake forms">
+          {#snippet head()}
+            <tr>
+              <th>Form</th>
+              <th class="table-num">Fields</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          {/snippet}
+          {#each data.forms as f (f.id)}
+            <tr>
+              <td data-label="Form" class="table-primary">{f.name}</td>
+              <td data-label="Fields" class="table-num">{f.fieldCount}</td>
+              <td data-label="Status">
                 <Badge tone={f.status === "published" ? "good" : "neutral"}>{f.status}</Badge>
-                <a class="forms-view" href={`/app/forms?form=${f.id}`} class:is-active={data.selectedFormId === f.id}>View submissions</a>
-              </span>
-            </li>
+              </td>
+              <td class="table-action">
+                <a
+                  class="forms-view"
+                  href={`/app/forms?form=${f.id}`}
+                  class:is-active={data.selectedFormId === f.id}>View submissions</a
+                >
+              </td>
+            </tr>
           {/each}
-        </ul>
+        </ResourceTable>
       {:else}
-        <p class="empty">No forms yet — create one to start collecting submissions.</p>
-      {/if}
-
-      {#if data.canManage}
-        <form method="POST" action="?/createForm" use:enhance class="mt-4">
-          <Field label="Form name" id="name"><input id="name" name="name" required placeholder="Contact us" /></Field>
-          <label class="forms-check"><input type="checkbox" name="requireTurnstile" /> Require Turnstile (spam protection)</label>
-          <Button type="submit" variant="primary">Create form</Button>
-        </form>
+        <EmptyState
+          title="No forms yet"
+          description="Create one to start collecting submissions."
+        />
       {/if}
     </Card>
 
-    <Card>
-      <h2>Submissions</h2>
+    <Card title="Submissions">
+      {#snippet header()}
+        {#if data.selectedFormId}<Badge tone="neutral">{data.submissions.length}</Badge>{/if}
+      {/snippet}
       {#if !data.selectedFormId}
-        <p class="empty">Pick a form's “View submissions” to see its intake here.</p>
+        <EmptyState
+          title="No form selected"
+          description="Pick a form's “View submissions” to see its intake here."
+        />
       {:else if data.submissions.length > 0}
-        <ul class="list" role="list">
-          {#each data.submissions as sub}
-            <li class="list-item sub-item">
-              <span class="sub-values">{preview(sub.values)}</span>
-              <span class="sub-meta">{when(sub.submittedAt)}</span>
-            </li>
+        <ResourceTable class="flush" caption="Form submissions">
+          {#snippet head()}
+            <tr>
+              <th>Values</th>
+              <th>Submitted</th>
+            </tr>
+          {/snippet}
+          {#each data.submissions as sub (sub.id)}
+            <tr>
+              <td data-label="Values" class="sub-values">{preview(sub.values)}</td>
+              <td data-label="Submitted" class="sub-meta">{when(sub.submittedAt)}</td>
+            </tr>
           {/each}
-        </ul>
+        </ResourceTable>
       {:else}
-        <p class="empty">No submissions for this form yet.</p>
+        <EmptyState title="No submissions yet" description="Submissions for this form will appear here." />
       {/if}
     </Card>
   </div>
 </main>
 
 <style>
+  .cols {
+    display: grid;
+    gap: 18px;
+    margin-block-start: 4px;
+    grid-template-columns: minmax(0, 1.4fr) minmax(300px, 0.9fr);
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .cols {
+      grid-template-columns: 1fr;
+    }
+  }
   .forms-view {
     font-size: 0.82rem;
     color: var(--color-ink-soft);
@@ -83,19 +121,6 @@
     color: var(--color-act);
     font-weight: 600;
   }
-  .forms-check {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-block: 10px 14px;
-    font-size: 0.88rem;
-    color: var(--color-ink-soft);
-  }
-  .sub-item {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
   .sub-values {
     font-size: 0.88rem;
   }
@@ -103,9 +128,6 @@
     font-size: 0.74rem;
     font-family: var(--font-mono);
     color: var(--color-ink-faint);
-  }
-  .empty {
-    color: var(--color-ink-faint);
-    font-size: 0.9rem;
+    white-space: nowrap;
   }
 </style>

@@ -10,9 +10,9 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Company setup route stays a thin adapter over org-team-rbac createOrganization."
   );
   assertFileIncludesAll(
-    "src/routes/app/team/+page.server.ts",
+    "src/routes/app/settings/team/+page.server.ts",
     ["@microservices-sh/org-team-rbac", "inviteMember", "updateMemberRole"],
-    "Team route uses org-team-rbac invite/role use cases."
+    "Team route (Settings hub) uses org-team-rbac invite/role use cases."
   );
   assertFileIncludesAll(
     "src/routes/app/team/accept/+page.server.ts",

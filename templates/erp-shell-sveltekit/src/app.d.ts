@@ -7,7 +7,8 @@ import type { TicketStore } from "@microservices-sh/support-ticket/ports";
 import type { InvoiceStore, NumberAllocator } from "@microservices-sh/invoice/ports";
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
 import type { NotificationStore } from "@microservices-sh/notifications-inapp/ports";
-import type { JobStore } from "@microservices-sh/jobs-workflows/ports";
+import type { JobStore, ScheduleStore } from "@microservices-sh/jobs-workflows/ports";
+import type { DeliveryLogStore, WebhookEndpointStore } from "@microservices-sh/webhook-delivery/ports";
 import type { AccountStore, LoginCodeStore, SessionStore } from "@microservices-sh/identity";
 import type { RateLimitStore } from "@microservices-sh/gateway/ports";
 import type { PaymentRepository, PaymentGateway } from "@microservices-sh/payment/ports";
@@ -56,6 +57,9 @@ declare global {
       objectStorage: ObjectStorage;
       notificationStore: NotificationStore;
       jobStore: JobStore;
+      scheduleStore: ScheduleStore;
+      webhookEndpointStore: WebhookEndpointStore;
+      webhookDeliveryLog: DeliveryLogStore;
       // Passwordless identity stores (@microservices-sh/identity): accounts,
       // one-time login codes, and server-side sessions.
       accountStore: AccountStore;

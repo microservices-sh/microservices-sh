@@ -1,20 +1,22 @@
 import { enabledModuleIds } from "./modules";
 
-// ── Enabled-driven sidebar nav ─────────────────────────────────────────────
+// ── Enabled-driven, GROUPED sidebar nav ────────────────────────────────────
 //
 // The ERP shell's left sidebar is DERIVED from the ENABLED module set, not
 // hardcoded. A module appears only if it is BOTH mapped here (user-facing) AND
 // enabled for this workspace (installed + turned on — see lib/server/modules.ts).
-// Toggle a module in src/lib/modules.config.ts (or ENABLED_MODULES) and its nav
-// entry appears/disappears — no edit to the layout component required.
+// Items are organised into thematic groups (Overview / Customers / Billing /
+// Marketing / Automation / Workspace) so the sidebar scales past a flat list.
 //
-// Infra modules (auth, identity, email, gateway, audit-log, jobs-workflows,
-// idempotency, webhook-delivery) have no entry here: they power the shell but
-// expose no surface a user navigates to.
+// CONFIGURATION lives in the Settings hub (/app/settings/*), NOT here — see
+// lib/server/settings-nav.ts. Team management is org configuration, so it is no
+// longer a top-level entry; it lives under Settings → Workspace → Team.
 
 export interface NavItem {
   href: string;
   label: string;
+  /** Icon name resolved by the AppShell's icon set (Lucide-style). */
+  icon?: string;
 }
 export interface NavGroup {
   section?: string;
@@ -26,52 +28,66 @@ export interface LockModule {
   contract?: { mount?: string; permissions?: string[]; requires?: string[] };
 }
 
-// User-facing modules → sidebar metadata, grouped to match the web-portal/admin
-// chrome (section title + items). A module is shown only if it is BOTH listed
-// here AND installed (in the lock). Order here defines sidebar order.
+// User-facing modules → sidebar metadata. A module is shown only if it is BOTH
+// listed here AND enabled. `org-team-rbac` is intentionally absent: team
+// management is configuration and lives in the Settings hub.
 const MODULE_NAV: Record<string, NavItem> = {
-  customer: { label: "Customers", href: "/app/customers" },
-  invoice: { label: "Invoices", href: "/app/invoices" },
-  payment: { label: "Payments", href: "/app/payments" },
-  "billing-subscriptions": { label: "Billing", href: "/app/billing" },
-  booking: { label: "Bookings", href: "/app/bookings" },
-  "support-ticket": { label: "Support", href: "/app/support" },
-  "notifications-inapp": { label: "Notifications", href: "/app/notifications" },
-  "image-generation": { label: "Images", href: "/app/images" },
-  "ads-manager": { label: "Ads", href: "/app/ads" },
-  "forms-intake": { label: "Forms", href: "/app/forms" },
-  "file-media": { label: "Files", href: "/app/files" },
-  "org-team-rbac": { label: "Team", href: "/app/team" }
+  customer: { label: "Customers", href: "/app/customers", icon: "users" },
+  invoice: { label: "Invoices", href: "/app/invoices", icon: "file-text" },
+  payment: { label: "Payments", href: "/app/payments", icon: "credit-card" },
+  "billing-subscriptions": { label: "Billing", href: "/app/billing", icon: "receipt" },
+  booking: { label: "Bookings", href: "/app/bookings", icon: "calendar" },
+  "support-ticket": { label: "Support", href: "/app/support", icon: "life-buoy" },
+  "notifications-inapp": { label: "Notifications", href: "/app/notifications", icon: "bell" },
+  "image-generation": { label: "Images", href: "/app/images", icon: "image" },
+  "ads-manager": { label: "Ads", href: "/app/ads", icon: "megaphone" },
+  "forms-intake": { label: "Forms", href: "/app/forms", icon: "clipboard" },
+  "jobs-workflows": { label: "Jobs", href: "/app/jobs", icon: "workflow" },
+  "webhook-delivery": { label: "Webhooks", href: "/app/webhooks", icon: "webhook" },
+  "file-media": { label: "Files", href: "/app/files", icon: "folder" }
 };
 
-// Which modules belong to which sidebar group (operational vs organization).
-const OPERATIONS = ["customer", "invoice", "payment", "billing-subscriptions", "booking", "support-ticket", "notifications-inapp", "image-generation", "ads-manager", "forms-intake", "file-media"];
-const ORGANIZATION = ["org-team-rbac"];
+// Thematic groups (ordered). Each lists the ordered module ids it contains;
+// only enabled ones render, and empty groups are dropped.
+const GROUPS: { section: string; modules: string[] }[] = [
+  { section: "Customers", modules: ["customer", "booking", "support-ticket"] },
+  { section: "Billing", modules: ["invoice", "payment", "billing-subscriptions"] },
+  { section: "Marketing", modules: ["forms-intake", "image-generation", "ads-manager"] },
+  { section: "Automation", modules: ["jobs-workflows", "webhook-delivery"] },
+  { section: "Workspace", modules: ["file-media"] }
+];
 
 function itemsFor(moduleIds: string[], enabled: Set<string>): NavItem[] {
   return moduleIds.filter((id) => enabled.has(id) && MODULE_NAV[id]).map((id) => MODULE_NAV[id]);
 }
 
-// Build the grouped sidebar nav from the ENABLED module set. Dashboard is always
-// present; Settings always under Organization; Admin console only for
-// super-admins. Empty groups are dropped.
+// Build the grouped sidebar from the ENABLED module set. Overview (Dashboard +
+// Agent Center + Notifications inbox) is always first; Settings always sits in
+// Workspace; Admin only for super-admins. Empty groups are dropped.
 export function buildNav(opts: { superAdmin?: boolean; platform?: App.Platform } = {}): NavGroup[] {
   const enabled = enabledModuleIds(opts.platform);
+  const groups: NavGroup[] = [];
 
-  const operations: NavGroup = {
-    section: "Operations",
-    items: [{ label: "Dashboard", href: "/app" }, ...itemsFor(OPERATIONS, enabled)]
-  };
+  groups.push({
+    section: "Overview",
+    items: [
+      { label: "Dashboard", href: "/app", icon: "dashboard" },
+      { label: "Agent Center", href: "/app/agent", icon: "bot" },
+      ...itemsFor(["notifications-inapp"], enabled)
+    ]
+  });
 
-  const organization: NavGroup = {
-    section: "Organization",
-    items: [...itemsFor(ORGANIZATION, enabled), { label: "Settings", href: "/app/settings" }]
-  };
-
-  const groups: NavGroup[] = [operations, organization];
+  for (const group of GROUPS) {
+    const items = itemsFor(group.modules, enabled);
+    // Settings (the config hub) always lives in Workspace, even if Files is off.
+    if (group.section === "Workspace") {
+      items.push({ label: "Settings", href: "/app/settings", icon: "settings" });
+    }
+    if (items.length > 0) groups.push({ section: group.section, items });
+  }
 
   if (opts.superAdmin) {
-    groups.push({ section: "System", items: [{ label: "Admin console", href: "/admin" }] });
+    groups.push({ section: "System", items: [{ label: "Admin console", href: "/admin", icon: "shield" }] });
   }
 
   return groups.filter((g) => g.items.length > 0);
