@@ -239,6 +239,8 @@ try {
     !svelteCli.includes("localRequiresD1") ||
     !svelteCli.includes("This remote-API app uses the hosted microservices.sh API") ||
     !svelteCli.includes("\"--config\", wranglerConfigPath") ||
+    !svelteCli.includes("microservices deploy domain add") ||
+    !svelteCli.includes("--hostname <host>") ||
     !svelteCli.includes("microservices local setup") ||
     !svelteCli.includes("deploy preview --confirm deploy") ||
     !svelteCli.includes("/deployments/preview") ||

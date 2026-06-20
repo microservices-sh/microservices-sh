@@ -184,6 +184,9 @@ const localRequiresD1 = remoteApiApp ? false : localProfile.requiresD1 !== false
 const localDevHost = cleanString(localProfile.host) ?? "127.0.0.1";
 const localDevPort = cleanString(localProfile.port) ?? "5174";
 const localD1MigrationArgs = ["d1", "migrations", "apply", "DB", "--local"];
+const buildOutput = ".svelte-kit/cloudflare";
+const deployBundleOutput = ".microservices/deploy-bundle";
+const deployBundleWorker = `${deployBundleOutput}/_worker.js`;
 
 function workspaceTelemetryProps(flags, extra = {}) {
   return {
@@ -216,6 +219,7 @@ function parseArgs(argv) {
     plan: false,
     confirm: null,
     url: null,
+    hostname: null,
     apiUrl: process.env.MICROSERVICES_API_URL ?? null,
     apiKey: process.env.MICROSERVICES_API_KEY ?? process.env.MICROSERVICES_TOKEN ?? null,
     actor: process.env.USER ?? "agent",
@@ -282,6 +286,10 @@ function parseArgs(argv) {
     } else if (value === "--url") {
       const parsed = flagValue(index, value);
       flags.url = parsed.value;
+      index = parsed.index;
+    } else if (value === "--hostname" || value === "--host-name" || value === "--domain") {
+      const parsed = flagValue(index, value);
+      flags.hostname = parsed.value;
       index = parsed.index;
     } else if (value === "--api-url") {
       const parsed = flagValue(index, value);
@@ -2283,8 +2291,6 @@ function artifactChecksum(files) {
 function buildDeployArtifact(flags) {
   const input = deploymentInput(flags, "preview");
   const files = [];
-  const buildOutput = ".svelte-kit/cloudflare";
-  const deployBundleOutput = ".microservices/deploy-bundle";
 
   if (!existsSync(buildOutput)) {
     return fail(
@@ -2306,13 +2312,13 @@ function buildDeployArtifact(flags) {
   if (localRequiresD1) {
     collectArtifactDirectory(process.cwd(), "migrations", files);
   }
-  collectArtifactFile(process.cwd(), `${deployBundleOutput}/_worker.js`, files);
+  collectArtifactFile(process.cwd(), deployBundleWorker, files);
   collectArtifactDirectory(process.cwd(), buildOutput, files);
 
   const required = [
     "package.json",
     wranglerConfigPath,
-    `${deployBundleOutput}/_worker.js`,
+    deployBundleWorker,
     `${buildOutput}/_worker.js`
   ];
   const missing = required.filter((path) => !files.some((file) => file.path === path));
@@ -2768,6 +2774,178 @@ async function deployUpload(deploymentId, flags) {
     method: "POST",
     body: JSON.stringify(deploymentActionBody(flags))
   });
+}
+
+function normalizeHostname(value) {
+  const text = cleanString(value);
+  if (!text) return null;
+  let hostname = text;
+  if (/^https?:\/\//i.test(hostname)) {
+    try {
+      hostname = new URL(hostname).hostname;
+    } catch {
+      return null;
+    }
+  }
+  hostname = hostname.replace(/^\/+|\/+$/g, "").toLowerCase();
+  if (!hostname || hostname.includes("/") || hostname.includes(":")) return null;
+  if (!/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(hostname)) return null;
+  if (!hostname.includes(".")) return null;
+  return hostname;
+}
+
+function deploymentHostname(flags) {
+  return normalizeHostname(flags.hostname ?? flags.url);
+}
+
+function deploymentUrlForHostname(hostname) {
+  return `https://${hostname}/`;
+}
+
+function ensureDomainDeployBundle(flags) {
+  const missing = [buildOutput, deployBundleWorker].filter((path) => !existsSync(path));
+  if (!missing.length) {
+    return { ok: true, data: { built: false, missing: [] } };
+  }
+  if (flags.noBuild) {
+    return fail(
+      "DOMAIN_BUNDLE_MISSING",
+      "The local Cloudflare build bundle is missing.",
+      "Run microservices deploy preview --confirm deploy first, or rerun without --no-build.",
+      { missing }
+    );
+  }
+
+  const build = runCommand("deploy:build", "vite", ["build"], flags);
+  if (!build.ok) return build;
+  const bundle = runCommand(
+    "deploy:bundle",
+    "wrangler",
+    ["deploy", "--config", wranglerConfigPath, "--dry-run", "--outdir", deployBundleOutput],
+    flags
+  );
+  if (!bundle.ok) return bundle;
+  return { ok: true, data: { built: true, missing } };
+}
+
+function wranglerDomainArgs(workerName, hostname) {
+  return [
+    "deploy",
+    deployBundleWorker,
+    "--config",
+    wranglerConfigPath,
+    "--name",
+    workerName,
+    "--domain",
+    hostname,
+    "--assets",
+    buildOutput,
+    "--keep-vars"
+  ];
+}
+
+function deployDomainAddPlan(deploymentId, hostname, flags) {
+  return {
+    ok: true,
+    data: {
+      status: "planned",
+      apiUrl: resolvedApiSettings(flags).apiUrl,
+      deploymentId: deploymentId ?? null,
+      hostname,
+      url: deploymentUrlForHostname(hostname),
+      confirmationRequired: "domain",
+      sideEffects: [
+        "run local build and Wrangler dry-run bundle if the deploy bundle is missing",
+        "run wrangler deploy against the existing deployment Worker name with --domain",
+        "upload SvelteKit static assets through Wrangler",
+        "record the custom URL on the control-plane deployment via deploy activate"
+      ],
+      notDoneLocally: [
+        "no DNS record mutation through the microservices.sh API",
+        "no app-owned D1 migration",
+        "no deployment cleanup"
+      ],
+      nextSteps: deploymentId
+        ? [`Run microservices deploy domain add ${deploymentId} --hostname ${hostname} --confirm domain.`]
+        : ["Run microservices deploy upload first, then attach a hostname to the returned deployment id."]
+    }
+  };
+}
+
+async function deployDomainAdd(deploymentId, flags) {
+  const resolved = deploymentIdArg(deploymentId, flags);
+  if (!resolved.ok) return resolved;
+  deploymentId = resolved.data;
+
+  const hostname = deploymentHostname(flags);
+  if (!hostname) {
+    return fail(
+      "DOMAIN_HOSTNAME_REQUIRED",
+      "Domain attachment requires a valid hostname.",
+      "Pass --hostname admin-preview.example.com or --domain admin-preview.example.com."
+    );
+  }
+  if (flags.plan) return deployDomainAddPlan(deploymentId, hostname, flags);
+  if (!deploymentId) {
+    return fail("DEPLOYMENT_ID_REQUIRED", "Missing deployment id.", "Pass the deployment id returned by deploy upload.");
+  }
+  if (!["domain", "production-domain"].includes(flags.confirm ?? "")) {
+    return fail(
+      "DOMAIN_CONFIRMATION_REQUIRED",
+      "Attaching a custom domain requires explicit confirmation.",
+      `Run microservices deploy domain add ${deploymentId} --hostname ${hostname} --plan, then rerun with --confirm domain.`,
+      { confirmationRequired: "domain", productionConfirmationRequired: "production-domain" }
+    );
+  }
+
+  const status = await deployStatus(deploymentId, flags);
+  if (!status.ok) return status;
+  const deployment = status.data?.deployment ?? {};
+  const workerName = cleanString(deployment.workerName);
+  if (!workerName) {
+    return fail(
+      "WORKER_NAME_MISSING",
+      "The deployment does not have a Worker name to attach a custom domain to.",
+      "Run microservices deploy upload first, then retry domain attachment.",
+      { deploymentId }
+    );
+  }
+
+  const bundle = ensureDomainDeployBundle(flags);
+  if (!bundle.ok) return bundle;
+
+  const wrangler = runCommand("deploy:domain", "wrangler", wranglerDomainArgs(workerName, hostname), flags);
+  if (!wrangler.ok) return wrangler;
+
+  const url = deploymentUrlForHostname(hostname);
+  const activated = await deployActivate(deploymentId, {
+    ...flags,
+    url,
+    mode: flags.mode ?? "dispatch-uploaded"
+  });
+  if (!activated.ok) return activated;
+
+  return {
+    ok: true,
+    data: {
+      ...activated.data,
+      hostname,
+      url,
+      workerName,
+      domain: {
+        hostname,
+        url,
+        workerName,
+        command: wrangler.data.command,
+        exitCode: wrangler.data.exitCode,
+        rebuiltBundle: bundle.data.built
+      },
+      nextSteps: [
+        `Run microservices local smoke --url ${url} --json.`,
+        `Run microservices deploy inspect ${deploymentId} --json to verify the route record.`
+      ]
+    }
+  };
 }
 
 async function deployStatus(deploymentId, flags) {
@@ -3230,6 +3408,20 @@ ${(result.nextSteps ?? []).map((step) => `- ${step}`).join("\n") || "- Run deplo
 `;
 }
 
+function formatDomain(result) {
+  const deployment = result.deployment ?? {};
+  const domain = result.domain ?? {};
+  return `Deployment domain attached
+Deployment: ${deployment.id ?? "unknown"}
+Status: ${deployment.status ?? "unknown"}
+Worker: ${domain.workerName ?? deployment.workerName ?? "unknown"}
+Hostname: ${domain.hostname ?? result.hostname ?? "unknown"}
+URL: ${domain.url ?? result.url ?? deployment.previewUrl ?? "unknown"}
+Next:
+${(result.nextSteps ?? []).map((step) => `- ${step}`).join("\n") || "- Run deploy inspect to verify the deployment route."}
+`;
+}
+
 function formatResources(result) {
   return `Deployment: ${result.deployment.id}
 Resources:
@@ -3466,6 +3658,7 @@ function usage() {
   microservices local setup                      # verify local readiness
   microservices auth login                       # authenticate the CLI
   microservices deploy run [--plan] [--confirm deploy]   # build + managed deploy to live
+  microservices deploy domain add <id> --hostname <host> # attach a custom preview domain
   microservices deploy inspect [deployment-id]   # status, resources, logs, and errors
 
   Common flags: [--json] [--api-url <url>] [--api-key <key>]
@@ -3501,6 +3694,7 @@ function usageAll() {
   microservices deploy migrate [deployment-id] [--input deployment.json] [--plan] --confirm migrate [--json]${remoteApiApp ? "  # skipped for remote-API apps" : ""}
   microservices deploy upload-plan [deployment-id] [--input deployment.json] [--json]
   microservices deploy upload [deployment-id] [--input deployment.json] [--plan] --confirm upload [--json]
+  microservices deploy domain add [deployment-id] --hostname <host> [--plan] --confirm domain [--json]
   microservices deploy inspect [deployment-id] [--input deployment.json] [--search "..."] [--level info|warn|error] [--since 24h] [--limit 5] [--json]
   microservices deploy status [deployment-id] [--input deployment.json] [--json]
   microservices deploy resources [deployment-id] [--input deployment.json] [--json]
@@ -3711,6 +3905,13 @@ async function main() {
     emit(await deployUploadPlan(value, flags), formatUploadPlan, flags);
   } else if (resource === "deploy" && action === "upload") {
     emit(await deployUpload(value, flags), (data) => data.deployment ? formatUpload(data) : `Upload plan: ${data.status}\n`, flags);
+  } else if (resource === "deploy" && (action === "domain" || action === "domains")) {
+    const domainAction = value ?? "add";
+    if (domainAction !== "add") {
+      emit(fail("UNKNOWN_DOMAIN_ACTION", "Unknown deploy domain action.", "Use microservices deploy domain add <deployment-id> --hostname <host>."), null, flags);
+      return;
+    }
+    emit(await deployDomainAdd(args[3] ?? null, flags), (data) => data.domain ? formatDomain(data) : `Domain plan: ${data.status}\n`, flags);
   } else if (resource === "deploy" && (action === "inspect" || action === "debug")) {
     emit(await deployInspect(value, flags), formatInspection, flags);
   } else if (resource === "deploy" && action === "status") {
