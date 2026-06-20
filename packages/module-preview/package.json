@@ -11,6 +11,7 @@
   "dependencies": {
     "@microservices-sh/ai-gateway": "workspace:*",
     "@microservices-sh/booking": "workspace:*",
+    "@microservices-sh/invoice": "workspace:*",
     "@microservices-sh/marketing-research": "workspace:*",
     "@microservices-sh/ui": "workspace:*"
   },
