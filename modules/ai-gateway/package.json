@@ -6,6 +6,7 @@
   "description": "Governed AI egress gateway: provider-neutral embed/complete with BYOK, authz, audit, token metering, and cost caps.",
   "exports": {
     ".": "./src/index.ts",
+    "./preview": "./reference-ui/Preview.svelte",
     "./types": "./src/types.ts",
     "./schemas": "./src/schemas.ts",
     "./hooks": "./src/hooks.ts",
@@ -29,5 +30,5 @@
     "test": "vitest run --root ../.. modules/ai-gateway/src/ai-gateway.test.ts modules/ai-gateway/src/adapters/adapters.test.ts"
   },
   "dependencies": { "zod": "^4.4.3" },
-  "devDependencies": { "@cloudflare/workers-types": "^4.20250109.0", "typescript": "^5.9.3", "vitest": "^3.2.4" }
+  "devDependencies": { "@cloudflare/workers-types": "^4.20250109.0", "@microservices-sh/ui": "workspace:*", "svelte": "^5.0.0", "typescript": "^5.9.3", "vitest": "^3.2.4" }
 }
