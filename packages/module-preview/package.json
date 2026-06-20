@@ -17,6 +17,7 @@
     "@microservices-sh/invoice": "workspace:*",
     "@microservices-sh/marketing-research": "workspace:*",
     "@microservices-sh/notifications-inapp": "workspace:*",
+    "@microservices-sh/org-team-rbac": "workspace:*",
     "@microservices-sh/payment": "workspace:*",
     "@microservices-sh/support-ticket": "workspace:*",
     "@microservices-sh/ui": "workspace:*"
