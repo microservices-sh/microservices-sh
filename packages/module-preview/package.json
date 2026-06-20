@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@microservices-sh/ai-gateway": "workspace:*",
+    "@microservices-sh/audit-log": "workspace:*",
     "@microservices-sh/billing-subscriptions": "workspace:*",
     "@microservices-sh/booking": "workspace:*",
     "@microservices-sh/customer": "workspace:*",
