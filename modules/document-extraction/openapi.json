@@ -4,5 +4,46 @@
     "title": "Document Extraction Module",
     "version": "0.1.0"
   },
-  "paths": {}
+  "paths": {
+    "/documents": {
+      "get": {
+        "summary": "List extraction jobs",
+        "parameters": [
+          { "name": "tenantId", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "ownerId", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Jobs listed" } }
+      },
+      "post": {
+        "summary": "Create an extraction job",
+        "responses": { "201": { "description": "Job created" }, "400": { "description": "Invalid job input" } }
+      }
+    },
+    "/documents/{jobId}": {
+      "get": {
+        "summary": "Get an extraction job",
+        "parameters": [
+          { "name": "jobId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "tenantId", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Job found" }, "404": { "description": "Job not found" } }
+      }
+    },
+    "/documents/{jobId}/draft": {
+      "post": {
+        "summary": "Submit an extraction draft",
+        "parameters": [{ "name": "jobId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Draft submitted" }, "400": { "description": "Invalid draft" } }
+      }
+    },
+    "/documents/{jobId}/review": {
+      "post": {
+        "summary": "Approve or reject an extraction draft",
+        "parameters": [{ "name": "jobId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Review recorded" }, "409": { "description": "Draft required or job already reviewed" } }
+      }
+    }
+  }
 }

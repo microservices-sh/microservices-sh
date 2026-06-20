@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./types": "./src/types.ts",
     "./schemas": "./src/schemas.ts",
+    "./http": "./src/http.ts",
     "./hooks": "./src/hooks.ts",
     "./manifest": "./src/manifest/index.ts",
     "./config": "./src/config/index.ts",
@@ -25,7 +26,7 @@
   "scripts": {
     "build": "tsc --noEmit",
     "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path .",
-    "test": "vitest run --root ../.. modules/document-extraction/src/document-extraction.test.ts modules/document-extraction/src/d1-document-extraction-store.test.ts"
+    "test": "vitest run --root ../.. modules/document-extraction/src/document-extraction.test.ts modules/document-extraction/src/d1-document-extraction-store.test.ts modules/document-extraction/src/http.test.ts"
   },
   "dependencies": {
     "@microservices-sh/connection-contract": "workspace:*",

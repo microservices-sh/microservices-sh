@@ -28,6 +28,7 @@ Gemma support is through adapters, not hard-coded into the module:
 
 ```ts
 import {
+  createDocumentExtractionHandler,
   createExtractionJob,
   submitExtractionDraft,
   reviewExtraction,
@@ -35,6 +36,20 @@ import {
   createGemmaExtractionNormalizer
 } from "@microservices-sh/document-extraction";
 ```
+
+## HTTP Boundary
+
+`createDocumentExtractionHandler({ store })` is a Fetch-standard route adapter
+for local apps and generated templates. Mount it at `/documents` from SvelteKit,
+Hono, or a Worker without importing those frameworks into the module.
+
+Routes:
+
+- `GET /documents?tenantId=...` - list jobs.
+- `POST /documents` - create a job.
+- `GET /documents/:jobId?tenantId=...` - fetch a job.
+- `POST /documents/:jobId/draft` - submit an OCR/LLM draft.
+- `POST /documents/:jobId/review` - approve or reject the draft.
 
 ## Ownership Boundary
 

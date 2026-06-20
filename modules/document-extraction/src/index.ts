@@ -14,6 +14,7 @@ export { defaultDocumentExtractionHooks } from "./hooks";
 export { documentExtractionEvents } from "./events";
 export { documentExtractionPermissions } from "./permissions";
 export { documentExtractionResources } from "./resources";
+export { createDocumentExtractionHandler } from "./http";
 export { createExtractionJob } from "./use-cases/create-extraction-job";
 export { getExtractionJob } from "./use-cases/get-extraction-job";
 export { listExtractionJobs } from "./use-cases/list-extraction-jobs";
