@@ -10,6 +10,8 @@ import { createNodeSqliteDatabase, runMigration } from "@microservices-sh/resear
 import { createOpenRouterProvider } from "@microservices-sh/ai-gateway/adapters/openrouter";
 import { bootResearchRuntime } from "./runtime.js";
 import { loadGraphFromDir } from "./graph-load.js";
+import researchMigration from "../../../modules/research/migrations/0001_research.sql";
+import decisionMigration from "../../../modules/decision/migrations/0001_decision.sql";
 
 const run = promisify(execFile);
 
@@ -28,16 +30,8 @@ async function main() {
   if (stdout) console.log(stdout.slice(-500));
 
   const raw = new DatabaseSync(DB_PATH);
-  for (const sql of [
-    "node_modules/@microservices-sh/research/migrations/0001_research.sql",
-    "node_modules/@microservices-sh/decision/migrations/0001_decision.sql"
-  ]) {
-    try {
-      runMigration(raw, readFileSync(sql, "utf8"));
-    } catch (err) {
-      console.error(`migration ${sql}:`, (err as Error).message);
-    }
-  }
+  runMigration(raw, researchMigration);
+  runMigration(raw, decisionMigration);
 
   // Provider is unused during load (no AI call), but bootResearchRuntime needs the config shape.
   const runtime = bootResearchRuntime({

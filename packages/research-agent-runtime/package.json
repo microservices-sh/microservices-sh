@@ -9,8 +9,8 @@
   },
   "scripts": {
     "check": "tsc --noEmit",
-    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=dist/server.mjs",
-    "build:graph": "esbuild src/graph-build.ts --bundle --platform=node --format=esm --outfile=dist/graph-build.mjs"
+    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=dist/server.mjs --loader:.sql=text",
+    "build:graph": "esbuild src/graph-build.ts --bundle --platform=node --format=esm --outfile=dist/graph-build.mjs --loader:.sql=text"
   },
   "dependencies": {
     "@microservices-sh/research": "workspace:*",

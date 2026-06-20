@@ -13,10 +13,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip \
  && pip3 install graphifyy --break-system-packages -q \
  && rm -rf /var/lib/apt/lists/*
+# Self-contained bundles (workspace deps + migrations inlined by esbuild).
 COPY --from=build /app/packages/research-agent-runtime/dist/server.mjs ./server.mjs
 COPY --from=build /app/packages/research-agent-runtime/dist/graph-build.mjs ./graph-build.mjs
-# node_modules carries the module migrations the entrypoints read at runtime.
-COPY --from=build /app/node_modules ./node_modules
 ENV DB_PATH=/data/graph.db SOURCES_DIR=/data/sources PORT=8080
 VOLUME ["/data"]
 EXPOSE 8080

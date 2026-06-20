@@ -10,6 +10,10 @@ import { DatabaseSync } from "node:sqlite";
 import { createNodeSqliteDatabase, runMigration } from "@microservices-sh/research/adapters/node-sqlite-graph";
 import { createOpenRouterProvider } from "@microservices-sh/ai-gateway/adapters/openrouter";
 import { bootResearchRuntime } from "./runtime.js";
+// Migrations bundled as text (esbuild --loader:.sql=text) so they survive into
+// the image — no runtime file reads / node_modules symlink dependency.
+import researchMigration from "../../../modules/research/migrations/0001_research.sql";
+import decisionMigration from "../../../modules/decision/migrations/0001_decision.sql";
 
 const DB_PATH = process.env.DB_PATH ?? "/data/graph.db";
 const SOURCES_DIR = process.env.SOURCES_DIR ?? "/data/sources";
@@ -30,19 +34,9 @@ function authorized(header: string | undefined): boolean {
   return got.length === want.length && timingSafeEqual(got, want);
 }
 
-// Migrations from the installed module packages.
-const require_ = (p: string) => readFileSync(p, "utf8");
 const raw = new DatabaseSync(DB_PATH);
-for (const sql of [
-  "node_modules/@microservices-sh/research/migrations/0001_research.sql",
-  "node_modules/@microservices-sh/decision/migrations/0001_decision.sql"
-]) {
-  try {
-    runMigration(raw, require_(sql));
-  } catch (err) {
-    console.error(`migration ${sql} failed (continuing):`, (err as Error).message);
-  }
-}
+runMigration(raw, researchMigration);
+runMigration(raw, decisionMigration);
 
 const readContent = ({ sourceFile, sourceLocation }: { sourceFile: string; sourceLocation: string }) => {
   try {
