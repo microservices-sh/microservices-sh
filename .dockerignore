@@ -1,0 +1,9 @@
+# Keep the Docker build context small + reproducible: never ship host installs,
+# build output, VCS, or graphify artifacts into the image (deps are reinstalled
+# in the build stage, bundles are produced there).
+**/node_modules
+**/dist
+.git
+**/.graphify_*
+**/*.log
+**/.DS_Store

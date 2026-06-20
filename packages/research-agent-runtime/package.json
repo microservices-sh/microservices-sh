@@ -18,7 +18,8 @@
     "@microservices-sh/ai-gateway": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
-    "@cloudflare/workers-types": "^4.20250109.0"
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "esbuild": "^0.27.7",
+    "typescript": "^5.9.3"
   }
 }

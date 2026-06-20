@@ -1,6 +1,7 @@
 # Per-client research/advise agent runtime. One machine per client.
 FROM node:22-slim AS build
 WORKDIR /app
+ENV CI=true
 COPY . .
 # Bundle the service + the graph-build job (each a single ESM file; node builtins external).
 RUN corepack enable && pnpm install --frozen-lockfile=false \
