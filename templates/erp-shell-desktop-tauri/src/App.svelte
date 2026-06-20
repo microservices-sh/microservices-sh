@@ -5,6 +5,7 @@
     Badge,
     Button,
     Card,
+    CustomSelect,
     EmptyState,
     MetricStrip,
     PageHeader,
@@ -13,6 +14,7 @@
     type Tone
   } from "./lib/ui";
   import {
+    approveJob,
     extractDocument,
     getRuntimeSettings,
     getRuntimeStatus,
@@ -22,8 +24,11 @@
     loadDocumentDraft,
     loadQueueDocuments,
     listenForDroppedDocuments,
+    rejectJob,
     saveRuntimeSettings,
+    selectImportFiles,
     selectImportFolder,
+    updateDraftField,
     type ExtractionDraft,
     type ExtractedField,
     type ImportFolder,
@@ -58,6 +63,10 @@
   let jobs: QueueJob[] = [];
   let busy = false;
   let extractingJobId: string | null = null;
+  let savingFieldKey: string | null = null;
+  let savedFieldKey: string | null = null;
+  let decidingJobId: string | null = null;
+  let confirmingRejectId: string | null = null;
   let installingModel = false;
   let savingSettings = false;
   let dragActive = false;
@@ -102,6 +111,8 @@
     offline: "Offline",
     extracting: "Extracting",
     review: "Review",
+    approved: "Approved",
+    rejected: "Rejected",
     synced: "Synced"
   };
 
@@ -112,6 +123,7 @@
   };
 
   $: reviewCount = jobs.filter((job) => job.status === "review").length;
+  $: approvedCount = jobs.filter((job) => job.status === "approved").length;
   $: syncedCount = jobs.filter((job) => job.status === "synced").length;
   $: duplicateCount = folder?.duplicateDocuments ?? 0;
   $: skippedCount = folder?.skippedDocuments ?? 0;
@@ -125,9 +137,14 @@
         .filter(Boolean)
     )
   );
-  $: selectedModelInstalled = runtimeSettings.installedModels.some(
-    (model) => model === settingsDraftModel || model.startsWith(`${settingsDraftModel}:`)
-  );
+  $: selectedModelInstalled = isModelInstalled(settingsDraftModel);
+  $: modelSelectOptions = modelOptions.map(modelOption);
+  $: ocrSelectOptions = ocrLanguageOptions.map((option) => ({
+    ...option,
+    meta: option.value
+  }));
+  $: llmDetail = runtimeLlmDetail();
+  $: ocrDetail = runtimeOcrDetail();
   $: metrics = [
     { label: "Queued", value: jobs.length, tone: jobs.length > 0 ? "info" : "neutral", hint: "local drafts" },
     { label: "Imported", value: importedCount, tone: importedCount > 0 ? "good" : "neutral", hint: "new documents" },
@@ -150,10 +167,49 @@
     selectedJobId = selectedJobId ?? queued.find((job) => job.draft)?.id ?? queued[0]?.id ?? null;
   }
 
+  function isModelInstalled(model: string) {
+    return runtimeSettings.installedModels.some(
+      (installedModel) => installedModel === model || installedModel.startsWith(`${model}:`)
+    );
+  }
+
+  function modelOption(model: string) {
+    const installed = isModelInstalled(model);
+
+    return {
+      value: model,
+      label: model,
+      meta: installed ? "Installed locally" : "Available to install",
+      badge: installed ? "Installed" : "Pull",
+      tone: installed ? "good" : "warn"
+    } as const;
+  }
+
+  function runtimeLlmDetail() {
+    if (!runtimeSettings.ollamaInstalled) return "Ollama app missing";
+    if (selectedModelInstalled) return runtime.llmEngine ?? "ollama";
+    if (runtimeSettings.installedModels.length) return `${settingsDraftModel} not installed`;
+    return "Start Ollama or install a model";
+  }
+
+  function runtimeOcrDetail() {
+    if (runtimeSettings.tesseractInstalled) return "Tesseract pre-pass";
+    if (selectedModelInstalled) return "Gemma vision fallback";
+    return "Tesseract optional; install Gemma model";
+  }
+
   async function chooseFolder() {
+    await chooseImportSource(selectImportFolder);
+  }
+
+  async function chooseFiles() {
+    await chooseImportSource(selectImportFiles);
+  }
+
+  async function chooseImportSource(selectSource: () => Promise<ImportResult | null>) {
     busy = true;
     try {
-      const result = await selectImportFolder();
+      const result = await selectSource();
       if (!result) return;
 
       applyImportResult(result);
@@ -207,13 +263,82 @@
       const result = await extractDocument(job.id);
       jobs = jobs.map((item) => (item.id === result.job.id ? result.job : item));
       selectedDraft = result.draft;
-      sync = { ...sync, pendingDrafts: jobs.filter((item) => item.status !== "synced").length };
+      sync = { ...sync, pendingDrafts: pendingCount() };
       importMessage = `${result.job.name} converted to a review draft`;
       runtime = await getRuntimeStatus();
     } catch (error) {
       importMessage = error instanceof Error ? error.message : "Extraction failed";
     } finally {
       extractingJobId = null;
+    }
+  }
+
+  function pendingCount() {
+    return jobs.filter((item) => item.status !== "synced" && item.status !== "rejected").length;
+  }
+
+  function mergeJob(updated: QueueJob) {
+    jobs = jobs.map((item) => (item.id === updated.id ? updated : item));
+    if (updated.id === selectedJobId) selectedDraft = updated.draft ?? selectedDraft;
+    sync = { ...sync, pendingDrafts: pendingCount() };
+  }
+
+  async function saveField(job: QueueJob, field: ExtractedField, value: string) {
+    const next = value.trim();
+    if (next === fieldEditValue(field)) return;
+
+    const key = `${job.id}:${field.name}`;
+    savingFieldKey = key;
+    savedFieldKey = null;
+    try {
+      mergeJob(await updateDraftField(job.id, field.name, next));
+      importMessage = `Updated ${field.name} on ${job.name}`;
+      savedFieldKey = key;
+      setTimeout(() => {
+        if (savedFieldKey === key) savedFieldKey = null;
+      }, 1600);
+    } catch (error) {
+      importMessage = error instanceof Error ? error.message : "Field update failed";
+    } finally {
+      savingFieldKey = null;
+    }
+  }
+
+  async function approveDraft(job: QueueJob) {
+    if (decidingJobId) return;
+
+    confirmingRejectId = null;
+    decidingJobId = job.id;
+    try {
+      mergeJob(await approveJob(job.id));
+      importMessage = `${job.name} approved for sync`;
+    } catch (error) {
+      importMessage = error instanceof Error ? error.message : "Approve failed";
+    } finally {
+      decidingJobId = null;
+    }
+  }
+
+  function armReject(job: QueueJob) {
+    confirmingRejectId = job.id;
+  }
+
+  function cancelReject() {
+    confirmingRejectId = null;
+  }
+
+  async function rejectDraft(job: QueueJob) {
+    if (decidingJobId) return;
+
+    confirmingRejectId = null;
+    decidingJobId = job.id;
+    try {
+      mergeJob(await rejectJob(job.id, "Rejected in review"));
+      importMessage = `${job.name} rejected`;
+    } catch (error) {
+      importMessage = error instanceof Error ? error.message : "Reject failed";
+    } finally {
+      decidingJobId = null;
     }
   }
 
@@ -229,7 +354,7 @@
     dragActive = false;
 
     if (runtime.mode === "browser-preview") {
-      importMessage = "Browser preview cannot read local file paths. Use desktop mode or Select Folder.";
+      importMessage = "Browser preview cannot read local file paths. Use desktop mode or Select Files.";
     }
   }
 
@@ -282,8 +407,9 @@
   }
 
   function toneForStatus(status: StatusKey): Tone {
-    if (status === "ready" || status === "connected" || status === "synced") return "good";
-    if (status === "missing" || status === "offline") return "bad";
+    if (status === "ready" || status === "connected" || status === "synced" || status === "approved")
+      return "good";
+    if (status === "missing" || status === "offline" || status === "rejected") return "bad";
     if (status === "review" || status === "checking" || status === "extracting") return "warn";
     return "neutral";
   }
@@ -294,6 +420,11 @@
 
   function fieldValueLabel(field: ExtractedField) {
     if (field.value === null || field.value === undefined || field.value === "") return "Needs review";
+    return String(field.value);
+  }
+
+  function fieldEditValue(field: ExtractedField) {
+    if (field.value === null || field.value === undefined) return "";
     return String(field.value);
   }
 
@@ -340,7 +471,8 @@
 
   {#snippet actions()}
     <Button onclick={refreshRuntime} size="sm">Runtime</Button>
-    <Button variant="primary" size="sm" onclick={chooseFolder} disabled={busy}>{busy ? "Scanning" : "Select Folder"}</Button>
+    <Button size="sm" onclick={chooseFolder} disabled={busy}>Folder</Button>
+    <Button variant="primary" size="sm" onclick={chooseFiles} disabled={busy}>{busy ? "Scanning" : "Select Files"}</Button>
   {/snippet}
 
   <section class="desktop-page" aria-label="Desktop intake workspace">
@@ -371,7 +503,7 @@
             class="drop-zone"
             class:active={dragActive}
             type="button"
-            onclick={chooseFolder}
+            onclick={chooseFiles}
             ondragover={handleBrowserDrag}
             ondragleave={() => (dragActive = false)}
             ondrop={handleBrowserDrop}
@@ -432,11 +564,11 @@
           <dl class="status-list">
             <div>
               <dt>OCR</dt>
-              <dd><Badge tone={toneForStatus(runtime.ocr)}>{statusLabel[runtime.ocr]}</Badge> {runtime.ocrEngine}</dd>
+              <dd><Badge tone={toneForStatus(runtime.ocr)}>{statusLabel[runtime.ocr]}</Badge> {ocrDetail}</dd>
             </div>
             <div>
               <dt>LLM</dt>
-              <dd><Badge tone={toneForStatus(runtime.llm)}>{statusLabel[runtime.llm]}</Badge> {runtime.llmEngine}</dd>
+              <dd><Badge tone={toneForStatus(runtime.llm)}>{statusLabel[runtime.llm]}</Badge> {llmDetail}</dd>
             </div>
             <div>
               <dt>Model</dt>
@@ -447,7 +579,9 @@
 
         <Card title="Extraction draft" class="side-card draft-card">
           {#snippet header()}
-            <Badge tone={activeDraft ? toneForStatus("review") : "neutral"}>{activeDraft ? "Review" : "No Draft"}</Badge>
+            <Badge tone={selectedJob ? toneForStatus(selectedJob.status) : "neutral"}>
+              {selectedJob ? statusLabel[selectedJob.status] : "No Draft"}
+            </Badge>
           {/snippet}
 
           {#if activeDraft}
@@ -479,10 +613,29 @@
                   </tr>
                 {/snippet}
                 {#each activeDraft.fields as field}
+                  {@const fieldKey = `${selectedJob?.id}:${field.name}`}
                   <tr>
                     <td data-label="Field"><code>{field.name}</code></td>
                     <td data-label="Value">
-                      <span class:needs-review={field.needsReview}>{fieldValueLabel(field)}</span>
+                      <div class="field-edit">
+                        <input
+                          class="field-input"
+                          class:needs-review={field.needsReview}
+                          value={fieldEditValue(field)}
+                          aria-label={`${field.name} value`}
+                          placeholder="Needs review"
+                          disabled={!selectedJob ||
+                            selectedJob.status === "synced" ||
+                            savingFieldKey === fieldKey}
+                          onchange={(event) =>
+                            selectedJob && void saveField(selectedJob, field, event.currentTarget.value)}
+                        />
+                        {#if savingFieldKey === fieldKey}
+                          <span class="field-state" aria-live="polite">Saving…</span>
+                        {:else if savedFieldKey === fieldKey}
+                          <span class="field-state field-state--ok" aria-live="polite">Saved</span>
+                        {/if}
+                      </div>
                       {#if field.source?.text}
                         <span class="field-source">{field.source.text}</span>
                       {/if}
@@ -492,6 +645,44 @@
                 {/each}
               </ResourceTable>
             {/if}
+
+            <div class="draft-actions">
+              {#if selectedJob && confirmingRejectId === selectedJob.id}
+                <span class="confirm-prompt" role="alert">Reject this draft?</span>
+                <Button
+                  size="sm"
+                  disabled={Boolean(decidingJobId)}
+                  onclick={() => selectedJob && void rejectDraft(selectedJob)}
+                >
+                  Confirm reject
+                </Button>
+                <Button size="sm" disabled={Boolean(decidingJobId)} onclick={cancelReject}>
+                  Cancel
+                </Button>
+              {:else}
+                <Button
+                  size="sm"
+                  variant="primary"
+                  disabled={!selectedJob ||
+                    Boolean(decidingJobId) ||
+                    selectedJob.status === "synced" ||
+                    selectedJob.status === "approved"}
+                  onclick={() => selectedJob && void approveDraft(selectedJob)}
+                >
+                  {selectedJob?.status === "approved" ? "Approved ✓" : "Approve"}
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={!selectedJob ||
+                    Boolean(decidingJobId) ||
+                    selectedJob.status === "synced" ||
+                    selectedJob.status === "rejected"}
+                  onclick={() => selectedJob && armReject(selectedJob)}
+                >
+                  {selectedJob?.status === "rejected" ? "Rejected" : "Reject"}
+                </Button>
+              {/if}
+            </div>
 
             {#if activeDraft.rawText}
               <details class="raw-text">
@@ -527,7 +718,7 @@
         </Card>
       </div>
 
-      <section id="settings" class="settings-section" aria-labelledby="settings-title">
+      <section id="settings" class="settings-section" aria-label="Runtime settings">
         <Card title="Runtime settings" class="settings-card">
           {#snippet header()}
             <Badge tone={selectedModelInstalled ? "good" : "warn"}>{selectedModelInstalled ? "Model Ready" : "Install Needed"}</Badge>
@@ -541,23 +732,21 @@
             }}
           >
             <div class="settings-grid">
-              <label class="setting-field" for="gemma-model">
-                <span id="settings-title">Gemma model</span>
-                <select id="gemma-model" bind:value={settingsDraftModel}>
-                  {#each modelOptions as model}
-                    <option value={model}>{model}</option>
-                  {/each}
-                </select>
-              </label>
+              <CustomSelect
+                id="gemma-model"
+                label="Gemma model"
+                options={modelSelectOptions}
+                value={settingsDraftModel}
+                onChange={(value) => (settingsDraftModel = value)}
+              />
 
-              <label class="setting-field" for="ocr-language">
-                <span>OCR language</span>
-                <select id="ocr-language" bind:value={settingsDraftOcrLanguage}>
-                  {#each ocrLanguageOptions as option}
-                    <option value={option.value}>{option.label} · {option.value}</option>
-                  {/each}
-                </select>
-              </label>
+              <CustomSelect
+                id="ocr-language"
+                label="OCR language"
+                options={ocrSelectOptions}
+                value={settingsDraftOcrLanguage}
+                onChange={(value) => (settingsDraftOcrLanguage = value)}
+              />
 
               <label class="setting-field custom-model-field" for="custom-gemma-model">
                 <span>Custom model tag</span>
@@ -566,7 +755,7 @@
             </div>
 
             <div class="runtime-checks" aria-label="Runtime checks">
-              <span><Badge tone={runtimeSettings.tesseractInstalled ? "good" : "bad"}>{runtimeSettings.tesseractInstalled ? "Ready" : "Missing"}</Badge> Tesseract</span>
+              <span><Badge tone={runtimeSettings.tesseractInstalled ? "good" : "warn"}>{runtimeSettings.tesseractInstalled ? "Ready" : "Optional"}</Badge> Tesseract OCR</span>
               <span><Badge tone={runtimeSettings.ollamaInstalled ? "good" : "bad"}>{runtimeSettings.ollamaInstalled ? "Ready" : "Missing"}</Badge> Ollama</span>
               <span><Badge tone={selectedModelInstalled ? "good" : "warn"}>{selectedModelInstalled ? "Installed" : "Not Installed"}</Badge> {settingsDraftModel}</span>
             </div>

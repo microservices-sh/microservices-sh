@@ -67,6 +67,12 @@
 		align-items: center;
 		gap: 0.55rem;
 		flex: none;
+		color: inherit;
+		text-decoration: none;
+	}
+	.logo:hover,
+	.logo:focus-visible {
+		text-decoration: none;
 	}
 	.logo__mark {
 		flex: none;

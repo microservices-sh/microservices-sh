@@ -50,7 +50,7 @@ export type QueueJob = {
   id: string;
   name: string;
   kind: "invoice" | "intake" | "support";
-  status: "ready" | "extracting" | "review" | "synced";
+  status: "ready" | "extracting" | "review" | "approved" | "rejected" | "synced";
   confidence: number;
   pages: number;
   fileHash: string;
@@ -160,18 +160,19 @@ export async function getSyncStatus() {
 }
 
 export async function selectImportFolder() {
-  const jobs = sampleDocuments();
+  return call<ImportResult | null>(
+    "select_import_folder",
+    undefined,
+    previewImportResult("~/Documents/client-imports")
+  );
+}
 
-  return call<ImportResult | null>("select_import_folder", undefined, {
-    folder: {
-      path: "~/Documents/client-imports",
-      documentCount: jobs.length,
-      newDocuments: jobs.length,
-      duplicateDocuments: 0,
-      skippedDocuments: 0
-    },
-    jobs
-  });
+export async function selectImportFiles() {
+  return call<ImportResult | null>(
+    "select_import_files",
+    undefined,
+    previewImportResult("~/Documents/client-imports/selected-files")
+  );
 }
 
 export async function importDocumentPaths(paths: string[]) {
@@ -244,6 +245,50 @@ export async function loadDocumentDraft(jobId: string) {
 
 export async function enqueueSampleDocuments() {
   return call<QueueJob[]>("enqueue_sample_documents", undefined, sampleDocuments());
+}
+
+function previewImportResult(path: string): ImportResult {
+  const jobs = sampleDocuments();
+
+  return {
+    folder: {
+      path,
+      documentCount: jobs.length,
+      newDocuments: jobs.length,
+      duplicateDocuments: 0,
+      skippedDocuments: 0
+    },
+    jobs
+  };
+}
+
+function previewJob(jobId: string): QueueJob {
+  return sampleDocuments().find((item) => item.id === jobId) ?? sampleDocuments()[0];
+}
+
+export async function updateDraftField(jobId: string, fieldName: string, value: string) {
+  const job = previewJob(jobId);
+  const fallback: QueueJob = job.draft
+    ? {
+        ...job,
+        draft: {
+          ...job.draft,
+          fields: job.draft.fields.map((field) =>
+            field.name === fieldName ? { ...field, value, needsReview: false } : field
+          )
+        }
+      }
+    : job;
+
+  return call<QueueJob>("update_draft_field", { jobId, fieldName, value }, fallback);
+}
+
+export async function approveJob(jobId: string) {
+  return call<QueueJob>("approve_job", { jobId }, { ...previewJob(jobId), status: "approved" });
+}
+
+export async function rejectJob(jobId: string, reason: string) {
+  return call<QueueJob>("reject_job", { jobId, reason }, { ...previewJob(jobId), status: "rejected" });
 }
 
 function sampleDraft(job: QueueJob): ExtractionDraft {

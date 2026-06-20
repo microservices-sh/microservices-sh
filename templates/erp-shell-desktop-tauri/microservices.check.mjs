@@ -6,13 +6,18 @@ export default function check({ assertFileIncludesAll }) {
   );
   assertFileIncludesAll(
     "src/App.svelte",
-    ["AppShell", "PageHeader", "MetricStrip", "ResourceTable", "Drop or Select Documents", "Runtime settings"],
+    ["AppShell", "CustomSelect", "PageHeader", "MetricStrip", "ResourceTable", "Drop or Select Documents", "Runtime settings"],
     "Desktop MVP uses the ERP shell chrome and shared UI primitives."
   );
   assertFileIncludesAll(
     "src/lib/ui/index.ts",
-    ["AppShell", "Logo", "PageHeader", "ResourceTable"],
+    ["AppShell", "CustomSelect", "Logo", "PageHeader", "ResourceTable"],
     "Desktop MVP exports the same app shell and logo primitives as ERP Shell."
+  );
+  assertFileIncludesAll(
+    "src-tauri/capabilities/default.json",
+    ["core:default", "dialog:default"],
+    "Desktop MVP grants the dialog permission needed for native file and folder pickers."
   );
   assertFileIncludesAll(
     "index.html",
@@ -26,13 +31,13 @@ export default function check({ assertFileIncludesAll }) {
   );
   assertFileIncludesAll(
     "src-tauri/src/main.rs",
-    ["import_document_paths", "draft_queue_dedupes_by_file_hash", "extract_document", "draft_json"],
+    ["select_import_files", "import_document_paths", "draft_queue_dedupes_by_file_hash", "extract_document", "draft_json"],
     "Desktop intake supports dropped files/folders, queue dedupe, and persisted extraction drafts."
   );
   assertFileIncludesAll(
     "src-tauri/src/main.rs",
-    ["tesseract", "MICROSERVICES_DESKTOP_GEMMA_MODEL", "ollama", "normalize_with_gemma", "install_gemma_model"],
-    "Desktop extraction uses local OCR and an explicit local Gemma/Ollama adapter boundary."
+    ["tesseract", "MICROSERVICES_DESKTOP_GEMMA_MODEL", "ollama", "normalize_with_gemma", "normalize_with_gemma_images", "install_gemma_model"],
+    "Desktop extraction uses optional local OCR and an explicit local Gemma/Ollama adapter boundary."
   );
   assertFileIncludesAll(
     "src-tauri/src/main.rs",
@@ -40,8 +45,35 @@ export default function check({ assertFileIncludesAll }) {
     "Desktop runtime settings persist local OCR/model choices."
   );
   assertFileIncludesAll(
+    "src-tauri/src/main.rs",
+    [
+      "rasterize_pdf",
+      "pdftoppm",
+      "update_draft_field",
+      "approve_job",
+      "reject_job",
+      "draft_edits",
+      "update_field_records_edit_and_clears_review",
+      "reject_excludes_job_from_pending"
+    ],
+    "Desktop intake rasterizes PDFs for OCR and supports audited field correction, approve, and reject."
+  );
+  assertFileIncludesAll(
+    "src/App.svelte",
+    ["saveField", "approveDraft", "rejectDraft", "field-input"],
+    "Desktop review UI allows editing extracted fields and approving or rejecting drafts."
+  );
+  assertFileIncludesAll(
     "docs/api-boundary.md",
-    ["extract_document", "document_draft", "install_gemma_model", "silently download model weights"],
-    "Desktop API boundary documents local extraction commands and the no-silent-download rule."
+    [
+      "extract_document",
+      "document_draft",
+      "install_gemma_model",
+      "silently download model weights",
+      "update_draft_field",
+      "approve_job",
+      "reject_job"
+    ],
+    "Desktop API boundary documents local extraction, correction, and approval commands and the no-silent-download rule."
   );
 }

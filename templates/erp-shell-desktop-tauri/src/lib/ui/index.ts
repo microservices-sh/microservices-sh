@@ -2,6 +2,7 @@ export { default as AppShell } from "./AppShell.svelte";
 export { default as Badge } from "./Badge.svelte";
 export { default as Button } from "./Button.svelte";
 export { default as Card } from "./Card.svelte";
+export { default as CustomSelect } from "./CustomSelect.svelte";
 export { default as EmptyState } from "./EmptyState.svelte";
 export { default as Logo } from "./Logo.svelte";
 export { default as MetricStrip } from "./MetricStrip.svelte";

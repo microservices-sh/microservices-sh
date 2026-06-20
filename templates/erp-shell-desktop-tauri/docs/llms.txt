@@ -19,10 +19,12 @@ Local extraction:
 - `install_gemma_model` runs an explicit Ollama pull for the selected model only
   after the user clicks install.
 - `extract_document` converts queued scanned images through local Tesseract
-  when installed.
+  when installed, then falls back to Gemma vision when the selected Ollama model
+  is installed.
 - `document_draft` reads the persisted local extraction draft.
-- Gemma normalization follows the `ai-gateway` Ollama adapter pattern and uses
-  `MICROSERVICES_DESKTOP_GEMMA_MODEL` for the local model name.
+- Gemma text normalization and image extraction follow the `ai-gateway` Ollama
+  adapter pattern and use `MICROSERVICES_DESKTOP_GEMMA_MODEL` for the local
+  model name.
 - Draft JSON follows the `document-extraction` module shape: schemaId,
   targetType, fields, tables, rawText, summary, confidence, runtime, model, and
   warnings.

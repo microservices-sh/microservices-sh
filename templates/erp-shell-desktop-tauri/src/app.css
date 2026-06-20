@@ -303,6 +303,91 @@ meter {
   font-weight: 650;
 }
 
+.field-edit {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.field-input {
+  inline-size: 100%;
+  max-inline-size: 30ch;
+  padding: 4px 7px;
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  background: var(--color-panel-subtle);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  transition:
+    border-color 160ms var(--ease),
+    background 160ms var(--ease);
+}
+
+.field-input:hover:not(:disabled) {
+  border-color: var(--color-line-strong);
+  background: var(--color-panel);
+}
+
+.field-input:focus-visible {
+  outline: 2px solid var(--color-act);
+  outline-offset: 1px;
+  border-color: var(--color-act);
+}
+
+.field-input.needs-review {
+  border-color: var(--color-amber);
+}
+
+.field-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.field-state {
+  flex: none;
+  color: var(--color-ink-faint);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.field-state--ok {
+  color: var(--color-act);
+}
+
+.draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-block-start: 14px;
+}
+
+/* destructive intent carried by the confirm copy + the two-step gate, using the
+   shared danger token — no Button variant fork. */
+.confirm-prompt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-inline-end: 2px;
+  padding: 3px 9px;
+  border: 1px solid var(--color-red);
+  border-radius: var(--radius-md);
+  background: var(--color-red-soft);
+  color: var(--color-red);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* confidence/amount columns read as data, not prose */
+.confidence-cell span,
+.field-table .table-num {
+  font-variant-numeric: tabular-nums;
+}
+
 .raw-text {
   margin-block-start: 14px;
   border-block-start: 1px solid var(--color-line);
@@ -358,7 +443,6 @@ meter {
   text-transform: uppercase;
 }
 
-.setting-field select,
 .setting-field input {
   inline-size: 100%;
   min-block-size: 38px;

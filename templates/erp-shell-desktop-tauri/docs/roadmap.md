@@ -43,16 +43,16 @@ State: in progress.
 
 Built:
 
-- Native folder picker.
+- Native file and folder pickers.
 - Drag/drop file intake.
 - Local SQLite draft queue.
 - File hashing and duplicate detection.
 - Import discovery and dedupe tests.
+- PDF page count via poppler `pdfinfo` at import time.
 
 Remaining scope:
 
 - Watched folder configuration.
-- PDF/image metadata extraction.
 
 Acceptance:
 
@@ -63,33 +63,40 @@ Acceptance:
 
 ### M2 — OCR and Extraction Review
 
-State: started.
+State: in progress.
 
 Built:
 
 - Local scanned image OCR adapter through installed Tesseract.
+- PDF rasterization (poppler `pdftoppm`) so multi-page PDFs are OCR'd page by
+  page, not just single images.
 - SQLite `draft_json` persistence for document-extraction-shaped drafts.
 - Optional Gemma 4 normalization through a configured local Ollama model.
+- Gemma vision fallback for scanned image extraction when Tesseract is not
+  installed and the selected Ollama model is ready.
 - Settings panel for selected Gemma model, OCR language, local runtime checks,
   and explicit Ollama model install.
 - Deterministic fallback draft when OCR/model runtime is missing.
 - Queue action and draft review panel in the desktop UI.
+- Human review and correction: inline field editing, plus approve/reject, with
+  every edit and decision recorded in a local `draft_edits` audit table. Only
+  approved drafts become sync-eligible; rejected drafts leave the pending queue.
 
-Scope:
+Remaining scope:
 
-- OCR adapter for scanned images and image-only PDFs.
-- Text normalization pipeline.
-- Document-type classification for invoices, intake forms, support receipts,
-  and statements.
-- Field-level extraction confidence.
-- Human review and correction UI.
+- Line-item table extraction (`ExtractedTable` is modeled but not yet emitted).
+- Deterministic field validators (total = sum of line items, date/currency
+  parsing) to replace fabricated heuristic confidence as the review signal.
+- Source-region bounding boxes and a document-image preview beside each field.
 
 Acceptance:
 
-- A scanned invoice can become a reviewed draft with editable fields.
-- Each extracted field has source evidence and confidence.
-- Low-confidence fields are highlighted before sync.
-- The user can approve, reject, or re-run extraction for a job.
+- A scanned invoice can become a reviewed draft with editable fields. ✅
+- The user can approve, reject, or re-run extraction for a job. ✅
+- Each extracted field has source evidence and confidence. (text source only;
+  bounding boxes pending)
+- Low-confidence fields are highlighted before sync. ✅ (needs validator-backed
+  confidence)
 
 ### M3 — Local AI Runtime Manager
 
@@ -104,7 +111,8 @@ Scope:
 
 Started:
 
-- Runtime status checks for Tesseract and the configured Ollama Gemma model.
+- Runtime status checks for optional Tesseract OCR and the configured Ollama
+  Gemma model.
 - Local SQLite runtime settings for model/language selection, with env vars as
   defaults for first launch.
 - No silent model download or bundled model weights.
@@ -176,10 +184,9 @@ not when it merely proves local OCR.
 
 ## Next Engineering Slice
 
-1. Add image preprocessing and image-only PDF page extraction before OCR.
-2. Add editable field review and approve/reject controls for saved drafts.
-3. Add watched folder configuration and a persisted import source list.
-4. Add a real `desktop-connected` configuration shape for backend sync URL and
+1. Add image preprocessing before OCR/Gemma vision.
+2. Add watched folder configuration and a persisted import source list.
+3. Add a real `desktop-connected` configuration shape for backend sync URL and
    workspace identity.
-5. Add document-extraction sync API contracts.
-6. Keep Docker Linux checks green while adding macOS/Windows CI packaging.
+4. Add document-extraction sync API contracts.
+5. Keep Docker Linux checks green while adding macOS/Windows CI packaging.

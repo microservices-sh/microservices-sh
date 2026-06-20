@@ -45,6 +45,8 @@ The desktop template now includes the first local extraction adapter:
 
 - scanned image OCR runs through a local `tesseract` command when installed;
 - scanned image text is saved as a local `document-extraction` shaped draft;
+- when Tesseract is not installed, an installed Gemma vision-capable Ollama
+  model can extract directly from scanned page images;
 - Gemma normalization is attempted only when a configured local Ollama model is
   already present and reachable;
 - the Settings panel can save the selected Gemma model/OCR language locally and
@@ -62,10 +64,10 @@ pnpm dev:desktop
 
 Then open Settings, select a Gemma model and OCR language, and click
 `Install Model`. If your Ollama library uses a different Gemma 4 tag, enter it
-in the custom model field before installing. Without Tesseract, imported files
-still queue locally but extraction drafts will contain runtime setup warnings.
-Without Ollama/Gemma, OCR still works and the app falls back to deterministic
-review fields.
+in the custom model field before installing. Without Tesseract, the app uses
+Gemma vision when the selected model is installed. Without Ollama/Gemma, OCR
+still works through Tesseract and the app falls back to deterministic review
+fields.
 
 ## Linux Docker Check
 
@@ -88,11 +90,22 @@ before installing dependencies, so host `node_modules`, `dist`, and Cargo
 - Shared ERP Shell UI tokens and component primitives vendored under
   `src/lib/ui`, including the canonical `AppShell` sidebar and `Logo`.
 - Tauri shell for macOS and Windows bundles.
-- Rust commands for folder selection, drag/drop path import, SQLite queue
-  persistence, runtime status, local OCR extraction, optional local Gemma
-  normalization, runtime settings, explicit model install, and sync status.
+- Rust commands for file/folder selection, drag/drop path import, SQLite queue
+  persistence, runtime status, PDF rasterization + local OCR extraction, optional
+  local Gemma vision/normalization, runtime settings, explicit model install, audited
+  field correction / approve / reject, and sync status.
+- PDF intake: multi-page PDFs are rasterized with poppler `pdftoppm` and OCR'd
+  page by page (the first document-heavy vertical is invoices, which are mostly
+  PDF).
+- Human-in-the-loop review: edit extracted field values inline, then approve or
+  reject a draft. Edits and decisions are written to a local `draft_edits` audit
+  table, and only approved drafts are sync-eligible.
 - Browser preview fallback so the interface can be reviewed without launching
   Tauri.
+
+Requires poppler (`pdftoppm`, `pdfinfo`) on PATH for PDF intake. Tesseract is
+optional when a vision-capable Gemma model is installed; without both Tesseract
+and Gemma, files still queue and the draft carries a setup warning.
 
 ## Roadmap
 
@@ -101,7 +114,10 @@ acceptance criteria, and the next engineering slice.
 
 ## Next
 
+- Add line-item table extraction and deterministic field validators (replace
+  fabricated heuristic confidence as the review signal).
+- Add source-region bounding boxes and a document-image preview in review.
 - Add watched folder configuration.
-- Add document-extraction module sync endpoints.
-- Add image/PDF preprocessing and model sidecar supervision.
+- Add document-extraction module sync endpoints (governed sync of approved
+  drafts only).
 - Add signed release builds for macOS and Windows.
