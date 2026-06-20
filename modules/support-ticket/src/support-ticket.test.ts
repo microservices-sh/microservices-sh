@@ -1,9 +1,14 @@
 import { describe, it, expect } from "vitest";
+import { authContext } from "@microservices-sh/connection-contract";
+import type { AuthContext } from "@microservices-sh/connection-contract";
 import {
   createTicket,
   getTicket,
   listTickets,
   updateTicket,
+  getTicketScoped,
+  listTicketsScoped,
+  updateTicketScoped,
   createMemoryTicketStore
 } from "./index";
 
@@ -148,6 +153,54 @@ describe("support-ticket: update", () => {
     expect(r.ok).toBe(false);
     expect(r.status).toBe(404);
     if (!r.ok) expect(r.error.code).toBe("support-ticket.TICKET_NOT_FOUND");
+  });
+});
+
+// plans/33 — the enforced authorization boundary. This is the CI artifact we
+// show buyers: seed two tenants, act as one, prove zero cross-tenant access.
+describe("support-ticket: enforced tenant boundary (cross-tenant leak test)", () => {
+  it("an actor scoped to org A can never read, list, or write org B's tickets", async () => {
+    const store = createMemoryTicketStore();
+    const d = { store, now: fixedNow(T0) };
+    const ctxA = authContext({ orgId: "tenant-1", actorId: "agent-a" });
+
+    // Two tenants share one store (one deployment's D1). Seed via the legacy,
+    // input-trusting createTicket to simulate data already at rest.
+    const a1 = await createTicket({ ...baseInput, tenantId: "tenant-1", subject: "A1" }, d);
+    await createTicket({ ...baseInput, tenantId: "tenant-1", subject: "A2" }, d);
+    const b1 = await createTicket({ ...baseInput, tenantId: "tenant-2", subject: "B1" }, d);
+    if (!a1.ok || !b1.ok) throw new Error("seed failed");
+
+    // LIST as A returns only A's rows — even when a forged tenantId is supplied.
+    const listed = await listTicketsScoped(ctxA, { tenantId: "tenant-2" }, d);
+    expect(listed.ok).toBe(true);
+    if (listed.ok) {
+      expect(listed.data.count).toBe(2);
+      expect(listed.data.tickets.every((t) => t.tenantId === "tenant-1")).toBe(true);
+    }
+
+    // GET: A's own ticket resolves; B's id is reported not-found (no disclosure).
+    const ownGet = await getTicketScoped(ctxA, { id: a1.data.ticket.id }, d);
+    expect(ownGet.ok).toBe(true);
+    const foreignGet = await getTicketScoped(ctxA, { id: b1.data.ticket.id }, d);
+    expect(foreignGet.ok).toBe(false);
+    expect(foreignGet.status).toBe(404);
+
+    // UPDATE: writing B's ticket is refused and leaves it unchanged.
+    const foreignWrite = await updateTicketScoped(ctxA, { id: b1.data.ticket.id, status: "closed" }, d);
+    expect(foreignWrite.ok).toBe(false);
+    expect(foreignWrite.status).toBe(404);
+    const bStill = await getTicket({ id: b1.data.ticket.id }, d);
+    if (bStill.ok) expect(bStill.data.ticket.status).toBe("open");
+
+    // A call lacking an org scope is refused (403), not run against an unknown tenant.
+    const noScope = await listTicketsScoped(
+      { orgId: "", actorId: "x", roles: [] } as unknown as AuthContext,
+      {},
+      d
+    );
+    expect(noScope.ok).toBe(false);
+    expect(noScope.status).toBe(403);
   });
 });
 
