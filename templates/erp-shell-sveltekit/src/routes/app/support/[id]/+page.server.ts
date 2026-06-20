@@ -1,6 +1,6 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { error, fail, redirect } from "@sveltejs/kit";
-import { getTicket, updateTicket } from "@microservices-sh/support-ticket";
+import { getTicketScoped, updateTicketScoped, authContext } from "@microservices-sh/support-ticket";
 import { listCustomers } from "@microservices-sh/customer";
 import { listEvents, recordEvent } from "@microservices-sh/audit-log";
 import { requireOrgPermission, loadCompanyContext } from "$lib/server/org-context";
@@ -47,13 +47,16 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
   const canManage = permissions.includes("*") || permissions.includes("member.manage");
   const now = Date.now();
 
+  // Enforced boundary (plan 33): getTicketScoped resolves the ticket only within
+  // the session's org and returns 404 for a foreign id — no hand-rolled tenant
+  // re-check to drift or forget.
+  const ctx = authContext({ orgId: activeOrgId, actorId: locals.user.id, roles: permissions });
   const [ticketResult, eventsResult] = await Promise.all([
-    getTicket({ id: params.id }, { store: locals.ticketStore }),
+    getTicketScoped(ctx, { id: params.id }, { store: locals.ticketStore }),
     listEvents({ entityType: "support-ticket", entityId: params.id, limit: 20 }, { auditStore: locals.auditStore })
   ]);
 
-  // getTicket isn't tenant-scoped — re-check the tenant the same way the update path does.
-  if (!ticketResult.ok || !ticketResult.data || ticketResult.data.ticket.tenantId !== activeOrgId) {
+  if (!ticketResult.ok || !ticketResult.data) {
     throw error(404, "Ticket not found");
   }
   const ticket = ticketResult.data.ticket;
@@ -101,7 +104,7 @@ export const actions: Actions = {
     const activeOrgId = org.id;
 
     // Write gate: changing a ticket requires member.manage in the company org.
-    await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
 
     const id = params.id;
     const form = await request.formData();
@@ -112,14 +115,14 @@ export const actions: Actions = {
       return fail(400, { error: "Pick a status and a priority." });
     }
 
-    const existing = await getTicket({ id }, { store: locals.ticketStore });
-    if (!existing.ok || !existing.data || existing.data.ticket.tenantId !== activeOrgId) {
-      return fail(404, { error: "Ticket not found for this company." });
-    }
-
-    const result = await updateTicket({ id, status, priority }, { store: locals.ticketStore });
+    // Enforced boundary (plan 33): updateTicketScoped checks ownership against the
+    // session org BEFORE mutating, so the foreign-tenant write is impossible and
+    // the hand-rolled existence/tenant re-check is no longer needed. 404 covers
+    // both "missing" and "belongs to another company".
+    const ctx = authContext({ orgId: activeOrgId, actorId: locals.user.id, roles: permissions });
+    const result = await updateTicketScoped(ctx, { id, status, priority }, { store: locals.ticketStore });
     if (!result.ok || !result.data) {
-      return fail(400, { error: "Could not update the ticket." });
+      return fail(result.status ?? 400, { error: "Ticket not found for this company." });
     }
 
     await recordEvent(
