@@ -125,6 +125,12 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
         version: 4.20260613.1
+      '@microservices-sh/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      svelte:
+        specifier: ^5.0.0
+        version: 5.56.3
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -563,6 +569,9 @@ importers:
       '@microservices-sh/ai-gateway':
         specifier: workspace:*
         version: link:../../modules/ai-gateway
+      '@microservices-sh/billing-subscriptions':
+        specifier: workspace:*
+        version: link:../../modules/billing-subscriptions
       '@microservices-sh/booking':
         specifier: workspace:*
         version: link:../../modules/booking

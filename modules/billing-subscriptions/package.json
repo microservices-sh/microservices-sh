@@ -6,6 +6,7 @@
   "description": "Prebuilt microservices.sh billing-subscriptions module: recurring plans and subscription state on Stripe with a full status state machine, idempotent webhooks, plan changes, usage, and dunning.",
   "exports": {
     ".": "./src/index.ts",
+    "./preview": "./reference-ui/Preview.svelte",
     "./types": "./src/types.ts",
     "./schemas": "./src/schemas.ts",
     "./hooks": "./src/hooks.ts",
@@ -32,6 +33,8 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",
+    "@microservices-sh/ui": "workspace:*",
+    "svelte": "^5.0.0",
     "typescript": "^5.9.3"
   }
 }
