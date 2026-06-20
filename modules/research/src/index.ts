@@ -9,6 +9,26 @@ import { z } from "zod";
 import type { Passage, Retriever } from "./graph";
 
 export * from "./graph";
+export { loadGraphifyDir } from "./adapters/graphify-out-loader";
+export { runGraphBuild, type BuildMode } from "./build-graph";
+export { opsRead, DEFAULT_OPS_TOOLS, type OpsClient, type OpsRecord, type OpsToolCall, type OpsToolRegistry } from "./ops";
+export { createOperateHttpClient } from "./adapters/operate-http-client";
+export { handleOpsRequest, type OpsServerRegistry, type OpsServerTool, type OpsToolHandler, type OpsTokenVerifier } from "./ops-server";
+export { createOpsHandler } from "./ops-http";
+export { mintOpsToken, createOpsTokenVerifier } from "./ops-token";
+export { operationalBrief } from "./ops-brief";
+export {
+  OPS_TOOL_SCOPES,
+  createOpsRegistry,
+  toCustomerRecord,
+  toInvoiceRecord,
+  toBookingRecord,
+  toTicketRecord,
+  toCalendarRecord,
+  type OpsToolName
+} from "./ops-registry";
+export { planOpsTools } from "./ops-plan";
+export { assistedBrief } from "./assist";
 
 export type Actor = { id: string; scopes: string[] };
 

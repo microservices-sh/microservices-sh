@@ -4,6 +4,7 @@ import {
   runJob,
   dueScheduledJobs,
   upsertSchedule,
+  listSchedules,
   createMemoryJobStore,
   createMemoryJobRunStore,
   createMemoryScheduleStore,
@@ -150,5 +151,20 @@ describe("jobs-workflows: scheduled catch-up", () => {
     const again = await dueScheduledJobs({ scheduleStore, jobStore, now: fixedNow(now) });
     if (!again.ok) throw new Error("expected ok");
     expect(again.data.enqueued).toBe(0);
+  });
+
+  it("lists schedules for operator consoles", async () => {
+    const scheduleStore = createMemoryScheduleStore();
+    await upsertSchedule(
+      { type: "daily-task", payload: { scope: "billing" }, intervalMs: 86_400_000 },
+      { scheduleStore, now: fixedNow(T0) }
+    );
+
+    const listed = await listSchedules({ scheduleStore, correlationId: "corr-schedules" });
+    expect(listed.ok).toBe(true);
+    expect(listed.meta.correlationId).toBe("corr-schedules");
+    if (!listed.ok) throw new Error("expected ok");
+    expect(listed.data.count).toBe(1);
+    expect(listed.data.schedules[0].type).toBe("daily-task");
   });
 });

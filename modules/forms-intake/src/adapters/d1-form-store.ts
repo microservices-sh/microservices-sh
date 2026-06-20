@@ -26,14 +26,19 @@ function rowToSubmission(row: Record<string, unknown>): FormSubmission {
     values: JSON.parse(String(row.values ?? "{}")) as Record<string, string | number | boolean>,
     attachments: JSON.parse(String(row.attachments ?? "[]")) as AttachmentRef[],
     idempotencyKey: row.idempotency_key ? String(row.idempotency_key) : null,
-    submittedAt: String(row.submitted_at)
+    submittedAt: String(row.submitted_at),
+    status: String(row.status ?? "pending") as FormSubmission["status"],
+    reviewedAt: row.reviewed_at ? String(row.reviewed_at) : null,
+    reviewedBy: row.reviewed_by ? String(row.reviewed_by) : null,
+    reviewNote: row.review_note ? String(row.review_note) : null
   };
 }
 
 const FORM_COLS = "id, tenant_id, name, status, fields, require_turnstile, version, created_at, updated_at";
 // "values" is a SQL reserved word — must be quoted in column lists (works for
 // both the SELECT projection and the INSERT column list).
-const SUB_COLS = 'id, form_id, tenant_id, "values", attachments, idempotency_key, submitted_at';
+const SUB_COLS =
+  'id, form_id, tenant_id, "values", attachments, idempotency_key, submitted_at, status, reviewed_at, reviewed_by, review_note';
 
 export function createD1FormStore(db: D1Database): FormStore {
   return {
@@ -97,7 +102,7 @@ export function createD1FormStore(db: D1Database): FormStore {
 
     async insertSubmission(submission) {
       await db
-        .prepare(`INSERT INTO form_submissions (${SUB_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+        .prepare(`INSERT INTO form_submissions (${SUB_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .bind(
           submission.id,
           submission.formId,
@@ -105,17 +110,54 @@ export function createD1FormStore(db: D1Database): FormStore {
           JSON.stringify(submission.values),
           JSON.stringify(submission.attachments),
           submission.idempotencyKey,
-          submission.submittedAt
+          submission.submittedAt,
+          submission.status,
+          submission.reviewedAt,
+          submission.reviewedBy,
+          submission.reviewNote
+        )
+        .run();
+    },
+
+    async getSubmission(id, tenantId) {
+      const row = await db
+        .prepare(`SELECT ${SUB_COLS} FROM form_submissions WHERE id = ? AND tenant_id = ?`)
+        .bind(id, tenantId)
+        .first<Record<string, unknown>>();
+      return row ? rowToSubmission(row) : null;
+    },
+
+    async updateSubmission(submission) {
+      // Only the moderation fields are mutable; values/attachments stay immutable
+      // so a reviewed submission keeps the exact data it was validated with.
+      await db
+        .prepare(
+          `UPDATE form_submissions SET status = ?, reviewed_at = ?, reviewed_by = ?, review_note = ?
+           WHERE id = ? AND tenant_id = ?`
+        )
+        .bind(
+          submission.status,
+          submission.reviewedAt,
+          submission.reviewedBy,
+          submission.reviewNote,
+          submission.id,
+          submission.tenantId
         )
         .run();
     },
 
     async listSubmissions(filter) {
+      const clauses = ["tenant_id = ?", "form_id = ?"];
+      const binds: unknown[] = [filter.tenantId, filter.formId];
+      if (filter.status) {
+        clauses.push("status = ?");
+        binds.push(filter.status);
+      }
       const result = await db
         .prepare(
-          `SELECT ${SUB_COLS} FROM form_submissions WHERE tenant_id = ? AND form_id = ? ORDER BY submitted_at DESC LIMIT ?`
+          `SELECT ${SUB_COLS} FROM form_submissions WHERE ${clauses.join(" AND ")} ORDER BY submitted_at DESC LIMIT ?`
         )
-        .bind(filter.tenantId, filter.formId, filter.limit ?? 100)
+        .bind(...binds, filter.limit ?? 100)
         .all<Record<string, unknown>>();
       return (result.results ?? []).map(rowToSubmission);
     },

@@ -5,7 +5,7 @@ export const events = {
     "forms-intake.form_created",
     "forms-intake.form_updated",
     "forms-intake.submission_received",
-    "forms-intake.submission_rejected"
+    "forms-intake.submission_reviewed"
   ],
   consumed: []
 } as const;

@@ -28,6 +28,7 @@
     "./adapters/operate-http": "./src/adapters/operate-http-client.ts",
     "./ops": "./src/ops.ts",
     "./ops-server": "./src/ops-server.ts",
+    "./ops-registry": "./src/ops-registry.ts",
     "./ops-http": "./src/ops-http.ts",
     "./ops-token": "./src/ops-token.ts",
     "./adapters/memory": "./src/index.ts"
@@ -36,6 +37,6 @@
     "build": "tsc --noEmit",
     "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path ."
   },
-  "dependencies": { "zod": "^4.4.3" },
+  "dependencies": { "zod": "^4.4.3", "@microservices-sh/ops-token": "workspace:*" },
   "devDependencies": { "@cloudflare/workers-types": "^4.20250109.0", "@microservices-sh/ui": "workspace:*", "svelte": "^5.0.0", "typescript": "^5.9.3" }
 }

@@ -8,6 +8,7 @@ export { getForm } from "./use-cases/get-form";
 export { updateForm } from "./use-cases/update-form";
 export { submitForm } from "./use-cases/submit-form";
 export { listSubmissions } from "./use-cases/list-submissions";
+export { reviewSubmission } from "./use-cases/review-submission";
 export { listForms } from "./use-cases/list-forms";
 export { validateSubmission, validateAttachment } from "./validate-submission";
 export { createD1FormStore } from "./adapters/d1-form-store";
@@ -23,6 +24,7 @@ export type {
   FieldValidation,
   FieldCondition,
   FormSubmission,
+  SubmissionStatus,
   AttachmentRef,
   FormFilter,
   SubmissionFilter,

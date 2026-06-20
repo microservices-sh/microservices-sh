@@ -95,7 +95,12 @@ export async function submitForm(
     values: result.activeValues,
     attachments,
     idempotencyKey: parsed.data.idempotencyKey ?? null,
-    submittedAt: nowIso
+    submittedAt: nowIso,
+    // New submissions enter the moderation queue as pending.
+    status: "pending",
+    reviewedAt: null,
+    reviewedBy: null,
+    reviewNote: null
   };
   await deps.formStore.insertSubmission(submission);
 

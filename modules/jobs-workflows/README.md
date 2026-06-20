@@ -20,7 +20,7 @@ get wrong with background work:
 
 ```ts
 import {
-  enqueueJob, runJob, runDueJobs, dueScheduledJobs, upsertSchedule, listJobs,
+  enqueueJob, runJob, runDueJobs, dueScheduledJobs, upsertSchedule, listJobs, listSchedules,
   createD1JobStore, createD1JobRunStore, createD1ScheduleStore, createCfQueueProducer
 } from "@microservices-sh/jobs-workflows";
 ```
@@ -31,6 +31,7 @@ import {
 - `dueScheduledJobs({ scheduleStore, jobStore, queue?, now? })` — enqueue due recurring jobs (catch-up).
 - `upsertSchedule(input, { scheduleStore, now? })` — create/update a recurring schedule.
 - `listJobs(filter, { jobStore })` — observability, incl. dead-letter view.
+- `listSchedules({ scheduleStore })` — read schedule inventory for operator consoles.
 
 ## Wiring (host app)
 

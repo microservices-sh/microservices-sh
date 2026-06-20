@@ -43,6 +43,19 @@ import {
   raises typed alerts (`spend_spike` / `cpc_spike` / `zero_conv`), deduped per day.
 - Dashboards read snapshots/alerts; the upstream API is only hit on sync/live pull.
 
+## Agentic workflows
+
+- **Ad copy drafts**: agents may generate offline copy variants from product,
+  brand, audience, and landing-page context. The module does not persist or
+  publish creative drafts.
+- **Performance reviews**: agents can use `listCampaigns`, `getInsights`,
+  `syncInsights`, `detectAnomalies`, and `listAlerts` to summarize spend,
+  pacing, CTR/CPC, conversions, ROAS, top/bottom campaigns, and anomalies.
+- **Publish planning**: agents can prepare campaign names, audience, budget,
+  dates, copy, landing URL, UTMs, and approval owners. Actual scheduling,
+  publishing, pausing, or budget changes must happen through a write-capable
+  upstream ads service/tool; v1 does not expose those mutations.
+
 ## Resources & connections
 
 - D1 `DB` → `ad_connections`, `ad_insight_snapshots`, `ad_alerts` (migration `0001_ads.sql`)

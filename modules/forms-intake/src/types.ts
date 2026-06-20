@@ -80,6 +80,15 @@ export interface AttachmentRef {
   originalName: string;
 }
 
+// Submission moderation lifecycle: every submission starts `pending`. A reviewer
+// moves it to a terminal `approved`/`rejected`, or back to `changes_requested`
+// (which is re-reviewable). This is the generic intake-moderation gate — any host
+// that needs human approval of incoming submissions (marketplace listings, job
+// applications, content intake) drives it through reviewSubmission instead of
+// re-modelling status in route code. `pending` and `changes_requested` are the
+// only reviewable states; `approved`/`rejected` are terminal (re-review is a 409).
+export type SubmissionStatus = "pending" | "approved" | "rejected" | "changes_requested";
+
 export interface FormSubmission {
   id: string;
   formId: string;
@@ -90,6 +99,14 @@ export interface FormSubmission {
   // Optional client-supplied dedup key; null when not provided.
   idempotencyKey: string | null;
   submittedAt: string;
+  // Moderation state. New submissions are `pending`.
+  status: SubmissionStatus;
+  // Review metadata; null until a reviewer acts.
+  reviewedAt: string | null;
+  // Opaque actor id of the reviewer (host-supplied), null until reviewed.
+  reviewedBy: string | null;
+  // Optional reviewer note (e.g. rejection reason or requested changes).
+  reviewNote: string | null;
 }
 
 export interface FormFilter {
@@ -101,6 +118,8 @@ export interface FormFilter {
 export interface SubmissionFilter {
   tenantId: string;
   formId: string;
+  // Optional moderation-state filter — drives the review queue ("show pending").
+  status?: SubmissionStatus;
   limit?: number;
 }
 

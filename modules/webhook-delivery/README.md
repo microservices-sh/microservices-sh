@@ -10,6 +10,8 @@ registered endpoint.
 
 - **Registers** an external endpoint (`registerEndpoint`, `webhook.write`),
   generating a per-endpoint signing secret returned once.
+- **Lists** endpoints (`listEndpoints`, `webhook.read`) with signing secrets
+  redacted.
 - **Delivers** a domain event (`deliverEvent`): for each active matching endpoint,
   HMAC-signs the JSON body with the endpoint secret, POSTs it via an injected
   `HttpClient` with `X-Signature` + `X-Idempotency-Id` headers, logs the attempt,
@@ -21,6 +23,7 @@ registered endpoint.
 | Use case | Scope | Purpose |
 |----------|-------|---------|
 | `registerEndpoint` | `webhook.write` | Register an endpoint, return its signing secret once |
+| `listEndpoints` | `webhook.read` | Read endpoints without exposing signing secrets |
 | `deliverEvent` | internal (queue) | Fan a signed event out to matching endpoints |
 | `listDeliveries` | `webhook.read` | Read the delivery log |
 

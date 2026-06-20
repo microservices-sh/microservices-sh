@@ -6,7 +6,7 @@ external endpoints (apps not on our Cloudflare account) and logs every attempt.
 Entry points:
 - `src/index.ts` exports the safe public surface.
 - `src/use-cases/` contains framework-neutral behavior (registerEndpoint,
-  deliverEvent, listDeliveries).
+  listEndpoints, deliverEvent, listDeliveries).
 - `src/signing.ts` signs/verifies outbound payloads (HMAC-SHA256).
 - `src/ports/` defines WebhookEndpointStore, DeliveryLogStore, HttpClient.
 - `src/adapters/` contains D1 + memory stores and fetch + memory http clients.
@@ -16,6 +16,7 @@ Entry points:
 Model:
 - Sink module (external twin of layer 3). Consumes events, POSTs them out.
 - Each endpoint holds its own signing secret (returned once at registration).
+- Endpoint listing must redact signing secrets.
 - Outbound body is HMAC-signed; non-2xx is a failed delivery.
 
 Agent rules:

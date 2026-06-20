@@ -7,7 +7,7 @@ processing.
 Entry points:
 - `src/index.ts` exports the safe public surface.
 - `src/use-cases/` holds framework-neutral behavior: enqueueJob, runJob,
-  runDueJobs, dueScheduledJobs, upsertSchedule, listJobs.
+  runDueJobs, dueScheduledJobs, upsertSchedule, listJobs, listSchedules.
 - `src/backoff.ts` is the deterministic exponential backoff + schedule catch-up math.
 - `src/ports/` defines JobStore, JobRunStore, ScheduleStore, QueueProducer.
 - `src/adapters/` contains D1 + memory stores and a Cloudflare Queue + memory producer.

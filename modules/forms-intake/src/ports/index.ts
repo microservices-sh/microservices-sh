@@ -9,6 +9,10 @@ export interface FormStore {
 
   // Submissions.
   insertSubmission(submission: FormSubmission): Promise<void>;
+  // Tenant-scoped single read; used by the review use case to load before moderating.
+  getSubmission(id: string, tenantId: string): Promise<FormSubmission | null>;
+  // Persist a moderation transition (status + review metadata) for one submission.
+  updateSubmission(submission: FormSubmission): Promise<void>;
   // Tenant + form scoped listing.
   listSubmissions(filter: SubmissionFilter): Promise<FormSubmission[]>;
 

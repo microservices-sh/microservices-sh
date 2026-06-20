@@ -25,7 +25,7 @@
       "calls": []
     },
     "events": {
-      "emits": ["forms-intake.form_created", "forms-intake.form_updated", "forms-intake.submission_received", "forms-intake.submission_rejected"],
+      "emits": ["forms-intake.form_created", "forms-intake.form_updated", "forms-intake.submission_received", "forms-intake.submission_reviewed"],
       "consumes": []
     },
     "hookPoints": {
@@ -53,7 +53,7 @@
       "applicable": true,
       "tools": ["forms-intake.listForms", "forms-intake.getForm", "forms-intake.publishForm", "forms-intake.reviewSubmission"],
       "skillPaths": ["skills/forms-intake-operator/SKILL.md"],
-      "approvalRequiredFor": ["forms-intake.publishForm", "forms-intake.rejectSubmission"]
+      "approvalRequiredFor": ["forms-intake.publishForm", "forms-intake.reviewSubmission"]
     }
   },
   "skills": [

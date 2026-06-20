@@ -58,7 +58,7 @@
     },
     "agentic": {
       "applicable": true,
-      "tools": ["webhook-delivery.registerEndpoint", "webhook-delivery.listDeliveries", "webhook-delivery.deliverEvent"],
+      "tools": ["webhook-delivery.registerEndpoint", "webhook-delivery.listEndpoints", "webhook-delivery.listDeliveries", "webhook-delivery.deliverEvent"],
       "skillPaths": ["skills/webhook-delivery-operator/SKILL.md"],
       "approvalRequiredFor": ["webhook-delivery.registerEndpoint", "webhook-delivery.deliverEvent"]
     }

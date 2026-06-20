@@ -6,12 +6,12 @@ export default function check({ assertFileIncludes, assertFileExcludes }) {
   );
   assertFileIncludes(
     "src/adapters/d1-booking-repository.ts",
-    "starts_at < ?",
+    "lt(bookings.startsAt, input.endsAt)",
     "D1 booking adapter uses interval overlap checks for availability."
   );
   assertFileIncludes(
     "src/adapters/d1-booking-repository.ts",
-    "ends_at > ?",
+    "gt(bookings.endsAt, input.startsAt)",
     "D1 booking adapter uses interval overlap checks for availability."
   );
   assertFileIncludes(

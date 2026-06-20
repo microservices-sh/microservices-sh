@@ -48,7 +48,7 @@
     },
     "agentic": {
       "applicable": true,
-      "tools": ["jobs-workflows.enqueueJob", "jobs-workflows.listJobs", "jobs-workflows.runJob", "jobs-workflows.runDueJobs", "jobs-workflows.upsertSchedule", "jobs-workflows.dueScheduledJobs"],
+      "tools": ["jobs-workflows.enqueueJob", "jobs-workflows.listJobs", "jobs-workflows.listSchedules", "jobs-workflows.runJob", "jobs-workflows.runDueJobs", "jobs-workflows.upsertSchedule", "jobs-workflows.dueScheduledJobs"],
       "skillPaths": ["skills/jobs-workflows-operator/SKILL.md"],
       "approvalRequiredFor": ["jobs-workflows.enqueueJob", "jobs-workflows.runJob", "jobs-workflows.runDueJobs", "jobs-workflows.upsertSchedule"]
     }

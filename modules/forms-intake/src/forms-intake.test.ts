@@ -4,6 +4,7 @@ import {
   validateAttachment,
   createForm,
   submitForm,
+  reviewSubmission,
   createMemoryFormStore,
   createMemoryTurnstileVerifier
 } from "./index";
@@ -178,5 +179,121 @@ describe("forms-intake: Turnstile gating", () => {
     expect(res.ok).toBe(false);
     expect(res.status).toBe(400);
     if (!res.ok) expect(res.error.code).toBe("forms-intake.TURNSTILE_REQUIRED");
+  });
+});
+
+describe("forms-intake: submission review lifecycle", () => {
+  async function submitOne(formStore: ReturnType<typeof createMemoryFormStore>) {
+    const formId = await makeForm(formStore);
+    const res = await submitForm(
+      { formId, tenantId: "tenant-1", values: { email: "a@b.com" } },
+      { formStore, now: fixedNow(T0) }
+    );
+    if (!res.ok) throw new Error("submit failed");
+    return { formId, submissionId: res.data.id as string };
+  }
+
+  it("new submissions enter the queue as pending", async () => {
+    const formStore = createMemoryFormStore();
+    const { formId } = await submitOne(formStore);
+    const [stored] = await formStore.listSubmissions({ tenantId: "tenant-1", formId });
+    expect(stored.status).toBe("pending");
+    expect(stored.reviewedAt).toBeNull();
+    expect(stored.reviewedBy).toBeNull();
+  });
+
+  it("approves a pending submission and records reviewer metadata", async () => {
+    const formStore = createMemoryFormStore();
+    const { submissionId } = await submitOne(formStore);
+
+    const res = await reviewSubmission(
+      { submissionId, tenantId: "tenant-1", decision: "approved", reviewedBy: "admin-1" },
+      { formStore, now: fixedNow(T0 + 1000) }
+    );
+    expect(res.ok).toBe(true);
+    expect(res.status).toBe(200);
+    if (res.ok) {
+      expect(res.data.status).toBe("approved");
+      expect(res.data.reviewedBy).toBe("admin-1");
+      expect(res.data.event.name).toBe("forms-intake.submission_reviewed");
+    }
+  });
+
+  it("rejects with a reviewer note", async () => {
+    const formStore = createMemoryFormStore();
+    const { submissionId } = await submitOne(formStore);
+
+    const res = await reviewSubmission(
+      { submissionId, tenantId: "tenant-1", decision: "rejected", reviewedBy: "admin-1", note: "spam" },
+      { formStore, now: fixedNow(T0 + 1000) }
+    );
+    expect(res.ok && res.data.status).toBe("rejected");
+    const got = await formStore.getSubmission(submissionId, "tenant-1");
+    expect(got?.reviewNote).toBe("spam");
+  });
+
+  it("allows re-review after changes_requested but not after a terminal decision", async () => {
+    const formStore = createMemoryFormStore();
+    const { submissionId } = await submitOne(formStore);
+
+    const first = await reviewSubmission(
+      { submissionId, tenantId: "tenant-1", decision: "changes_requested", reviewedBy: "admin-1" },
+      { formStore, now: fixedNow(T0 + 1) }
+    );
+    expect(first.ok && first.data.status).toBe("changes_requested");
+
+    // changes_requested is re-reviewable.
+    const second = await reviewSubmission(
+      { submissionId, tenantId: "tenant-1", decision: "approved", reviewedBy: "admin-2" },
+      { formStore, now: fixedNow(T0 + 2) }
+    );
+    expect(second.ok && second.data.status).toBe("approved");
+
+    // approved is terminal — a third review is a 409 conflict.
+    const third = await reviewSubmission(
+      { submissionId, tenantId: "tenant-1", decision: "rejected", reviewedBy: "admin-3" },
+      { formStore, now: fixedNow(T0 + 3) }
+    );
+    expect(third.ok).toBe(false);
+    expect(third.status).toBe(409);
+    if (!third.ok) expect(third.error.code).toBe("forms-intake.SUBMISSION_NOT_REVIEWABLE");
+  });
+
+  it("404s an unknown submission and isolates tenants", async () => {
+    const formStore = createMemoryFormStore();
+    const { submissionId } = await submitOne(formStore);
+
+    const missing = await reviewSubmission(
+      { submissionId: "sub_nope", tenantId: "tenant-1", decision: "approved", reviewedBy: "admin-1" },
+      { formStore }
+    );
+    expect(missing.status).toBe(404);
+
+    // Right id, wrong tenant — must not be reachable.
+    const crossTenant = await reviewSubmission(
+      { submissionId, tenantId: "tenant-2", decision: "approved", reviewedBy: "admin-1" },
+      { formStore }
+    );
+    expect(crossTenant.status).toBe(404);
+  });
+
+  it("filters the review queue by status", async () => {
+    const formStore = createMemoryFormStore();
+    const { formId, submissionId } = await submitOne(formStore);
+    // Add a second submission and approve only the first.
+    const second = await submitForm(
+      { formId, tenantId: "tenant-1", values: { email: "c@d.com" } },
+      { formStore, now: fixedNow(T0 + 5) }
+    );
+    expect(second.ok).toBe(true);
+    await reviewSubmission(
+      { submissionId, tenantId: "tenant-1", decision: "approved", reviewedBy: "admin-1" },
+      { formStore, now: fixedNow(T0 + 6) }
+    );
+
+    const pending = await formStore.listSubmissions({ tenantId: "tenant-1", formId, status: "pending" });
+    expect(pending).toHaveLength(1);
+    const approved = await formStore.listSubmissions({ tenantId: "tenant-1", formId, status: "approved" });
+    expect(approved.map((s) => s.id)).toEqual([submissionId]);
   });
 });

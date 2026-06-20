@@ -83,7 +83,20 @@ export const listFormsFilterSchema = z.object({
 export const listSubmissionsFilterSchema = z.object({
   tenantId: z.string().min(1),
   formId: z.string().min(1),
+  // Optional moderation-state filter so the review queue can request just pending.
+  status: z.enum(["pending", "approved", "rejected", "changes_requested"]).optional(),
   limit: z.number().int().positive().max(500).default(100)
+});
+
+// Review decision input. `decision` is the target moderation state a reviewer is
+// applying; `reviewedBy` is the opaque actor id the host has already authorized.
+// `note` is an optional reason (rejection cause / requested changes).
+export const reviewSubmissionInputSchema = z.object({
+  submissionId: z.string().min(1),
+  tenantId: z.string().min(1),
+  decision: z.enum(["approved", "rejected", "changes_requested"]),
+  reviewedBy: z.string().min(1).max(200),
+  note: z.string().max(2000).optional().nullable()
 });
 
 export type FieldValidationInput = z.infer<typeof fieldValidationSchema>;
@@ -94,3 +107,4 @@ export type GetFormInput = z.infer<typeof getFormInputSchema>;
 export type SubmitFormInput = z.infer<typeof submitFormInputSchema>;
 export type ListFormsFilter = z.infer<typeof listFormsFilterSchema>;
 export type ListSubmissionsFilter = z.infer<typeof listSubmissionsFilterSchema>;
+export type ReviewSubmissionInput = z.infer<typeof reviewSubmissionInputSchema>;

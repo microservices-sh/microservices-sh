@@ -30,9 +30,22 @@ export function createMemoryFormStore(): FormStore {
     async insertSubmission(submission) {
       submissions.push(structuredClone(submission));
     },
+    async getSubmission(id, tenantId) {
+      const found = submissions.find((s) => s.id === id && s.tenantId === tenantId);
+      return found ? structuredClone(found) : null;
+    },
+    async updateSubmission(submission) {
+      const idx = submissions.findIndex((s) => s.id === submission.id && s.tenantId === submission.tenantId);
+      if (idx !== -1) submissions[idx] = structuredClone(submission);
+    },
     async listSubmissions(filter) {
       return submissions
-        .filter((s) => s.tenantId === filter.tenantId && s.formId === filter.formId)
+        .filter(
+          (s) =>
+            s.tenantId === filter.tenantId &&
+            s.formId === filter.formId &&
+            (!filter.status || s.status === filter.status)
+        )
         .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
         .slice(0, filter.limit ?? 100)
         .map((s) => structuredClone(s));

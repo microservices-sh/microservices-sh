@@ -67,7 +67,7 @@
     {
       "id": "ads-manager-operator",
       "path": "skills/ads-manager-operator/SKILL.md",
-      "recommendedFor": ["admin-operations", "ads-monitoring", "paid-service"]
+      "recommendedFor": ["admin-operations", "ads-monitoring", "performance-review", "ad-copy-drafting", "publish-planning", "paid-service"]
     }
   ],
   "approval": {

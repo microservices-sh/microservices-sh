@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { compose } from "@microservices-sh/connection-contract/composer";
 import { deliverEvent } from "../src/use-cases/deliver-event";
+import { listEndpoints } from "../src/use-cases/list-endpoints";
 import { createMemoryWebhookEndpointStore } from "../src/adapters/memory-endpoint-store";
 import { createMemoryDeliveryLog } from "../src/adapters/memory-delivery-log";
 import { createMemoryHttpClient } from "../src/adapters/memory-http-client";
@@ -77,5 +78,29 @@ describe("deliverEvent meta + namespaced errors", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error.code).toBe("webhook-delivery.INVALID_EVENT_INPUT");
     expect(r.meta.source).toBe("webhook-delivery");
+  });
+});
+
+describe("listEndpoints redaction", () => {
+  it("lists registered endpoints without returning signing secrets", async () => {
+    const d = deps();
+    await d.endpointStore.insert({
+      id: "whe_redacted",
+      url: "https://example.test/hook",
+      eventNames: ["customer.created"],
+      secret: "never-return-this",
+      active: true,
+      createdAt: new Date().toISOString()
+    });
+
+    const r = await listEndpoints({ endpointStore: d.endpointStore, correlationId: "corr-endpoints" });
+    expect(r.ok).toBe(true);
+    expect(r.meta.correlationId).toBe("corr-endpoints");
+    if (!r.ok) throw new Error("expected ok");
+    expect(r.data.count).toBe(1);
+    expect(r.data.endpoints[0]).toEqual(
+      expect.objectContaining({ id: "whe_redacted", url: "https://example.test/hook", eventNames: ["customer.created"] })
+    );
+    expect(r.data.endpoints[0]).not.toHaveProperty("secret");
   });
 });

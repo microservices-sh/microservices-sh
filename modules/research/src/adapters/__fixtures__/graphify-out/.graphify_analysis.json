@@ -1,0 +1,98 @@
+{
+  "communities": {
+    "0": [
+      "notes_billing_service",
+      "notes_customers",
+      "notes_document",
+      "notes_dunning_job",
+      "notes_failed_cards",
+      "notes_finance_team",
+      "notes_monthly_charge",
+      "notes_quota",
+      "notes_refunds"
+    ],
+    "1": [
+      "auth_admins",
+      "auth_auth_service",
+      "auth_document",
+      "auth_email_one_time_codes",
+      "auth_login",
+      "auth_rotating_key",
+      "auth_sessions",
+      "auth_tokens"
+    ]
+  },
+  "cohesion": {
+    "0": 0.3611111111111111,
+    "1": 0.42857142857142855
+  },
+  "gods": [
+    {
+      "id": "notes_document",
+      "label": "Notes Document",
+      "degree": 9
+    },
+    {
+      "id": "auth_document",
+      "label": "Auth Document",
+      "degree": 8
+    },
+    {
+      "id": "auth_auth_service",
+      "label": "Auth Service",
+      "degree": 4
+    },
+    {
+      "id": "notes_billing_service",
+      "label": "Billing Service",
+      "degree": 4
+    },
+    {
+      "id": "auth_sessions",
+      "label": "Sessions",
+      "degree": 3
+    },
+    {
+      "id": "auth_login",
+      "label": "Login",
+      "degree": 2
+    },
+    {
+      "id": "auth_email_one_time_codes",
+      "label": "Email One-Time Codes",
+      "degree": 2
+    },
+    {
+      "id": "auth_admins",
+      "label": "Admins",
+      "degree": 2
+    },
+    {
+      "id": "auth_tokens",
+      "label": "Tokens",
+      "degree": 2
+    },
+    {
+      "id": "auth_rotating_key",
+      "label": "Rotating Key",
+      "degree": 2
+    }
+  ],
+  "surprises": [
+    {
+      "source": "Auth Document",
+      "target": "Notes Document",
+      "source_files": [
+        "auth.md",
+        "notes.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "conceptually_related_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    }
+  ],
+  "tokens": {
+    "input": 722,
+    "output": 6333
+  }
+}

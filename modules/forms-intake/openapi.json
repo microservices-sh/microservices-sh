@@ -134,9 +134,49 @@
         "summary": "List submissions (tenant + form scoped)",
         "parameters": [
           { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
-          { "name": "tenantId", "in": "query", "required": true, "schema": { "type": "string" } }
+          { "name": "tenantId", "in": "query", "required": true, "schema": { "type": "string" } },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["pending", "approved", "rejected", "changes_requested"] },
+            "description": "Filter the review queue by moderation state."
+          }
         ],
         "responses": { "200": { "description": "Submission list" } }
+      }
+    },
+    "/forms/{id}/submissions/{submissionId}/review": {
+      "post": {
+        "summary": "Apply a moderation decision to a submission",
+        "description": "Tenant-scoped. Only pending or changes_requested submissions are reviewable; reviewing a terminal (approved/rejected) submission returns 409. Submitted values/attachments are never mutated.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "submissionId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tenantId", "decision", "reviewedBy"],
+                "properties": {
+                  "tenantId": { "type": "string" },
+                  "decision": { "type": "string", "enum": ["approved", "rejected", "changes_requested"] },
+                  "reviewedBy": { "type": "string", "description": "Opaque reviewer actor id (host already authorized)." },
+                  "note": { "type": "string", "description": "Optional reason / requested changes." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Decision applied" },
+          "400": { "description": "Invalid review input" },
+          "404": { "description": "Submission not found (or wrong tenant)" },
+          "409": { "description": "Submission is in a terminal state and not reviewable" }
+        }
       }
     }
   }
