@@ -12,7 +12,7 @@ const internalAliases = new Map([
 
 const REPO_TEMPLATES = ["booking-sveltekit", "company-landing-astro", "wordpress-emdash-blog-astro", "saas-starter-sveltekit", "client-portal-sveltekit", "dot-ai-os", "erp-shell-sveltekit"];
 const REPO_TEMPLATE_MODULES = {
-  "booking-sveltekit": ["gateway", "auth", "customer", "booking", "audit-log", "email", "payment", "identity"],
+  "booking-sveltekit": ["gateway", "auth", "customer", "booking", "audit-log", "email", "payment", "identity", "research"],
   "company-landing-astro": [],
   "wordpress-emdash-blog-astro": [],
   "saas-starter-sveltekit": ["auth", "identity", "email", "gateway", "org-team-rbac", "billing-subscriptions", "admin-shell", "audit-log", "image-generation", "ads-manager"],
@@ -21,7 +21,7 @@ const REPO_TEMPLATE_MODULES = {
   "erp-shell-sveltekit": ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "invoice", "payment", "billing-subscriptions", "image-generation", "ads-manager", "forms-intake", "booking", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket"],
 };
 const REPO_TEMPLATE_PACKAGES = {
-  "booking-sveltekit": ["connection-contract"],
+  "booking-sveltekit": ["connection-contract", "ops-token"],
   "company-landing-astro": [],
   "wordpress-emdash-blog-astro": [],
   "saas-starter-sveltekit": ["connection-contract"],

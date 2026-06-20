@@ -82,6 +82,7 @@ const BUNDLED_MODULES = [
   "operator-work",
   "org-team-rbac",
   "payment",
+  "research",
   "support-ticket",
 ];
 
@@ -95,6 +96,10 @@ function readOwnPackageVersion(packageRoot) {
 }
 const BUNDLED_PACKAGES = new Map([
   ["@microservices-sh/connection-contract", "connection-contract"],
+  // ops-token's codec (mint/verify) is vendored like connection-contract so the
+  // generated operate-app can verify ops tokens; it's pulled in transitively by
+  // the research module (booking's /ops read-back route). See plan 32.
+  ["@microservices-sh/ops-token", "ops-token"],
 ]);
 
 function modulePackageName(moduleId) {
