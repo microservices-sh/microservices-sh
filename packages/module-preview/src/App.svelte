@@ -105,16 +105,28 @@
     {/snippet}
 
     {#if meta.id === "marketing-research"}
-      <details class="mp-config">
-        <summary>Test config — real LLM synthesis (BYOK)</summary>
-        <div class="mp-config-row">
-          <label>OpenRouter key <input type="password" bind:value={aiKey} placeholder="sk-or-… (blank = stand-in)" autocomplete="off" /></label>
-          <label>Model <input bind:value={aiModel} placeholder="anthropic/claude-3.5-haiku" /></label>
-          {#if synthMode}<span class="mp-mode" class:real={synthMode.startsWith("ai-gateway")}>{synthMode}</span>{/if}
-        </div>
-        <p class="mp-config-note">Local-dev only — sent to the local preview endpoint, never stored or logged. Blank key → deterministic stand-in. On Cloudflare this is keyless (Workers AI).</p>
-      </details>
-      <MarketingResearchPreview {brief} {refused} {busy} {onrun} />
+      <MarketingResearchPreview {brief} {refused} {busy} {onrun}>
+        {#snippet config()}
+          <div class="byok">
+            <div class="byok__head">
+              <span class="byok__title">Real LLM synthesis</span>
+              <span class="byok__req">required for real output — blank runs a stand-in</span>
+              {#if synthMode}<span class="byok__mode mono" class:on={synthMode.startsWith("ai-gateway")}>{synthMode}</span>{/if}
+            </div>
+            <div class="byok__row">
+              <label class="byok__f">
+                <span>OpenRouter key</span>
+                <input type="password" bind:value={aiKey} placeholder="sk-or-… (BYOK)" autocomplete="off" />
+              </label>
+              <label class="byok__f">
+                <span>Model</span>
+                <input bind:value={aiModel} placeholder="anthropic/claude-3.5-haiku" />
+              </label>
+            </div>
+            <p class="byok__note">Local-dev only — sent to the local endpoint, never stored or logged. On Cloudflare this is keyless (Workers AI).</p>
+          </div>
+        {/snippet}
+      </MarketingResearchPreview>
     {:else}
       <GenericPreview module={meta} />
     {/if}
@@ -124,12 +136,18 @@
 <style>
   .mp-switch { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: var(--color-ink-faint); }
   .mp-switch select { background: var(--color-panel); border: 1px solid var(--color-line-strong); color: var(--color-ink); border-radius: 7px; padding: 0.3rem 0.5rem; font: inherit; font-size: 0.8rem; }
-  .mp-config { margin: 0 0 1.2rem; border: 1px solid var(--color-line); border-radius: 10px; background: var(--color-panel-subtle); padding: 0.6rem 0.9rem; }
-  .mp-config summary { cursor: pointer; font-size: 0.8rem; color: var(--color-ink-soft); }
-  .mp-config-row { display: flex; flex-wrap: wrap; gap: 0.8rem; align-items: end; margin-top: 0.7rem; }
-  .mp-config label { display: grid; gap: 0.25rem; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-ink-faint); }
-  .mp-config input { background: var(--color-panel); border: 1px solid var(--color-line-strong); color: var(--color-ink); border-radius: 7px; padding: 0.4rem 0.6rem; font: inherit; font-size: 0.82rem; min-width: 230px; text-transform: none; letter-spacing: 0; }
-  .mp-mode { font-family: var(--font-mono); font-size: 0.72rem; padding: 0.25rem 0.5rem; border-radius: 6px; background: var(--color-panel); color: var(--color-ink-faint); }
-  .mp-mode.real { color: var(--color-green); }
-  .mp-config-note { font-size: 0.7rem; color: var(--color-ink-faint); margin: 0.6rem 0 0; }
+  /* BYOK config — lives in the run console (Preview's config slot). Prominent: a
+     real LLM key is what flips the module from stand-in to real synthesis. */
+  .byok { border: 1px solid color-mix(in srgb, var(--color-green) 28%, var(--color-line-strong)); border-radius: 10px; background: color-mix(in srgb, var(--color-green) 5%, var(--color-paper)); padding: 0.8rem 0.95rem; }
+  .byok__head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+  .byok__title { font-weight: 650; font-size: 0.88rem; color: var(--color-ink); }
+  .byok__req { font-size: 0.7rem; color: var(--color-amber); }
+  .byok__mode { margin-left: auto; font-size: 0.68rem; padding: 0.2rem 0.45rem; border-radius: 6px; background: var(--color-panel); color: var(--color-ink-faint); }
+  .byok__mode.on { color: var(--color-green); border: 1px solid color-mix(in srgb, var(--color-green) 40%, transparent); }
+  .byok__row { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 0.7rem; }
+  .byok__f { display: grid; gap: 0.25rem; flex: 1 1 220px; }
+  .byok__f span { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-ink-faint); font-weight: 600; }
+  .byok__f input { width: 100%; background: var(--color-paper); border: 1px solid var(--color-line-strong); color: var(--color-ink); border-radius: 8px; padding: 0.5rem 0.65rem; font: inherit; font-size: 0.85rem; }
+  .byok__f input:focus { outline: none; border-color: var(--color-green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-green) 16%, transparent); }
+  .byok__note { font-size: 0.7rem; color: var(--color-ink-faint); margin: 0.6rem 0 0; }
 </style>

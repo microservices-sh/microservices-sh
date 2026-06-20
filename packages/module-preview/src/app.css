@@ -28,3 +28,10 @@ body {
 #app {
   min-block-size: 100dvh;
 }
+
+/* Match the admin/app shell: links inherit, no underline (the AppShell brand
+   logo is an <a> — without this it renders underlined + link-coloured). */
+a {
+  color: inherit;
+  text-decoration: none;
+}
