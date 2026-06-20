@@ -13,12 +13,16 @@
     type Tone
   } from "./lib/ui";
   import {
+    extractDocument,
     getRuntimeStatus,
     getSyncStatus,
     importDocumentPaths,
+    loadDocumentDraft,
     loadQueueDocuments,
     listenForDroppedDocuments,
     selectImportFolder,
+    type ExtractionDraft,
+    type ExtractedField,
     type ImportFolder,
     type ImportResult,
     type QueueJob,
@@ -28,13 +32,23 @@
 
   type StatusKey = RuntimeStatus["ocr"] | SyncStatus["state"] | QueueJob["status"];
 
-  let runtime: RuntimeStatus = { ocr: "checking", llm: "checking", model: "Checking", mode: "browser-preview" };
+  let runtime: RuntimeStatus = {
+    ocr: "checking",
+    llm: "checking",
+    model: "Checking",
+    mode: "browser-preview",
+    ocrEngine: "tesseract",
+    llmEngine: "ollama"
+  };
   let sync: SyncStatus = { baseUrl: "http://localhost:5174", state: "not-configured", pendingDrafts: 0 };
   let folder: ImportFolder | null = null;
   let jobs: QueueJob[] = [];
   let busy = false;
+  let extractingJobId: string | null = null;
   let dragActive = false;
   let activePathname = "#import";
+  let selectedJobId: string | null = null;
+  let selectedDraft: ExtractionDraft | null = null;
   let importMessage = "Select a folder to create local draft jobs.";
   let metrics: Metric[] = [];
 
@@ -72,6 +86,8 @@
   $: duplicateCount = folder?.duplicateDocuments ?? 0;
   $: skippedCount = folder?.skippedDocuments ?? 0;
   $: importedCount = folder?.newDocuments ?? jobs.length;
+  $: selectedJob = jobs.find((job) => job.id === selectedJobId) ?? jobs.find((job) => job.draft) ?? null;
+  $: activeDraft = selectedJob?.draft ?? selectedDraft;
   $: metrics = [
     { label: "Queued", value: jobs.length, tone: jobs.length > 0 ? "info" : "neutral", hint: "local drafts" },
     { label: "Imported", value: importedCount, tone: importedCount > 0 ? "good" : "neutral", hint: "new documents" },
@@ -89,6 +105,7 @@
     runtime = runtimeStatus;
     sync = syncStatus;
     jobs = queued;
+    selectedJobId = selectedJobId ?? queued.find((job) => job.draft)?.id ?? queued[0]?.id ?? null;
   }
 
   async function chooseFolder() {
@@ -122,12 +139,40 @@
   function applyImportResult(result: ImportResult) {
     folder = result.folder;
     jobs = result.jobs;
+    selectedJobId = result.jobs.find((job) => job.draft)?.id ?? result.jobs[0]?.id ?? null;
+    selectedDraft = selectedJobId ? (result.jobs.find((job) => job.id === selectedJobId)?.draft ?? null) : null;
     sync = { ...sync, pendingDrafts: jobs.filter((job) => job.status !== "synced").length };
     importMessage = [
       `${result.folder.newDocuments} new`,
       `${result.folder.duplicateDocuments} duplicates`,
       `${result.folder.skippedDocuments} skipped`
     ].join(", ");
+  }
+
+  async function selectJob(job: QueueJob) {
+    selectedJobId = job.id;
+    selectedDraft = job.draft ?? (await loadDocumentDraft(job.id));
+  }
+
+  async function runExtraction(job: QueueJob) {
+    if (extractingJobId) return;
+
+    extractingJobId = job.id;
+    selectedJobId = job.id;
+    importMessage = `Extracting ${job.name}`;
+
+    try {
+      const result = await extractDocument(job.id);
+      jobs = jobs.map((item) => (item.id === result.job.id ? result.job : item));
+      selectedDraft = result.draft;
+      sync = { ...sync, pendingDrafts: jobs.filter((item) => item.status !== "synced").length };
+      importMessage = `${result.job.name} converted to a review draft`;
+      runtime = await getRuntimeStatus();
+    } catch (error) {
+      importMessage = error instanceof Error ? error.message : "Extraction failed";
+    } finally {
+      extractingJobId = null;
+    }
   }
 
   function handleBrowserDrag(event: DragEvent) {
@@ -163,6 +208,11 @@
 
   function confidenceLabel(confidence: number) {
     return `${Math.round(confidence * 100)}%`;
+  }
+
+  function fieldValueLabel(field: ExtractedField) {
+    if (field.value === null || field.value === undefined || field.value === "") return "Needs review";
+    return String(field.value);
   }
 
   onMount(() => {
@@ -258,6 +308,7 @@
                   <th class="table-num">Pages</th>
                   <th>Status</th>
                   <th class="table-num">Confidence</th>
+                  <th>Action</th>
                 </tr>
               {/snippet}
               {#each jobs as job}
@@ -267,12 +318,20 @@
                     <strong class="table-primary">{job.name}</strong>
                     <span class="table-muted">{job.path}</span>
                     <span class="job-hash">sha256 {job.fileHash.slice(0, 10)}</span>
+                    {#if job.draft}
+                      <button class="inline-action" type="button" onclick={() => void selectJob(job)}>Review draft</button>
+                    {/if}
                   </td>
                   <td data-label="Pages" class="table-num">{job.pages}</td>
                   <td data-label="Status"><Badge tone={toneForStatus(job.status)}>{statusLabel[job.status]}</Badge></td>
                   <td data-label="Confidence" class="table-num confidence-cell">
                     <meter min="0" max="1" value={job.confidence} aria-label={`${job.name} confidence`}></meter>
                     <span>{confidenceLabel(job.confidence)}</span>
+                  </td>
+                  <td data-label="Action" class="table-action">
+                    <Button size="sm" onclick={() => void runExtraction(job)} disabled={Boolean(extractingJobId)}>
+                      {extractingJobId === job.id ? "Extracting" : job.draft ? "Re-run" : "Extract"}
+                    </Button>
                   </td>
                 </tr>
               {/each}
@@ -283,7 +342,7 @@
         </Card>
       </section>
 
-      <div id="runtime" class="side-section">
+      <div id="runtime" class="side-section side-stack">
         <Card title="Local runtime" class="side-card">
           {#snippet header()}
             <Badge tone={toneForStatus(runtime.ocr)}>{statusLabel[runtime.ocr]}</Badge>
@@ -291,17 +350,76 @@
           <dl class="status-list">
             <div>
               <dt>OCR</dt>
-              <dd><Badge tone={toneForStatus(runtime.ocr)}>{statusLabel[runtime.ocr]}</Badge></dd>
+              <dd><Badge tone={toneForStatus(runtime.ocr)}>{statusLabel[runtime.ocr]}</Badge> {runtime.ocrEngine}</dd>
             </div>
             <div>
               <dt>LLM</dt>
-              <dd><Badge tone={toneForStatus(runtime.llm)}>{statusLabel[runtime.llm]}</Badge></dd>
+              <dd><Badge tone={toneForStatus(runtime.llm)}>{statusLabel[runtime.llm]}</Badge> {runtime.llmEngine}</dd>
             </div>
             <div>
               <dt>Model</dt>
               <dd>{runtime.model}</dd>
             </div>
           </dl>
+        </Card>
+
+        <Card title="Extraction draft" class="side-card draft-card">
+          {#snippet header()}
+            <Badge tone={activeDraft ? toneForStatus("review") : "neutral"}>{activeDraft ? "Review" : "No Draft"}</Badge>
+          {/snippet}
+
+          {#if activeDraft}
+            <div class="draft-summary">
+              <strong>{selectedJob?.name ?? "Selected document"}</strong>
+              <span>{activeDraft.summary ?? "Review extracted fields before sync."}</span>
+              <div class="draft-meta">
+                <Badge tone={activeDraft.confidence >= 0.85 ? "good" : "warn"}>{confidenceLabel(activeDraft.confidence)}</Badge>
+                <span>{activeDraft.schemaId}</span>
+                <span>{activeDraft.model ?? activeDraft.runtime}</span>
+              </div>
+            </div>
+
+            {#if activeDraft.warnings.length}
+              <ul class="warning-list" aria-label="Extraction warnings">
+                {#each activeDraft.warnings as warning}
+                  <li>{warning}</li>
+                {/each}
+              </ul>
+            {/if}
+
+            {#if activeDraft.fields.length}
+              <ResourceTable caption="Extracted fields" class="field-table">
+                {#snippet head()}
+                  <tr>
+                    <th>Field</th>
+                    <th>Value</th>
+                    <th class="table-num">Confidence</th>
+                  </tr>
+                {/snippet}
+                {#each activeDraft.fields as field}
+                  <tr>
+                    <td data-label="Field"><code>{field.name}</code></td>
+                    <td data-label="Value">
+                      <span class:needs-review={field.needsReview}>{fieldValueLabel(field)}</span>
+                      {#if field.source?.text}
+                        <span class="field-source">{field.source.text}</span>
+                      {/if}
+                    </td>
+                    <td data-label="Confidence" class="table-num">{confidenceLabel(field.confidence)}</td>
+                  </tr>
+                {/each}
+              </ResourceTable>
+            {/if}
+
+            {#if activeDraft.rawText}
+              <details class="raw-text">
+                <summary>Raw OCR text</summary>
+                <pre>{activeDraft.rawText}</pre>
+              </details>
+            {/if}
+          {:else}
+            <EmptyState title="No extraction draft" description="Run Extract on a scanned image to create a local review draft." />
+          {/if}
         </Card>
       </div>
 

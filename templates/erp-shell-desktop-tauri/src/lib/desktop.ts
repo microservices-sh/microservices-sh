@@ -7,6 +7,8 @@ export type RuntimeStatus = {
   llm: "ready" | "missing" | "checking";
   model: string;
   mode: "browser-preview" | "tauri";
+  ocrEngine?: string;
+  llmEngine?: string;
 };
 
 export type SyncStatus = {
@@ -38,6 +40,46 @@ export type QueueJob = {
   fileHash: string;
   path: string;
   importedAt: number;
+  draft: ExtractionDraft | null;
+};
+
+export type SourceRegion = {
+  page?: number;
+  text?: string;
+};
+
+export type ExtractedField = {
+  name: string;
+  value: string | number | boolean | null;
+  confidence: number;
+  source?: SourceRegion | null;
+  needsReview?: boolean | null;
+};
+
+export type ExtractedTable = {
+  name: string;
+  columns: string[];
+  rows: Array<Record<string, string | number | boolean | null>>;
+  confidence: number;
+  source?: SourceRegion | null;
+};
+
+export type ExtractionDraft = {
+  schemaId: string;
+  targetType: "invoice" | "receipt" | "intake-form" | "customer-document" | "support-evidence" | "custom";
+  fields: ExtractedField[];
+  tables: ExtractedTable[];
+  rawText?: string | null;
+  summary?: string | null;
+  confidence: number;
+  runtime: "browser-ocr" | "browser-local-llm" | "ai-gateway" | "sidecar";
+  model?: string | null;
+  warnings: string[];
+};
+
+export type ExtractionResult = {
+  job: QueueJob;
+  draft: ExtractionDraft;
 };
 
 async function call<T>(command: string, args?: Record<string, unknown>, fallback?: T): Promise<T> {
@@ -54,7 +96,9 @@ export async function getRuntimeStatus() {
     ocr: "ready",
     llm: "missing",
     model: "Gemma local adapter pending",
-    mode: "browser-preview"
+    mode: "browser-preview",
+    ocrEngine: "tesseract",
+    llmEngine: "ollama"
   });
 }
 
@@ -128,8 +172,59 @@ export async function loadQueueDocuments() {
   return call<QueueJob[]>("queue_documents", undefined, sampleDocuments());
 }
 
+export async function extractDocument(jobId: string) {
+  const jobs = sampleDocuments();
+  const job = jobs.find((item) => item.id === jobId) ?? jobs[0];
+  const draft = sampleDraft(job);
+
+  return call<ExtractionResult>(
+    "extract_document",
+    { jobId },
+    {
+      job: { ...job, status: "review", confidence: draft.confidence, draft },
+      draft
+    }
+  );
+}
+
+export async function loadDocumentDraft(jobId: string) {
+  const job = sampleDocuments().find((item) => item.id === jobId);
+
+  return call<ExtractionDraft | null>("document_draft", { jobId }, job?.draft ?? null);
+}
+
 export async function enqueueSampleDocuments() {
   return call<QueueJob[]>("enqueue_sample_documents", undefined, sampleDocuments());
+}
+
+function sampleDraft(job: QueueJob): ExtractionDraft {
+  return {
+    schemaId: job.kind === "intake" ? "erp.intake-form.default" : job.kind === "invoice" ? "erp.invoice.default" : "erp.support-evidence.default",
+    targetType: job.kind === "intake" ? "intake-form" : job.kind === "invoice" ? "invoice" : "support-evidence",
+    fields: [
+      {
+        name: "documentTitle",
+        value: job.name,
+        confidence: 0.82,
+        source: { page: 1, text: job.name },
+        needsReview: true
+      },
+      {
+        name: "total",
+        value: "$1,240.00",
+        confidence: 0.78,
+        source: { page: 1, text: "Total $1,240.00" },
+        needsReview: true
+      }
+    ],
+    tables: [],
+    rawText: `${job.name}\nTotal $1,240.00`,
+    summary: "Browser preview extraction draft. Desktop mode uses local OCR and optional Gemma normalization.",
+    confidence: 0.8,
+    runtime: "sidecar",
+    model: "gemma4:e4b",
+    warnings: ["Preview data only; run in Tauri desktop mode for local OCR."]
+  };
 }
 
 function sampleDocuments(): QueueJob[] {
@@ -143,7 +238,8 @@ function sampleDocuments(): QueueJob[] {
       pages: 2,
       fileHash: "sample_invoice",
       path: "~/Documents/client-imports/vendor-invoice-0426.pdf",
-      importedAt: 0
+      importedAt: 0,
+      draft: null
     },
     {
       id: "job_102",
@@ -154,7 +250,8 @@ function sampleDocuments(): QueueJob[] {
       pages: 1,
       fileHash: "sample_intake",
       path: "~/Documents/client-imports/new-client-intake.jpg",
-      importedAt: 0
+      importedAt: 0,
+      draft: null
     },
     {
       id: "job_103",
@@ -165,7 +262,8 @@ function sampleDocuments(): QueueJob[] {
       pages: 1,
       fileHash: "sample_repair",
       path: "~/Documents/client-imports/repair-receipt.png",
-      importedAt: 0
+      importedAt: 0,
+      draft: null
     },
     {
       id: "job_104",
@@ -176,7 +274,8 @@ function sampleDocuments(): QueueJob[] {
       pages: 3,
       fileHash: "sample_statement",
       path: "~/Documents/client-imports/deposit-statement.pdf",
-      importedAt: 0
+      importedAt: 0,
+      draft: null
     }
-  ];
+  ].map((job) => (job.status === "review" || job.status === "synced" ? { ...job, draft: sampleDraft(job) } : job));
 }

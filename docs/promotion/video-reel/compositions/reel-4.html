@@ -1,0 +1,275 @@
+<template id="reel-4-template">
+  <div id="reel-4" data-composition-id="reel-4" data-width="1080" data-height="1920">
+    <div class="scene-content">
+      <!-- background layers -->
+      <div class="bg-glow" aria-hidden="true"></div>
+      <div class="bg-danger" aria-hidden="true"></div>
+      <svg class="hive-ghost" viewBox="0 0 600 600" aria-hidden="true">
+        <path d="M300 60 L470 158 L470 354 L300 452 L130 354 L130 158 Z" />
+        <path d="M300 160 L385 209 L385 307 L300 356 L215 307 L215 209 Z" />
+      </svg>
+      <span class="reg reg--tl" aria-hidden="true">+ studio</span>
+      <span class="reg reg--br" aria-hidden="true">▸ check</span>
+
+      <!-- header zone -->
+      <div class="head">
+        <span class="kicker">VERIFY BEFORE DEPLOY</span>
+        <h1 class="headline"><span class="mono-green">check</span> catches what the agent&nbsp;missed.</h1>
+      </div>
+
+      <!-- terminal -->
+      <div class="term">
+        <div class="term-bar">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <span class="term-title">studio ▸ check</span>
+        </div>
+        <div class="term-body">
+          <div class="row row--prompt"><span class="arrow">❯</span><span class="prog">pnpm</span><span class="args">&nbsp;microservices check</span></div>
+          <div class="row row--ok r1"><span class="ic ic--ok">✓</span><span class="rk">contracts</span><span class="rv">typed calls resolve</span></div>
+          <div class="row row--fail r2">
+            <span class="x-glow" aria-hidden="true"></span>
+            <span class="ic ic--fail">✗</span><span class="rk">permissions</span><span class="rv">auth: <b>/admin</b> not gated</span>
+          </div>
+          <div class="row row--ok r3"><span class="ic ic--ok">✓</span><span class="rk">idempotency</span><span class="rv">payments safe to retry</span></div>
+          <div class="divider"></div>
+          <div class="banner"><span class="banner-ic">▲</span><span>1 contract failed · <b>build blocked</b></span></div>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      @font-face { font-family: "Bricolage Grotesque"; font-weight: 800; font-display: block; src: url("../fonts/bricolage-800.woff2") format("woff2"); }
+      @font-face { font-family: "Hanken Grotesk"; font-weight: 400; font-display: block; src: url("../fonts/hanken-400.woff2") format("woff2"); }
+      @font-face { font-family: "Hanken Grotesk"; font-weight: 600; font-display: block; src: url("../fonts/hanken-600.woff2") format("woff2"); }
+      @font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: block; src: url("../fonts/plexmono-400.woff2") format("woff2"); }
+      @font-face { font-family: "IBM Plex Mono"; font-weight: 600; font-display: block; src: url("../fonts/plexmono-600.woff2") format("woff2"); }
+
+      #reel-4 {
+        position: absolute;
+        inset: 0;
+        background: #070a08;
+        font-family: "Hanken Grotesk", sans-serif;
+        overflow: hidden;
+      }
+      #reel-4 .scene-content {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        padding: 120px 60px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 40px;
+      }
+
+      /* background */
+      #reel-4 .bg-glow {
+        position: absolute;
+        left: 50%;
+        top: 180px;
+        width: 1200px;
+        height: 1200px;
+        transform: translateX(-50%);
+        background: radial-gradient(circle, rgba(56, 255, 136, 0.14), rgba(7, 10, 8, 0) 62%);
+        pointer-events: none;
+      }
+      #reel-4 .bg-danger {
+        position: absolute;
+        left: 50%;
+        top: 1080px;
+        width: 1000px;
+        height: 760px;
+        transform: translateX(-50%);
+        background: radial-gradient(circle, rgba(255, 107, 94, 0.18), rgba(7, 10, 8, 0) 60%);
+        pointer-events: none;
+      }
+      #reel-4 .hive-ghost {
+        position: absolute;
+        left: -200px;
+        bottom: -180px;
+        width: 720px;
+        height: 720px;
+        fill: none;
+        stroke: #2a3c30;
+        stroke-width: 3;
+        opacity: 0.45;
+        pointer-events: none;
+      }
+      #reel-4 .reg {
+        position: absolute;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 24px;
+        letter-spacing: 0.16em;
+        color: #5e7568;
+        text-transform: uppercase;
+      }
+      #reel-4 .reg--tl { left: 60px; top: 210px; }
+      #reel-4 .reg--br { right: 60px; bottom: 210px; }
+
+      /* header */
+      #reel-4 .head { display: flex; flex-direction: column; gap: 24px; }
+      #reel-4 .kicker {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 26px;
+        letter-spacing: 0.3em;
+        color: #38ff88;
+      }
+      #reel-4 .headline {
+        margin: 0;
+        font-family: "Bricolage Grotesque", sans-serif;
+        font-weight: 800;
+        font-size: 76px;
+        letter-spacing: -0.015em;
+        color: #eafbf1;
+        line-height: 1.04;
+      }
+      #reel-4 .headline .mono-green {
+        font-family: "IBM Plex Mono", monospace;
+        font-weight: 600;
+        color: #38ff88;
+        letter-spacing: -0.01em;
+      }
+
+      /* terminal */
+      #reel-4 .term {
+        position: relative;
+        background: #0b0f0c;
+        border: 2px solid #2a3c30;
+        border-radius: 20px;
+        box-shadow: 0 50px 130px -30px rgba(0, 0, 0, 0.85), 0 0 90px -30px rgba(56, 255, 136, 0.18);
+        overflow: hidden;
+      }
+      #reel-4 .term-bar {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        padding: 24px 34px;
+        background: #0f1511;
+        border-bottom: 2px solid #1d2a22;
+      }
+      #reel-4 .dots { display: inline-flex; gap: 13px; }
+      #reel-4 .dots i {
+        width: 18px; height: 18px; border-radius: 999px; background: #2a3c30; display: block;
+      }
+      #reel-4 .term-title {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 28px;
+        color: #91a89a;
+      }
+      #reel-4 .term-body {
+        padding: 44px 44px 48px;
+        display: flex;
+        flex-direction: column;
+        gap: 26px;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 38px;
+        line-height: 1.4;
+      }
+      #reel-4 .row { display: flex; align-items: baseline; gap: 22px; }
+      #reel-4 .row--prompt { color: #eafbf1; margin-bottom: 8px; }
+      #reel-4 .arrow { color: #38ff88; font-weight: 600; }
+      #reel-4 .prog { color: #9fffc2; }
+      #reel-4 .args { color: #91a89a; }
+      #reel-4 .ic { width: 40px; flex: 0 0 40px; text-align: center; font-weight: 700; }
+      #reel-4 .ic--ok { color: #38ff88; }
+      #reel-4 .ic--fail { color: #ff6b5e; }
+      #reel-4 .rk { width: 300px; flex: 0 0 300px; color: #5e7568; }
+      #reel-4 .rv { color: #9fffc2; }
+      #reel-4 .row--fail .rv { color: #ffb3ab; }
+      #reel-4 .row--fail .rk { color: #ff8a80; }
+      #reel-4 .row--fail .rv b { color: #ff6b5e; }
+      #reel-4 .row--fail {
+        position: relative;
+        margin: 6px -18px;
+        padding: 16px 18px;
+        border-radius: 12px;
+        background: rgba(255, 107, 94, 0.09);
+        border: 2px solid rgba(255, 107, 94, 0.22);
+      }
+      #reel-4 .x-glow {
+        position: absolute;
+        inset: -2px -12px;
+        border-radius: 14px;
+        background: radial-gradient(ellipse at 10% 50%, rgba(255, 107, 94, 0.34), rgba(255, 107, 94, 0) 58%);
+        pointer-events: none;
+        opacity: 0;
+        z-index: 0;
+      }
+      #reel-4 .row--fail .ic,
+      #reel-4 .row--fail .rk,
+      #reel-4 .row--fail .rv { position: relative; z-index: 1; }
+      #reel-4 .divider { height: 2px; background: #1d2a22; margin: 16px 0 8px; }
+      #reel-4 .banner {
+        display: inline-flex;
+        align-items: center;
+        gap: 18px;
+        align-self: flex-start;
+        padding: 18px 30px;
+        border: 2px solid rgba(255, 107, 94, 0.5);
+        border-radius: 14px;
+        background: rgba(255, 107, 94, 0.12);
+        color: #ffb3ab;
+        font-size: 36px;
+      }
+      #reel-4 .banner b { color: #ff6b5e; font-weight: 700; }
+      #reel-4 .banner-ic { color: #ff6b5e; font-size: 32px; }
+
+      /* corner marks */
+      #reel-4 .corner {
+        position: absolute;
+        width: 46px;
+        height: 46px;
+        border: 2px solid #2a3c30;
+        pointer-events: none;
+      }
+      #reel-4 .corner--tl { left: 44px; top: 210px; border-right: none; border-bottom: none; }
+      #reel-4 .corner--br { right: 44px; bottom: 210px; border-left: none; border-top: none; }
+    </style>
+
+    <span class="corner corner--tl" aria-hidden="true"></span>
+    <span class="corner corner--br" aria-hidden="true"></span>
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // ambient bg glows breathe in
+      tl.fromTo('#reel-4 .bg-glow', { opacity: 0 }, { opacity: 1, duration: 1.0, ease: "sine.out" }, 0.2);
+
+      // header
+      tl.fromTo('#reel-4 .kicker', { opacity: 0, letterSpacing: "0.62em" }, { opacity: 1, letterSpacing: "0.3em", duration: 0.7, ease: "power2.out" }, 0.3);
+      tl.fromTo('#reel-4 .headline', { opacity: 0, y: 52 }, { opacity: 1, y: 0, duration: 0.75, ease: "power3.out" }, 0.5);
+
+      // corner marks
+      tl.fromTo('#reel-4 .corner--tl', { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power1.out" }, 0.55);
+      tl.fromTo('#reel-4 .corner--br', { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power1.out" }, 0.7);
+
+      // terminal frame rises in
+      tl.fromTo('#reel-4 .term', { opacity: 0, y: 80, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: "expo.out" }, 0.85);
+      tl.fromTo('#reel-4 .term-bar', { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "none" }, 1.35);
+
+      // prompt + first ok row cascade
+      tl.fromTo('#reel-4 .row--prompt', { opacity: 0, x: -28 }, { opacity: 1, x: 0, duration: 0.42, ease: "power2.out" }, 1.65);
+      tl.fromTo('#reel-4 .r1', { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.36, ease: "power1.out" }, 2.1);
+
+      // the catch — the ✗ row SLAMS in (hero beat)
+      tl.fromTo('#reel-4 .r2', { opacity: 0, scale: 0.8, x: -12 }, { opacity: 1, scale: 1, x: 0, duration: 0.46, ease: "back.out(2.4)" }, 2.6);
+      tl.fromTo('#reel-4 .x-glow', { opacity: 0, scale: 0.88 }, { opacity: 0.95, scale: 1, duration: 0.42, ease: "power2.out" }, 2.7);
+      tl.fromTo('#reel-4 .bg-danger', { opacity: 0 }, { opacity: 1, duration: 0.55, ease: "power2.out" }, 2.7);
+
+      // remaining ok row resolves after the catch
+      tl.fromTo('#reel-4 .r3', { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.36, ease: "power1.out" }, 3.3);
+
+      // divider + verdict banner
+      tl.fromTo('#reel-4 .divider', { scaleX: 0, transformOrigin: "left center" }, { scaleX: 1, duration: 0.5, ease: "power2.inOut" }, 3.75);
+      tl.fromTo('#reel-4 .banner', { opacity: 0, y: 26, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(2)" }, 4.1);
+
+      // breathe — finite danger glow pulse on the caught row
+      tl.to('#reel-4 .x-glow', { opacity: 0.55, scale: 1.05, duration: 0.95, ease: "sine.inOut", yoyo: true, repeat: 3 }, 4.9);
+
+      window.__timelines["reel-4"] = tl;
+    </script>
+  </div>
+</template>

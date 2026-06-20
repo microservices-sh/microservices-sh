@@ -1,0 +1,2731 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>microservices.sh demo preview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #070a08;
+        --panel: #0b0f0c;
+        --panel-2: #0f1511;
+        --paper: #e6f3ea;
+        --paper-soft: #b9cabf;
+        --line: #1d2a22;
+        --line-strong: #2a3c30;
+        --green: #38ff88;
+        --green-strong: #00f57a;
+        --green-soft: #9fffc2;
+        --green-dim: #103021;
+        --amber: #ffc857;
+        --red: #ff6b5e;
+        --danger: #ff6b5e;
+        --cyan: #4dd8ff;
+        --text: #eafbf1;
+        --muted: #91a89a;
+        --dim: #5e7568;
+        --shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
+        --mono: "IBM Plex Mono", "SFMono-Regular", ui-monospace, Consolas, monospace;
+        --term: "IBM Plex Mono", "SFMono-Regular", ui-monospace, Consolas, monospace;
+        --display: "Bricolage Grotesque", "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+        font-family:
+          "Hanken Grotesk",
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(rgba(98, 241, 138, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(98, 241, 138, 0.025) 1px, transparent 1px),
+          radial-gradient(circle at 8% -4%, rgba(98, 241, 138, 0.14), transparent 40rem),
+          radial-gradient(circle at 98% 104%, rgba(111, 216, 255, 0.07), transparent 42rem),
+          var(--bg);
+        background-size: 30px 30px, 30px 30px, auto, auto, auto;
+        background-attachment: fixed;
+        color: var(--text);
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        pointer-events: none;
+      }
+
+      /* vignette */
+      body::before {
+        background: radial-gradient(120% 90% at 50% 38%, transparent 55%, rgba(0, 0, 0, 0.42));
+      }
+
+      /* film grain */
+      body::after {
+        opacity: 0.045;
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .shell {
+        width: min(1700px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 24px 0 40px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding-bottom: 18px;
+      }
+
+      .brand {
+        display: grid;
+        gap: 4px;
+      }
+
+      .brand-wrap {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .logo-hex {
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 44px;
+        height: 44px;
+        border: 1px solid var(--line-strong);
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(98, 241, 138, 0.1), rgba(98, 241, 138, 0.015));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 22px -12px rgba(98, 241, 138, 0.5);
+        color: var(--green);
+      }
+
+      .logo-hex svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      .brand__eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        font-weight: 500;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+      }
+
+      .brand__eyebrow::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 8px var(--green);
+        animation: blink 2.4s steps(1) infinite;
+      }
+
+      @keyframes blink {
+        0%, 60% { opacity: 1; }
+        61%, 100% { opacity: 0.25; }
+      }
+
+      h1 {
+        margin: 2px 0 0;
+        font-family: var(--display);
+        font-size: clamp(1.35rem, 2.5vw, 2.6rem);
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        line-height: 1.02;
+      }
+
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .badge {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: rgba(17, 22, 17, 0.6);
+        color: var(--paper-soft);
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.01em;
+        padding: 7px 11px;
+        white-space: nowrap;
+      }
+
+      .badge::before {
+        content: "";
+        width: 5px;
+        height: 5px;
+        border-radius: 1px;
+        background: var(--line-strong);
+      }
+
+      .badge:nth-child(1)::before { background: var(--green); }
+      .badge:nth-child(2)::before { background: var(--cyan); }
+      .badge:nth-child(3)::before { background: var(--amber); }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(244px, 0.23fr);
+        gap: 20px;
+      }
+
+      .stage-wrap,
+      .side {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(23, 29, 24, 0.94), rgba(13, 17, 13, 0.94));
+        box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+      }
+
+      .stage-wrap {
+        min-width: 0;
+        overflow: hidden;
+        box-shadow:
+          0 44px 130px -34px rgba(0, 0, 0, 0.85),
+          0 0 90px -24px rgba(56, 255, 136, 0.18),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      }
+
+      .stage-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-bottom: 1px solid var(--line);
+        padding: 14px 16px;
+      }
+
+      .scene-title {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .scene-title span {
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        font-weight: 500;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+
+      .scene-title strong {
+        display: block;
+        font-family: var(--display);
+        font-size: 1.06rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .clock {
+        flex: 0 0 auto;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.76rem;
+        letter-spacing: 0.02em;
+      }
+
+      .stage {
+        aspect-ratio: 16 / 9;
+        min-height: 420px;
+        padding: 18px;
+        position: relative;
+      }
+
+      .video-frame {
+        display: grid;
+        grid-template-columns: minmax(0, 1.04fr) minmax(300px, 0.78fr);
+        gap: 16px;
+        height: 100%;
+      }
+
+      .terminal,
+      .browser {
+        min-width: 0;
+        border: 1px solid var(--line-strong);
+        border-radius: 11px;
+        overflow: hidden;
+        background: #090b09;
+        box-shadow: 0 18px 44px -22px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      }
+
+      .terminal {
+        position: relative;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        background:
+          radial-gradient(120% 60% at 0% 0%, rgba(98, 241, 138, 0.05), transparent 60%),
+          #080a08;
+      }
+
+      /* faint scanlines on the terminal for CRT soul */
+      .terminal::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 3px);
+        mix-blend-mode: overlay;
+      }
+
+      .chrome {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 40px;
+        border-bottom: 1px solid var(--line);
+        background: #151b16;
+        padding: 9px 12px;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--red);
+      }
+
+      .dot:nth-child(2) {
+        background: var(--amber);
+      }
+
+      .dot:nth-child(3) {
+        background: var(--green);
+      }
+
+      .chrome-label {
+        min-width: 0;
+        margin-left: 6px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--muted);
+        font-family: var(--term);
+        font-size: 0.76rem;
+      }
+
+      .term-lines {
+        position: relative;
+        z-index: 1;
+        margin: 0;
+        padding: 18px 18px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        color: var(--paper);
+        font-family: var(--term);
+        font-size: clamp(1rem, 1.35vw, 1.28rem);
+        line-height: 1.55;
+        white-space: normal;
+        overflow: hidden;
+      }
+
+      .t-line {
+        display: flex;
+        gap: 9px;
+      }
+
+      .t-arrow {
+        flex: 0 0 auto;
+        color: var(--green);
+        font-weight: 600;
+      }
+
+      .t-body {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .t-prog {
+        color: #eafff0;
+        font-weight: 600;
+      }
+
+      .t-args {
+        color: #a4e6bb;
+      }
+
+      .t-out {
+        color: #8b9c89;
+        padding-left: 23px;
+        overflow-wrap: anywhere;
+      }
+
+      .t-warn {
+        align-items: baseline;
+        gap: 8px;
+        padding-left: 23px;
+        color: var(--amber);
+      }
+
+      .t-warn-ic {
+        flex: 0 0 auto;
+        font-size: 0.7em;
+      }
+
+      /* scene 1 full-bleed terminal hero */
+      .video-frame--solo {
+        grid-template-columns: 1fr;
+      }
+
+      .video-frame--solo .browser {
+        display: none;
+      }
+
+      /* full-surface scenes (real footage: browser / honeycomb / split) */
+      .video-frame--surface {
+        grid-template-columns: 1fr;
+      }
+
+      .video-frame--surface .terminal {
+        display: none;
+      }
+
+      /* placeholder surface (scenes not yet built) */
+      .srf--ph {
+        display: grid;
+        place-items: center;
+        background: linear-gradient(180deg, #0c110d, #080b09);
+        color: var(--dim);
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        letter-spacing: 0.04em;
+      }
+
+      /* scene 1 + 8: the browser leak / 401 */
+      .srf--leak {
+        display: flex;
+        flex-direction: column;
+        background: #0b0f0c;
+        color: var(--muted);
+        overflow: hidden;
+        font-size: 0.8rem;
+      }
+
+      .lk-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 1px solid var(--line);
+        background: #0f1511;
+        padding: 9px 13px;
+      }
+
+      .lk-url {
+        font-family: var(--mono);
+        font-size: 0.95rem;
+        color: var(--muted);
+      }
+
+      .lk-chip {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid rgba(255, 107, 94, 0.4);
+        border-radius: 999px;
+        background: rgba(255, 107, 94, 0.1);
+        color: var(--danger);
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        padding: 5px 12px;
+      }
+
+      .lk-chip.shake {
+        animation: lkShake 0.4s ease;
+      }
+
+      @keyframes lkShake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-2px); }
+        75% { transform: translateX(2px); }
+      }
+
+      .lk-lock {
+        font-size: 0.9rem;
+      }
+
+      .lk-alarm {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 12px 13px 10px;
+        border: 1px solid rgba(255, 107, 94, 0.45);
+        border-radius: 11px;
+        background: linear-gradient(180deg, rgba(255, 107, 94, 0.16), rgba(255, 107, 94, 0.05));
+        padding: 11px 14px;
+        animation: lkAlarm 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes lkAlarm {
+        from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+        to { opacity: 1; transform: none; }
+      }
+
+      .lk-alarm-ic {
+        font-size: 1.9rem;
+        filter: drop-shadow(0 0 9px rgba(255, 107, 94, 0.6));
+      }
+
+      .lk-alarm-txt {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .lk-alarm-txt b {
+        display: block;
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 1.42rem;
+        letter-spacing: -0.01em;
+        color: #ff8a80;
+      }
+
+      .lk-alarm-txt span {
+        font-family: var(--mono);
+        font-size: 0.88rem;
+        color: #c9b3b0;
+      }
+
+      .lk-alarm-txt i {
+        font-style: normal;
+        font-weight: 600;
+        color: var(--danger);
+      }
+
+      .lk-exposed {
+        flex: 0 0 auto;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        color: #0b0f0c;
+        background: var(--danger);
+        border-radius: 5px;
+        padding: 3px 8px;
+        opacity: 0;
+        transform: scale(0.9);
+        transition: opacity 0.3s, transform 0.3s;
+      }
+
+      .lk-exposed.on {
+        opacity: 1;
+        transform: none;
+        animation: lkBlink 1s steps(1) 2;
+      }
+
+      @keyframes lkBlink {
+        50% { opacity: 0.35; }
+      }
+
+      .lk-table {
+        margin: 0 13px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        overflow: hidden;
+      }
+
+      .lk-row {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr 0.9fr 0.7fr;
+        gap: 10px;
+        padding: 11px 14px;
+        font-family: var(--mono);
+        font-size: 0.94rem;
+        color: #8aa094;
+      }
+
+      .lk-row.h {
+        background: #0f1511;
+        color: var(--dim);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .lk-row + .lk-row {
+        border-top: 1px solid var(--line);
+      }
+
+      .lk-row:not(.h) {
+        animation: lkRowIn 0.4s ease both;
+      }
+
+      .lk-row:nth-child(2) { animation-delay: 0.12s; }
+      .lk-row:nth-child(3) { animation-delay: 0.24s; }
+      .lk-row:nth-child(4) { animation-delay: 0.36s; }
+      .lk-row:nth-child(5) { animation-delay: 0.48s; }
+
+      @keyframes lkRowIn {
+        from { opacity: 0; transform: translateY(7px); }
+        to { opacity: 1; transform: none; }
+      }
+
+      .lk-row .pii {
+        position: relative;
+        color: #b9cabf;
+        transition: color 0.3s;
+      }
+
+      .srf--leak.exposed .lk-row .pii {
+        color: #ffb3ab;
+      }
+
+      .lk-row .pii::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -2px;
+        height: 2px;
+        background: var(--danger);
+        box-shadow: 0 0 8px rgba(255, 107, 94, 0.6);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.4s ease;
+      }
+
+      .srf--leak.exposed .lk-row .pii::after {
+        transform: scaleX(1);
+      }
+
+      .lk-foot {
+        margin: auto 13px 14px;
+        font-family: var(--mono);
+        font-size: 0.86rem;
+        color: var(--danger);
+      }
+
+      .srf--leak.closed .lk-chip {
+        border-color: rgba(56, 255, 136, 0.4);
+        background: rgba(56, 255, 136, 0.1);
+        color: var(--green);
+      }
+
+      .srf--leak.closed .lk-foot {
+        color: var(--green);
+      }
+
+      /* scene 2: the dangerous 30% — three concrete failures */
+      .srf--risk {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 22px 24px;
+        background: linear-gradient(180deg, #100c0a, #0a0807);
+      }
+      .risk-head {
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 1.5rem;
+        letter-spacing: -0.01em;
+        color: #ffd9a3;
+      }
+      .risk-head small {
+        display: block;
+        margin-top: 4px;
+        font-family: var(--mono);
+        font-weight: 400;
+        font-size: 0.82rem;
+        letter-spacing: 0;
+        color: var(--muted);
+      }
+      .risk-grid {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+      .risk-card {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        border: 1px solid rgba(255, 200, 87, 0.28);
+        border-radius: 13px;
+        background: linear-gradient(180deg, rgba(255, 200, 87, 0.06), rgba(255, 107, 94, 0.03));
+        padding: 15px;
+        opacity: 0;
+        transform: translateY(10px);
+        animation: riskIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      .risk-card:nth-child(2) { animation-delay: 0.14s; }
+      .risk-card:nth-child(3) { animation-delay: 0.28s; }
+      @keyframes riskIn { to { opacity: 1; transform: none; } }
+      .risk-ic { font-size: 1.4rem; }
+      .risk-t {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 1.04rem;
+        color: #ffc857;
+      }
+      .risk-code {
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        line-height: 1.65;
+        color: #9bb0a3;
+        background: #0b0f0c;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 9px 11px;
+        white-space: pre-wrap;
+      }
+      .risk-code .bad { color: var(--danger); }
+      .risk-code .warn { color: var(--amber); }
+      .risk-note {
+        margin-top: auto;
+        font-family: var(--mono);
+        font-size: 0.74rem;
+        color: var(--danger);
+      }
+
+      /* scene 4: connect by contract — honeycomb */
+      .srf--hive {
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        background: radial-gradient(circle at 50% 46%, #0e1712, #070a08 72%);
+      }
+      .hive { position: relative; width: 520px; height: 380px; }
+      .hive svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+      .hive-line {
+        fill: none;
+        stroke: rgba(56, 255, 136, 0.5);
+        stroke-width: 2;
+        stroke-dasharray: 200;
+        stroke-dashoffset: 200;
+        animation: hiveDraw 0.6s ease forwards;
+      }
+      .hive-line.l1 { animation-delay: 0.45s; }
+      .hive-line.l2 { animation-delay: 0.55s; }
+      .hive-line.l3 { animation-delay: 0.65s; }
+      .hive-line.l4 { animation-delay: 0.75s; }
+      @keyframes hiveDraw { to { stroke-dashoffset: 0; } }
+      .hex {
+        position: absolute;
+        width: 118px;
+        height: 132px;
+        display: grid;
+        place-items: center;
+        background: var(--line-strong);
+        clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+        opacity: 0;
+        transform: scale(0.7);
+        animation: hexIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      }
+      .hex::before {
+        content: "";
+        position: absolute;
+        inset: 2px;
+        clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+        background: linear-gradient(180deg, #0f1511, #0b0f0c);
+      }
+      .hex span {
+        position: relative;
+        z-index: 1;
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        color: var(--green-soft);
+      }
+      @keyframes hexIn { to { opacity: 1; transform: none; } }
+      .hex--core { background: var(--green-strong); animation-delay: 0s; }
+      .hex--core::before { background: linear-gradient(180deg, #0c2a1c, #08160f); }
+      .hex--core span { font-family: var(--display); font-weight: 800; font-size: 1.05rem; color: var(--green); }
+      .hex--core { box-shadow: 0 0 46px rgba(0, 245, 122, 0.35); }
+      .hex.n1 { animation-delay: 0.16s; } .hex.n2 { animation-delay: 0.26s; }
+      .hex.n3 { animation-delay: 0.36s; } .hex.n4 { animation-delay: 0.46s; }
+      .hive-lab {
+        position: absolute;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.06em;
+        color: var(--bg);
+        background: var(--green);
+        border-radius: 999px;
+        padding: 3px 10px;
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0;
+        animation: labIn 0.4s ease forwards;
+      }
+      @keyframes labIn { to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+      .hive-lab.b1 { animation-delay: 0.95s; } .hive-lab.b2 { animation-delay: 1.05s; } .hive-lab.b3 { animation-delay: 1.15s; }
+
+      /* scene 6: generated source you own */
+      .srf--src { display: flex; flex-direction: column; background: #0a0d0b; }
+      .src-tab {
+        display: flex;
+        border-bottom: 1px solid var(--line);
+        background: #0b0f0c;
+        font-family: var(--mono);
+        font-size: 0.76rem;
+      }
+      .src-tab span { padding: 9px 14px; color: var(--dim); border-right: 1px solid var(--line); }
+      .src-tab .on { color: var(--green-soft); background: #0e1410; }
+      .src-code {
+        flex: 1;
+        font-family: var(--mono);
+        font-size: 0.84rem;
+        line-height: 1.7;
+        padding: 14px 16px;
+        color: #8fa498;
+        overflow: hidden;
+      }
+      .src-code .ln { display: block; white-space: pre; }
+      .src-code .kw { color: #7fd1ff; }
+      .src-code .st { color: var(--green-soft); }
+      .src-code .cm { color: var(--dim); }
+      .src-code .fn { color: #ffc857; }
+
+      /* scene 7: dogfood split */
+      .srf--dog { display: grid; grid-template-columns: 1fr 1fr; background: #0a0d0b; }
+      .dog-pane { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; min-width: 0; }
+      .dog-pane + .dog-pane { border-left: 1px solid var(--line); }
+      .dog-cap {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
+      .dog-cap b { color: var(--green-soft); }
+      .dog-urow {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: center;
+        font-family: var(--mono);
+        font-size: 0.84rem;
+        padding: 9px 11px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #0b0f0c;
+        color: #9fb4a6;
+      }
+      .dog-urow .role { color: var(--green); font-size: 0.74rem; }
+      .dog-code {
+        flex: 1;
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        line-height: 1.7;
+        background: #0b0f0c;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 12px 13px;
+        color: #8fa498;
+        overflow: hidden;
+      }
+      .dog-code .ctx { display: block; white-space: pre; }
+      .dog-code .add {
+        display: block;
+        white-space: pre;
+        color: var(--green-strong);
+        background: rgba(56, 255, 136, 0.09);
+        margin: 0 -13px;
+        padding: 0 13px;
+      }
+      .dog-fix { font-family: var(--mono); font-size: 0.76rem; color: var(--green); }
+
+      /* scene 8: the boundary closes — 401 */
+      .srf--shut { display: flex; flex-direction: column; background: #0b0f0c; overflow: hidden; }
+      .shut-chip {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid rgba(56, 255, 136, 0.4);
+        border-radius: 999px;
+        background: rgba(56, 255, 136, 0.1);
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        padding: 5px 12px;
+      }
+      .shut-body { flex: 1; display: grid; place-items: center; align-content: center; text-align: center; gap: 2px; }
+      .shut-lock {
+        font-size: 2.9rem;
+        filter: drop-shadow(0 0 18px rgba(56, 255, 136, 0.5));
+        animation: shutPop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      .shut-code {
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 3.4rem;
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+        color: var(--green);
+        animation: shutPop 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+      }
+      @keyframes shutPop { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: none; } }
+      .shut-msg { font-family: var(--display); font-weight: 700; font-size: 1.3rem; color: var(--text); margin-top: 6px; }
+      .shut-sub { font-family: var(--mono); font-size: 0.84rem; color: var(--muted); margin-top: 8px; }
+
+      .video-frame--hero .term-lines {
+        font-size: clamp(1.05rem, 1.4vw, 1.32rem);
+        gap: 9px;
+        padding: 24px 26px 18px;
+      }
+
+      /* scene 2: terminal command finishes, browser opens */
+      .is-opening .browser {
+        animation: browserOpen 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+        transform-origin: right center;
+      }
+
+      @keyframes browserOpen {
+        from { opacity: 0; transform: translateX(28px) scale(0.97); }
+        to { opacity: 1; transform: none; }
+      }
+
+      .t-ok {
+        align-items: baseline;
+        gap: 9px;
+        color: var(--paper-soft);
+      }
+
+      .t-ok-ic {
+        flex: 0 0 auto;
+        color: var(--green);
+      }
+
+      .t-note {
+        margin-left: 9px;
+        border-radius: 999px;
+        background: var(--green-dim);
+        color: var(--green);
+        font-size: 0.78em;
+        letter-spacing: 0.02em;
+        padding: 1px 9px;
+      }
+
+      .t-head {
+        margin-top: 9px;
+        color: var(--muted);
+        letter-spacing: 0.03em;
+      }
+
+      .t-risk {
+        align-items: baseline;
+        gap: 11px;
+        padding-left: 2px;
+        color: var(--paper-soft);
+      }
+
+      .t-risk-ic {
+        flex: 0 0 auto;
+        color: var(--amber);
+        font-size: 0.76em;
+      }
+
+      .t-risk-label {
+        flex: 0 0 122px;
+        color: var(--amber);
+      }
+
+      .t-risk-note {
+        color: var(--muted);
+      }
+
+      .t-cursor {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .caret {
+        display: inline-block;
+        width: 8px;
+        height: 1.05em;
+        background: var(--green);
+        box-shadow: 0 0 8px rgba(98, 241, 138, 0.7);
+        animation: caret 1.05s steps(1) infinite;
+      }
+
+      @keyframes caret {
+        50% { opacity: 0; }
+      }
+
+      .caret--inline {
+        width: 7px;
+        height: 1em;
+        margin-left: 1px;
+        vertical-align: -0.12em;
+      }
+
+      .t-reveal {
+        animation: tReveal 0.26s ease both;
+      }
+
+      @keyframes tReveal {
+        from { opacity: 0; transform: translateY(3px); }
+        to { opacity: 1; transform: none; }
+      }
+
+      .terminal-foot {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-family: var(--term);
+        font-size: 0.72rem;
+        padding: 11px 14px;
+      }
+
+      .terminal-foot::before {
+        content: "";
+        flex: 0 0 auto;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 7px var(--green);
+      }
+
+      .browser {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        background: var(--paper);
+        color: #172017;
+      }
+
+      /* browser window bar = address bar */
+      .chrome--browser {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        min-height: 42px;
+        border-bottom: 1px solid #d6cdbb;
+        background: linear-gradient(#f1ebdd, #e6dfce);
+        padding: 8px 11px;
+      }
+
+      .chrome--browser .dots {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .chrome--browser .dot {
+        width: 9px;
+        height: 9px;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+      }
+
+      .addr {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+        border: 1px solid #dad2c1;
+        border-radius: 999px;
+        background: #fcf9f1;
+        padding: 5px 12px;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+      }
+
+      .addr-ic {
+        flex: 0 0 auto;
+        width: 11px;
+        height: 11px;
+        color: #7f8b79;
+      }
+
+      .addr-url {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #495849;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.01em;
+      }
+
+      .surface-tag {
+        flex: 0 0 auto;
+        border: 1px solid #c4bca9;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.5);
+        color: #46563f;
+        font-family: var(--mono);
+        font-size: 0.63rem;
+        font-weight: 400;
+        letter-spacing: 0.02em;
+        padding: 4px 9px;
+        white-space: nowrap;
+      }
+
+      /* ── In-stage surface: real product views ── */
+      .surface {
+        position: relative;
+        min-height: 0;
+        overflow: hidden;
+        background: var(--paper);
+        color: #18211a;
+      }
+
+      .surface > * {
+        position: absolute;
+        inset: 0;
+      }
+
+      .voiceover {
+        position: absolute;
+        left: 50%;
+        bottom: 76px;
+        transform: translateX(-50%);
+        width: max-content;
+        max-width: min(80%, 700px);
+        text-align: center;
+        background: rgba(7, 10, 8, 0.82);
+        border-radius: 9px;
+        padding: 7px 16px;
+        pointer-events: none;
+      }
+
+      .vo-badge {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        align-self: center;
+        padding: 9px 13px;
+        border: 1px solid rgba(98, 241, 138, 0.2);
+        border-radius: 12px;
+        background: rgba(98, 241, 138, 0.06);
+      }
+
+      .vo-eq {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 14px;
+      }
+
+      .vo-eq i {
+        width: 3px;
+        border-radius: 2px;
+        background: var(--green);
+        box-shadow: 0 0 6px rgba(98, 241, 138, 0.6);
+        transform-origin: bottom;
+        animation: eq 0.9s ease-in-out infinite;
+      }
+
+      .vo-eq i:nth-child(1) { height: 7px; animation-delay: 0s; }
+      .vo-eq i:nth-child(2) { height: 14px; animation-delay: 0.18s; }
+      .vo-eq i:nth-child(3) { height: 9px; animation-delay: 0.36s; }
+      .vo-eq i:nth-child(4) { height: 12px; animation-delay: 0.1s; }
+
+      @keyframes eq {
+        0%, 100% { transform: scaleY(0.35); }
+        50% { transform: scaleY(1); }
+      }
+
+      .vo-label {
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        font-weight: 500;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: #7f9a85;
+      }
+
+      .vo-text {
+        margin: 0;
+        color: var(--paper);
+        font-size: clamp(1.3rem, 1.85vw, 1.72rem);
+        font-weight: 600;
+        line-height: 1.4;
+        letter-spacing: -0.008em;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 2px 18px rgba(0, 0, 0, 0.7);
+      }
+
+      .vo-text .w {
+        display: inline-block;
+        opacity: 0;
+        animation: wordIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes wordIn {
+        from { opacity: 0; transform: translateY(0.5em); filter: blur(5px); }
+        to { opacity: 1; transform: none; filter: blur(0); }
+      }
+
+      .vo-prog {
+        display: none;
+      }
+
+      .vo-prog::after {
+        content: "";
+        position: absolute;
+        right: 0;
+        top: 50%;
+        width: 7px;
+        height: 7px;
+        transform: translate(50%, -50%);
+        border-radius: 50%;
+        background: #d6ffe2;
+        box-shadow: 0 0 10px var(--green);
+      }
+
+      /* end card */
+      .endcard {
+        position: absolute;
+        inset: 0;
+        z-index: 20;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        background:
+          radial-gradient(78% 60% at 50% 36%, rgba(98, 241, 138, 0.13), transparent 70%),
+          linear-gradient(180deg, #0c120e, #070907);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.5s ease;
+      }
+
+      .stage.is-end .endcard {
+        opacity: 1;
+      }
+
+      .stage.is-end .video-frame,
+      .stage.is-end .voiceover {
+        opacity: 0;
+        transition: opacity 0.4s ease;
+      }
+
+      .ec-inner {
+        display: grid;
+        justify-items: center;
+        gap: 13px;
+        padding: 24px;
+        max-width: 92%;
+      }
+
+      .stage.is-end .ec-inner > * {
+        animation: ecIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      .stage.is-end .ec-inner > *:nth-child(1) { animation-delay: 0.15s; }
+      .stage.is-end .ec-inner > *:nth-child(2) { animation-delay: 0.28s; }
+      .stage.is-end .ec-inner > *:nth-child(3) { animation-delay: 0.41s; }
+      .stage.is-end .ec-inner > *:nth-child(4) { animation-delay: 0.54s; }
+      .stage.is-end .ec-inner > *:nth-child(5) { animation-delay: 0.67s; }
+      .stage.is-end .ec-inner > *:nth-child(6) { animation-delay: 0.8s; }
+
+      @keyframes ecIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: none; }
+      }
+
+      .ec-logo {
+        display: grid;
+        place-items: center;
+        width: 66px;
+        height: 66px;
+        border: 1px solid var(--line-strong);
+        border-radius: 17px;
+        background: linear-gradient(180deg, rgba(98, 241, 138, 0.13), rgba(98, 241, 138, 0.02));
+        color: var(--green);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 14px 44px -14px rgba(98, 241, 138, 0.6);
+      }
+
+      .ec-logo svg {
+        width: 34px;
+        height: 34px;
+      }
+
+      .ec-eyebrow {
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--green);
+      }
+
+      .ec-word {
+        margin: 0;
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: clamp(1.9rem, 4vw, 3rem);
+        letter-spacing: -0.035em;
+        color: var(--text);
+      }
+
+      .ec-word span {
+        color: var(--green);
+      }
+
+      .ec-slogan {
+        margin: 0 0 4px;
+        color: var(--paper-soft);
+        font-size: clamp(0.95rem, 1.5vw, 1.2rem);
+        font-weight: 500;
+      }
+
+      .ec-cmds {
+        display: grid;
+        gap: 8px;
+      }
+
+      .ec-cmd {
+        border: 1px solid var(--line-strong);
+        border-radius: 10px;
+        background: #0a0f0b;
+        color: var(--paper);
+        font-family: var(--term);
+        font-size: clamp(0.74rem, 1.1vw, 0.9rem);
+        padding: 11px 18px;
+        white-space: nowrap;
+      }
+
+      .ec-cmd .ec-dollar {
+        color: var(--green);
+        margin-right: 9px;
+      }
+
+      .ec-reg {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+
+      .ec-reg .mk {
+        color: var(--green);
+      }
+
+      .controls {
+        display: grid;
+        gap: 12px;
+        border-top: 1px solid var(--line);
+        padding: 14px 16px 16px;
+      }
+
+      .control-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .button {
+        min-height: 40px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: #182119;
+        color: var(--text);
+        cursor: pointer;
+        padding: 9px 13px;
+      }
+
+      .button:hover,
+      .button:focus-visible {
+        border-color: var(--green);
+      }
+
+      .button--primary {
+        border-color: #74ff98;
+        background: var(--green);
+        color: #0b0d0b;
+        font-weight: 750;
+      }
+
+      .button.is-on {
+        border-color: var(--green);
+        color: var(--green);
+        background: rgba(98, 241, 138, 0.08);
+      }
+
+      progress {
+        width: 100%;
+        height: 12px;
+        border: 0;
+        border-radius: 999px;
+        overflow: hidden;
+        background: #222a23;
+      }
+
+      progress::-webkit-progress-bar {
+        background: #222a23;
+      }
+
+      progress::-webkit-progress-value {
+        background: linear-gradient(90deg, var(--green), #9bffba);
+      }
+
+      progress::-moz-progress-bar {
+        background: linear-gradient(90deg, var(--green), #9bffba);
+      }
+
+      /* ── Right rail: edit-suite timeline ── */
+      .side {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        min-height: 100%;
+        overflow: hidden;
+      }
+
+      .side-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--line);
+        padding: 17px 16px 15px;
+      }
+
+      .side-eyebrow {
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        font-weight: 500;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+      }
+
+      .side-meta {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        font-weight: 300;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+      }
+
+      .side-meta .side-dot {
+        opacity: 0.45;
+        padding: 0 5px;
+      }
+
+      .rail-scroll {
+        max-height: 560px;
+        overflow: auto;
+        padding: 12px 14px 8px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--line-strong) transparent;
+      }
+
+      .rail-scroll::-webkit-scrollbar {
+        width: 7px;
+      }
+
+      .rail-scroll::-webkit-scrollbar-thumb {
+        border: 2px solid transparent;
+        border-radius: 999px;
+        background: var(--line-strong);
+        background-clip: padding-box;
+      }
+
+      .rail {
+        position: relative;
+        display: grid;
+        gap: 1px;
+        margin: 0;
+        padding: 0;
+      }
+
+      .rail-track,
+      .rail-progress {
+        position: absolute;
+        left: 17px;
+        width: 2px;
+        border-radius: 2px;
+        pointer-events: none;
+      }
+
+      .rail-track {
+        background: var(--line);
+      }
+
+      .rail-progress {
+        background: linear-gradient(180deg, var(--green), rgba(98, 241, 138, 0.35));
+        box-shadow: 0 0 9px rgba(98, 241, 138, 0.5);
+        transition: height 0.18s linear, top 0.18s linear;
+      }
+
+      .rail li {
+        list-style: none;
+        animation: railIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes railIn {
+        from {
+          opacity: 0;
+          transform: translateY(7px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      .rail-btn {
+        position: relative;
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 12px;
+        width: 100%;
+        border: 0;
+        border-radius: 11px;
+        background: transparent;
+        color: var(--text);
+        cursor: pointer;
+        padding: 11px 12px 11px 3px;
+        text-align: left;
+        transition: background 0.25s ease, box-shadow 0.25s ease;
+      }
+
+      .rail-btn:hover,
+      .rail-btn:focus-visible {
+        background: rgba(98, 241, 138, 0.06);
+        outline: none;
+      }
+
+      .rail-spine {
+        display: grid;
+        place-items: start center;
+        padding-top: 3px;
+      }
+
+      .rail-node {
+        position: relative;
+        z-index: 2;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        border: 2px solid var(--line-strong);
+        background: var(--bg);
+        transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .rail-body {
+        min-width: 0;
+      }
+
+      .rail-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+
+      .rail-time {
+        font-family: var(--mono);
+        font-size: 0.71rem;
+        font-weight: 400;
+        letter-spacing: 0.02em;
+        color: var(--muted);
+        transition: color 0.25s ease;
+      }
+
+      .rail-dur {
+        position: relative;
+        flex: 1;
+        height: 3px;
+        border-radius: 999px;
+        background: var(--line);
+        overflow: hidden;
+      }
+
+      .rail-dur-fill {
+        position: absolute;
+        inset: 0 100% 0 0;
+        background: linear-gradient(90deg, var(--green), #9bffba);
+        transition: right 0.2s linear;
+      }
+
+      .rail-title {
+        display: block;
+        font-family: var(--display);
+        font-size: 0.94rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        line-height: 1.22;
+        color: var(--paper-soft);
+        transition: color 0.25s ease;
+      }
+
+      .rail-desc {
+        display: block;
+        overflow: hidden;
+        max-height: 0;
+        color: var(--muted);
+        font-size: 0.8rem;
+        line-height: 1.42;
+        opacity: 0;
+        transition: max-height 0.35s ease, opacity 0.3s ease, margin-top 0.35s ease;
+      }
+
+      .rail-btn[data-state="past"] .rail-node {
+        border-color: var(--green);
+        background: var(--green);
+      }
+
+      .rail-btn[data-state="past"] .rail-dur-fill {
+        right: 0;
+      }
+
+      .rail-btn[data-state="past"] .rail-title {
+        color: var(--muted);
+      }
+
+      .rail-btn[data-state="active"] {
+        background: linear-gradient(180deg, rgba(98, 241, 138, 0.1), rgba(98, 241, 138, 0.02));
+        box-shadow: inset 0 0 0 1px rgba(98, 241, 138, 0.28);
+      }
+
+      .rail-btn[data-state="active"] .rail-node {
+        border-color: var(--green);
+        background: var(--green);
+        animation: nodePulse 2.1s ease-out infinite;
+      }
+
+      .rail-btn[data-state="active"] .rail-time {
+        color: var(--green);
+      }
+
+      .rail-btn[data-state="active"] .rail-title {
+        color: var(--text);
+      }
+
+      .rail-btn[data-state="active"] .rail-desc {
+        max-height: 64px;
+        margin-top: 7px;
+        opacity: 1;
+      }
+
+      @keyframes nodePulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(98, 241, 138, 0.5);
+        }
+        70% {
+          box-shadow: 0 0 0 8px rgba(98, 241, 138, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(98, 241, 138, 0);
+        }
+      }
+
+      .guarantees {
+        display: grid;
+        gap: 10px;
+        border-top: 1px solid var(--line);
+        padding: 15px 16px 16px;
+        background: rgba(9, 11, 9, 0.4);
+      }
+
+      .guarantee {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--paper-soft);
+        font-size: 0.84rem;
+        line-height: 1.35;
+      }
+
+      .gtick {
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 18px;
+        height: 18px;
+        border-radius: 6px;
+        background: var(--green-dim);
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.66rem;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      @media (max-width: 1180px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .side {
+          min-height: auto;
+        }
+
+        .rail-scroll {
+          max-height: none;
+        }
+      }
+
+      @media (max-width: 860px) {
+        .topbar,
+        .stage-head,
+        .control-row {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .badges {
+          justify-content: flex-start;
+        }
+
+        .stage {
+          aspect-ratio: auto;
+          min-height: 0;
+        }
+
+        .video-frame {
+          grid-template-columns: 1fr;
+        }
+
+        .browser {
+          min-height: 360px;
+        }
+
+        .voiceover {
+          position: static;
+          margin-top: 16px;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .shell {
+          width: min(100% - 20px, 1520px);
+          padding-top: 14px;
+        }
+
+        .stage,
+        .controls,
+        .stage-head,
+        .side-head,
+        .checklist {
+          padding-left: 12px;
+          padding-right: 12px;
+        }
+
+        .app-body,
+        .metric-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.001ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand-wrap">
+          <span class="logo-hex" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2 21 7v10l-9 5-9-5V7z"></path>
+              <path d="M9.5 9.5 7 12l2.5 2.5M14.5 9.5 17 12l-2.5 2.5" stroke-width="1.6"></path>
+            </svg>
+          </span>
+          <div class="brand">
+            <span class="brand__eyebrow">Flagship product demo</span>
+            <h1>Compose your backend. Own the code.</h1>
+          </div>
+        </div>
+        <div class="badges" aria-label="Corporate OS loops">
+          <span class="badge">Compose</span>
+          <span class="badge">Verify</span>
+          <span class="badge">Own</span>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="stage-wrap" aria-label="Video preview">
+          <div class="stage-head">
+            <div class="scene-title">
+              <span id="scene-kicker">Scene 1 of 7</span>
+              <strong id="scene-heading">Production foundation risk</strong>
+            </div>
+            <div class="clock" id="clock">00:00 / 01:30</div>
+          </div>
+
+          <div class="stage">
+            <div class="video-frame">
+              <section class="terminal" aria-label="Terminal preview">
+                <div class="chrome">
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="chrome-label" id="terminal-title">demo terminal</span>
+                </div>
+                <pre class="term-lines" id="terminal-lines"></pre>
+                <div class="terminal-foot" id="terminal-foot">local workspace: studio-booking</div>
+              </section>
+
+              <section class="browser" aria-label="Generated surface preview">
+                <div class="chrome chrome--browser">
+                  <span class="dots">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                  </span>
+                  <span class="addr">
+                    <svg class="addr-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                      <rect x="5" y="11" width="14" height="9" rx="2"></rect>
+                      <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+                    </svg>
+                    <span class="addr-url" id="browser-url">localhost:5173</span>
+                  </span>
+                  <span class="surface-tag" id="surface-tag">Cloudflare-native</span>
+                </div>
+                <div class="surface" id="surface"></div>
+              </section>
+            </div>
+
+            <div class="voiceover">
+              <p class="vo-text" id="voiceover">
+                Coding agents nail the first seventy percent of an app — the UI.
+              </p>
+              <span class="vo-prog" id="vo-prog"></span>
+            </div>
+
+            <div class="endcard" id="endcard" aria-hidden="true">
+              <div class="ec-inner">
+                <span class="ec-logo">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 2 21 7v10l-9 5-9-5V7z"></path>
+                    <path d="M9.5 9.5 7 12l2.5 2.5M14.5 9.5 17 12l-2.5 2.5" stroke-width="1.6"></path>
+                  </svg>
+                </span>
+                <span class="ec-eyebrow">agents build the 70% · compose the 30%</span>
+                <h2 class="ec-word">microservices<span>.sh</span></h2>
+                <p class="ec-slogan">Compose your backend. Own the code.</p>
+                <div class="ec-cmds">
+                  <span class="ec-cmd"><span class="ec-dollar">$</span>pnpm create microservices-app@latest</span>
+                </div>
+                <span class="ec-reg"><span class="mk">◆</span> source-visible modules · deploy to your Cloudflare</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="controls">
+            <label class="sr-only" for="progress">Demo progress</label>
+            <progress id="progress" value="0" max="90"></progress>
+            <div class="control-row">
+              <div class="buttons">
+                <button class="button button--primary" type="button" id="play">Play</button>
+                <button class="button" type="button" id="prev">Previous</button>
+                <button class="button" type="button" id="next">Next</button>
+                <button class="button" type="button" id="restart">Restart</button>
+                <button class="button" type="button" id="vo-toggle" aria-pressed="false">🔇 VO off</button>
+              </div>
+              <audio id="vo-audio" preload="auto"></audio>
+              <span class="clock" id="scene-range">00:00-00:10</span>
+            </div>
+          </div>
+        </section>
+
+        <aside class="side" aria-label="Storyboard timeline">
+          <div class="side-head">
+            <span class="side-eyebrow">Timeline</span>
+            <span class="side-meta">
+              <span id="rail-count">7 scenes</span><span class="side-dot">·</span><span id="rail-total">01:30</span>
+            </span>
+          </div>
+          <div class="rail-scroll">
+            <ol class="rail" id="timeline"></ol>
+          </div>
+          <div class="guarantees" aria-label="What this proves">
+            <div class="guarantee"><span class="gtick">✓</span><span>Generated source stays local and inspectable.</span></div>
+            <div class="guarantee"><span class="gtick">✓</span><span>Contracts and lockfiles guide agents before edits.</span></div>
+            <div class="guarantee"><span class="gtick">✓</span><span>Deploys stay behind approval gates.</span></div>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <script>
+      const scenes = [
+        {
+          start: 0, end: 7,
+          title: "The leak",
+          fullSurface: true,
+          terminalTitle: "", terminalFoot: "",
+          voiceover: "An AI agent built this app. It works — and serves every customer at slash admin. No login.",
+          captions: [
+            { at: 0, text: "An AI agent built this app. It works —" },
+            { at: 3, text: "serves every customer at /admin. No login." }
+          ],
+          lines: []
+        },
+        {
+          start: 7, end: 14,
+          title: "The dangerous 30%",
+          fullSurface: true,
+          terminalTitle: "", terminalFoot: "",
+          voiceover: "AI nails seventy percent. The thirty percent that runs a business — auth, payments, tenancy, audit — breaks.",
+          captions: [
+            { at: 0, text: "AI ships ~70% of an app." },
+            { at: 3, text: "The 30% that runs a business —" },
+            { at: 5, text: "auth, payments, tenancy, audit — breaks." }
+          ],
+          lines: []
+        },
+        {
+          start: 14, end: 22,
+          title: "Compose, don't regenerate",
+          fullTerminal: true,
+          terminalTitle: "studio ▸ create",
+          terminalFoot: "verified modules · source-visible",
+          voiceover: "So don't regenerate that thirty percent. Compose it from verified modules.",
+          captions: [
+            { at: 0, text: "Don't regenerate the 30%." },
+            { at: 2.6, text: "Compose it from verified modules." }
+          ],
+          lines: [
+            { text: "$ pnpm create microservices-app@latest studio --template booking", type: "prompt" },
+            { text: "scaffolding studio · booking template", type: "muted" },
+            { text: "modules: auth · customer · payment · email · booking", type: "muted" },
+            { text: "ready", type: "ok", note: "source-visible · yours" }
+          ]
+        },
+        {
+          start: 22, end: 34,
+          title: "Connect by contract",
+          fullSurface: true,
+          terminalTitle: "", terminalFoot: "",
+          voiceover: "Modules connect by contract — typed calls, events, and hooks. No glue your agent has to invent.",
+          captions: [
+            { at: 0, text: "Modules connect by contract." },
+            { at: 4, text: "typed calls · events · hooks" },
+            { at: 8, text: "No glue your agent has to invent." }
+          ],
+          lines: []
+        },
+        {
+          start: 34, end: 43,
+          title: "Verified before it ships",
+          fullTerminal: true,
+          terminalTitle: "studio ▸ check",
+          terminalFoot: "contracts · permissions · idempotency",
+          voiceover: "Your agent composes them, and checks every contract before anything ships.",
+          captions: [
+            { at: 0, text: "Your agent composes them —" },
+            { at: 3, text: "and checks every contract before it ships." }
+          ],
+          lines: [
+            { text: "$ pnpm microservices check", type: "prompt" },
+            { text: "contracts — 12 typed calls resolve", type: "ok" },
+            { text: "permissions — every route gated", type: "ok" },
+            { text: "idempotency — payments safe to retry", type: "ok" },
+            { text: "tenant isolation — every query org-scoped", type: "ok" },
+            { text: "all contracts verified", type: "ok", note: "safe to ship" }
+          ]
+        },
+        {
+          start: 43, end: 54,
+          title: "Deploy & own the code",
+          terminalTitle: "studio ▸ deploy",
+          terminalFoot: "your Cloudflare · your repo",
+          voiceover: "It deploys to your own Cloudflare. And it's real, source-visible code — read every line, fork it, take it. No black box to rent.",
+          captions: [
+            { at: 0, text: "Deploys to your own Cloudflare." },
+            { at: 3.5, text: "Real code you own — read it, fork it, take it." },
+            { at: 8, text: "No black box to rent." }
+          ],
+          lines: [
+            { text: "$ pnpm microservices deploy production", type: "prompt" },
+            { text: "uploading to Cloudflare Workers…", type: "muted" },
+            { text: "live · studio.workers.dev", type: "ok", note: "your account" },
+            { text: "$ ls src/modules/auth", type: "prompt" }
+          ]
+        },
+        {
+          start: 54, end: 64,
+          title: "We dogfood it",
+          fullSurface: true,
+          terminalTitle: "", terminalFoot: "",
+          voiceover: "We run our own admin on these modules. Using them surfaced a real gap — so we fixed the module. Every user gets that fix.",
+          captions: [
+            { at: 0, text: "We run our own admin on these modules." },
+            { at: 3.5, text: "It surfaced a real gap —" },
+            { at: 6, text: "so we fixed the module. Everyone gets the fix." }
+          ],
+          lines: []
+        },
+        {
+          start: 64, end: 71,
+          title: "The boundary closes",
+          fullSurface: true,
+          terminalTitle: "", terminalFoot: "",
+          voiceover: "Now the boundary your agent skipped, fails closed.",
+          captions: [
+            { at: 0, text: "The boundary your agent skipped —" },
+            { at: 3, text: "/admin → 401. Fails closed." }
+          ],
+          lines: []
+        },
+        {
+          start: 71, end: 80,
+          title: "microservices.sh",
+          endcard: true,
+          terminalTitle: "", terminalFoot: "",
+          voiceover: "microservices dot S H. Compose your backend. Own the code.",
+          lines: []
+        }
+      ];
+
+      const totalDuration = scenes[scenes.length - 1].end;
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const elements = {
+        sceneKicker: document.querySelector("#scene-kicker"),
+        sceneHeading: document.querySelector("#scene-heading"),
+        clock: document.querySelector("#clock"),
+        terminalTitle: document.querySelector("#terminal-title"),
+        terminalLines: document.querySelector("#terminal-lines"),
+        terminalFoot: document.querySelector("#terminal-foot"),
+        browserUrl: document.querySelector("#browser-url"),
+        surfaceTag: document.querySelector("#surface-tag"),
+        voiceover: document.querySelector("#voiceover"),
+        surface: document.querySelector("#surface"),
+        videoFrame: document.querySelector(".video-frame"),
+        stage: document.querySelector(".stage"),
+        progress: document.querySelector("#progress"),
+        play: document.querySelector("#play"),
+        prev: document.querySelector("#prev"),
+        next: document.querySelector("#next"),
+        restart: document.querySelector("#restart"),
+        sceneRange: document.querySelector("#scene-range"),
+        timeline: document.querySelector("#timeline"),
+        voAudio: document.querySelector("#vo-audio"),
+        voToggle: document.querySelector("#vo-toggle"),
+        voProg: document.querySelector("#vo-prog")
+      };
+
+      let voOn = false;
+      let lastCaption = "";
+
+      function currentCaption(scene, local) {
+        if (scene.captions && scene.captions.length) {
+          let text = scene.captions[0].text;
+          for (const c of scene.captions) {
+            if (local >= c.at) {
+              text = c.text;
+            }
+          }
+          return text;
+        }
+        return scene.voiceover;
+      }
+
+      function updateCaption() {
+        const scene = scenes[getSceneIndex(currentTime)];
+        const dur = (scene.end - scene.start) || 1;
+        const local = currentTime - scene.start;
+        const cap = currentCaption(scene, local);
+        if (cap !== lastCaption) {
+          lastCaption = cap;
+          const el = elements.voiceover;
+          el.textContent = "";
+          cap.split(" ").forEach((word, i) => {
+            const s = document.createElement("span");
+            s.className = "w";
+            s.textContent = word;
+            s.style.animationDelay = `${i * 0.045}s`;
+            el.append(s, document.createTextNode(" "));
+          });
+        }
+        if (elements.voProg) {
+          elements.voProg.style.width = `${Math.min(100, Math.max(0, (local / dur) * 100))}%`;
+        }
+      }
+
+      function playSceneVO() {
+        const a = elements.voAudio;
+        if (!a || !voOn || activeSceneIndex < 0) {
+          return;
+        }
+        const file = `assets/vo/vo-${activeSceneIndex + 1}.mp3`;
+        if (!a.src.endsWith(file)) {
+          a.src = file;
+        }
+        try {
+          a.currentTime = 0;
+        } catch (e) {
+          /* not loaded yet */
+        }
+        a.play().catch(() => {});
+      }
+
+      let currentTime = 0;
+      let playing = false;
+      let lastFrame = 0;
+      let activeSceneIndex = -1;
+
+      function formatTime(value) {
+        const minutes = Math.floor(value / 60).toString().padStart(2, "0");
+        const seconds = Math.floor(value % 60).toString().padStart(2, "0");
+        return `${minutes}:${seconds}`;
+      }
+
+      function getSceneIndex(time) {
+        const index = scenes.findIndex((scene) => time >= scene.start && time < scene.end);
+        return index === -1 ? scenes.length - 1 : index;
+      }
+
+      let termRun = null;
+
+      function buildTermLine(line) {
+        const row = document.createElement("div");
+        row.className = "t-line";
+        if (line.type === "prompt") {
+          const arrow = document.createElement("span");
+          arrow.className = "t-arrow";
+          arrow.textContent = "❯";
+          const body = document.createElement("span");
+          body.className = "t-body";
+          const cmd = line.text.replace(/^\$\s+/, "");
+          const sp = cmd.indexOf(" ");
+          const prog = document.createElement("span");
+          prog.className = "t-prog";
+          const args = document.createElement("span");
+          args.className = "t-args";
+          if (sp === -1) {
+            prog.textContent = cmd;
+          } else {
+            prog.textContent = cmd.slice(0, sp);
+            args.textContent = cmd.slice(sp);
+          }
+          body.append(prog, args);
+          row.append(arrow, body);
+        } else if (line.type === "warn") {
+          row.className = "t-line t-warn";
+          const ic = document.createElement("span");
+          ic.className = "t-warn-ic";
+          ic.textContent = "▲";
+          const txt = document.createElement("span");
+          txt.textContent = line.text;
+          row.append(ic, txt);
+        } else if (line.type === "ok") {
+          row.className = "t-line t-ok";
+          const ic = document.createElement("span");
+          ic.className = "t-ok-ic";
+          ic.textContent = "✓";
+          const txt = document.createElement("span");
+          txt.textContent = line.text;
+          row.append(ic, txt);
+          if (line.note) {
+            const note = document.createElement("span");
+            note.className = "t-note";
+            note.textContent = line.note;
+            row.append(note);
+          }
+        } else if (line.type === "head") {
+          row.className = "t-line t-head";
+          row.textContent = line.text;
+        } else if (line.type === "risk") {
+          row.className = "t-line t-risk";
+          const ic = document.createElement("span");
+          ic.className = "t-risk-ic";
+          ic.textContent = "▲";
+          const label = document.createElement("span");
+          label.className = "t-risk-label";
+          label.textContent = line.label;
+          const note = document.createElement("span");
+          note.className = "t-risk-note";
+          note.textContent = line.note;
+          row.append(ic, label, note);
+        } else {
+          row.className = "t-line t-out";
+          row.textContent = line.text;
+        }
+        return row;
+      }
+
+      function caretRow() {
+        const cursor = document.createElement("div");
+        cursor.className = "t-cursor";
+        const arrow = document.createElement("span");
+        arrow.className = "t-arrow";
+        arrow.textContent = "❯";
+        const caret = document.createElement("span");
+        caret.className = "caret";
+        cursor.append(arrow, caret);
+        return cursor;
+      }
+
+      function renderTerminal(scene, onDone) {
+        const t = elements.terminalLines;
+        if (termRun) {
+          termRun.cancelled = true;
+        }
+        const run = { cancelled: false };
+        termRun = run;
+        t.textContent = "";
+
+        // Reduced motion: render everything at once.
+        if (prefersReducedMotion) {
+          scene.lines.forEach((line) => t.append(buildTermLine(line)));
+          t.append(caretRow());
+          if (onDone) onDone();
+          return;
+        }
+
+        let i = 0;
+
+        function next() {
+          if (run.cancelled) {
+            return;
+          }
+          if (i >= scene.lines.length) {
+            t.append(caretRow());
+            if (onDone) onDone();
+            return;
+          }
+
+          const line = scene.lines[i];
+
+          if (line.type === "prompt") {
+            // Type the command character by character.
+            const row = document.createElement("div");
+            row.className = "t-line";
+            const arrow = document.createElement("span");
+            arrow.className = "t-arrow";
+            arrow.textContent = "❯";
+            const body = document.createElement("span");
+            body.className = "t-body";
+            const caret = document.createElement("span");
+            caret.className = "caret caret--inline";
+            row.append(arrow, body, caret);
+            t.append(row);
+
+            const full = line.text.replace(/^\$\s+/, "");
+            const sp = full.indexOf(" ");
+            let pos = 0;
+
+            function typeChar() {
+              if (run.cancelled) {
+                return;
+              }
+              pos += 1;
+              body.textContent = "";
+              if (sp === -1 || pos <= sp) {
+                const prog = document.createElement("span");
+                prog.className = "t-prog";
+                prog.textContent = full.slice(0, pos);
+                body.append(prog);
+              } else {
+                const prog = document.createElement("span");
+                prog.className = "t-prog";
+                prog.textContent = full.slice(0, sp);
+                const args = document.createElement("span");
+                args.className = "t-args";
+                args.textContent = full.slice(sp, pos);
+                body.append(prog, args);
+              }
+              if (pos < full.length) {
+                setTimeout(typeChar, 14 + Math.random() * 24);
+              } else {
+                caret.remove();
+                i += 1;
+                setTimeout(next, 280);
+              }
+            }
+
+            typeChar();
+          } else {
+            // Output / warning: fade in, then continue.
+            const row = buildTermLine(line);
+            row.classList.add("t-reveal");
+            t.append(row);
+            i += 1;
+            const delay = { warn: 240, risk: 210, head: 200, ok: 150 }[line.type] || 110;
+            setTimeout(next, delay);
+          }
+        }
+
+        next();
+      }
+
+      // Per-scene right-panel surfaces. Content is real: captured from the
+      // running booking-sveltekit app, its lockfile/docs, the CLI output, and
+      // the live MCP registry manifest (sh.microservices/mcp@0.1.1).
+      const surfaces = [
+        {
+          url: "studio-raw.app/admin",
+          tag: "agent-built",
+          mount: (run) => leakReveal(run),
+          html: `
+            <div class="srf--leak">
+              <div class="lk-bar"><span class="lk-lock" id="lk-lock">🔓</span><span class="lk-url">studio-raw.app/admin</span><span class="lk-chip">GET · 200 OK · no auth</span></div>
+              <div class="lk-alarm" id="lk-alarm">
+                <span class="lk-alarm-ic">⚠</span>
+                <div class="lk-alarm-txt"><b>No login required</b><span><i id="lk-count">0</i> customer records — readable by anyone with the URL</span></div>
+                <span class="lk-exposed" id="lk-exposed">EXPOSED</span>
+              </div>
+              <div class="lk-table" id="lk-table">
+                <div class="lk-row h"><span>name</span><span>email</span><span>phone</span><span>card</span></div>
+                <div class="lk-row"><span>Dana Cole</span><span class="pii">dana.cole@gmail.com</span><span class="pii">+1 555 0142</span><span class="pii">•••• 4242</span></div>
+                <div class="lk-row"><span>Sam Ortiz</span><span class="pii">sam.ortiz@hey.com</span><span class="pii">+1 555 0188</span><span class="pii">•••• 7790</span></div>
+                <div class="lk-row"><span>Maya Chen</span><span class="pii">maya.chen@gmail.com</span><span class="pii">+1 555 0023</span><span class="pii">•••• 1135</span></div>
+                <div class="lk-row"><span>Riley Kim</span><span class="pii">riley.k@fastmail.com</span><span class="pii">+1 555 0461</span><span class="pii">•••• 9042</span></div>
+              </div>
+              <div class="lk-foot">no session · no token · no auth check — full PII served</div>
+            </div>`
+        },
+        {
+          url: "studio-raw.app", tag: "the 30% that breaks",
+          html: `
+            <div class="srf--risk">
+              <div class="risk-head">The 30% AI skips<small>the part that actually runs a business</small></div>
+              <div class="risk-grid">
+                <div class="risk-card">
+                  <span class="risk-ic">💳</span>
+                  <div class="risk-t">Double charge</div>
+                  <div class="risk-code">charge.succeeded
+<span class="warn">charge.succeeded ⤺ retry</span>
+−$150.00  <span class="bad">−$150.00 ✗</span></div>
+                  <div class="risk-note">no idempotency key</div>
+                </div>
+                <div class="risk-card">
+                  <span class="risk-ic">🗄️</span>
+                  <div class="risk-t">Tenant leak</div>
+                  <div class="risk-code">SELECT * FROM bookings
+<span class="warn">-- missing WHERE org_id</span>
+org_A · <span class="bad">org_B ✗</span></div>
+                  <div class="risk-note">cross-tenant read</div>
+                </div>
+                <div class="risk-card">
+                  <span class="risk-ic">📋</span>
+                  <div class="risk-t">No audit</div>
+                  <div class="risk-code">who changed the price?
+audit_log →
+<span class="bad">(empty)</span></div>
+                  <div class="risk-note">no record of who or when</div>
+                </div>
+              </div>
+            </div>`
+        },
+        { url: "studio ▸ create", tag: "compose", html: `<div class="srf--ph">scaffolding studio</div>` },
+        {
+          url: "connect by contract", tag: "rpc · events · hooks",
+          html: `
+            <div class="srf--hive">
+              <div class="hive">
+                <svg viewBox="0 0 520 380" preserveAspectRatio="xMidYMid meet">
+                  <path class="hive-line l1" d="M260 190 L260 80"/>
+                  <path class="hive-line l2" d="M260 190 L401 190"/>
+                  <path class="hive-line l3" d="M260 190 L260 300"/>
+                  <path class="hive-line l4" d="M260 190 L119 190"/>
+                </svg>
+                <div class="hex hex--core" style="left:201px;top:124px"><span>auth</span></div>
+                <div class="hex n1" style="left:201px;top:14px"><span>email</span></div>
+                <div class="hex n2" style="left:342px;top:124px"><span>payment</span></div>
+                <div class="hex n3" style="left:201px;top:234px"><span>booking</span></div>
+                <div class="hex n4" style="left:60px;top:124px"><span>customer</span></div>
+                <div class="hive-lab b1" style="left:260px;top:101px">events</div>
+                <div class="hive-lab b2" style="left:360px;top:190px">rpc</div>
+                <div class="hive-lab b3" style="left:160px;top:190px">hooks</div>
+              </div>
+            </div>`
+        },
+        { url: "studio ▸ check", tag: "verified", html: `<div class="srf--ph">contracts ✓</div>` },
+        {
+          url: "src/modules/auth/session.ts", tag: "source-visible · yours",
+          html: `
+            <div class="srf--src">
+              <div class="src-tab"><span class="on">session.ts</span><span>booking.ts</span><span>schema.ts</span></div>
+              <pre class="src-code"><span class="ln"><span class="cm">// generated into YOUR repo — edit it, fork it, keep it</span></span><span class="ln"><span class="kw">export async function</span> <span class="fn">requireSession</span>(req) {</span><span class="ln">  <span class="kw">const</span> token = <span class="fn">readCookie</span>(req, <span class="st">"sid"</span>);</span><span class="ln">  <span class="kw">if</span> (!token) <span class="kw">throw new</span> <span class="fn">Unauthorized</span>(<span class="st">"sign in"</span>);</span><span class="ln">  <span class="kw">const</span> session = <span class="kw">await</span> sessions.<span class="fn">verify</span>(token);</span><span class="ln">  <span class="kw">return</span> { userId: session.userId, orgId: session.orgId };</span><span class="ln">}</span></pre>
+            </div>`
+        },
+        {
+          url: "our /admin ↔ admin-shell", tag: "we dogfood it",
+          html: `
+            <div class="srf--dog">
+              <div class="dog-pane">
+                <div class="dog-cap">our <b>/admin</b> · users</div>
+                <div class="dog-urow"><span>Dana Cole</span><span class="role">admin</span></div>
+                <div class="dog-urow"><span>Sam Ortiz</span><span class="role">staff</span></div>
+                <div class="dog-urow"><span>Maya Chen</span><span class="role">viewer</span></div>
+                <div class="dog-cap" style="margin-top:auto">running on the <b>admin-shell</b> module</div>
+              </div>
+              <div class="dog-pane">
+                <div class="dog-cap">admin-shell · <b>the fix we shipped</b></div>
+                <pre class="dog-code"><span class="ctx">export const listUsers = route({</span><span class="add">+   permission: "users.read",   // gap we hit</span><span class="ctx">  handler: (ctx) => ctx.db.users.all(),</span><span class="ctx">})</span></pre>
+                <div class="dog-fix">found by using it → fixed in the module → every install gets it</div>
+              </div>
+            </div>`
+        },
+        {
+          url: "studio.app/admin", tag: "fails closed",
+          html: `
+            <div class="srf--shut">
+              <div class="lk-bar"><span class="lk-lock">🔒</span><span class="lk-url">studio.app/admin</span><span class="shut-chip">GET · 401 · auth required</span></div>
+              <div class="shut-body">
+                <div class="shut-lock">🔒</div>
+                <div class="shut-code">401</div>
+                <div class="shut-msg">Sign in required</div>
+                <div class="shut-sub">auth boundary enforced · no session, no data</div>
+              </div>
+            </div>`
+        },
+        { url: "microservices.sh", tag: "", html: "" }
+      ];
+
+      let surfaceRun = null;
+
+      // Scene 1: the leak — counter floods, PII underlines sweep, EXPOSED slams.
+      function leakReveal(run) {
+        const root = elements.surface.querySelector(".srf--leak");
+        if (!root) {
+          return;
+        }
+        const countEl = root.querySelector("#lk-count");
+        const exposed = root.querySelector("#lk-exposed");
+        if (countEl) {
+          const target = 1284;
+          let n = 0;
+          const iv = setInterval(() => {
+            if (run.cancelled) {
+              clearInterval(iv);
+              return;
+            }
+            n += 46;
+            if (n >= target) {
+              n = target;
+              clearInterval(iv);
+            }
+            countEl.textContent = n.toLocaleString();
+          }, 34);
+        }
+        setTimeout(() => {
+          if (!run.cancelled) {
+            root.classList.add("exposed");
+          }
+        }, 850);
+        setTimeout(() => {
+          if (run.cancelled) {
+            return;
+          }
+          const chip = root.querySelector(".lk-chip");
+          if (chip) {
+            chip.classList.add("shake");
+          }
+          if (exposed) {
+            exposed.classList.add("on");
+          }
+        }, 1150);
+      }
+
+      function renderSurface(index) {
+        const surface = surfaces[index] || surfaces[surfaces.length - 1];
+        if (surfaceRun) {
+          surfaceRun.cancelled = true;
+        }
+        surfaceRun = { cancelled: false };
+        elements.browserUrl.textContent = surface.url;
+        elements.surfaceTag.textContent = surface.tag;
+        elements.surface.innerHTML = surface.html;
+        if (typeof surface.mount === "function") {
+          surface.mount(surfaceRun);
+        }
+      }
+
+      function renderScene(index) {
+        const scene = scenes[index];
+        activeSceneIndex = index;
+
+        if (elements.videoFrame) {
+          const startSolo = !!scene.fullTerminal || !!scene.openSurface;
+          elements.videoFrame.classList.toggle("video-frame--solo", startSolo);
+          elements.videoFrame.classList.toggle("video-frame--hero", !!scene.fullTerminal);
+          elements.videoFrame.classList.toggle("video-frame--surface", !!scene.fullSurface);
+          elements.videoFrame.classList.remove("is-opening");
+        }
+        if (elements.stage) {
+          elements.stage.classList.toggle("is-end", !!scene.endcard);
+        }
+
+        elements.sceneKicker.textContent = `Scene ${index + 1} of ${scenes.length}`;
+        elements.sceneHeading.textContent = scene.title;
+        elements.terminalTitle.textContent = scene.terminalTitle;
+        elements.terminalFoot.textContent = scene.terminalFoot;
+        elements.sceneRange.textContent = `${formatTime(scene.start)}-${formatTime(scene.end)}`;
+
+        renderSurface(index);
+        renderTerminal(scene, () => {
+          if (scene.openSurface && elements.videoFrame) {
+            elements.videoFrame.classList.remove("video-frame--solo");
+            elements.videoFrame.classList.add("is-opening");
+          }
+        });
+
+        document.querySelectorAll("[data-scene-index]").forEach((button) => {
+          const isActive = Number(button.dataset.sceneIndex) === index;
+          button.setAttribute("aria-current", isActive ? "true" : "false");
+        });
+
+        if (playing) {
+          playSceneVO();
+        }
+      }
+
+      function renderTime() {
+        const index = getSceneIndex(currentTime);
+
+        if (index !== activeSceneIndex) {
+          renderScene(index);
+        }
+
+        elements.clock.textContent = `${formatTime(currentTime)} / ${formatTime(totalDuration)}`;
+        elements.progress.value = currentTime;
+        updateRail();
+        updateCaption();
+      }
+
+      function setTime(value) {
+        currentTime = Math.min(totalDuration, Math.max(0, value));
+        if (currentTime >= totalDuration) {
+          playing = false;
+          elements.play.textContent = "Play";
+        }
+        renderTime();
+      }
+
+      function tick(timestamp) {
+        if (!playing) {
+          lastFrame = timestamp;
+          return;
+        }
+
+        const delta = lastFrame ? (timestamp - lastFrame) / 1000 : 0;
+        lastFrame = timestamp;
+        setTime(currentTime + delta);
+        requestAnimationFrame(tick);
+      }
+
+      function play() {
+        if (currentTime >= totalDuration) {
+          setTime(0);
+        }
+
+        playing = true;
+        elements.play.textContent = "Pause";
+        lastFrame = 0;
+        requestAnimationFrame(tick);
+        playSceneVO();
+      }
+
+      function pause() {
+        playing = false;
+        elements.play.textContent = "Play";
+        if (elements.voAudio) {
+          elements.voAudio.pause();
+        }
+      }
+
+      let railTrack = null;
+      let railProgress = null;
+      let railNodes = [];
+
+      function buildTimeline() {
+        railTrack = document.createElement("span");
+        railTrack.className = "rail-track";
+        railProgress = document.createElement("span");
+        railProgress.className = "rail-progress";
+        elements.timeline.append(railTrack, railProgress);
+
+        scenes.forEach((scene, index) => {
+          const item = document.createElement("li");
+          item.style.animationDelay = `${index * 0.05}s`;
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "rail-btn";
+          button.dataset.sceneIndex = String(index);
+          button.dataset.state = "future";
+          button.setAttribute("aria-current", "false");
+          button.innerHTML = `
+            <span class="rail-spine"><span class="rail-node"></span></span>
+            <span class="rail-body">
+              <span class="rail-meta">
+                <span class="rail-time">${formatTime(scene.start)}</span>
+                <span class="rail-dur"><span class="rail-dur-fill"></span></span>
+              </span>
+              <strong class="rail-title">${scene.title}</strong>
+              <span class="rail-desc">${scene.short}</span>
+            </span>
+          `;
+          button.addEventListener("click", () => {
+            pause();
+            setTime(scene.start);
+          });
+          item.append(button);
+          elements.timeline.append(item);
+        });
+
+        railNodes = Array.from(elements.timeline.querySelectorAll(".rail-node"));
+      }
+
+      function nodeCenter(index) {
+        const railRect = elements.timeline.getBoundingClientRect();
+        const rect = railNodes[index].getBoundingClientRect();
+        return rect.top - railRect.top + rect.height / 2;
+      }
+
+      function updateRail() {
+        if (!railNodes.length) {
+          return;
+        }
+
+        const first = nodeCenter(0);
+        const last = nodeCenter(railNodes.length - 1);
+        railTrack.style.top = `${first}px`;
+        railTrack.style.height = `${Math.max(0, last - first)}px`;
+
+        const index = getSceneIndex(currentTime);
+        const scene = scenes[index];
+        const span = scene.end - scene.start || 1;
+        const intra = Math.min(1, Math.max(0, (currentTime - scene.start) / span));
+
+        const activeCenter = nodeCenter(index);
+        const nextCenter = index < railNodes.length - 1 ? nodeCenter(index + 1) : activeCenter;
+        const playhead = activeCenter + intra * (nextCenter - activeCenter);
+        railProgress.style.top = `${first}px`;
+        railProgress.style.height = `${Math.max(0, playhead - first)}px`;
+
+        document.querySelectorAll(".rail-btn").forEach((button, i) => {
+          const state = i < index ? "past" : i === index ? "active" : "future";
+          button.dataset.state = state;
+          const fill = button.querySelector(".rail-dur-fill");
+          if (fill) {
+            const percent = i < index ? 100 : i === index ? intra * 100 : 0;
+            fill.style.right = `${100 - percent}%`;
+          }
+        });
+      }
+
+      elements.play.addEventListener("click", () => {
+        playing ? pause() : play();
+      });
+
+      elements.prev.addEventListener("click", () => {
+        pause();
+        const index = getSceneIndex(currentTime);
+        const previous = scenes[Math.max(0, index - 1)];
+        setTime(previous.start);
+      });
+
+      elements.next.addEventListener("click", () => {
+        pause();
+        const index = getSceneIndex(currentTime);
+        const next = scenes[Math.min(scenes.length - 1, index + 1)];
+        setTime(next.start);
+      });
+
+      elements.restart.addEventListener("click", () => {
+        pause();
+        setTime(0);
+      });
+
+      elements.voToggle.addEventListener("click", () => {
+        voOn = !voOn;
+        elements.voToggle.textContent = voOn ? "🔊 VO on" : "🔇 VO off";
+        elements.voToggle.classList.toggle("is-on", voOn);
+        elements.voToggle.setAttribute("aria-pressed", voOn ? "true" : "false");
+        if (voOn && playing) {
+          playSceneVO();
+        } else if (elements.voAudio) {
+          elements.voAudio.pause();
+        }
+      });
+
+      elements.progress.addEventListener("click", (event) => {
+        const rect = elements.progress.getBoundingClientRect();
+        const ratio = (event.clientX - rect.left) / rect.width;
+        pause();
+        setTime(ratio * totalDuration);
+      });
+
+      buildTimeline();
+
+      const railCount = document.querySelector("#rail-count");
+      const railTotal = document.querySelector("#rail-total");
+      if (railCount) {
+        railCount.textContent = `${scenes.length} scenes`;
+      }
+      if (railTotal) {
+        railTotal.textContent = formatTime(totalDuration);
+      }
+
+      elements.progress.max = totalDuration;
+      setTime(0);
+      requestAnimationFrame(updateRail);
+      window.addEventListener("resize", updateRail);
+
+      if (!prefersReducedMotion) {
+        window.setTimeout(play, 450);
+      }
+    </script>
+  </body>
+</html>

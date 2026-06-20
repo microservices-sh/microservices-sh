@@ -1,0 +1,347 @@
+<template id="scene-5-template">
+  <div id="scene-5" data-composition-id="scene-5" data-width="1920" data-height="1080">
+    <div class="scene-content">
+      <!-- background layers -->
+      <div class="bg-glow" aria-hidden="true"></div>
+      <svg class="hive-ghost" viewBox="0 0 600 600" aria-hidden="true">
+        <path d="M300 60 L470 158 L470 354 L300 452 L130 354 L130 158 Z" />
+        <path d="M300 160 L385 209 L385 307 L300 356 L215 307 L215 209 Z" />
+      </svg>
+      <span class="reg reg--tl" aria-hidden="true">+ studio</span>
+      <span class="reg reg--br" aria-hidden="true">microservices ▸ gate</span>
+
+      <!-- header zone -->
+      <div class="head">
+        <span class="kicker">STEP 05 · GATED BY CONTRACT</span>
+        <h1 class="headline">One line. Now it fails&nbsp;closed.</h1>
+      </div>
+
+      <!-- main split row -->
+      <div class="cols">
+        <!-- LEFT — terminal with the fix -->
+        <div class="term">
+          <div class="term-bar">
+            <span class="dots"><i></i><i></i><i></i></span>
+            <span class="term-title">studio ▸ gate + re-check</span>
+          </div>
+          <div class="term-body">
+            <div class="row row--comment l1"><span>// gate the admin route with the auth module</span></div>
+            <div class="row row--add l2">
+              <span class="add-glow" aria-hidden="true"></span>
+              <span class="plus">+</span><span class="code">export const adminRoutes = requireSession(routes)</span>
+            </div>
+            <div class="row row--prompt l3"><span class="arrow">❯</span><span class="prog">pnpm</span><span class="args">&nbsp;microservices check</span></div>
+            <div class="row row--ok l4"><span class="ic ic--ok">✓</span><span class="rk">permissions</span><span class="rv">/admin now gated</span></div>
+            <div class="row row--verified l5"><span class="ic ic--ok">✓</span><span class="vtext">all contracts verified</span></div>
+          </div>
+        </div>
+
+        <!-- RIGHT — fails-closed browser panel -->
+        <div class="closed">
+          <div class="closed-bar">
+            <svg class="lock" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="5" y="11" width="14" height="9" rx="2" />
+              <path d="M8 11 V8 a4 4 0 0 1 8 0 V11" />
+              <circle cx="12" cy="15" r="1.3" />
+            </svg>
+            <span class="url">studio.app/admin</span>
+            <span class="pill">401</span>
+          </div>
+          <div class="closed-body">
+            <div class="big401" aria-hidden="true">
+              <span class="big401-glow" aria-hidden="true"></span>
+              <span class="big401-num">401</span>
+            </div>
+            <div class="signin">Sign in required</div>
+            <div class="sub">auth boundary enforced · no session, no data</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      @font-face { font-family: "Bricolage Grotesque"; font-weight: 800; font-display: block; src: url("../fonts/bricolage-800.woff2") format("woff2"); }
+      @font-face { font-family: "Hanken Grotesk"; font-weight: 400; font-display: block; src: url("../fonts/hanken-400.woff2") format("woff2"); }
+      @font-face { font-family: "Hanken Grotesk"; font-weight: 600; font-display: block; src: url("../fonts/hanken-600.woff2") format("woff2"); }
+      @font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: block; src: url("../fonts/plexmono-400.woff2") format("woff2"); }
+      @font-face { font-family: "IBM Plex Mono"; font-weight: 600; font-display: block; src: url("../fonts/plexmono-600.woff2") format("woff2"); }
+
+      #scene-5 {
+        position: absolute;
+        inset: 0;
+        background: #070a08;
+        font-family: "Hanken Grotesk", sans-serif;
+        overflow: hidden;
+      }
+      #scene-5 .scene-content {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        padding: 90px 110px;
+        display: flex;
+        flex-direction: column;
+        gap: 44px;
+      }
+
+      /* background */
+      #scene-5 .bg-glow {
+        position: absolute;
+        right: -120px;
+        top: 160px;
+        width: 1150px;
+        height: 1150px;
+        background: radial-gradient(circle, rgba(56, 255, 136, 0.17), rgba(7, 10, 8, 0) 60%);
+        pointer-events: none;
+      }
+      #scene-5 .hive-ghost {
+        position: absolute;
+        left: -130px;
+        bottom: -170px;
+        width: 780px;
+        height: 780px;
+        fill: none;
+        stroke: #2a3c30;
+        stroke-width: 3;
+        opacity: 0.5;
+        pointer-events: none;
+      }
+      #scene-5 .reg {
+        position: absolute;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 20px;
+        letter-spacing: 0.16em;
+        color: #5e7568;
+        text-transform: uppercase;
+      }
+      #scene-5 .reg--tl { left: 110px; top: 52px; }
+      #scene-5 .reg--br { right: 110px; bottom: 52px; }
+
+      /* header */
+      #scene-5 .head { display: flex; flex-direction: column; gap: 18px; }
+      #scene-5 .kicker {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 24px;
+        letter-spacing: 0.3em;
+        color: #38ff88;
+      }
+      #scene-5 .headline {
+        margin: 0;
+        font-family: "Bricolage Grotesque", sans-serif;
+        font-weight: 800;
+        font-size: 66px;
+        letter-spacing: -0.015em;
+        color: #eafbf1;
+        line-height: 1.02;
+      }
+
+      /* split columns */
+      #scene-5 .cols {
+        display: flex;
+        gap: 40px;
+        flex: 1;
+        min-height: 0;
+        align-items: stretch;
+      }
+
+      /* terminal (left) */
+      #scene-5 .term {
+        position: relative;
+        flex: 1 1 0;
+        background: #0b0f0c;
+        border: 2px solid #2a3c30;
+        border-radius: 16px;
+        box-shadow: 0 50px 130px -30px rgba(0, 0, 0, 0.85), 0 0 90px -30px rgba(56, 255, 136, 0.22);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      #scene-5 .term-bar {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        padding: 20px 30px;
+        background: #0f1511;
+        border-bottom: 2px solid #1d2a22;
+      }
+      #scene-5 .dots { display: inline-flex; gap: 11px; }
+      #scene-5 .dots i {
+        width: 16px; height: 16px; border-radius: 999px; background: #2a3c30; display: block;
+      }
+      #scene-5 .term-title {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 24px;
+        color: #91a89a;
+      }
+      #scene-5 .term-body {
+        padding: 36px 40px 40px;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 32px;
+        line-height: 1.4;
+        flex: 1;
+        justify-content: center;
+      }
+      #scene-5 .row { display: flex; align-items: baseline; gap: 20px; }
+      #scene-5 .row--comment { color: #5e7568; }
+      #scene-5 .row--comment span { font-style: normal; }
+      #scene-5 .row--add {
+        position: relative;
+        margin: 2px -14px;
+        padding: 12px 14px;
+        border-radius: 10px;
+        background: rgba(56, 255, 136, 0.09);
+        align-items: baseline;
+      }
+      #scene-5 .add-glow {
+        position: absolute;
+        inset: -2px -10px;
+        border-radius: 12px;
+        background: radial-gradient(ellipse at 8% 50%, rgba(56, 255, 136, 0.32), rgba(56, 255, 136, 0) 58%);
+        pointer-events: none;
+        opacity: 0;
+        z-index: 0;
+      }
+      #scene-5 .row--add .plus,
+      #scene-5 .row--add .code { position: relative; z-index: 1; }
+      #scene-5 .plus { color: #00f57a; font-weight: 600; width: 28px; flex: 0 0 28px; }
+      #scene-5 .code { color: #00f57a; }
+      #scene-5 .row--prompt { color: #eafbf1; margin-top: 6px; }
+      #scene-5 .arrow { color: #38ff88; font-weight: 600; }
+      #scene-5 .prog { color: #9fffc2; }
+      #scene-5 .args { color: #91a89a; }
+      #scene-5 .ic { width: 34px; flex: 0 0 34px; text-align: center; font-weight: 700; }
+      #scene-5 .ic--ok { color: #38ff88; }
+      #scene-5 .rk { width: 250px; flex: 0 0 250px; color: #5e7568; }
+      #scene-5 .rv { color: #9fffc2; }
+      #scene-5 .row--verified .vtext { color: #00f57a; font-weight: 600; }
+
+      /* fails-closed panel (right) */
+      #scene-5 .closed {
+        flex: 0 0 660px;
+        background: #0b0f0c;
+        border: 2px solid #2a3c30;
+        border-radius: 14px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 50px 130px -30px rgba(0, 0, 0, 0.85);
+      }
+      #scene-5 .closed-bar {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 18px 26px;
+        background: #0f1511;
+        border-bottom: 2px solid #1d2a22;
+      }
+      #scene-5 .lock { width: 27px; height: 27px; display: block; }
+      #scene-5 .lock rect, #scene-5 .lock path, #scene-5 .lock circle { fill: none; stroke: #38ff88; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      #scene-5 .url {
+        flex: 1;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 24px;
+        color: #91a89a;
+      }
+      #scene-5 .pill {
+        font-family: "IBM Plex Mono", monospace;
+        font-weight: 600;
+        font-size: 22px;
+        color: #00f57a;
+        padding: 6px 16px;
+        border: 2px solid #2a3c30;
+        border-radius: 999px;
+        background: rgba(56, 255, 136, 0.1);
+      }
+      #scene-5 .closed-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        padding: 30px 40px 44px;
+      }
+      #scene-5 .big401 {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #scene-5 .big401-glow {
+        position: absolute;
+        width: 420px;
+        height: 420px;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle, rgba(0, 245, 122, 0.28), rgba(7, 10, 8, 0) 62%);
+        pointer-events: none;
+        opacity: 0;
+      }
+      #scene-5 .big401-num {
+        position: relative;
+        z-index: 1;
+        font-family: "Bricolage Grotesque", sans-serif;
+        font-weight: 800;
+        font-size: 150px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: #38ff88;
+      }
+      #scene-5 .signin {
+        font-family: "Hanken Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 40px;
+        color: #eafbf1;
+      }
+      #scene-5 .sub {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 24px;
+        color: #91a89a;
+        text-align: center;
+      }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // header
+      tl.fromTo('#scene-5 .kicker', { opacity: 0, letterSpacing: "0.6em" }, { opacity: 1, letterSpacing: "0.3em", duration: 0.6, ease: "power2.out" }, 0.25);
+      tl.fromTo('#scene-5 .headline', { opacity: 0, y: 46 }, { opacity: 1, y: 0, duration: 0.75, ease: "power3.out" }, 0.4);
+
+      // panels frame in — terminal from left, closed panel from right
+      tl.fromTo('#scene-5 .term', { opacity: 0, x: -70, scale: 0.97 }, { opacity: 1, x: 0, scale: 1, duration: 0.8, ease: "expo.out" }, 0.6);
+      tl.fromTo('#scene-5 .closed', { opacity: 0, x: 70, scale: 0.97 }, { opacity: 1, x: 0, scale: 1, duration: 0.8, ease: "expo.out" }, 0.7);
+
+      // terminal contents cascade
+      tl.fromTo('#scene-5 .l1', { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.4, ease: "power1.out" }, 1.35);
+
+      // the diff-add line — confident pop (focal point, left)
+      tl.fromTo('#scene-5 .l2', { opacity: 0, scale: 0.84, x: -8 }, { opacity: 1, scale: 1, x: 0, duration: 0.5, ease: "back.out(2.2)" }, 1.7);
+      tl.fromTo('#scene-5 .add-glow', { opacity: 0, scale: 0.92 }, { opacity: 0.95, scale: 1, duration: 0.5, ease: "power2.out" }, 1.85);
+
+      // command + ok rows resolve
+      tl.fromTo('#scene-5 .l3', { opacity: 0, x: -18 }, { opacity: 1, x: 0, duration: 0.38, ease: "power2.out" }, 2.45);
+      tl.fromTo('#scene-5 .l4', { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.35, ease: "power1.out" }, 2.8);
+      tl.fromTo('#scene-5 .l5', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.45, ease: "back.out(1.7)" }, 3.15);
+
+      // right panel chrome + the big 401 lands with a pop (focal point, right)
+      tl.fromTo('#scene-5 .closed-bar', { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, 1.55);
+      tl.fromTo('#scene-5 .pill', { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2.4)" }, 1.95);
+      tl.fromTo('#scene-5 .big401-num', { opacity: 0, scale: 0.6, y: 24 }, { opacity: 1, scale: 1, y: 0, duration: 0.7, ease: "back.out(2.0)" }, 2.55);
+      tl.fromTo('#scene-5 .big401-glow', { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.6, ease: "power2.out" }, 2.7);
+      tl.fromTo('#scene-5 .signin', { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, 3.05);
+      tl.fromTo('#scene-5 .sub', { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "none" }, 3.4);
+
+      // breathe — finite green glow pulse on the lock/verified beat (the 401 glow)
+      tl.to('#scene-5 .big401-glow', { opacity: 0.55, scale: 1.06, duration: 1.0, ease: "sine.inOut", yoyo: true, repeat: 3 }, 4.2);
+
+      window.__timelines["scene-5"] = tl;
+    </script>
+  </div>
+</template>

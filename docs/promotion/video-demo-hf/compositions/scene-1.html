@@ -1,0 +1,263 @@
+<template id="scene-1-template">
+  <div id="scene-1" data-composition-id="scene-1" data-width="1920" data-height="1080">
+    <div class="scene-content">
+      <!-- background layers -->
+      <div class="bg-glow" aria-hidden="true"></div>
+      <svg class="hive-ghost" viewBox="0 0 600 600" aria-hidden="true">
+        <path d="M300 60 L470 158 L470 354 L300 452 L130 354 L130 158 Z" />
+        <path d="M300 160 L385 209 L385 307 L300 356 L215 307 L215 209 Z" />
+      </svg>
+      <span class="reg reg--tl" aria-hidden="true">+ agent</span>
+      <span class="reg reg--br" aria-hidden="true">microservices ▸ compose</span>
+
+      <!-- header zone -->
+      <div class="head">
+        <span class="kicker">STEP 01 · BRING YOUR OWN AGENT</span>
+        <h1 class="headline">Let your agent build the backend&nbsp;— not the&nbsp;auth.</h1>
+      </div>
+
+      <!-- agent action log -->
+      <div class="agent">
+        <div class="agent-bar">
+          <span class="badge"><i class="dot"></i>agent</span>
+          <span class="agent-title">composing · studio (booking)</span>
+        </div>
+        <div class="agent-body">
+          <div class="line line--run l1"><span class="mk mk--run">▸</span><span class="lt">analyze requirements <b>→ booking studio</b></span></div>
+          <div class="line line--ok l2"><span class="mk mk--ok">✓</span><span class="lt">compose module · <b>auth</b></span></div>
+          <div class="line line--ok l3"><span class="mk mk--ok">✓</span><span class="lt">compose module · <b>customer</b></span></div>
+          <div class="line line--ok l4"><span class="mk mk--ok">✓</span><span class="lt">compose module · <b>payment</b></span></div>
+          <div class="line line--ok l5"><span class="mk mk--ok">✓</span><span class="lt">compose module · <b>booking</b></span></div>
+          <div class="line line--wire l6"><span class="mk mk--run">▸</span><span class="lt">wiring contracts</span><span class="caret" aria-hidden="true"></span></div>
+        </div>
+        <!-- composed modules -->
+        <div class="chips">
+          <span class="chip c1">auth</span>
+          <span class="chip c2">customer</span>
+          <span class="chip c3">payment</span>
+          <span class="chip c4">booking</span>
+          <span class="chip c5">email</span>
+        </div>
+      </div>
+
+      <!-- builder-agnostic: harness the output of ANY AI builder -->
+      <div class="builders">
+        <span class="builders-label">works with</span>
+        <span class="builders-list">Cursor · Claude&nbsp;Code · Lovable · Bolt · v0 · your&nbsp;terminal</span>
+      </div>
+    </div>
+
+    <style>
+      @font-face { font-family: "Bricolage Grotesque"; font-weight: 800; font-display: block; src: url("../fonts/bricolage-800.woff2") format("woff2"); }
+      @font-face { font-family: "Hanken Grotesk"; font-weight: 400; font-display: block; src: url("../fonts/hanken-400.woff2") format("woff2"); }
+      @font-face { font-family: "Hanken Grotesk"; font-weight: 600; font-display: block; src: url("../fonts/hanken-600.woff2") format("woff2"); }
+      @font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: block; src: url("../fonts/plexmono-400.woff2") format("woff2"); }
+      @font-face { font-family: "IBM Plex Mono"; font-weight: 600; font-display: block; src: url("../fonts/plexmono-600.woff2") format("woff2"); }
+
+      #scene-1 {
+        position: absolute;
+        inset: 0;
+        background: #070a08;
+        font-family: "Hanken Grotesk", sans-serif;
+        overflow: hidden;
+      }
+      #scene-1 .scene-content {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        padding: 90px 110px;
+        display: flex;
+        flex-direction: column;
+        gap: 38px;
+      }
+
+      /* background */
+      #scene-1 .bg-glow {
+        position: absolute;
+        left: -180px;
+        top: 180px;
+        width: 1180px;
+        height: 1180px;
+        background: radial-gradient(circle, rgba(56, 255, 136, 0.18), rgba(7, 10, 8, 0) 60%);
+        pointer-events: none;
+      }
+      #scene-1 .hive-ghost {
+        position: absolute;
+        right: -150px;
+        top: -170px;
+        width: 780px;
+        height: 780px;
+        fill: none;
+        stroke: #2a3c30;
+        stroke-width: 3;
+        opacity: 0.5;
+        pointer-events: none;
+      }
+      #scene-1 .reg {
+        position: absolute;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 20px;
+        letter-spacing: 0.16em;
+        color: #5e7568;
+        text-transform: uppercase;
+      }
+      #scene-1 .reg--tl { left: 110px; top: 52px; }
+      #scene-1 .reg--br { right: 110px; bottom: 52px; }
+
+      /* header */
+      #scene-1 .head { display: flex; flex-direction: column; gap: 18px; }
+      #scene-1 .kicker {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 24px;
+        letter-spacing: 0.3em;
+        color: #38ff88;
+      }
+      #scene-1 .headline {
+        margin: 0;
+        font-family: "Bricolage Grotesque", sans-serif;
+        font-weight: 800;
+        font-size: 68px;
+        letter-spacing: -0.015em;
+        color: #eafbf1;
+        line-height: 1.02;
+        max-width: 1180px;
+      }
+
+      /* agent panel */
+      #scene-1 .agent {
+        position: relative;
+        background: #0b0f0c;
+        border: 2px solid #2a3c30;
+        border-radius: 14px;
+        box-shadow: 0 50px 130px -30px rgba(0, 0, 0, 0.85), 0 0 90px -30px rgba(56, 255, 136, 0.22);
+        overflow: hidden;
+        width: 74%;
+      }
+      #scene-1 .agent-bar {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        padding: 20px 30px;
+        background: #0f1511;
+        border-bottom: 2px solid #1d2a22;
+      }
+      #scene-1 .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-family: "IBM Plex Mono", monospace;
+        font-weight: 600;
+        font-size: 22px;
+        color: #9fffc2;
+        padding: 6px 16px;
+        border: 2px solid #2a3c30;
+        border-radius: 999px;
+        background: rgba(56, 255, 136, 0.08);
+      }
+      #scene-1 .badge .dot {
+        width: 14px; height: 14px; border-radius: 999px;
+        background: #00f57a;
+        box-shadow: 0 0 14px rgba(0, 245, 122, 0.8);
+        display: block;
+      }
+      #scene-1 .agent-title {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 24px;
+        color: #91a89a;
+      }
+      #scene-1 .agent-body {
+        padding: 36px 44px 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 32px;
+        line-height: 1.36;
+      }
+      #scene-1 .line { display: flex; align-items: baseline; gap: 22px; }
+      #scene-1 .mk { width: 34px; flex: 0 0 34px; text-align: center; font-weight: 700; }
+      #scene-1 .mk--ok { color: #38ff88; }
+      #scene-1 .mk--run { color: #ffc857; }
+      #scene-1 .lt { color: #91a89a; }
+      #scene-1 .line--ok .lt { color: #9fffc2; }
+      #scene-1 .line--ok .lt b { color: #eafbf1; font-weight: 600; }
+      #scene-1 .line--run .lt b { color: #9fffc2; font-weight: 600; }
+      #scene-1 .line--wire .lt { color: #ffc857; }
+      #scene-1 .caret {
+        display: inline-block;
+        width: 16px;
+        height: 30px;
+        margin-left: 4px;
+        transform: translateY(4px);
+        background: #ffc857;
+        opacity: 0.85;
+      }
+
+      /* composed module chips */
+      #scene-1 .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        padding: 6px 44px 16px;
+      }
+      #scene-1 .chip {
+        font-family: "IBM Plex Mono", monospace;
+        font-weight: 600;
+        font-size: 24px;
+        color: #9fffc2;
+        padding: 12px 24px;
+        background: #0f1511;
+        border: 2px solid #1d2a22;
+        border-radius: 999px;
+      }
+
+      /* builder-agnostic strip */
+      #scene-1 .builders { margin-top: auto; display: flex; align-items: center; gap: 22px; }
+      #scene-1 .builders-label { font-family: "IBM Plex Mono", monospace; font-size: 20px; letter-spacing: 0.24em; text-transform: uppercase; color: #5e7568; }
+      #scene-1 .builders-list { font-family: "IBM Plex Mono", monospace; font-size: 25px; color: #b9cabf; letter-spacing: 0.01em; }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // header — kicker tightens in, headline rises
+      tl.fromTo('#scene-1 .kicker', { opacity: 0, letterSpacing: "0.62em" }, { opacity: 1, letterSpacing: "0.3em", duration: 0.6, ease: "power2.out" }, 0.25);
+      tl.fromTo('#scene-1 .headline', { opacity: 0, y: 46 }, { opacity: 1, y: 0, duration: 0.72, ease: "power3.out" }, 0.4);
+
+      // agent panel frame slides up confidently
+      tl.fromTo('#scene-1 .agent', { opacity: 0, y: 64, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: "expo.out" }, 0.62);
+      tl.fromTo('#scene-1 .agent-bar', { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.42, ease: "power2.out" }, 1.05);
+      tl.fromTo('#scene-1 .badge .dot', { scale: 0.4 }, { scale: 1, duration: 0.34, ease: "back.out(2.6)" }, 1.25);
+
+      // analyze line first (the agent starts thinking)
+      tl.fromTo('#scene-1 .l1', { opacity: 0, x: -22 }, { opacity: 1, x: 0, duration: 0.36, ease: "power1.out" }, 1.45);
+
+      // composed modules land one-by-one (the good work)
+      tl.fromTo('#scene-1 .l2', { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.3, ease: "power1.out" }, 1.9);
+      tl.fromTo('#scene-1 .l3', { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.3, ease: "power1.out" }, 2.18);
+      tl.fromTo('#scene-1 .l4', { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.3, ease: "power1.out" }, 2.46);
+      tl.fromTo('#scene-1 .l5', { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.3, ease: "power1.out" }, 2.74);
+
+      // the in-progress wiring line (foreshadow the caution, stays amber)
+      tl.fromTo('#scene-1 .l6', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: "sine.out" }, 3.1);
+
+      // module chips pop in as a tight stagger group
+      tl.fromTo('#scene-1 .chip',
+        { opacity: 0, scale: 0.7, y: 18 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.42, ease: "back.out(2.0)", stagger: 0.09 },
+        3.35);
+
+      // builder-agnostic strip resolves — "works with any AI builder"
+      tl.fromTo('#scene-1 .builders', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 3.7);
+
+      // breathe — agent dot pulses + wiring caret blinks (finite, seekable)
+      tl.to('#scene-1 .badge .dot', { opacity: 0.45, scale: 1.18, duration: 0.85, ease: "sine.inOut", yoyo: true, repeat: 3 }, 4.4);
+      tl.to('#scene-1 .caret', { opacity: 0.1, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 5 }, 4.4);
+
+      window.__timelines["scene-1"] = tl;
+    </script>
+  </div>
+</template>

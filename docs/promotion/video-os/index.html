@@ -1,0 +1,5134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>microservices.sh demo preview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Martian+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b0d0b;
+        --panel: #111611;
+        --panel-2: #171d18;
+        --paper: #f5f0e4;
+        --paper-soft: #ded6c3;
+        --line: #2c372f;
+        --line-strong: #465248;
+        --green: #62f18a;
+        --green-dim: #15361f;
+        --amber: #ffbd57;
+        --red: #ff6f61;
+        --cyan: #6fd8ff;
+        --text: #f8f7f0;
+        --muted: #aeb7ab;
+        --shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+        --mono: "Martian Mono", "SFMono-Regular", Consolas, monospace;
+        --term: "IBM Plex Mono", "SFMono-Regular", ui-monospace, Consolas, monospace;
+        --display: "Hanken Grotesk", "Aptos", ui-sans-serif, system-ui, sans-serif;
+        font-family:
+          "Hanken Grotesk",
+          "Aptos",
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(rgba(98, 241, 138, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(98, 241, 138, 0.025) 1px, transparent 1px),
+          radial-gradient(circle at 8% -4%, rgba(98, 241, 138, 0.14), transparent 40rem),
+          radial-gradient(circle at 98% 104%, rgba(111, 216, 255, 0.07), transparent 42rem),
+          var(--bg);
+        background-size: 30px 30px, 30px 30px, auto, auto, auto;
+        background-attachment: fixed;
+        color: var(--text);
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        pointer-events: none;
+      }
+
+      /* vignette */
+      body::before {
+        background: radial-gradient(120% 90% at 50% 38%, transparent 55%, rgba(0, 0, 0, 0.42));
+      }
+
+      /* film grain */
+      body::after {
+        opacity: 0.045;
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .shell {
+        width: min(1520px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 24px 0 32px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding-bottom: 18px;
+      }
+
+      .brand {
+        display: grid;
+        gap: 4px;
+      }
+
+      .brand-wrap {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .logo-hex {
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 44px;
+        height: 44px;
+        border: 1px solid var(--line-strong);
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(98, 241, 138, 0.1), rgba(98, 241, 138, 0.015));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 22px -12px rgba(98, 241, 138, 0.5);
+        color: var(--green);
+      }
+
+      .logo-hex svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      .brand__eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        font-weight: 500;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+      }
+
+      .brand__eyebrow::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 8px var(--green);
+        animation: blink 2.4s steps(1) infinite;
+      }
+
+      @keyframes blink {
+        0%, 60% { opacity: 1; }
+        61%, 100% { opacity: 0.25; }
+      }
+
+      h1 {
+        margin: 2px 0 0;
+        font-family: var(--display);
+        font-size: clamp(1.35rem, 2.5vw, 2.6rem);
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        line-height: 1.02;
+      }
+
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .badge {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: rgba(17, 22, 17, 0.6);
+        color: var(--paper-soft);
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.01em;
+        padding: 7px 11px;
+        white-space: nowrap;
+      }
+
+      .badge::before {
+        content: "";
+        width: 5px;
+        height: 5px;
+        border-radius: 1px;
+        background: var(--line-strong);
+      }
+
+      .badge:nth-child(1)::before { background: var(--green); }
+      .badge:nth-child(2)::before { background: var(--cyan); }
+      .badge:nth-child(3)::before { background: var(--amber); }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(320px, 0.38fr);
+        gap: 18px;
+      }
+
+      .stage-wrap,
+      .side {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(23, 29, 24, 0.94), rgba(13, 17, 13, 0.94));
+        box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+      }
+
+      .stage-wrap {
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .stage-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-bottom: 1px solid var(--line);
+        padding: 14px 16px;
+      }
+
+      .scene-title {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .scene-title span {
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        font-weight: 500;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+
+      .scene-title strong {
+        display: block;
+        font-family: var(--display);
+        font-size: 1.06rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .clock {
+        flex: 0 0 auto;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.76rem;
+        letter-spacing: 0.02em;
+      }
+
+      .stage {
+        aspect-ratio: 16 / 9;
+        min-height: 420px;
+        padding: 18px;
+        position: relative;
+      }
+
+      .video-frame {
+        display: grid;
+        grid-template-columns: minmax(0, 1.04fr) minmax(300px, 0.78fr);
+        gap: 16px;
+        height: 100%;
+      }
+
+      .terminal,
+      .browser {
+        min-width: 0;
+        border: 1px solid var(--line-strong);
+        border-radius: 11px;
+        overflow: hidden;
+        background: #090b09;
+        box-shadow: 0 18px 44px -22px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      }
+
+      .terminal {
+        position: relative;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        background:
+          radial-gradient(120% 60% at 0% 0%, rgba(98, 241, 138, 0.05), transparent 60%),
+          #080a08;
+      }
+
+      /* faint scanlines on the terminal for CRT soul */
+      .terminal::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.014) 0 1px, transparent 1px 3px);
+        mix-blend-mode: overlay;
+      }
+
+      .chrome {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 40px;
+        border-bottom: 1px solid var(--line);
+        background: #151b16;
+        padding: 9px 12px;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--red);
+      }
+
+      .dot:nth-child(2) {
+        background: var(--amber);
+      }
+
+      .dot:nth-child(3) {
+        background: var(--green);
+      }
+
+      .chrome-label {
+        min-width: 0;
+        margin-left: 6px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--muted);
+        font-family: var(--term);
+        font-size: 0.76rem;
+      }
+
+      .term-lines {
+        position: relative;
+        z-index: 1;
+        margin: 0;
+        padding: 18px 18px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        color: var(--paper);
+        font-family: var(--term);
+        font-size: clamp(0.8rem, 1.05vw, 0.95rem);
+        line-height: 1.5;
+        white-space: normal;
+        overflow: hidden;
+      }
+
+      .t-line {
+        display: flex;
+        gap: 9px;
+      }
+
+      .t-arrow {
+        flex: 0 0 auto;
+        color: var(--green);
+        font-weight: 600;
+      }
+
+      .t-body {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .t-prog {
+        color: #eafff0;
+        font-weight: 600;
+      }
+
+      .t-args {
+        color: #a4e6bb;
+      }
+
+      .t-out {
+        color: #8b9c89;
+        padding-left: 23px;
+        overflow-wrap: anywhere;
+      }
+
+      .t-warn {
+        align-items: baseline;
+        gap: 8px;
+        padding-left: 23px;
+        color: var(--amber);
+      }
+
+      .t-warn-ic {
+        flex: 0 0 auto;
+        font-size: 0.7em;
+      }
+
+      /* scene 1 full-bleed terminal hero */
+      .video-frame--solo {
+        grid-template-columns: 1fr;
+      }
+
+      .video-frame--solo .browser {
+        display: none;
+      }
+
+      .video-frame--hero .term-lines {
+        font-size: clamp(0.86rem, 1.15vw, 1.05rem);
+        gap: 8px;
+        padding: 22px 24px 16px;
+      }
+
+      /* scene 2: terminal command finishes, browser opens */
+      .is-opening .browser {
+        animation: browserOpen 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+        transform-origin: right center;
+      }
+
+      @keyframes browserOpen {
+        from { opacity: 0; transform: translateX(28px) scale(0.97); }
+        to { opacity: 1; transform: none; }
+      }
+
+      .t-ok {
+        align-items: baseline;
+        gap: 9px;
+        color: var(--paper-soft);
+      }
+
+      .t-ok-ic {
+        flex: 0 0 auto;
+        color: var(--green);
+      }
+
+      .t-note {
+        margin-left: 9px;
+        border-radius: 999px;
+        background: var(--green-dim);
+        color: var(--green);
+        font-size: 0.78em;
+        letter-spacing: 0.02em;
+        padding: 1px 9px;
+      }
+
+      .t-head {
+        margin-top: 9px;
+        color: var(--muted);
+        letter-spacing: 0.03em;
+      }
+
+      .t-risk {
+        align-items: baseline;
+        gap: 11px;
+        padding-left: 2px;
+        color: var(--paper-soft);
+      }
+
+      .t-risk-ic {
+        flex: 0 0 auto;
+        color: var(--amber);
+        font-size: 0.76em;
+      }
+
+      .t-risk-label {
+        flex: 0 0 122px;
+        color: var(--amber);
+      }
+
+      .t-risk-note {
+        color: var(--muted);
+      }
+
+      .t-cursor {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .caret {
+        display: inline-block;
+        width: 8px;
+        height: 1.05em;
+        background: var(--green);
+        box-shadow: 0 0 8px rgba(98, 241, 138, 0.7);
+        animation: caret 1.05s steps(1) infinite;
+      }
+
+      @keyframes caret {
+        50% { opacity: 0; }
+      }
+
+      .caret--inline {
+        width: 7px;
+        height: 1em;
+        margin-left: 1px;
+        vertical-align: -0.12em;
+      }
+
+      .t-reveal {
+        animation: tReveal 0.26s ease both;
+      }
+
+      @keyframes tReveal {
+        from { opacity: 0; transform: translateY(3px); }
+        to { opacity: 1; transform: none; }
+      }
+
+      .terminal-foot {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-family: var(--term);
+        font-size: 0.72rem;
+        padding: 11px 14px;
+      }
+
+      .terminal-foot::before {
+        content: "";
+        flex: 0 0 auto;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 7px var(--green);
+      }
+
+      .browser {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        background: var(--paper);
+        color: #172017;
+      }
+
+      /* browser window bar = address bar */
+      .chrome--browser {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        min-height: 42px;
+        border-bottom: 1px solid #d6cdbb;
+        background: linear-gradient(#f1ebdd, #e6dfce);
+        padding: 8px 11px;
+      }
+
+      .chrome--browser .dots {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .chrome--browser .dot {
+        width: 9px;
+        height: 9px;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+      }
+
+      .addr {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+        border: 1px solid #dad2c1;
+        border-radius: 999px;
+        background: #fcf9f1;
+        padding: 5px 12px;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+      }
+
+      .addr-ic {
+        flex: 0 0 auto;
+        width: 11px;
+        height: 11px;
+        color: #7f8b79;
+      }
+
+      .addr-url {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #495849;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.01em;
+      }
+
+      .surface-tag {
+        flex: 0 0 auto;
+        border: 1px solid #c4bca9;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.5);
+        color: #46563f;
+        font-family: var(--mono);
+        font-size: 0.63rem;
+        font-weight: 400;
+        letter-spacing: 0.02em;
+        padding: 4px 9px;
+        white-space: nowrap;
+      }
+
+      /* ── In-stage surface: real product views ── */
+      .surface {
+        position: relative;
+        min-height: 0;
+        overflow: hidden;
+        background: var(--paper);
+        color: #18211a;
+      }
+
+      .surface > * {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* surfaces populate their content on mount/open */
+      @keyframes surfIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: none; }
+      }
+
+      :where(.srf--tree, .srf--registry, .srf--doc) > * {
+        animation: surfIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(1) { animation-delay: 0.1s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(2) { animation-delay: 0.24s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(3) { animation-delay: 0.38s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(4) { animation-delay: 0.52s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(5) { animation-delay: 0.66s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(6) { animation-delay: 0.8s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(7) { animation-delay: 0.94s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(8) { animation-delay: 1.08s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(9) { animation-delay: 1.22s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(10) { animation-delay: 1.36s; }
+      :where(.srf--tree, .srf--registry, .srf--doc) > *:nth-child(n + 11) { animation-delay: 1.5s; }
+
+      .srf--shot figcaption {
+        animation: surfIn 0.5s ease 0.2s both;
+      }
+
+      /* shot: real screenshots */
+      .srf--shot {
+        margin: 0;
+        background: #0d120e;
+        box-shadow: inset 0 8px 18px -12px rgba(0, 0, 0, 0.6);
+      }
+
+      .srf--shot img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: top center;
+      }
+
+      .srf--shot::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        background:
+          linear-gradient(transparent 70%, rgba(6, 9, 7, 0.32)),
+          radial-gradient(120% 80% at 50% 0%, transparent 70%, rgba(0, 0, 0, 0.18));
+      }
+
+      .srf--shot figcaption {
+        z-index: 2;
+      }
+
+      .srf--shot figcaption {
+        position: absolute;
+        inset: 12px auto auto 12px;
+        right: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        max-width: calc(100% - 24px);
+        border: 1px solid rgba(245, 240, 228, 0.16);
+        border-radius: 999px;
+        background: rgba(8, 12, 9, 0.74);
+        backdrop-filter: blur(7px);
+        -webkit-backdrop-filter: blur(7px);
+        color: var(--paper);
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.02em;
+        line-height: 1.2;
+        padding: 6px 11px 6px 10px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .srf--shot figcaption::before {
+        content: "";
+        flex: 0 0 auto;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 7px rgba(98, 241, 138, 0.8);
+      }
+
+      /* shared dark "code" surfaces */
+      .srf--tree,
+      .srf--checks,
+      .srf--registry,
+      .srf--deploy {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        background:
+          radial-gradient(130% 55% at 0% 0%, rgba(98, 241, 138, 0.05), transparent 55%),
+          linear-gradient(180deg, #0e140f, #0a0e0b);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+        color: var(--paper);
+        font-size: 0.78rem;
+        line-height: 1.45;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+        padding: 14px 15px 13px;
+      }
+
+      .srf-eyebrow {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      /* tree */
+      .tree-row {
+        display: flex;
+        gap: 8px;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+      }
+
+      .tree-dir {
+        color: var(--paper);
+        font-weight: 500;
+      }
+
+      .tree-sub {
+        color: #8f9c8a;
+        padding-left: 16px;
+      }
+
+      .tree-file {
+        color: var(--cyan);
+        padding-left: 16px;
+      }
+
+      .tree-row.is-on {
+        margin: 1px 0;
+        padding-block: 2px;
+        border-radius: 6px;
+        background: rgba(98, 241, 138, 0.09);
+        box-shadow: inset 2px 0 0 var(--green);
+        color: var(--green);
+      }
+
+      .tree-row .muted {
+        color: #6f7c6b;
+      }
+
+      /* dark module-contract spec card */
+      .srf--doc {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+        padding: 15px 15px 13px;
+        background:
+          radial-gradient(130% 55% at 0% 0%, rgba(98, 241, 138, 0.05), transparent 55%),
+          linear-gradient(180deg, #0e140f, #0a0e0b);
+        color: var(--paper);
+      }
+
+      .dc-head {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .dc-id {
+        font-family: var(--mono);
+        font-size: 1.02rem;
+        font-weight: 600;
+        color: var(--green);
+      }
+
+      .dc-ver {
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        color: var(--paper-soft);
+        padding: 2px 8px;
+      }
+
+      .dc-status {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #8fa08c;
+      }
+
+      .dc-status i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 7px var(--green);
+      }
+
+      .dc-summary {
+        margin: 0;
+        color: #97a193;
+        font-size: 0.8rem;
+        line-height: 1.45;
+      }
+
+      .dc-facets {
+        display: grid;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .dc-row {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        padding: 8px 11px;
+        transition: background 0.3s;
+      }
+
+      .dc-row + .dc-row {
+        border-top: 1px solid rgba(255, 255, 255, 0.04);
+      }
+
+      .dc-k {
+        flex: 0 0 84px;
+        font-family: var(--mono);
+        font-size: 0.64rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #6f7c6b;
+      }
+
+      .dc-v {
+        min-width: 0;
+        font-family: var(--mono);
+        font-size: 0.76rem;
+        color: #cdd5c8;
+      }
+
+      .dc-v b {
+        font-weight: 400;
+        color: var(--cyan);
+        transition: color 0.3s;
+      }
+
+      .dc-row.read {
+        background: rgba(98, 241, 138, 0.07);
+      }
+
+      .dc-row.read .dc-v b {
+        color: var(--green);
+      }
+
+      .dc-gate {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        border: 1px solid rgba(255, 189, 87, 0.32);
+        border-radius: 10px;
+        background: rgba(255, 189, 87, 0.06);
+        padding: 9px 11px;
+        transition: box-shadow 0.3s;
+      }
+
+      .dc-gate-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--amber);
+      }
+
+      .dc-gate-badge::before {
+        content: "▲";
+        font-size: 0.8em;
+      }
+
+      .dc-gate-items {
+        color: #d7cbb0;
+        font-family: var(--mono);
+        font-size: 0.74rem;
+      }
+
+      .dc-gate.read {
+        box-shadow: 0 0 0 1px rgba(255, 189, 87, 0.5), 0 0 16px rgba(255, 189, 87, 0.2);
+      }
+
+      .doc-pin {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: #0a0f0b;
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        padding: 9px 11px;
+        transition: box-shadow 0.3s;
+      }
+
+      .doc-pin.read {
+        box-shadow: 0 0 0 1px rgba(98, 241, 138, 0.45), 0 0 18px rgba(98, 241, 138, 0.28);
+      }
+
+      .doc-scan {
+        position: absolute;
+        left: 8px;
+        right: 8px;
+        border-radius: 8px;
+        background: rgba(98, 241, 138, 0.08);
+        box-shadow: inset 0 0 0 1px rgba(98, 241, 138, 0.4);
+        opacity: 0;
+        pointer-events: none;
+        animation: none;
+        transition: top 0.45s cubic-bezier(0.5, 0, 0.2, 1), height 0.45s cubic-bezier(0.5, 0, 0.2, 1), opacity 0.3s;
+      }
+
+      .doc-scan.on {
+        opacity: 1;
+      }
+
+      /* scene 1: company intake card */
+      .srf--intake {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        padding: 15px 15px 13px;
+        background:
+          radial-gradient(130% 55% at 0% 0%, rgba(98, 241, 138, 0.05), transparent 55%),
+          linear-gradient(180deg, #0e140f, #0a0e0b);
+        color: var(--paper);
+        overflow: hidden;
+        overflow-wrap: anywhere;
+      }
+
+      .ik-head {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .ik-id {
+        font-family: var(--mono);
+        font-size: 0.96rem;
+        font-weight: 600;
+        color: var(--green);
+      }
+
+      .ik-ver {
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        color: var(--paper-soft);
+        padding: 2px 8px;
+      }
+
+      .ik-status {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        letter-spacing: 0.08em;
+        color: var(--amber);
+        transition: color 0.3s;
+      }
+
+      .ik-status.done {
+        color: var(--green);
+      }
+
+      .ik-rows {
+        display: grid;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .ik-row {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        padding: 8px 11px;
+        transition: background 0.3s;
+      }
+
+      .ik-row + .ik-row {
+        border-top: 1px solid rgba(255, 255, 255, 0.04);
+      }
+
+      .ik-row.active {
+        background: rgba(98, 241, 138, 0.06);
+      }
+
+      .ik-k {
+        flex: 0 0 102px;
+        font-family: var(--mono);
+        font-size: 0.64rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #6f7c6b;
+      }
+
+      .ik-v {
+        min-width: 0;
+        min-height: 1.1em;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: #cdd5c8;
+      }
+
+      .ik-foot {
+        margin-top: auto;
+        border-radius: 8px;
+        background: #0a0f0b;
+        border: 1px solid var(--line);
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        padding: 9px 11px;
+        opacity: 0;
+        transform: translateY(4px);
+        transition: opacity 0.4s ease, transform 0.4s ease;
+      }
+
+      .ik-foot.show {
+        opacity: 1;
+        transform: none;
+      }
+
+      /* scene 2: corporate OS shell — light admin console */
+      .srf--shell {
+        display: flex;
+        flex-direction: column;
+        background: #f3f6f7;
+        color: #1a2230;
+        overflow: hidden;
+        font-size: 0.8rem;
+      }
+
+      .sh-top {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        border-bottom: 1px solid #e4e9eb;
+        background: #fff;
+        padding: 9px 13px;
+      }
+
+      .sh-host {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: #5b6675;
+      }
+
+      .sh-badge {
+        margin-left: auto;
+        border: 1px solid #bfe6cd;
+        border-radius: 999px;
+        background: #e3f5ea;
+        color: #1e7d43;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        padding: 2px 9px;
+      }
+
+      .sh-body {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 108px 1fr;
+        min-height: 0;
+      }
+
+      .sh-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        border-right: 1px solid #e4e9eb;
+        background: #fff;
+        padding: 11px 8px;
+      }
+
+      .sh-brand {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 0.82rem;
+        margin-bottom: 5px;
+      }
+
+      .sh-brand .mk {
+        color: #1e7d43;
+      }
+
+      .sh-sec {
+        font-family: var(--mono);
+        font-size: 0.5rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #9aa4b0;
+        padding: 8px 6px 3px;
+      }
+
+      .sh-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 7px;
+        padding: 6px 7px;
+        font-size: 0.76rem;
+        color: #54606f;
+        transition: background 0.3s, color 0.3s;
+      }
+
+      .sh-sq {
+        flex: 0 0 auto;
+        width: 7px;
+        height: 7px;
+        border-radius: 2px;
+        background: #cdd5dc;
+        transition: background 0.3s, box-shadow 0.3s;
+      }
+
+      .sh-item.lit {
+        color: #1a2230;
+      }
+
+      .sh-item.lit .sh-sq,
+      .sh-item.active .sh-sq {
+        background: #1e7d43;
+      }
+
+      .sh-item.active {
+        background: #eef4f0;
+        color: #15321f;
+        font-weight: 600;
+      }
+
+      .sh-item.active .sh-sq {
+        box-shadow: 0 0 0 2px rgba(30, 125, 67, 0.16);
+      }
+
+      .sh-main {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 13px;
+        min-width: 0;
+      }
+
+      .sh-eyebrow {
+        font-family: var(--mono);
+        font-size: 0.56rem;
+        letter-spacing: 0.08em;
+        color: #9aa4b0;
+      }
+
+      .sh-h {
+        margin: 0 0 2px;
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 1.18rem;
+        letter-spacing: -0.02em;
+        color: #18202c;
+      }
+
+      .sh-cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 7px;
+      }
+
+      .sh-card {
+        border: 1px solid #e4e9eb;
+        border-radius: 9px;
+        background: #fff;
+        padding: 9px 10px;
+      }
+
+      .sh-card span {
+        display: block;
+        font-family: var(--mono);
+        font-size: 0.54rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #8a94a1;
+      }
+
+      .sh-card b {
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 1.3rem;
+        color: #18202c;
+      }
+
+      .sh-panel {
+        border: 1px solid #e4e9eb;
+        border-radius: 10px;
+        background: #fff;
+        overflow: hidden;
+      }
+
+      .sh-ptitle {
+        font-weight: 700;
+        font-size: 0.82rem;
+        padding: 10px 12px;
+        border-bottom: 1px solid #eef2f3;
+        color: #1a2230;
+      }
+
+      .sh-prow {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 9px 12px;
+        font-size: 0.78rem;
+        color: #415066;
+      }
+
+      .sh-prow + .sh-prow {
+        border-top: 1px solid #f0f3f4;
+      }
+
+      .sh-prow b {
+        color: #18202c;
+      }
+
+      .sh-prow.hot,
+      .sh-prow.hot b {
+        color: #b45309;
+      }
+
+      /* scene 3: operate — internal workflow board (light) */
+      .srf--op {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background: #f3f6f7;
+        color: #1a2230;
+        padding: 14px 14px 12px;
+        overflow: hidden;
+      }
+
+      .op-top {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .op-title {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 0.98rem;
+      }
+
+      .op-status {
+        margin-left: auto;
+        border: 1px solid #bfe6cd;
+        border-radius: 999px;
+        background: #e3f5ea;
+        color: #1e7d43;
+        font-family: var(--mono);
+        font-size: 0.58rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 2px 9px;
+      }
+
+      .op-pipe {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .op-stage {
+        flex: 1;
+        text-align: center;
+        border: 1px solid #e0e6e8;
+        border-radius: 7px;
+        background: #fff;
+        font-family: var(--mono);
+        font-size: 0.57rem;
+        color: #8a94a1;
+        padding: 6px 2px;
+        transition: all 0.3s;
+      }
+
+      .op-stage.done {
+        color: #1e7d43;
+        border-color: #bfe6cd;
+        background: #eef8f1;
+      }
+
+      .op-stage.active {
+        color: #15321f;
+        border-color: #1e7d43;
+        box-shadow: inset 0 0 0 1px #1e7d43;
+        font-weight: 600;
+      }
+
+      .op-stage.gated {
+        color: #b45309;
+        border-color: #f3d9a8;
+        background: #fdf4e3;
+      }
+
+      .op-card {
+        display: grid;
+        gap: 9px;
+        border: 1px solid #e4e9eb;
+        border-radius: 11px;
+        background: #fff;
+        padding: 12px;
+      }
+
+      .op-cli {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .op-av {
+        flex: 0 0 auto;
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        background: #eef4f0;
+        color: #1e7d43;
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        font-weight: 600;
+      }
+
+      .op-cli b {
+        font-size: 0.86rem;
+      }
+
+      .op-cli small {
+        display: block;
+        color: #6b7585;
+        font-family: var(--mono);
+        font-size: 0.65rem;
+      }
+
+      .op-step {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-top: 1px solid #eef2f3;
+        padding-top: 9px;
+        font-family: var(--mono);
+        font-size: 0.73rem;
+        color: #41506b;
+      }
+
+      .op-step::before {
+        content: "";
+        flex: 0 0 auto;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #1e7d43;
+        box-shadow: 0 0 0 3px rgba(30, 125, 67, 0.12);
+      }
+
+      .op-step.gate {
+        color: #b45309;
+      }
+
+      .op-step.gate::before {
+        background: #b45309;
+        box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.12);
+      }
+
+      .op-logwrap {
+        border: 1px solid #e4e9eb;
+        border-radius: 10px;
+        background: #fff;
+        overflow: hidden;
+      }
+
+      .op-logh {
+        font-family: var(--mono);
+        font-size: 0.52rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #9aa4b0;
+        padding: 8px 11px 4px;
+      }
+
+      .op-log {
+        display: grid;
+        gap: 4px;
+        padding: 0 11px 9px;
+      }
+
+      .op-logline {
+        display: flex;
+        gap: 8px;
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        color: #54606f;
+        animation: opIn 0.3s ease both;
+      }
+
+      .op-logline .t {
+        color: #9aa4b0;
+      }
+
+      .op-logline .ok {
+        color: #1e7d43;
+      }
+
+      @keyframes opIn {
+        from { opacity: 0; transform: translateY(3px); }
+        to { opacity: 1; transform: none; }
+      }
+
+      .op-status i {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #1e7d43;
+        animation: opPulse 1.2s ease-in-out infinite;
+      }
+
+      @keyframes opPulse {
+        50% { opacity: 0.35; }
+      }
+
+      .op-stat {
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        color: #6b7585;
+      }
+
+      .op-stat b {
+        color: #1a2230;
+      }
+
+      .op-stat .hot {
+        color: #b45309;
+      }
+
+      .op-stat .clear {
+        color: #1e7d43;
+      }
+
+      .op-queue {
+        display: grid;
+        gap: 6px;
+      }
+
+      .op-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid #e4e9eb;
+        border-radius: 10px;
+        background: #fff;
+        padding: 8px 11px;
+        transition: border-color 0.3s, background 0.3s;
+      }
+
+      .op-av {
+        flex: 0 0 auto;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        background: #eef4f0;
+        color: #1e7d43;
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        font-weight: 600;
+      }
+
+      .op-av.amber {
+        background: #fdf4e3;
+        color: #b45309;
+      }
+
+      .op-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .op-info b {
+        font-size: 0.8rem;
+      }
+
+      .op-info small {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #6b7585;
+        font-family: var(--mono);
+        font-size: 0.62rem;
+      }
+
+      .op-chip {
+        flex: 0 0 auto;
+        border: 1px solid #d7e8de;
+        border-radius: 999px;
+        background: #eef4f0;
+        color: #1e7d43;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        padding: 3px 9px;
+        transition: all 0.3s;
+      }
+
+      .op-chip.soft {
+        background: #eef2f4;
+        color: #6b7585;
+        border-color: #e4e9eb;
+      }
+
+      .op-chip.amber {
+        background: #fdf4e3;
+        color: #b45309;
+        border-color: #f3d9a8;
+      }
+
+      .op-item.exc {
+        border-color: #f3d9a8;
+        background: #fffaf2;
+      }
+
+      .op-approve {
+        flex: 0 0 auto;
+        border: 1px solid #1e7d43;
+        border-radius: 999px;
+        background: #1e7d43;
+        color: #fff;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        font-weight: 600;
+        padding: 4px 11px;
+        cursor: default;
+      }
+
+      .op-approve.gone {
+        display: none;
+      }
+
+      .op-cursor {
+        position: absolute;
+        z-index: 5;
+        width: 18px;
+        height: 18px;
+        margin: -9px 0 0 -9px;
+        border-radius: 50%;
+        border: 2px solid rgba(30, 125, 67, 0.9);
+        background: rgba(30, 125, 67, 0.18);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+        opacity: 0;
+        pointer-events: none;
+        transition: left 0.5s cubic-bezier(0.5, 0, 0.2, 1), top 0.5s cubic-bezier(0.5, 0, 0.2, 1), opacity 0.3s;
+      }
+
+      .op-cursor.on {
+        opacity: 1;
+      }
+
+      .op-cursor.click {
+        animation: opClick 0.35s ease;
+      }
+
+      @keyframes opClick {
+        40% { transform: scale(0.6); }
+        100% { transform: scale(1); }
+      }
+
+      .op-new {
+        animation: opSlide 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes opSlide {
+        from { opacity: 0; transform: translateY(-7px); }
+        to { opacity: 1; transform: none; }
+      }
+
+      /* scene 4: research — cited brief (light) */
+      .srf--research {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background: #f3f6f7;
+        color: #1a2230;
+        padding: 14px;
+        overflow: hidden;
+      }
+
+      .rs-qlabel {
+        font-family: var(--mono);
+        font-size: 0.54rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #9aa4b0;
+      }
+
+      .rs-question {
+        margin-top: 2px;
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 1.04rem;
+        letter-spacing: -0.01em;
+      }
+
+      .rs-sources {
+        display: grid;
+        gap: 6px;
+      }
+
+      .rs-src {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        border: 1px solid #e4e9eb;
+        border-radius: 9px;
+        background: #fff;
+        padding: 8px 11px;
+        font-size: 0.74rem;
+        transition: border-color 0.3s;
+      }
+
+      .rs-tag {
+        flex: 0 0 auto;
+        font-family: var(--mono);
+        font-size: 0.52rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        border-radius: 4px;
+        padding: 2px 6px;
+      }
+
+      .rs-tag.int {
+        background: #eef4f0;
+        color: #1e7d43;
+      }
+
+      .rs-tag.ext {
+        background: #eaeefb;
+        color: #3b5bdb;
+      }
+
+      .rs-lbl {
+        color: #1a2230;
+      }
+
+      .rs-stat {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        color: #9aa4b0;
+        text-align: right;
+      }
+
+      .rs-spin {
+        flex: 0 0 auto;
+        width: 11px;
+        height: 11px;
+        border: 2px solid rgba(59, 91, 219, 0.25);
+        border-top-color: #3b5bdb;
+        border-radius: 50%;
+        animation: ckspin 0.55s linear infinite;
+      }
+
+      .rs-src.found {
+        border-color: #dbe4ea;
+      }
+
+      .rs-src.found .rs-stat {
+        color: #41506b;
+      }
+
+      .rs-brief {
+        border: 1px solid #e4e9eb;
+        border-radius: 11px;
+        background: #fff;
+        overflow: hidden;
+        opacity: 0;
+        transform: translateY(6px);
+        transition: opacity 0.4s ease, transform 0.4s ease;
+      }
+
+      .rs-brief.show {
+        opacity: 1;
+        transform: none;
+      }
+
+      .rs-bh {
+        font-weight: 700;
+        font-size: 0.8rem;
+        padding: 9px 12px;
+        border-bottom: 1px solid #eef2f3;
+      }
+
+      .rs-find {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 8px 12px;
+        font-size: 0.74rem;
+        color: #41506b;
+      }
+
+      .rs-find + .rs-find {
+        border-top: 1px solid #f0f3f4;
+      }
+
+      .rs-find .dot {
+        flex: 0 0 auto;
+        width: 6px;
+        height: 6px;
+        margin-top: 5px;
+        border-radius: 50%;
+        background: #1e7d43;
+      }
+
+      .rs-find .cite {
+        color: #3b5bdb;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+      }
+
+      .rs-foot {
+        padding: 8px 12px;
+        border-top: 1px solid #eef2f3;
+        background: #fafcfb;
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        color: #6b7585;
+      }
+
+      .rs-foot b {
+        color: #1e7d43;
+      }
+
+      /* scene 5: advise — decision brief → actions (light) */
+      .srf--advise {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        background: #f3f6f7;
+        color: #1a2230;
+        padding: 14px;
+        overflow: hidden;
+      }
+
+      .ad-top {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .ad-title {
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 1.02rem;
+      }
+
+      .ad-conf {
+        margin-left: auto;
+        border: 1px solid #bfe6cd;
+        border-radius: 999px;
+        background: #e3f5ea;
+        color: #1e7d43;
+        font-family: var(--mono);
+        font-size: 0.57rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 2px 9px;
+      }
+
+      .ad-rec {
+        border: 1px solid #cfe6d8;
+        border-radius: 11px;
+        background: #f1f9f4;
+        padding: 11px 12px;
+      }
+
+      .ad-reclabel {
+        font-family: var(--mono);
+        font-size: 0.53rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #4f9d6e;
+      }
+
+      .ad-rec b {
+        display: block;
+        margin-top: 3px;
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 0.95rem;
+        line-height: 1.25;
+        color: #15321f;
+      }
+
+      .ad-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 7px;
+      }
+
+      .ad-cell {
+        border: 1px solid #e4e9eb;
+        border-radius: 9px;
+        background: #fff;
+        padding: 8px 10px;
+        font-size: 0.71rem;
+        color: #41506b;
+      }
+
+      .ad-cell span {
+        display: block;
+        margin-bottom: 2px;
+        font-family: var(--mono);
+        font-size: 0.51rem;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: #9aa4b0;
+      }
+
+      .ad-acth {
+        font-family: var(--mono);
+        font-size: 0.53rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #9aa4b0;
+      }
+
+      .ad-actions {
+        display: grid;
+        gap: 6px;
+      }
+
+      .ad-act {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        border: 1px solid #e4e9eb;
+        border-radius: 9px;
+        background: #fff;
+        padding: 8px 11px;
+        font-size: 0.73rem;
+        color: #41506b;
+        opacity: 0.45;
+        transition: opacity 0.3s, border-color 0.3s;
+      }
+
+      .ad-act.on {
+        opacity: 1;
+        border-color: #cfe6d8;
+      }
+
+      .ad-aic {
+        flex: 0 0 auto;
+        width: 14px;
+        text-align: center;
+        color: #cdd5dc;
+      }
+
+      .ad-act.on .ad-aic {
+        color: #1e7d43;
+      }
+
+      .ad-alabel {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .ad-atype {
+        flex: 0 0 auto;
+        font-family: var(--mono);
+        font-size: 0.55rem;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: #9aa4b0;
+      }
+
+      .ad-log {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        border-top: 1px solid #e4e9eb;
+        padding-top: 8px;
+        font-family: var(--mono);
+        font-size: 0.64rem;
+        color: #6b7585;
+        opacity: 0;
+        transition: opacity 0.4s ease;
+      }
+
+      .ad-log.show {
+        opacity: 1;
+      }
+
+      .ad-log::before {
+        content: "🔒";
+        font-size: 0.85em;
+      }
+
+      /* checks */
+      .chk-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: #aeb7ab;
+      }
+
+      .chk-pass {
+        margin-left: auto;
+        color: #8fa08c;
+        transition: color 0.3s;
+      }
+
+      .chk-pass.ok {
+        color: var(--green);
+      }
+
+      .chk-row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-family: var(--mono);
+        font-size: 0.76rem;
+        color: #687366;
+        transition: color 0.25s;
+      }
+
+      .chk-ic {
+        flex: 0 0 auto;
+        display: inline-grid;
+        place-items: center;
+        width: 13px;
+        height: 13px;
+        color: #566356;
+        font-size: 0.82rem;
+        line-height: 1;
+      }
+
+      .chk-row.pending .chk-ic::before {
+        content: "○";
+      }
+
+      .chk-row.pass .chk-ic::before {
+        content: "✓";
+      }
+
+      .chk-ic.sp {
+        width: 12px;
+        height: 12px;
+        border: 2px solid rgba(255, 189, 87, 0.25);
+        border-top-color: var(--amber);
+        border-radius: 50%;
+        animation: ckspin 0.55s linear infinite;
+      }
+
+      .chk-ic.sp::before {
+        content: "";
+      }
+
+      @keyframes ckspin {
+        to { transform: rotate(360deg); }
+      }
+
+      .chk-row.running {
+        color: #e0e7da;
+      }
+
+      .chk-row.pass {
+        color: #cdd5c8;
+      }
+
+      .chk-row.pass .chk-ic {
+        color: var(--green);
+      }
+
+      .chk-row.pass .st {
+        color: var(--green);
+      }
+
+      .chk-row .id {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .chk-row .st {
+        flex: 0 0 auto;
+        margin-left: auto;
+        color: #5a665a;
+        white-space: nowrap;
+        transition: color 0.25s;
+      }
+
+      .chk-foot {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-top: 3px;
+        border-top: 1px solid var(--line);
+        color: var(--amber);
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        padding-top: 9px;
+      }
+
+      .chk-foot::before {
+        content: "🔒";
+        font-size: 0.85em;
+      }
+
+      /* registry */
+      .reg-top {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+
+      .reg-ns {
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.86rem;
+        font-weight: 500;
+      }
+
+      .reg-ver {
+        margin-left: auto;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        color: var(--paper-soft);
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        padding: 2px 8px;
+      }
+
+      .reg-title {
+        font-family: var(--display);
+        font-size: 1.22rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .srf--registry p {
+        margin: 0;
+        color: #97a193;
+        font-size: 0.79rem;
+        line-height: 1.45;
+      }
+
+      .reg-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.74rem;
+        color: #8f9c8a;
+      }
+
+      .reg-row span {
+        flex: 0 0 52px;
+        font-family: var(--mono);
+        color: #6f7c6b;
+      }
+
+      .reg-row code {
+        color: var(--cyan);
+        font-family: var(--mono);
+        font-size: 0.74rem;
+      }
+
+      .reg-badge {
+        border-radius: 7px;
+        background: var(--green-dim);
+        color: var(--green);
+        font-size: 0.74rem;
+        padding: 8px 10px;
+      }
+
+      .reg-cmd {
+        margin-top: 3px;
+        border-radius: 7px;
+        background: #172017;
+        color: var(--paper);
+        font-family: var(--mono);
+        font-size: 0.74rem;
+        padding: 9px 11px;
+      }
+
+      /* mcp client connection + tools */
+      .srf--mcp {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 15px 15px 13px;
+        background:
+          radial-gradient(130% 55% at 0% 0%, rgba(98, 241, 138, 0.05), transparent 55%),
+          linear-gradient(180deg, #0e140f, #0a0e0b);
+        color: var(--paper);
+        overflow: hidden;
+        overflow-wrap: anywhere;
+      }
+
+      .mcp-top {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .mcp-ns {
+        font-family: var(--mono);
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: var(--green);
+      }
+
+      .mcp-ver {
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        color: var(--paper-soft);
+        padding: 2px 8px;
+      }
+
+      .mcp-status {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        letter-spacing: 0.06em;
+        color: var(--amber);
+        transition: color 0.3s;
+      }
+
+      .mcp-status i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--amber);
+        box-shadow: 0 0 7px var(--amber);
+        animation: mcpBlink 0.9s steps(1) infinite;
+      }
+
+      .mcp-status.live {
+        color: var(--green);
+      }
+
+      .mcp-status.live i {
+        background: var(--green);
+        box-shadow: 0 0 8px var(--green);
+        animation: none;
+      }
+
+      @keyframes mcpBlink {
+        50% { opacity: 0.3; }
+      }
+
+      .mcp-tools {
+        display: grid;
+        gap: 7px;
+      }
+
+      .mcp-tool {
+        display: grid;
+        grid-template-columns: 16px 1fr;
+        column-gap: 10px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: rgba(255, 255, 255, 0.012);
+        padding: 9px 11px;
+        transition: border-color 0.3s, background 0.3s, opacity 0.3s;
+      }
+
+      .mcp-tool .mt-ic {
+        grid-row: span 2;
+        display: inline-grid;
+        place-items: center;
+        width: 16px;
+        height: 16px;
+        color: #566356;
+        font-size: 0.8rem;
+      }
+
+      .mcp-tool b {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: #cdd5c8;
+      }
+
+      .mcp-tool small {
+        grid-column: 2;
+        color: #6f7c6b;
+        font-size: 0.66rem;
+      }
+
+      .mcp-tool.pending {
+        opacity: 0.4;
+      }
+
+      .mcp-tool.on {
+        opacity: 1;
+        border-color: rgba(98, 241, 138, 0.28);
+        background: rgba(98, 241, 138, 0.04);
+      }
+
+      .mcp-tool.on .mt-ic {
+        color: var(--green);
+      }
+
+      .mcp-tool.on b {
+        color: var(--paper);
+      }
+
+      .mcp-foot {
+        margin-top: auto;
+        display: grid;
+        gap: 8px;
+      }
+
+      .mcp-badge {
+        justify-self: start;
+        border-radius: 999px;
+        background: var(--green-dim);
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        padding: 4px 10px;
+      }
+
+      .mcp-cmd {
+        border-radius: 8px;
+        background: #172017;
+        color: var(--paper);
+        font-family: var(--mono);
+        font-size: 0.74rem;
+        padding: 9px 11px;
+      }
+
+      /* deploy */
+      .dep-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: #aeb7ab;
+      }
+
+      .dep-status {
+        margin-left: auto;
+        color: #8fa08c;
+        transition: color 0.3s;
+      }
+
+      .dep-status.wait {
+        color: var(--amber);
+      }
+
+      .dep-step {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 9px 11px;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        color: #687366;
+        transition: color 0.3s, border-color 0.3s, background 0.3s, opacity 0.3s;
+      }
+
+      .dep-step .ic {
+        flex: 0 0 auto;
+        display: inline-grid;
+        place-items: center;
+        width: 14px;
+        height: 14px;
+        font-size: 0.8rem;
+        color: #566356;
+      }
+
+      .dep-step b {
+        font-weight: 500;
+      }
+
+      .dep-step .flag {
+        margin-left: auto;
+        font-size: 0.66rem;
+        color: #6f7c6b;
+      }
+
+      .dep-step.run {
+        color: #e0e7da;
+      }
+
+      .dep-step.run .ic {
+        width: 12px;
+        height: 12px;
+        border: 2px solid rgba(98, 241, 138, 0.25);
+        border-top-color: var(--green);
+        border-radius: 50%;
+        animation: ckspin 0.55s linear infinite;
+      }
+
+      .dep-step.done {
+        color: #cdd5c8;
+        border-color: rgba(98, 241, 138, 0.28);
+      }
+
+      .dep-step.done .ic,
+      .dep-step.done .flag {
+        color: var(--green);
+      }
+
+      .dep-step.locked {
+        opacity: 0.5;
+      }
+
+      .dep-step.awaiting {
+        color: var(--amber);
+        border-color: rgba(255, 189, 87, 0.45);
+        background: rgba(255, 189, 87, 0.07);
+        animation: depPulse 1.6s ease-in-out infinite;
+      }
+
+      .dep-step.awaiting .ic,
+      .dep-step.awaiting .flag {
+        color: var(--amber);
+      }
+
+      @keyframes depPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(255, 189, 87, 0); }
+        50% { box-shadow: 0 0 0 4px rgba(255, 189, 87, 0.12); }
+      }
+
+      .dep-gate {
+        color: var(--amber);
+        font-family: var(--mono);
+        font-size: 0.74rem;
+        text-align: center;
+      }
+
+      .dep-btn {
+        margin-top: 3px;
+        border: 1px solid var(--line-strong);
+        border-radius: 9px;
+        background: #182119;
+        color: var(--paper-soft);
+        cursor: default;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 11px;
+        text-align: center;
+        transition: background 0.3s, color 0.3s, border-color 0.3s;
+      }
+
+      .dep-btn.live {
+        border-color: #74ff98;
+        background: var(--green);
+        color: #0b0d0b;
+        animation: depBtn 1.5s ease-in-out infinite;
+      }
+
+      @keyframes depBtn {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(98, 241, 138, 0.5); }
+        60% { box-shadow: 0 0 0 7px rgba(98, 241, 138, 0); }
+      }
+
+      /* scene 3: live booking flow */
+      .srf--book {
+        display: flex;
+        flex-direction: column;
+        background: linear-gradient(180deg, #ffffff, #f5f1e7);
+        color: #1d2620;
+        font-size: 0.8rem;
+        overflow: hidden;
+      }
+
+      .bk-rail {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        border-bottom: 1px solid #e6dfce;
+        padding: 11px 14px;
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #a3a795;
+      }
+
+      .bk-prog {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .bk-prog i {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #d9d2c0;
+        transition: background 0.3s;
+      }
+
+      .bk-prog i.on {
+        background: #1e6930;
+      }
+
+      .bk-now {
+        color: #1e6930;
+        font-weight: 600;
+      }
+
+      .bk-count {
+        margin-left: auto;
+        color: #a3a795;
+        letter-spacing: 0.04em;
+      }
+
+      .bk-days {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .bk-day {
+        display: grid;
+        gap: 1px;
+        justify-items: center;
+        border: 1px solid #e2dac8;
+        border-radius: 10px;
+        background: #fffdf7;
+        color: #2c352c;
+        font: inherit;
+        padding: 9px 0;
+        cursor: default;
+        transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, color 0.2s;
+      }
+
+      .bk-day small {
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #9aa093;
+      }
+
+      .bk-day b {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 1.05rem;
+      }
+
+      .bk-day.bk-picked {
+        border-color: #1e6930;
+        background: #e7f7ea;
+        box-shadow: inset 0 0 0 1px #1e6930;
+        color: #1e6930;
+      }
+
+      .bk-day.bk-picked small {
+        color: #2f7a45;
+      }
+
+      .bk-field {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        border: 1px solid #e2dac8;
+        border-radius: 10px;
+        background: #fffdf7;
+        padding: 11px 12px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+
+      .bk-field small {
+        flex: 0 0 48px;
+        font-family: var(--mono);
+        font-size: 0.6rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #9aa093;
+      }
+
+      .bk-val {
+        flex: 1;
+        min-width: 0;
+        min-height: 1.1em;
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        color: #283229;
+        overflow-wrap: anywhere;
+      }
+
+      .bk-field.focus {
+        border-color: #1e6930;
+        box-shadow: inset 0 0 0 1px #1e6930;
+      }
+
+      .bk-body {
+        position: relative;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        padding: 15px 14px;
+      }
+
+      .bk-step {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: 9px;
+        animation: bkFade 0.34s ease both;
+      }
+
+      @keyframes bkFade {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: none; }
+      }
+
+      .bk-h {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 1.04rem;
+        letter-spacing: -0.01em;
+        margin-bottom: 3px;
+      }
+
+      .bk-brand {
+        display: flex;
+        align-items: baseline;
+        gap: 9px;
+        padding: 12px 14px 0;
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 1rem;
+        letter-spacing: -0.015em;
+        color: #1e2a22;
+      }
+
+      .bk-brand .mk {
+        color: #1e6930;
+        font-size: 0.8em;
+      }
+
+      .bk-brand small {
+        font-family: var(--mono);
+        font-weight: 400;
+        font-size: 0.58rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #9aa093;
+      }
+
+      .bk-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border: 1px solid #e2dac8;
+        border-radius: 12px;
+        background: #fffdf7;
+        color: #283229;
+        font: inherit;
+        text-align: left;
+        padding: 9px 11px;
+        cursor: default;
+        transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      }
+
+      .bk-thumb {
+        flex: 0 0 auto;
+        width: 46px;
+        height: 46px;
+        border-radius: 9px;
+        object-fit: cover;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+      }
+
+      .bk-item-main {
+        display: grid;
+        gap: 2px;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .bk-item-main b {
+        font-weight: 700;
+      }
+
+      .bk-item-main small {
+        color: #7a8274;
+        font-family: var(--mono);
+        font-size: 0.65rem;
+      }
+
+      .bk-price {
+        flex: 0 0 auto;
+        font-family: var(--mono);
+        font-size: 0.84rem;
+        font-weight: 600;
+        color: #1e6930;
+      }
+
+      .bk-confirm {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-radius: 12px;
+        background: #f0ead9;
+        padding: 11px;
+      }
+
+      .bk-thumb-lg {
+        flex: 0 0 auto;
+        width: 58px;
+        height: 58px;
+        border-radius: 10px;
+        object-fit: cover;
+      }
+
+      .bk-confirm-main {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .bk-confirm-main b {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 0.98rem;
+      }
+
+      .bk-confirm-main small {
+        color: #6c7567;
+        font-family: var(--mono);
+        font-size: 0.67rem;
+      }
+
+      .bk-item.bk-picked,
+      .bk-slot.bk-picked {
+        border-color: #1e6930;
+        background: #e7f7ea;
+        box-shadow: inset 0 0 0 1px #1e6930;
+      }
+
+      .bk-slots {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .bk-slot {
+        border: 1px solid #e2dac8;
+        border-radius: 10px;
+        background: #fffdf7;
+        color: #2c352c;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        text-align: center;
+        padding: 11px 0;
+        transition: border-color 0.2s, background 0.2s, color 0.2s;
+      }
+
+      .bk-slot.bk-picked {
+        color: #1e6930;
+        font-weight: 600;
+      }
+
+      .bk-sum {
+        border-radius: 11px;
+        background: #efe8d7;
+        padding: 12px 13px;
+        font-size: 0.83rem;
+      }
+
+      .bk-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border: 1px solid #e2dac8;
+        border-radius: 11px;
+        background: #fffdf7;
+        padding: 13px;
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        color: #46514a;
+      }
+
+      .bk-pay {
+        margin-top: auto;
+        border: 0;
+        border-radius: 11px;
+        background: #1e6930;
+        color: #fff;
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 0.96rem;
+        padding: 14px;
+        cursor: default;
+        transition: background 0.2s, transform 0.15s;
+      }
+
+      .bk-pay.bk-picked {
+        background: #18582a;
+        transform: scale(0.98);
+      }
+
+      .bk-done {
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        gap: 11px;
+      }
+
+      .bk-check {
+        display: grid;
+        place-items: center;
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        background: #e7f7ea;
+        color: #1e6930;
+        font-size: 1.7rem;
+        box-shadow: 0 0 0 7px rgba(30, 105, 48, 0.08);
+        animation: bkPop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes bkPop {
+        from { transform: scale(0.4); opacity: 0; }
+        to { transform: none; opacity: 1; }
+      }
+
+      .bk-done-t {
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 1.2rem;
+      }
+
+      .bk-sub {
+        color: #6c7567;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+      }
+
+      .bk-cursor {
+        position: absolute;
+        z-index: 5;
+        width: 20px;
+        height: 20px;
+        margin: -10px 0 0 -10px;
+        border-radius: 50%;
+        border: 2px solid rgba(30, 105, 48, 0.9);
+        background: rgba(30, 105, 48, 0.16);
+        box-shadow: 0 2px 9px rgba(0, 0, 0, 0.22);
+        pointer-events: none;
+        opacity: 0;
+        transition: left 0.55s cubic-bezier(0.5, 0, 0.2, 1), top 0.55s cubic-bezier(0.5, 0, 0.2, 1), opacity 0.3s;
+      }
+
+      .bk-cursor.is-on {
+        opacity: 1;
+      }
+
+      .bk-cursor.click {
+        animation: bkClick 0.36s ease;
+      }
+
+      @keyframes bkClick {
+        40% { transform: scale(0.58); }
+        100% { transform: scale(1); }
+      }
+
+      .voiceover {
+        position: absolute;
+        left: 50%;
+        bottom: 76px;
+        transform: translateX(-50%);
+        width: max-content;
+        max-width: min(80%, 700px);
+        text-align: center;
+        background: rgba(7, 10, 8, 0.82);
+        border-radius: 9px;
+        padding: 7px 16px;
+        pointer-events: none;
+      }
+
+      .vo-badge {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        align-self: center;
+        padding: 9px 13px;
+        border: 1px solid rgba(98, 241, 138, 0.2);
+        border-radius: 12px;
+        background: rgba(98, 241, 138, 0.06);
+      }
+
+      .vo-eq {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 14px;
+      }
+
+      .vo-eq i {
+        width: 3px;
+        border-radius: 2px;
+        background: var(--green);
+        box-shadow: 0 0 6px rgba(98, 241, 138, 0.6);
+        transform-origin: bottom;
+        animation: eq 0.9s ease-in-out infinite;
+      }
+
+      .vo-eq i:nth-child(1) { height: 7px; animation-delay: 0s; }
+      .vo-eq i:nth-child(2) { height: 14px; animation-delay: 0.18s; }
+      .vo-eq i:nth-child(3) { height: 9px; animation-delay: 0.36s; }
+      .vo-eq i:nth-child(4) { height: 12px; animation-delay: 0.1s; }
+
+      @keyframes eq {
+        0%, 100% { transform: scaleY(0.35); }
+        50% { transform: scaleY(1); }
+      }
+
+      .vo-label {
+        font-family: var(--mono);
+        font-size: 0.52rem;
+        font-weight: 500;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: #7f9a85;
+      }
+
+      .vo-text {
+        margin: 0;
+        color: var(--paper);
+        font-size: clamp(1.02rem, 1.45vw, 1.3rem);
+        font-weight: 600;
+        line-height: 1.4;
+        letter-spacing: -0.008em;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 2px 18px rgba(0, 0, 0, 0.7);
+      }
+
+      .vo-text .w {
+        display: inline-block;
+        opacity: 0;
+        animation: wordIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes wordIn {
+        from { opacity: 0; transform: translateY(0.5em); filter: blur(5px); }
+        to { opacity: 1; transform: none; filter: blur(0); }
+      }
+
+      .vo-prog {
+        display: none;
+      }
+
+      .vo-prog::after {
+        content: "";
+        position: absolute;
+        right: 0;
+        top: 50%;
+        width: 7px;
+        height: 7px;
+        transform: translate(50%, -50%);
+        border-radius: 50%;
+        background: #d6ffe2;
+        box-shadow: 0 0 10px var(--green);
+      }
+
+      /* end card */
+      .endcard {
+        position: absolute;
+        inset: 0;
+        z-index: 20;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        background:
+          radial-gradient(78% 60% at 50% 36%, rgba(98, 241, 138, 0.13), transparent 70%),
+          linear-gradient(180deg, #0c120e, #070907);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.5s ease;
+      }
+
+      .stage.is-end .endcard {
+        opacity: 1;
+      }
+
+      .stage.is-end .video-frame,
+      .stage.is-end .voiceover {
+        opacity: 0;
+        transition: opacity 0.4s ease;
+      }
+
+      .ec-inner {
+        display: grid;
+        justify-items: center;
+        gap: 13px;
+        padding: 24px;
+        max-width: 92%;
+      }
+
+      .stage.is-end .ec-inner > * {
+        animation: ecIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      .stage.is-end .ec-inner > *:nth-child(1) { animation-delay: 0.15s; }
+      .stage.is-end .ec-inner > *:nth-child(2) { animation-delay: 0.28s; }
+      .stage.is-end .ec-inner > *:nth-child(3) { animation-delay: 0.41s; }
+      .stage.is-end .ec-inner > *:nth-child(4) { animation-delay: 0.54s; }
+      .stage.is-end .ec-inner > *:nth-child(5) { animation-delay: 0.67s; }
+      .stage.is-end .ec-inner > *:nth-child(6) { animation-delay: 0.8s; }
+
+      @keyframes ecIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: none; }
+      }
+
+      .ec-logo {
+        display: grid;
+        place-items: center;
+        width: 66px;
+        height: 66px;
+        border: 1px solid var(--line-strong);
+        border-radius: 17px;
+        background: linear-gradient(180deg, rgba(98, 241, 138, 0.13), rgba(98, 241, 138, 0.02));
+        color: var(--green);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 14px 44px -14px rgba(98, 241, 138, 0.6);
+      }
+
+      .ec-logo svg {
+        width: 34px;
+        height: 34px;
+      }
+
+      .ec-eyebrow {
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--green);
+      }
+
+      .ec-word {
+        margin: 0;
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: clamp(1.9rem, 4vw, 3rem);
+        letter-spacing: -0.035em;
+        color: var(--text);
+      }
+
+      .ec-word span {
+        color: var(--green);
+      }
+
+      .ec-slogan {
+        margin: 0 0 4px;
+        color: var(--paper-soft);
+        font-size: clamp(0.95rem, 1.5vw, 1.2rem);
+        font-weight: 500;
+      }
+
+      .ec-cmds {
+        display: grid;
+        gap: 8px;
+      }
+
+      .ec-cmd {
+        border: 1px solid var(--line-strong);
+        border-radius: 10px;
+        background: #0a0f0b;
+        color: var(--paper);
+        font-family: var(--term);
+        font-size: clamp(0.74rem, 1.1vw, 0.9rem);
+        padding: 11px 18px;
+        white-space: nowrap;
+      }
+
+      .ec-cmd .ec-dollar {
+        color: var(--green);
+        margin-right: 9px;
+      }
+
+      .ec-reg {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+
+      .ec-reg .mk {
+        color: var(--green);
+      }
+
+      .controls {
+        display: grid;
+        gap: 12px;
+        border-top: 1px solid var(--line);
+        padding: 14px 16px 16px;
+      }
+
+      .control-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .button {
+        min-height: 40px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: #182119;
+        color: var(--text);
+        cursor: pointer;
+        padding: 9px 13px;
+      }
+
+      .button:hover,
+      .button:focus-visible {
+        border-color: var(--green);
+      }
+
+      .button--primary {
+        border-color: #74ff98;
+        background: var(--green);
+        color: #0b0d0b;
+        font-weight: 750;
+      }
+
+      .button.is-on {
+        border-color: var(--green);
+        color: var(--green);
+        background: rgba(98, 241, 138, 0.08);
+      }
+
+      progress {
+        width: 100%;
+        height: 12px;
+        border: 0;
+        border-radius: 999px;
+        overflow: hidden;
+        background: #222a23;
+      }
+
+      progress::-webkit-progress-bar {
+        background: #222a23;
+      }
+
+      progress::-webkit-progress-value {
+        background: linear-gradient(90deg, var(--green), #9bffba);
+      }
+
+      progress::-moz-progress-bar {
+        background: linear-gradient(90deg, var(--green), #9bffba);
+      }
+
+      /* ── Right rail: edit-suite timeline ── */
+      .side {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        min-height: 100%;
+        overflow: hidden;
+      }
+
+      .side-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--line);
+        padding: 17px 16px 15px;
+      }
+
+      .side-eyebrow {
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        font-weight: 500;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+      }
+
+      .side-meta {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        font-weight: 300;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+      }
+
+      .side-meta .side-dot {
+        opacity: 0.45;
+        padding: 0 5px;
+      }
+
+      .rail-scroll {
+        max-height: 560px;
+        overflow: auto;
+        padding: 12px 14px 8px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--line-strong) transparent;
+      }
+
+      .rail-scroll::-webkit-scrollbar {
+        width: 7px;
+      }
+
+      .rail-scroll::-webkit-scrollbar-thumb {
+        border: 2px solid transparent;
+        border-radius: 999px;
+        background: var(--line-strong);
+        background-clip: padding-box;
+      }
+
+      .rail {
+        position: relative;
+        display: grid;
+        gap: 1px;
+        margin: 0;
+        padding: 0;
+      }
+
+      .rail-track,
+      .rail-progress {
+        position: absolute;
+        left: 17px;
+        width: 2px;
+        border-radius: 2px;
+        pointer-events: none;
+      }
+
+      .rail-track {
+        background: var(--line);
+      }
+
+      .rail-progress {
+        background: linear-gradient(180deg, var(--green), rgba(98, 241, 138, 0.35));
+        box-shadow: 0 0 9px rgba(98, 241, 138, 0.5);
+        transition: height 0.18s linear, top 0.18s linear;
+      }
+
+      .rail li {
+        list-style: none;
+        animation: railIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes railIn {
+        from {
+          opacity: 0;
+          transform: translateY(7px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      .rail-btn {
+        position: relative;
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 12px;
+        width: 100%;
+        border: 0;
+        border-radius: 11px;
+        background: transparent;
+        color: var(--text);
+        cursor: pointer;
+        padding: 11px 12px 11px 3px;
+        text-align: left;
+        transition: background 0.25s ease, box-shadow 0.25s ease;
+      }
+
+      .rail-btn:hover,
+      .rail-btn:focus-visible {
+        background: rgba(98, 241, 138, 0.06);
+        outline: none;
+      }
+
+      .rail-spine {
+        display: grid;
+        place-items: start center;
+        padding-top: 3px;
+      }
+
+      .rail-node {
+        position: relative;
+        z-index: 2;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        border: 2px solid var(--line-strong);
+        background: var(--bg);
+        transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .rail-body {
+        min-width: 0;
+      }
+
+      .rail-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+
+      .rail-time {
+        font-family: var(--mono);
+        font-size: 0.71rem;
+        font-weight: 400;
+        letter-spacing: 0.02em;
+        color: var(--muted);
+        transition: color 0.25s ease;
+      }
+
+      .rail-dur {
+        position: relative;
+        flex: 1;
+        height: 3px;
+        border-radius: 999px;
+        background: var(--line);
+        overflow: hidden;
+      }
+
+      .rail-dur-fill {
+        position: absolute;
+        inset: 0 100% 0 0;
+        background: linear-gradient(90deg, var(--green), #9bffba);
+        transition: right 0.2s linear;
+      }
+
+      .rail-title {
+        display: block;
+        font-family: var(--display);
+        font-size: 0.94rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        line-height: 1.22;
+        color: var(--paper-soft);
+        transition: color 0.25s ease;
+      }
+
+      .rail-desc {
+        display: block;
+        overflow: hidden;
+        max-height: 0;
+        color: var(--muted);
+        font-size: 0.8rem;
+        line-height: 1.42;
+        opacity: 0;
+        transition: max-height 0.35s ease, opacity 0.3s ease, margin-top 0.35s ease;
+      }
+
+      .rail-btn[data-state="past"] .rail-node {
+        border-color: var(--green);
+        background: var(--green);
+      }
+
+      .rail-btn[data-state="past"] .rail-dur-fill {
+        right: 0;
+      }
+
+      .rail-btn[data-state="past"] .rail-title {
+        color: var(--muted);
+      }
+
+      .rail-btn[data-state="active"] {
+        background: linear-gradient(180deg, rgba(98, 241, 138, 0.1), rgba(98, 241, 138, 0.02));
+        box-shadow: inset 0 0 0 1px rgba(98, 241, 138, 0.28);
+      }
+
+      .rail-btn[data-state="active"] .rail-node {
+        border-color: var(--green);
+        background: var(--green);
+        animation: nodePulse 2.1s ease-out infinite;
+      }
+
+      .rail-btn[data-state="active"] .rail-time {
+        color: var(--green);
+      }
+
+      .rail-btn[data-state="active"] .rail-title {
+        color: var(--text);
+      }
+
+      .rail-btn[data-state="active"] .rail-desc {
+        max-height: 64px;
+        margin-top: 7px;
+        opacity: 1;
+      }
+
+      @keyframes nodePulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(98, 241, 138, 0.5);
+        }
+        70% {
+          box-shadow: 0 0 0 8px rgba(98, 241, 138, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(98, 241, 138, 0);
+        }
+      }
+
+      .guarantees {
+        display: grid;
+        gap: 10px;
+        border-top: 1px solid var(--line);
+        padding: 15px 16px 16px;
+        background: rgba(9, 11, 9, 0.4);
+      }
+
+      .guarantee {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--paper-soft);
+        font-size: 0.84rem;
+        line-height: 1.35;
+      }
+
+      .gtick {
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 18px;
+        height: 18px;
+        border-radius: 6px;
+        background: var(--green-dim);
+        color: var(--green);
+        font-family: var(--mono);
+        font-size: 0.66rem;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      @media (max-width: 1180px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .side {
+          min-height: auto;
+        }
+
+        .rail-scroll {
+          max-height: none;
+        }
+      }
+
+      @media (max-width: 860px) {
+        .topbar,
+        .stage-head,
+        .control-row {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .badges {
+          justify-content: flex-start;
+        }
+
+        .stage {
+          aspect-ratio: auto;
+          min-height: 0;
+        }
+
+        .video-frame {
+          grid-template-columns: 1fr;
+        }
+
+        .browser {
+          min-height: 360px;
+        }
+
+        .voiceover {
+          position: static;
+          margin-top: 16px;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .shell {
+          width: min(100% - 20px, 1520px);
+          padding-top: 14px;
+        }
+
+        .stage,
+        .controls,
+        .stage-head,
+        .side-head,
+        .checklist {
+          padding-left: 12px;
+          padding-right: 12px;
+        }
+
+        .app-body,
+        .metric-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.001ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand-wrap">
+          <span class="logo-hex" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2 21 7v10l-9 5-9-5V7z"></path>
+              <path d="M9.5 9.5 7 12l2.5 2.5M14.5 9.5 17 12l-2.5 2.5" stroke-width="1.6"></path>
+            </svg>
+          </span>
+          <div class="brand">
+            <span class="brand__eyebrow">Flagship demo · Corporate OS</span>
+            <h1>Your company's dedicated operating system</h1>
+          </div>
+        </div>
+        <div class="badges" aria-label="Corporate OS loops">
+          <span class="badge">Operate</span>
+          <span class="badge">Research</span>
+          <span class="badge">Advise</span>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="stage-wrap" aria-label="Video preview">
+          <div class="stage-head">
+            <div class="scene-title">
+              <span id="scene-kicker">Scene 1 of 7</span>
+              <strong id="scene-heading">Production foundation risk</strong>
+            </div>
+            <div class="clock" id="clock">00:00 / 01:30</div>
+          </div>
+
+          <div class="stage">
+            <div class="video-frame">
+              <section class="terminal" aria-label="Terminal preview">
+                <div class="chrome">
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="dot"></span>
+                  <span class="chrome-label" id="terminal-title">demo terminal</span>
+                </div>
+                <pre class="term-lines" id="terminal-lines"></pre>
+                <div class="terminal-foot" id="terminal-foot">local workspace: studio-booking</div>
+              </section>
+
+              <section class="browser" aria-label="Generated surface preview">
+                <div class="chrome chrome--browser">
+                  <span class="dots">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                  </span>
+                  <span class="addr">
+                    <svg class="addr-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                      <rect x="5" y="11" width="14" height="9" rx="2"></rect>
+                      <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+                    </svg>
+                    <span class="addr-url" id="browser-url">localhost:5173</span>
+                  </span>
+                  <span class="surface-tag" id="surface-tag">Cloudflare-native</span>
+                </div>
+                <div class="surface" id="surface"></div>
+              </section>
+            </div>
+
+            <div class="voiceover">
+              <p class="vo-text" id="voiceover">
+                Coding agents nail the first seventy percent of an app — the UI.
+              </p>
+              <span class="vo-prog" id="vo-prog"></span>
+            </div>
+
+            <div class="endcard" id="endcard" aria-hidden="true">
+              <div class="ec-inner">
+                <span class="ec-logo">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 2 21 7v10l-9 5-9-5V7z"></path>
+                    <path d="M9.5 9.5 7 12l2.5 2.5M14.5 9.5 17 12l-2.5 2.5" stroke-width="1.6"></path>
+                  </svg>
+                </span>
+                <span class="ec-eyebrow">agents build the 70% · you ship the 30%</span>
+                <h2 class="ec-word">microservices<span>.sh</span></h2>
+                <p class="ec-slogan">Production foundations for agent-built apps.</p>
+                <div class="ec-cmds">
+                  <span class="ec-cmd"><span class="ec-dollar">$</span>npm create microservices-app@latest</span>
+                  <span class="ec-cmd"><span class="ec-dollar">$</span>npx -y @microservices-sh/mcp</span>
+                </div>
+                <span class="ec-reg"><span class="mk">◆</span> Official MCP Registry · sh.microservices/mcp</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="controls">
+            <label class="sr-only" for="progress">Demo progress</label>
+            <progress id="progress" value="0" max="90"></progress>
+            <div class="control-row">
+              <div class="buttons">
+                <button class="button button--primary" type="button" id="play">Play</button>
+                <button class="button" type="button" id="prev">Previous</button>
+                <button class="button" type="button" id="next">Next</button>
+                <button class="button" type="button" id="restart">Restart</button>
+                <button class="button" type="button" id="vo-toggle" aria-pressed="false">🔇 VO off</button>
+              </div>
+              <audio id="vo-audio" preload="auto"></audio>
+              <span class="clock" id="scene-range">00:00-00:10</span>
+            </div>
+          </div>
+        </section>
+
+        <aside class="side" aria-label="Storyboard timeline">
+          <div class="side-head">
+            <span class="side-eyebrow">Timeline</span>
+            <span class="side-meta">
+              <span id="rail-count">7 scenes</span><span class="side-dot">·</span><span id="rail-total">01:30</span>
+            </span>
+          </div>
+          <div class="rail-scroll">
+            <ol class="rail" id="timeline"></ol>
+          </div>
+          <div class="guarantees" aria-label="What this proves">
+            <div class="guarantee"><span class="gtick">✓</span><span>Generated source stays local and inspectable.</span></div>
+            <div class="guarantee"><span class="gtick">✓</span><span>Contracts and lockfiles guide agents before edits.</span></div>
+            <div class="guarantee"><span class="gtick">✓</span><span>Deploys stay behind approval gates.</span></div>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <script>
+      const scenes = [
+        {
+          start: 0,
+          end: 12,
+          title: "Encode the company",
+          short: "Onboarding starts with the company — not a template.",
+          openSurface: true,
+          terminalTitle: "verana-os ▸ os intake",
+          terminalFoot: "writing microservices.os.json · company-model.md",
+          browserUrl: "microservices.os.json",
+          appPill: "Corporate OS intake",
+          voiceover: "Most companies don't need another AI assistant — they need their operating model encoded. So we start with the company, not a template.",
+          captions: [
+            { at: 0, text: "Most companies don't need another AI assistant." },
+            { at: 3, text: "They need their operating model encoded." },
+            { at: 6.2, text: "So we start with the company — not a template." }
+          ],
+          lines: [
+            { text: "$ npm create microservices-app@latest verana-os -- --os", type: "prompt" },
+            { text: "Corporate OS · template dot-ai-os", type: "ok", note: "not a dev boilerplate" },
+            { text: "$ pnpm microservices os intake", type: "prompt" },
+            { text: "what company are we encoding?", type: "muted" },
+            { text: "→ microservices.os.json", type: "ok", note: "company encoded" }
+          ]
+        },
+        {
+          start: 12,
+          end: 24,
+          title: "The OS shell",
+          short: "A private operating layer: operate, research, advise, govern.",
+          terminalTitle: "verana-os ▸ os create",
+          terminalFoot: "business-ready · operate · research · advise",
+          browserUrl: "verana-os · console",
+          appPill: "Corporate OS",
+          voiceover: "From that intake, it builds your company's private operating layer — one governed system to operate, research, and advise.",
+          captions: [
+            { at: 0, text: "From the intake, it builds your operating layer." },
+            { at: 3.2, text: "One private, governed system —" },
+            { at: 5.4, text: "to operate, research, and advise." }
+          ],
+          lines: [
+            { text: "$ pnpm microservices os create", type: "prompt" },
+            { text: "Corporate OS · dot-ai-os", type: "ok", note: "workspace · team · knowledge" },
+            { text: "$ pnpm microservices os check", type: "prompt" },
+            { text: "owner ✓  workflow ✓  roles ✓  approvals ✓", type: "muted" },
+            { text: "business-ready", type: "ok", note: "not just code-ready" }
+          ]
+        },
+        {
+          start: 24,
+          end: 38,
+          title: "Operate",
+          short: "Real workflows run through the system, not meetings.",
+          terminalTitle: "verana-os ▸ operate",
+          terminalFoot: "client delivery · booking → invoice · logged",
+          browserUrl: "verana.book · client workflow",
+          appPill: "Live workflow",
+          voiceover: "Operate. The system runs the day's work across every site — bookings, reminders, invoices — and routes the few things that need a human, like a refund, for one-click approval. Every action logged.",
+          captions: [
+            { at: 0, text: "Operate — the system runs the day's work." },
+            { at: 3.2, text: "Bookings, reminders, invoices — across every site." },
+            { at: 6.6, text: "It routes the exceptions to you — approve in one click." },
+            { at: 10, text: "Every action logged. No spreadsheets, no chasing." }
+          ],
+          lines: [
+            { text: "$ pnpm microservices os workflow run client-booking", type: "prompt" },
+            { text: "▸ intake → booking → confirmation", type: "muted" },
+            { text: "▸ payment · invoice · audit-log", type: "muted" },
+            { text: "running", type: "ok", note: "work through the OS" }
+          ]
+        },
+        {
+          start: 38,
+          end: 48,
+          title: "Research",
+          short: "Ask a company question across internal data and the market.",
+          terminalTitle: "verana-os ▸ research",
+          terminalFoot: "12 sources · internal + market · cited",
+          browserUrl: "verana-os ▸ research",
+          appPill: "Cited research",
+          voiceover: "Research. Ask the company a real question — should Riverside open Saturdays? It pulls your own data and the outside market, every finding cited, into one brief.",
+          captions: [
+            { at: 0, text: "Research — ask the company a real question." },
+            { at: 3.2, text: "It pulls your own data and the outside market," },
+            { at: 6.4, text: "every finding cited — into one brief." }
+          ],
+          lines: [
+            { text: "$ pnpm microservices os research \"Sat hours · Riverside\"", type: "prompt" },
+            { text: "▸ internal: bookings · capacity · waitlist", type: "muted" },
+            { text: "▸ market: demand · competitors · reviews", type: "muted" },
+            { text: "brief ready", type: "ok", note: "12 sources · cited" }
+          ]
+        },
+        {
+          start: 48,
+          end: 58,
+          title: "Advise",
+          short: "Research becomes a decision brief that turns into action.",
+          terminalTitle: "verana-os ▸ advise",
+          terminalFoot: "decision logged · brief + sources attached",
+          browserUrl: "verana-os ▸ advise",
+          appPill: "Decision brief",
+          voiceover: "Advise. The research becomes a decision brief — a recommendation, options, risks, and an owner — and it turns into real tasks, approvals, and a logged decision. Advice that leaves an audit trail.",
+          captions: [
+            { at: 0, text: "Advise — research becomes a decision brief." },
+            { at: 3.2, text: "A recommendation, options, risks, an owner —" },
+            { at: 6.4, text: "that turns into tasks, approvals, a logged decision." }
+          ],
+          lines: [
+            { text: "$ pnpm microservices os advise --from research", type: "prompt" },
+            { text: "▸ recommendation · options · risks · owner", type: "muted" },
+            { text: "▸ create: task · approval · review", type: "muted" },
+            { text: "decision brief", type: "ok", note: "logged · sources attached" }
+          ]
+        },
+        {
+          start: 52,
+          end: 61,
+          title: "Use MCP",
+          short: "Expose the same workflow to agent clients through MCP.",
+          terminalTitle: "@microservices-sh/mcp",
+          terminalFoot: "official registry: sh.microservices/mcp",
+          browserUrl: "registry.modelcontextprotocol.io",
+          appPill: "Official MCP Registry",
+          voiceover: "The same tools work inside your agent — Claude, Cursor, Codex — through one MCP server in the official registry.",
+          captions: [
+            { at: 0, text: "The same tools work inside your agent —" },
+            { at: 3, text: "Claude, Cursor, Codex —" },
+            { at: 4.8, text: "through one MCP server in the official registry." }
+          ],
+          lines: [
+            { text: "$ npx -y @microservices-sh/mcp", type: "prompt" },
+            { text: "MCP server ready", type: "muted" },
+            { text: "MICROSERVICES_API_URL=https://api.microservices.sh", type: "muted" },
+            { text: "Registry namespace: sh.microservices/mcp", type: "muted" }
+          ],
+          menu: ["inspect modules", "compose app", "run checks", "deploy plan"],
+          activeMenu: 0,
+          main: [
+            { label: "MCP package", value: "0.1.1" },
+            { label: "Registry", value: "Live" },
+            { code: "npx -y @microservices-sh/mcp" }
+          ]
+        },
+        {
+          start: 61,
+          end: 70,
+          title: "Approval-gated deploy",
+          short: "Agents can prepare production actions, not silently execute them.",
+          terminalTitle: "deploy run",
+          terminalFoot: "end card: CLI + MCP install commands",
+          browserUrl: "deploy plan",
+          appPill: "Confirmation required",
+          voiceover: "And deploys stay gated. The agent prepares everything — but production waits for you.",
+          captions: [
+            { at: 0, text: "And deploys stay gated." },
+            { at: 2.3, text: "The agent prepares everything —" },
+            { at: 4, text: "but production waits for you." }
+          ],
+          lines: [
+            { text: "$ pnpm microservices deploy run --help", type: "prompt" },
+            { text: "preview ✓ · provision · migrate · upload", type: "muted" },
+            { text: "production actions require confirmation", type: "warn" },
+            { text: "agents prepare · humans approve", type: "ok" },
+            { text: "$ npm create microservices-app@latest", type: "prompt" },
+            { text: "$ npx -y @microservices-sh/mcp", type: "prompt" }
+          ],
+          menu: ["Plan", "Review", "Confirm", "Deploy"],
+          activeMenu: 2,
+          main: [
+            { label: "Production action", value: "Blocked" },
+            { label: "Human step", value: "Confirm" },
+            { code: "approval-gated deploy plans" }
+          ]
+        },
+        {
+          start: 70,
+          end: 77,
+          title: "Start building",
+          short: "Two commands. Production foundations you own.",
+          endcard: true,
+          terminalTitle: "",
+          terminalFoot: "",
+          voiceover: "microservices.sh — production foundations for agent-built apps.",
+          lines: []
+        }
+      ];
+
+      const totalDuration = scenes[scenes.length - 1].end;
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const elements = {
+        sceneKicker: document.querySelector("#scene-kicker"),
+        sceneHeading: document.querySelector("#scene-heading"),
+        clock: document.querySelector("#clock"),
+        terminalTitle: document.querySelector("#terminal-title"),
+        terminalLines: document.querySelector("#terminal-lines"),
+        terminalFoot: document.querySelector("#terminal-foot"),
+        browserUrl: document.querySelector("#browser-url"),
+        surfaceTag: document.querySelector("#surface-tag"),
+        voiceover: document.querySelector("#voiceover"),
+        surface: document.querySelector("#surface"),
+        videoFrame: document.querySelector(".video-frame"),
+        stage: document.querySelector(".stage"),
+        progress: document.querySelector("#progress"),
+        play: document.querySelector("#play"),
+        prev: document.querySelector("#prev"),
+        next: document.querySelector("#next"),
+        restart: document.querySelector("#restart"),
+        sceneRange: document.querySelector("#scene-range"),
+        timeline: document.querySelector("#timeline"),
+        voAudio: document.querySelector("#vo-audio"),
+        voToggle: document.querySelector("#vo-toggle"),
+        voProg: document.querySelector("#vo-prog")
+      };
+
+      let voOn = false;
+      let lastCaption = "";
+
+      function currentCaption(scene, local) {
+        if (scene.captions && scene.captions.length) {
+          let text = scene.captions[0].text;
+          for (const c of scene.captions) {
+            if (local >= c.at) {
+              text = c.text;
+            }
+          }
+          return text;
+        }
+        return scene.voiceover;
+      }
+
+      function updateCaption() {
+        const scene = scenes[getSceneIndex(currentTime)];
+        const dur = (scene.end - scene.start) || 1;
+        const local = currentTime - scene.start;
+        const cap = currentCaption(scene, local);
+        if (cap !== lastCaption) {
+          lastCaption = cap;
+          const el = elements.voiceover;
+          el.textContent = "";
+          cap.split(" ").forEach((word, i) => {
+            const s = document.createElement("span");
+            s.className = "w";
+            s.textContent = word;
+            s.style.animationDelay = `${i * 0.045}s`;
+            el.append(s, document.createTextNode(" "));
+          });
+        }
+        if (elements.voProg) {
+          elements.voProg.style.width = `${Math.min(100, Math.max(0, (local / dur) * 100))}%`;
+        }
+      }
+
+      function playSceneVO() {
+        const a = elements.voAudio;
+        if (!a || !voOn || activeSceneIndex < 0) {
+          return;
+        }
+        const file = `assets/vo/vo-${activeSceneIndex + 1}.mp3`;
+        if (!a.src.endsWith(file)) {
+          a.src = file;
+        }
+        try {
+          a.currentTime = 0;
+        } catch (e) {
+          /* not loaded yet */
+        }
+        a.play().catch(() => {});
+      }
+
+      let currentTime = 0;
+      let playing = false;
+      let lastFrame = 0;
+      let activeSceneIndex = -1;
+
+      function formatTime(value) {
+        const minutes = Math.floor(value / 60).toString().padStart(2, "0");
+        const seconds = Math.floor(value % 60).toString().padStart(2, "0");
+        return `${minutes}:${seconds}`;
+      }
+
+      function getSceneIndex(time) {
+        const index = scenes.findIndex((scene) => time >= scene.start && time < scene.end);
+        return index === -1 ? scenes.length - 1 : index;
+      }
+
+      let termRun = null;
+
+      function buildTermLine(line) {
+        const row = document.createElement("div");
+        row.className = "t-line";
+        if (line.type === "prompt") {
+          const arrow = document.createElement("span");
+          arrow.className = "t-arrow";
+          arrow.textContent = "❯";
+          const body = document.createElement("span");
+          body.className = "t-body";
+          const cmd = line.text.replace(/^\$\s+/, "");
+          const sp = cmd.indexOf(" ");
+          const prog = document.createElement("span");
+          prog.className = "t-prog";
+          const args = document.createElement("span");
+          args.className = "t-args";
+          if (sp === -1) {
+            prog.textContent = cmd;
+          } else {
+            prog.textContent = cmd.slice(0, sp);
+            args.textContent = cmd.slice(sp);
+          }
+          body.append(prog, args);
+          row.append(arrow, body);
+        } else if (line.type === "warn") {
+          row.className = "t-line t-warn";
+          const ic = document.createElement("span");
+          ic.className = "t-warn-ic";
+          ic.textContent = "▲";
+          const txt = document.createElement("span");
+          txt.textContent = line.text;
+          row.append(ic, txt);
+        } else if (line.type === "ok") {
+          row.className = "t-line t-ok";
+          const ic = document.createElement("span");
+          ic.className = "t-ok-ic";
+          ic.textContent = "✓";
+          const txt = document.createElement("span");
+          txt.textContent = line.text;
+          row.append(ic, txt);
+          if (line.note) {
+            const note = document.createElement("span");
+            note.className = "t-note";
+            note.textContent = line.note;
+            row.append(note);
+          }
+        } else if (line.type === "head") {
+          row.className = "t-line t-head";
+          row.textContent = line.text;
+        } else if (line.type === "risk") {
+          row.className = "t-line t-risk";
+          const ic = document.createElement("span");
+          ic.className = "t-risk-ic";
+          ic.textContent = "▲";
+          const label = document.createElement("span");
+          label.className = "t-risk-label";
+          label.textContent = line.label;
+          const note = document.createElement("span");
+          note.className = "t-risk-note";
+          note.textContent = line.note;
+          row.append(ic, label, note);
+        } else {
+          row.className = "t-line t-out";
+          row.textContent = line.text;
+        }
+        return row;
+      }
+
+      function caretRow() {
+        const cursor = document.createElement("div");
+        cursor.className = "t-cursor";
+        const arrow = document.createElement("span");
+        arrow.className = "t-arrow";
+        arrow.textContent = "❯";
+        const caret = document.createElement("span");
+        caret.className = "caret";
+        cursor.append(arrow, caret);
+        return cursor;
+      }
+
+      function renderTerminal(scene, onDone) {
+        const t = elements.terminalLines;
+        if (termRun) {
+          termRun.cancelled = true;
+        }
+        const run = { cancelled: false };
+        termRun = run;
+        t.textContent = "";
+
+        // Reduced motion: render everything at once.
+        if (prefersReducedMotion) {
+          scene.lines.forEach((line) => t.append(buildTermLine(line)));
+          t.append(caretRow());
+          if (onDone) onDone();
+          return;
+        }
+
+        let i = 0;
+
+        function next() {
+          if (run.cancelled) {
+            return;
+          }
+          if (i >= scene.lines.length) {
+            t.append(caretRow());
+            if (onDone) onDone();
+            return;
+          }
+
+          const line = scene.lines[i];
+
+          if (line.type === "prompt") {
+            // Type the command character by character.
+            const row = document.createElement("div");
+            row.className = "t-line";
+            const arrow = document.createElement("span");
+            arrow.className = "t-arrow";
+            arrow.textContent = "❯";
+            const body = document.createElement("span");
+            body.className = "t-body";
+            const caret = document.createElement("span");
+            caret.className = "caret caret--inline";
+            row.append(arrow, body, caret);
+            t.append(row);
+
+            const full = line.text.replace(/^\$\s+/, "");
+            const sp = full.indexOf(" ");
+            let pos = 0;
+
+            function typeChar() {
+              if (run.cancelled) {
+                return;
+              }
+              pos += 1;
+              body.textContent = "";
+              if (sp === -1 || pos <= sp) {
+                const prog = document.createElement("span");
+                prog.className = "t-prog";
+                prog.textContent = full.slice(0, pos);
+                body.append(prog);
+              } else {
+                const prog = document.createElement("span");
+                prog.className = "t-prog";
+                prog.textContent = full.slice(0, sp);
+                const args = document.createElement("span");
+                args.className = "t-args";
+                args.textContent = full.slice(sp, pos);
+                body.append(prog, args);
+              }
+              if (pos < full.length) {
+                setTimeout(typeChar, 14 + Math.random() * 24);
+              } else {
+                caret.remove();
+                i += 1;
+                setTimeout(next, 280);
+              }
+            }
+
+            typeChar();
+          } else {
+            // Output / warning: fade in, then continue.
+            const row = buildTermLine(line);
+            row.classList.add("t-reveal");
+            t.append(row);
+            i += 1;
+            const delay = { warn: 240, risk: 210, head: 200, ok: 150 }[line.type] || 110;
+            setTimeout(next, delay);
+          }
+        }
+
+        next();
+      }
+
+      // Per-scene right-panel surfaces. Content is real: captured from the
+      // running booking-sveltekit app, its lockfile/docs, the CLI output, and
+      // the live MCP registry manifest (sh.microservices/mcp@0.1.1).
+      const surfaces = [
+        {
+          url: "microservices.os.json",
+          tag: "Company intake",
+          mount: (run) => intakeFill(run),
+          html: `
+            <div class="srf--intake">
+              <div class="ik-head"><span class="ik-id">verana-os</span><span class="ik-ver">os intake</span><span class="ik-status" id="ik-status">encoding…</span></div>
+              <div class="ik-rows" id="ik-rows">
+                <div class="ik-row" data-fill="Verana — wellness group"><span class="ik-k">company</span><span class="ik-v"></span></div>
+                <div class="ik-row" data-fill="multi-site · 6 studios"><span class="ik-k">scope</span><span class="ik-v"></span></div>
+                <div class="ik-row" data-fill="client delivery"><span class="ik-k">operating loop</span><span class="ik-v"></span></div>
+                <div class="ik-row" data-fill="booking → delivery → invoice"><span class="ik-k">first workflow</span><span class="ik-v"></span></div>
+                <div class="ik-row" data-fill="bookings · docs · CRM · web"><span class="ik-k">knowledge</span><span class="ik-v"></span></div>
+                <div class="ik-row" data-fill="weekly ops · expansion"><span class="ik-k">decisions</span><span class="ik-v"></span></div>
+                <div class="ik-row" data-fill="owner · ops · front desk"><span class="ik-k">roles</span><span class="ik-v"></span></div>
+              </div>
+              <div class="ik-foot" id="ik-foot">→ company-model.md · operating-map.md</div>
+            </div>`
+        },
+        {
+          url: "verana-os · console",
+          tag: "Corporate OS",
+          mount: (run) => shellIntro(run),
+          html: `
+            <div class="srf--shell">
+              <div class="sh-top"><span class="sh-host">verana-os.microservices.sh</span><span class="sh-badge">owner</span></div>
+              <div class="sh-body">
+                <nav class="sh-nav">
+                  <div class="sh-brand"><span class="mk">◆</span> Verana</div>
+                  <span class="sh-sec">platform</span>
+                  <div class="sh-item active"><span class="sh-sq"></span>Overview</div>
+                  <span class="sh-sec">loops</span>
+                  <div class="sh-item" data-loop><span class="sh-sq"></span>Operate</div>
+                  <div class="sh-item" data-loop><span class="sh-sq"></span>Research</div>
+                  <div class="sh-item" data-loop><span class="sh-sq"></span>Advise</div>
+                  <div class="sh-item" data-loop><span class="sh-sq"></span>Govern</div>
+                </nav>
+                <div class="sh-main">
+                  <span class="sh-eyebrow">§ overview</span>
+                  <h3 class="sh-h">Operating overview</h3>
+                  <div class="sh-cards">
+                    <div class="sh-card"><span>workflows</span><b>4</b></div>
+                    <div class="sh-card"><span>briefs</span><b>2</b></div>
+                    <div class="sh-card"><span>to approve</span><b>1</b></div>
+                  </div>
+                  <div class="sh-panel">
+                    <div class="sh-ptitle">Workflows by status</div>
+                    <div class="sh-prow"><span>running</span><b>4</b></div>
+                    <div class="sh-prow"><span>scheduled</span><b>2</b></div>
+                    <div class="sh-prow hot"><span>awaiting approval</span><b>1</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>`
+        },
+        {
+          url: "verana-os ▸ operate · client delivery",
+          tag: "Live workflow",
+          mount: (run) => opWorkflow(run),
+          html: `
+            <div class="srf--op">
+              <div class="op-top"><span class="op-title">Operate · Client delivery</span><span class="op-status" id="op-status"><i></i>live</span></div>
+              <div class="op-stat" id="op-stat">Today · <b id="op-booked">14</b> booked · <b id="op-auto">13</b> auto-handled · <span class="hot" id="op-need">1 needs you</span></div>
+              <div class="op-queue" id="op-queue">
+                <div class="op-item"><span class="op-av">SO</span><div class="op-info"><b>Sam Ortiz</b><small>Deep-tissue · Hillside · 10:30</small></div><span class="op-chip done">invoiced</span></div>
+                <div class="op-item"><span class="op-av">MC</span><div class="op-info"><b>Maya Chen</b><small>Signature facial · Riverside · 13:00</small></div><span class="op-chip" id="c-maya">confirmed</span></div>
+                <div class="op-item"><span class="op-av">LP</span><div class="op-info"><b>Lena Park</b><small>Express reset · Old Town · 16:00</small></div><span class="op-chip soft" id="c-lena">reminder sent</span></div>
+                <div class="op-item exc" id="op-exc"><span class="op-av amber">RK</span><div class="op-info"><b>Riley Kim</b><small>Refund · $90 · Riverside</small></div><span class="op-chip amber" id="op-exc-chip">needs approval</span><button class="op-approve" id="op-approve">Approve</button></div>
+              </div>
+              <div class="op-logwrap"><div class="op-logh">audit log</div><div class="op-log" id="op-log"></div></div>
+              <span class="op-cursor" id="op-cursor"></span>
+            </div>`
+        },
+        {
+          url: "verana-os ▸ research",
+          tag: "Cited research",
+          mount: (run) => researchRun(run),
+          html: `
+            <div class="srf--research">
+              <div class="rs-q"><span class="rs-qlabel">research question</span><div class="rs-question">Should Riverside open Saturdays?</div></div>
+              <div class="rs-sources" id="rs-sources">
+                <div class="rs-src" data-find="utilization 91% · 23 on waitlist"><span class="rs-tag int">internal</span><span class="rs-lbl">booking data</span><span class="rs-stat"></span></div>
+                <div class="rs-src" data-find="weekend no-show 4%"><span class="rs-tag int">internal</span><span class="rs-lbl">attendance</span><span class="rs-stat"></span></div>
+                <div class="rs-src" data-find="Sat demand +38% YoY"><span class="rs-tag ext">market</span><span class="rs-lbl">local demand</span><span class="rs-stat"></span></div>
+                <div class="rs-src" data-find="3 of 5 open Saturdays"><span class="rs-tag ext">market</span><span class="rs-lbl">competitors</span><span class="rs-stat"></span></div>
+              </div>
+              <div class="rs-brief" id="rs-brief">
+                <div class="rs-bh">Brief · key findings</div>
+                <div class="rs-find"><span class="dot"></span>Capacity exists — 91% weekday use, 23 waiting <span class="cite">[booking data]</span></div>
+                <div class="rs-find"><span class="dot"></span>Demand is real — +38% YoY, competitors already open <span class="cite">[market]</span></div>
+                <div class="rs-foot">leans <b>yes</b> · 12 sources cited · → decision brief</div>
+              </div>
+            </div>`
+        },
+        {
+          url: "verana-os ▸ advise",
+          tag: "Decision brief",
+          mount: (run) => adviseRun(run),
+          html: `
+            <div class="srf--advise">
+              <div class="ad-top"><span class="ad-title">Decision brief</span><span class="ad-conf">high confidence</span></div>
+              <div class="ad-rec"><span class="ad-reclabel">recommendation</span><b>Open Saturdays at Riverside — pilot 6 weeks, 10–16</b></div>
+              <div class="ad-grid">
+                <div class="ad-cell"><span>options</span>full Sat · half-day · 6-wk pilot</div>
+                <div class="ad-cell"><span>risks</span>staffing · early demand</div>
+              </div>
+              <span class="ad-acth">turns into action</span>
+              <div class="ad-actions" id="ad-actions">
+                <div class="ad-act"><span class="ad-aic">○</span><span class="ad-alabel">Staffing plan · ops</span><span class="ad-atype">task</span></div>
+                <div class="ad-act"><span class="ad-aic">○</span><span class="ad-alabel">Approve Sat hours</span><span class="ad-atype">approval</span></div>
+                <div class="ad-act"><span class="ad-aic">○</span><span class="ad-alabel">Pilot review · 1 Aug</span><span class="ad-atype">schedule</span></div>
+              </div>
+              <div class="ad-log" id="ad-log">decision logged · brief + 12 sources attached</div>
+            </div>`
+        },
+        {
+          url: "mcp · sh.microservices/mcp",
+          tag: "Agent client",
+          mount: (run) => mcpConnect(run),
+          html: `
+            <div class="srf--mcp">
+              <div class="mcp-top"><span class="mcp-ns">sh.microservices/mcp</span><span class="mcp-ver">v0.1.1</span><span class="mcp-status" id="mcp-status"><i></i>connecting…</span></div>
+              <span class="srf-eyebrow">same surface · available to your agent</span>
+              <div class="mcp-tools" id="mcp-tools">
+                <div class="mcp-tool pending"><span class="mt-ic">◌</span><b>modules.list</b><small>inspect installed modules</small></div>
+                <div class="mcp-tool pending"><span class="mt-ic">◌</span><b>modules.docs</b><small>read module contracts</small></div>
+                <div class="mcp-tool pending"><span class="mt-ic">◌</span><b>check</b><small>run deterministic checks</small></div>
+                <div class="mcp-tool pending"><span class="mt-ic">◌</span><b>deploy.plan</b><small>prepare approval-gated deploy</small></div>
+              </div>
+              <div class="mcp-foot"><span class="mcp-badge">✓ official MCP Registry</span><div class="mcp-cmd">npx -y @microservices-sh/mcp</div></div>
+            </div>`
+        },
+        {
+          url: "pnpm microservices deploy run",
+          tag: "Approval-gated",
+          mount: (run) => deployRun(run),
+          html: `
+            <div class="srf--deploy">
+              <div class="dep-head">deploy run · plan <span class="dep-status" id="dep-status">preparing…</span></div>
+              <div class="dep-step pending"><span class="ic">○</span><b>preview</b><span class="flag">build artifact</span></div>
+              <div class="dep-step pending"><span class="ic">🔒</span><b>provision</b><span class="flag">--confirm</span></div>
+              <div class="dep-step pending"><span class="ic">🔒</span><b>migrate</b><span class="flag">--confirm</span></div>
+              <div class="dep-step pending"><span class="ic">🔒</span><b>upload</b><span class="flag">--confirm</span></div>
+              <div class="dep-gate" id="dep-gate">agent prepared the plan</div>
+              <div class="dep-btn" id="dep-btn">Confirm deploy</div>
+            </div>`
+        },
+        {
+          url: "microservices.sh",
+          tag: "",
+          html: ""
+        }
+      ];
+
+      let surfaceRun = null;
+
+      function renderSurface(index) {
+        const surface = surfaces[index] || surfaces[surfaces.length - 1];
+        if (surfaceRun) {
+          surfaceRun.cancelled = true;
+        }
+        surfaceRun = { cancelled: false };
+        elements.browserUrl.textContent = surface.url;
+        elements.surfaceTag.textContent = surface.tag;
+        elements.surface.innerHTML = surface.html;
+        if (typeof surface.mount === "function") {
+          surface.mount(surfaceRun);
+        }
+      }
+
+      // Scene 3: auto-play a real booking journey with a moving cursor.
+      function bookingFlow(run) {
+        const root = elements.surface.querySelector(".srf--book");
+        if (!root) {
+          return;
+        }
+        const rail = root.querySelector("#bk-rail");
+        const body = root.querySelector("#bk-body");
+        const cursor = root.querySelector("#bk-cursor");
+
+        const steps = [
+          {
+            stepKey: 0,
+            name: "Service",
+            kind: "pick",
+            html:
+              '<div class="bk-step"><div class="bk-h">Choose a service</div>' +
+              '<button class="bk-item"><img class="bk-thumb" src="assets/svc-1.png?v=1" alt=""><span class="bk-item-main"><b>Signature facial</b><small>60 min · gentle cleanse</small></span><span class="bk-price">$120</span></button>' +
+              '<button class="bk-item bk-target"><img class="bk-thumb" src="assets/svc-2.png?v=1" alt=""><span class="bk-item-main"><b>Deep-tissue massage</b><small>90 min · full body</small></span><span class="bk-price">$150</span></button>' +
+              '<button class="bk-item"><img class="bk-thumb" src="assets/svc-3.png?v=1" alt=""><span class="bk-item-main"><b>Express reset</b><small>30 min · quick refresh</small></span><span class="bk-price">$70</span></button></div>'
+          },
+          {
+            stepKey: 1,
+            name: "Date",
+            kind: "pick",
+            html:
+              '<div class="bk-step"><div class="bk-h">Select a date · June</div>' +
+              '<div class="bk-days">' +
+              '<button class="bk-day"><small>Wed</small><b>18</b></button>' +
+              '<button class="bk-day bk-target"><small>Thu</small><b>19</b></button>' +
+              '<button class="bk-day"><small>Fri</small><b>20</b></button>' +
+              '<button class="bk-day"><small>Sat</small><b>21</b></button>' +
+              '<button class="bk-day"><small>Mon</small><b>23</b></button>' +
+              '<button class="bk-day"><small>Tue</small><b>24</b></button>' +
+              '</div></div>'
+          },
+          {
+            stepKey: 2,
+            name: "Time",
+            kind: "pick",
+            html:
+              '<div class="bk-step"><div class="bk-h">Pick a time · Thu 19</div>' +
+              '<div class="bk-slots">' +
+              '<span class="bk-slot">09:00</span><span class="bk-slot">10:30</span><span class="bk-slot">11:30</span>' +
+              '<span class="bk-slot bk-target">13:00</span><span class="bk-slot">15:30</span><span class="bk-slot">16:00</span>' +
+              '</div></div>'
+          },
+          {
+            stepKey: 3,
+            name: "Details",
+            kind: "form",
+            html:
+              '<div class="bk-step"><div class="bk-h">Your details</div>' +
+              '<div class="bk-field"><small>Name</small><span class="bk-val" data-fill="Maya Chen"></span></div>' +
+              '<div class="bk-field"><small>Email</small><span class="bk-val" data-fill="maya.chen@gmail.com"></span></div>' +
+              '<div class="bk-field"><small>Phone</small><span class="bk-val" data-fill="+1 (555) 0147"></span></div>' +
+              '<button class="bk-pay bk-target">Continue</button></div>'
+          },
+          {
+            stepKey: 4,
+            name: "Pay",
+            kind: "pick",
+            html:
+              '<div class="bk-step"><div class="bk-h">Confirm &amp; pay</div>' +
+              '<div class="bk-confirm"><img class="bk-thumb-lg" src="assets/svc-2.png?v=1" alt="">' +
+              '<span class="bk-confirm-main"><b>Deep-tissue massage</b><small>Thu 19 Jun · 13:00 · with Lena</small></span></div>' +
+              '<div class="bk-card"><span>Maya Chen · •••• 4242</span><span>$150</span></div>' +
+              '<button class="bk-pay bk-target">Pay $150</button></div>'
+          },
+          {
+            stepKey: 5,
+            name: "Done",
+            kind: "done",
+            html:
+              '<div class="bk-step bk-done"><div class="bk-check">✓</div>' +
+              '<div class="bk-done-t">Booking confirmed</div>' +
+              '<div class="bk-sub">Verana · Thu 19 Jun, 13:00 · booking.created</div></div>'
+          }
+        ];
+
+        function setRail(active, name) {
+          const total = 5;
+          let dots = "";
+          for (let d = 0; d < total; d += 1) {
+            dots += `<i class="${d <= active ? "on" : ""}"></i>`;
+          }
+          const cur = Math.min(active + 1, total);
+          rail.innerHTML =
+            `<span class="bk-prog">${dots}</span>` +
+            `<span class="bk-now">${name}</span>` +
+            `<span class="bk-count">${cur} / ${total}</span>`;
+        }
+
+        function moveCursorTo(el) {
+          if (!el) {
+            return;
+          }
+          const rootRect = root.getBoundingClientRect();
+          const r = el.getBoundingClientRect();
+          cursor.style.left = `${r.left - rootRect.left + r.width / 2}px`;
+          cursor.style.top = `${r.top - rootRect.top + r.height / 2}px`;
+          cursor.classList.add("is-on");
+        }
+
+        let i = 0;
+
+        function clickTargetThenAdvance(target) {
+          if (run.cancelled) {
+            return;
+          }
+          moveCursorTo(target);
+          setTimeout(() => {
+            if (run.cancelled) {
+              return;
+            }
+            cursor.classList.add("click");
+            target.classList.add("bk-picked");
+            setTimeout(() => cursor.classList.remove("click"), 360);
+            setTimeout(() => {
+              if (run.cancelled) {
+                return;
+              }
+              i += 1;
+              show();
+            }, 1050);
+          }, 820);
+        }
+
+        function fillForm(onComplete) {
+          const fields = Array.from(body.querySelectorAll(".bk-field"));
+          let fi = 0;
+          function nextField() {
+            if (run.cancelled) {
+              return;
+            }
+            if (fi >= fields.length) {
+              onComplete();
+              return;
+            }
+            const parent = fields[fi];
+            const el = parent.querySelector(".bk-val");
+            parent.classList.add("focus");
+            moveCursorTo(parent);
+            const full = el.dataset.fill || "";
+            let pos = 0;
+            function typeChar() {
+              if (run.cancelled) {
+                return;
+              }
+              pos += 1;
+              el.textContent = full.slice(0, pos);
+              if (pos < full.length) {
+                setTimeout(typeChar, 22 + Math.random() * 26);
+              } else {
+                parent.classList.remove("focus");
+                fi += 1;
+                setTimeout(nextField, 340);
+              }
+            }
+            setTimeout(typeChar, 300);
+          }
+          nextField();
+        }
+
+        function show() {
+          if (run.cancelled) {
+            return;
+          }
+          const step = steps[i];
+          setRail(step.stepKey, step.name);
+          body.innerHTML = step.html;
+
+          const target = body.querySelector(".bk-target");
+          if (!target) {
+            cursor.classList.remove("is-on");
+            return;
+          }
+
+          if (step.kind === "form") {
+            fillForm(() => clickTargetThenAdvance(target));
+          } else {
+            requestAnimationFrame(() => clickTargetThenAdvance(target));
+          }
+        }
+
+        setTimeout(show, 450);
+      }
+
+      // Scene 7: agent runs the plan to the gate and stops — humans approve.
+      function deployRun(run) {
+        const root = elements.surface.querySelector(".srf--deploy");
+        if (!root) {
+          return;
+        }
+        const steps = Array.from(root.querySelectorAll(".dep-step"));
+        if (!steps.length) {
+          return;
+        }
+        const status = root.querySelector("#dep-status");
+        const gate = root.querySelector("#dep-gate");
+        const btn = root.querySelector("#dep-btn");
+        const preview = steps[0];
+        const provision = steps[1];
+        const rest = steps.slice(2);
+
+        function setIc(step, ch) {
+          const e = step.querySelector(".ic");
+          if (e) {
+            e.textContent = ch;
+          }
+        }
+        function setFlag(step, t) {
+          const e = step.querySelector(".flag");
+          if (e) {
+            e.textContent = t;
+          }
+        }
+
+        setTimeout(() => {
+          if (run.cancelled) {
+            return;
+          }
+          preview.classList.remove("pending");
+          preview.classList.add("run");
+          setIc(preview, "");
+          setTimeout(() => {
+            if (run.cancelled) {
+              return;
+            }
+            preview.classList.remove("run");
+            preview.classList.add("done");
+            setIc(preview, "✓");
+            setFlag(preview, "ready");
+            setTimeout(() => {
+              if (run.cancelled) {
+                return;
+              }
+              rest.forEach((s) => {
+                s.classList.remove("pending");
+                s.classList.add("locked");
+              });
+              provision.classList.remove("pending");
+              provision.classList.add("awaiting");
+              setIc(provision, "🔔");
+              setFlag(provision, "awaiting you");
+              if (status) {
+                status.textContent = "awaiting approval";
+                status.classList.add("wait");
+              }
+              if (gate) {
+                gate.textContent = "production actions need your approval";
+              }
+              if (btn) {
+                btn.classList.add("live");
+              }
+            }, 700);
+          }, 850);
+        }, 600);
+      }
+
+      // Scene 6: MCP client connects, then the shared tool surface registers.
+      function mcpConnect(run) {
+        const root = elements.surface.querySelector(".srf--mcp");
+        if (!root) {
+          return;
+        }
+        const status = root.querySelector("#mcp-status");
+        const tools = Array.from(root.querySelectorAll(".mcp-tool"));
+
+        setTimeout(() => {
+          if (run.cancelled) {
+            return;
+          }
+          if (status) {
+            status.classList.add("live");
+            status.innerHTML = "<i></i>connected";
+          }
+          let k = 0;
+          function register() {
+            if (run.cancelled || k >= tools.length) {
+              return;
+            }
+            const tool = tools[k];
+            tool.classList.remove("pending");
+            tool.classList.add("on");
+            const ic = tool.querySelector(".mt-ic");
+            if (ic) {
+              ic.textContent = "✓";
+            }
+            k += 1;
+            setTimeout(register, 360);
+          }
+          register();
+        }, 800);
+      }
+
+      // Scene 5: run checks one by one — pending -> spinner -> pass + verdict.
+      function runChecks(run) {
+        const root = elements.surface.querySelector(".srf--checks");
+        if (!root) {
+          return;
+        }
+        const rows = Array.from(root.querySelectorAll(".chk-row"));
+        const verdict = root.querySelector("#ck-verdict");
+
+        let k = 0;
+        function step() {
+          if (run.cancelled) {
+            return;
+          }
+          if (k >= rows.length) {
+            if (verdict) {
+              verdict.textContent = `${rows.length} passed`;
+              verdict.classList.add("ok");
+            }
+            return;
+          }
+          const row = rows[k];
+          const ic = row.querySelector(".chk-ic");
+          row.classList.remove("pending");
+          row.classList.add("running");
+          ic.classList.add("sp");
+          setTimeout(() => {
+            if (run.cancelled) {
+              return;
+            }
+            row.classList.remove("running");
+            row.classList.add("pass");
+            ic.classList.remove("sp");
+            const st = row.querySelector(".st");
+            if (st) {
+              st.textContent = row.dataset.st || "pass";
+            }
+            k += 1;
+            step();
+          }, 240);
+        }
+
+        setTimeout(step, 700);
+      }
+
+      // Scene 5: Advise — the brief resolves into tasks/approvals, then logged.
+      function adviseRun(run) {
+        const root = elements.surface.querySelector(".srf--advise");
+        if (!root) {
+          return;
+        }
+        const acts = Array.from(root.querySelectorAll(".ad-act"));
+        const log = root.querySelector("#ad-log");
+        let i = 0;
+        function step() {
+          if (run.cancelled) {
+            return;
+          }
+          if (i >= acts.length) {
+            if (log) {
+              log.classList.add("show");
+            }
+            return;
+          }
+          const a = acts[i];
+          a.classList.add("on");
+          const ic = a.querySelector(".ad-aic");
+          if (ic) {
+            ic.textContent = "✓";
+          }
+          i += 1;
+          setTimeout(step, 680);
+        }
+        setTimeout(step, 900);
+      }
+
+      // Scene 4: Research — sources scan (internal + market), findings cited.
+      function researchRun(run) {
+        const root = elements.surface.querySelector(".srf--research");
+        if (!root) {
+          return;
+        }
+        const srcs = Array.from(root.querySelectorAll(".rs-src"));
+        const brief = root.querySelector("#rs-brief");
+        let i = 0;
+        function step() {
+          if (run.cancelled) {
+            return;
+          }
+          if (i >= srcs.length) {
+            if (brief) {
+              brief.classList.add("show");
+            }
+            return;
+          }
+          const s = srcs[i];
+          const stat = s.querySelector(".rs-stat");
+          if (stat) {
+            stat.innerHTML = '<span class="rs-spin"></span>scanning';
+          }
+          setTimeout(() => {
+            if (run.cancelled) {
+              return;
+            }
+            s.classList.add("found");
+            if (stat) {
+              stat.textContent = s.dataset.find || "";
+            }
+            i += 1;
+            setTimeout(step, 280);
+          }, 620);
+        }
+        setTimeout(step, 550);
+      }
+
+      // Scene 3: Operate — the day's work auto-runs; one exception routed for approval, then logged.
+      function opWorkflow(run) {
+        const root = elements.surface.querySelector(".srf--op");
+        if (!root) {
+          return;
+        }
+        const approve = root.querySelector("#op-approve");
+        const need = root.querySelector("#op-need");
+        const log = root.querySelector("#op-log");
+        const cursor = root.querySelector("#op-cursor");
+        const queue = root.querySelector("#op-queue");
+
+        function addLog(text, ok) {
+          if (!log) {
+            return;
+          }
+          const l = document.createElement("div");
+          l.className = "op-logline";
+          const t = document.createElement("span");
+          t.className = "t";
+          t.textContent = "›";
+          const v = document.createElement("span");
+          if (ok) {
+            v.className = "ok";
+          }
+          v.textContent = text;
+          l.append(t, v);
+          log.append(l);
+          while (log.children.length > 4) {
+            log.removeChild(log.firstChild);
+          }
+        }
+        function setChip(id, text, cls) {
+          const c = root.querySelector(`#${id}`);
+          if (c) {
+            c.textContent = text;
+            c.className = `op-chip${cls ? ` ${cls}` : ""}`;
+          }
+        }
+        function bump(id, value) {
+          const e = root.querySelector(`#${id}`);
+          if (e) {
+            e.textContent = value;
+          }
+        }
+        function moveCursorTo(el) {
+          if (!cursor || !el) {
+            return;
+          }
+          const rr = root.getBoundingClientRect();
+          const r = el.getBoundingClientRect();
+          cursor.style.left = `${r.left - rr.left + r.width / 2}px`;
+          cursor.style.top = `${r.top - rr.top + r.height / 2}px`;
+          cursor.classList.add("on");
+        }
+        function approveRefund() {
+          if (cursor) {
+            cursor.classList.add("click");
+            setTimeout(() => cursor.classList.remove("click"), 360);
+          }
+          if (approve) {
+            approve.classList.add("gone");
+          }
+          setChip("op-exc-chip", "refunded ✓");
+          const exc = root.querySelector("#op-exc");
+          if (exc) {
+            exc.classList.remove("exc");
+            const av = exc.querySelector(".op-av");
+            if (av) {
+              av.classList.remove("amber");
+            }
+          }
+          if (need) {
+            need.textContent = "all clear";
+            need.classList.remove("hot");
+            need.classList.add("clear");
+          }
+          addLog("refund.approved · owner · logged", true);
+        }
+        function arriveDana() {
+          if (!queue) {
+            return;
+          }
+          const item = document.createElement("div");
+          item.className = "op-item op-new";
+          item.innerHTML =
+            '<span class="op-av">DC</span>' +
+            '<div class="op-info"><b>Dana Cole</b><small>Sauna · Riverside · 17:30</small></div>' +
+            '<span class="op-chip soft" id="c-dana">just booked</span>';
+          queue.insertBefore(item, queue.firstChild);
+          bump("op-booked", "15");
+          addLog("booking.created · Dana");
+        }
+
+        const events = [
+          [600, () => addLog("booking.created · auto")],
+          [1200, () => { setChip("c-maya", "checked in"); addLog("checkin.recorded · Maya"); }],
+          [2000, () => { setChip("c-lena", "confirmed"); addLog("confirm.sent · Lena"); }],
+          [2800, () => { setChip("c-maya", "in service"); addLog("service.started · Maya"); }],
+          [3000, () => moveCursorTo(approve)],
+          [3850, () => { approveRefund(); bump("op-auto", "14"); }],
+          [4900, () => arriveDana()],
+          [5800, () => { setChip("c-lena", "checked in"); addLog("checkin.recorded · Lena"); }],
+          [6800, () => { setChip("c-maya", "completed", "done"); addLog("service.complete · Maya"); }],
+          [7800, () => { setChip("c-maya", "invoiced", "done"); addLog("invoice.sent · Maya · $120", true); bump("op-auto", "15"); }],
+          [8800, () => { setChip("c-dana", "reminder sent", "soft"); addLog("reminder.sent · Dana"); }],
+          [9800, () => { setChip("c-lena", "in service"); addLog("service.started · Lena"); }]
+        ];
+        events.forEach(([t, fn]) => setTimeout(() => {
+          if (!run.cancelled) {
+            fn();
+          }
+        }, t));
+      }
+
+      // Scene 2: OS shell — the four loops light up, then Operate is active.
+      function shellIntro(run) {
+        const root = elements.surface.querySelector(".srf--shell");
+        if (!root) {
+          return;
+        }
+        const loops = Array.from(root.querySelectorAll(".sh-item[data-loop]"));
+        let i = 0;
+        function step() {
+          if (run.cancelled || i >= loops.length) {
+            return;
+          }
+          loops[i].classList.add("lit");
+          i += 1;
+          setTimeout(step, 440);
+        }
+        setTimeout(step, 650);
+      }
+
+      // Scene 1: company intake — answers type in row by row, then encoded.
+      function intakeFill(run) {
+        const root = elements.surface.querySelector(".srf--intake");
+        if (!root) {
+          return;
+        }
+        const rows = Array.from(root.querySelectorAll(".ik-row"));
+        const status = root.querySelector("#ik-status");
+        const foot = root.querySelector("#ik-foot");
+        let i = 0;
+        function nextRow() {
+          if (run.cancelled) {
+            return;
+          }
+          if (i >= rows.length) {
+            if (status) {
+              status.textContent = "encoded";
+              status.classList.add("done");
+            }
+            if (foot) {
+              foot.classList.add("show");
+            }
+            return;
+          }
+          const row = rows[i];
+          const el = row.querySelector(".ik-v");
+          rows.forEach((r, idx) => r.classList.toggle("active", idx === i));
+          const full = row.dataset.fill || "";
+          let pos = 0;
+          function typeChar() {
+            if (run.cancelled) {
+              return;
+            }
+            pos += 1;
+            el.textContent = full.slice(0, pos);
+            if (pos < full.length) {
+              setTimeout(typeChar, 16 + Math.random() * 22);
+            } else {
+              row.classList.remove("active");
+              i += 1;
+              setTimeout(nextRow, 220);
+            }
+          }
+          setTimeout(typeChar, 180);
+        }
+        setTimeout(nextRow, 500);
+      }
+
+      // Scene 4: agent "reads" the contract — a scan band locks onto the
+      // constraints (requires, approval gate, pinned version).
+      function contractScan(run) {
+        const root = elements.surface.querySelector(".srf--doc");
+        if (!root) {
+          return;
+        }
+        const scan = root.querySelector(".doc-scan");
+        const targets = Array.from(root.querySelectorAll("[data-read]"));
+
+        function place(el) {
+          const rr = root.getBoundingClientRect();
+          const r = el.getBoundingClientRect();
+          scan.style.top = `${r.top - rr.top - 3}px`;
+          scan.style.height = `${r.height + 6}px`;
+          scan.classList.add("on");
+        }
+
+        let k = 0;
+        function step() {
+          if (run.cancelled || !targets.length) {
+            return;
+          }
+          if (k >= targets.length) {
+            return;
+          }
+          const el = targets[k];
+          place(el);
+          el.classList.add("read");
+          setTimeout(() => {
+            if (run.cancelled) {
+              return;
+            }
+            k += 1;
+            step();
+          }, 1150);
+        }
+
+        setTimeout(step, 1500);
+      }
+
+      function renderScene(index) {
+        const scene = scenes[index];
+        activeSceneIndex = index;
+
+        if (elements.videoFrame) {
+          const startSolo = !!scene.fullTerminal || !!scene.openSurface;
+          elements.videoFrame.classList.toggle("video-frame--solo", startSolo);
+          elements.videoFrame.classList.toggle("video-frame--hero", !!scene.fullTerminal);
+          elements.videoFrame.classList.remove("is-opening");
+        }
+        if (elements.stage) {
+          elements.stage.classList.toggle("is-end", !!scene.endcard);
+        }
+
+        elements.sceneKicker.textContent = `Scene ${index + 1} of ${scenes.length}`;
+        elements.sceneHeading.textContent = scene.title;
+        elements.terminalTitle.textContent = scene.terminalTitle;
+        elements.terminalFoot.textContent = scene.terminalFoot;
+        elements.sceneRange.textContent = `${formatTime(scene.start)}-${formatTime(scene.end)}`;
+
+        renderSurface(index);
+        renderTerminal(scene, () => {
+          if (scene.openSurface && elements.videoFrame) {
+            elements.videoFrame.classList.remove("video-frame--solo");
+            elements.videoFrame.classList.add("is-opening");
+          }
+        });
+
+        document.querySelectorAll("[data-scene-index]").forEach((button) => {
+          const isActive = Number(button.dataset.sceneIndex) === index;
+          button.setAttribute("aria-current", isActive ? "true" : "false");
+        });
+
+        if (playing) {
+          playSceneVO();
+        }
+      }
+
+      function renderTime() {
+        const index = getSceneIndex(currentTime);
+
+        if (index !== activeSceneIndex) {
+          renderScene(index);
+        }
+
+        elements.clock.textContent = `${formatTime(currentTime)} / ${formatTime(totalDuration)}`;
+        elements.progress.value = currentTime;
+        updateRail();
+        updateCaption();
+      }
+
+      function setTime(value) {
+        currentTime = Math.min(totalDuration, Math.max(0, value));
+        if (currentTime >= totalDuration) {
+          playing = false;
+          elements.play.textContent = "Play";
+        }
+        renderTime();
+      }
+
+      function tick(timestamp) {
+        if (!playing) {
+          lastFrame = timestamp;
+          return;
+        }
+
+        const delta = lastFrame ? (timestamp - lastFrame) / 1000 : 0;
+        lastFrame = timestamp;
+        setTime(currentTime + delta);
+        requestAnimationFrame(tick);
+      }
+
+      function play() {
+        if (currentTime >= totalDuration) {
+          setTime(0);
+        }
+
+        playing = true;
+        elements.play.textContent = "Pause";
+        lastFrame = 0;
+        requestAnimationFrame(tick);
+        playSceneVO();
+      }
+
+      function pause() {
+        playing = false;
+        elements.play.textContent = "Play";
+        if (elements.voAudio) {
+          elements.voAudio.pause();
+        }
+      }
+
+      let railTrack = null;
+      let railProgress = null;
+      let railNodes = [];
+
+      function buildTimeline() {
+        railTrack = document.createElement("span");
+        railTrack.className = "rail-track";
+        railProgress = document.createElement("span");
+        railProgress.className = "rail-progress";
+        elements.timeline.append(railTrack, railProgress);
+
+        scenes.forEach((scene, index) => {
+          const item = document.createElement("li");
+          item.style.animationDelay = `${index * 0.05}s`;
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "rail-btn";
+          button.dataset.sceneIndex = String(index);
+          button.dataset.state = "future";
+          button.setAttribute("aria-current", "false");
+          button.innerHTML = `
+            <span class="rail-spine"><span class="rail-node"></span></span>
+            <span class="rail-body">
+              <span class="rail-meta">
+                <span class="rail-time">${formatTime(scene.start)}</span>
+                <span class="rail-dur"><span class="rail-dur-fill"></span></span>
+              </span>
+              <strong class="rail-title">${scene.title}</strong>
+              <span class="rail-desc">${scene.short}</span>
+            </span>
+          `;
+          button.addEventListener("click", () => {
+            pause();
+            setTime(scene.start);
+          });
+          item.append(button);
+          elements.timeline.append(item);
+        });
+
+        railNodes = Array.from(elements.timeline.querySelectorAll(".rail-node"));
+      }
+
+      function nodeCenter(index) {
+        const railRect = elements.timeline.getBoundingClientRect();
+        const rect = railNodes[index].getBoundingClientRect();
+        return rect.top - railRect.top + rect.height / 2;
+      }
+
+      function updateRail() {
+        if (!railNodes.length) {
+          return;
+        }
+
+        const first = nodeCenter(0);
+        const last = nodeCenter(railNodes.length - 1);
+        railTrack.style.top = `${first}px`;
+        railTrack.style.height = `${Math.max(0, last - first)}px`;
+
+        const index = getSceneIndex(currentTime);
+        const scene = scenes[index];
+        const span = scene.end - scene.start || 1;
+        const intra = Math.min(1, Math.max(0, (currentTime - scene.start) / span));
+
+        const activeCenter = nodeCenter(index);
+        const nextCenter = index < railNodes.length - 1 ? nodeCenter(index + 1) : activeCenter;
+        const playhead = activeCenter + intra * (nextCenter - activeCenter);
+        railProgress.style.top = `${first}px`;
+        railProgress.style.height = `${Math.max(0, playhead - first)}px`;
+
+        document.querySelectorAll(".rail-btn").forEach((button, i) => {
+          const state = i < index ? "past" : i === index ? "active" : "future";
+          button.dataset.state = state;
+          const fill = button.querySelector(".rail-dur-fill");
+          if (fill) {
+            const percent = i < index ? 100 : i === index ? intra * 100 : 0;
+            fill.style.right = `${100 - percent}%`;
+          }
+        });
+      }
+
+      elements.play.addEventListener("click", () => {
+        playing ? pause() : play();
+      });
+
+      elements.prev.addEventListener("click", () => {
+        pause();
+        const index = getSceneIndex(currentTime);
+        const previous = scenes[Math.max(0, index - 1)];
+        setTime(previous.start);
+      });
+
+      elements.next.addEventListener("click", () => {
+        pause();
+        const index = getSceneIndex(currentTime);
+        const next = scenes[Math.min(scenes.length - 1, index + 1)];
+        setTime(next.start);
+      });
+
+      elements.restart.addEventListener("click", () => {
+        pause();
+        setTime(0);
+      });
+
+      elements.voToggle.addEventListener("click", () => {
+        voOn = !voOn;
+        elements.voToggle.textContent = voOn ? "🔊 VO on" : "🔇 VO off";
+        elements.voToggle.classList.toggle("is-on", voOn);
+        elements.voToggle.setAttribute("aria-pressed", voOn ? "true" : "false");
+        if (voOn && playing) {
+          playSceneVO();
+        } else if (elements.voAudio) {
+          elements.voAudio.pause();
+        }
+      });
+
+      elements.progress.addEventListener("click", (event) => {
+        const rect = elements.progress.getBoundingClientRect();
+        const ratio = (event.clientX - rect.left) / rect.width;
+        pause();
+        setTime(ratio * totalDuration);
+      });
+
+      buildTimeline();
+
+      const railCount = document.querySelector("#rail-count");
+      const railTotal = document.querySelector("#rail-total");
+      if (railCount) {
+        railCount.textContent = `${scenes.length} scenes`;
+      }
+      if (railTotal) {
+        railTotal.textContent = formatTime(totalDuration);
+      }
+
+      elements.progress.max = totalDuration;
+      setTime(0);
+      requestAnimationFrame(updateRail);
+      window.addEventListener("resize", updateRail);
+
+      if (!prefersReducedMotion) {
+        window.setTimeout(play, 450);
+      }
+    </script>
+  </body>
+</html>

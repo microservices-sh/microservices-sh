@@ -336,6 +336,49 @@
       ]
     },
     {
+      "id": "marketing-research",
+      "name": "Marketing Research",
+      "version": "0.1.0",
+      "status": "available",
+      "class": "provider",
+      "mount": "/marketing-research",
+      "docPath": "docs/modules/marketing-research.md",
+      "summary": "Composable, cited marketing research: pull external demand, competitive, and community signals through swappable ports, snapshot over time, and produce cite-or-refuse marketing briefs (no fake proof). v0 covers community listening + cited synthesis.",
+      "requires": [
+        "org-team-rbac"
+      ],
+      "permissions": [
+        "marketing.read",
+        "marketing.run",
+        "marketing.admin",
+        "marketing.observe"
+      ],
+      "rpc": [
+        {
+          "method": "runResearch",
+          "scope": "marketing.run",
+          "public": false
+        },
+        {
+          "method": "getBrief",
+          "scope": "marketing.read",
+          "public": false
+        }
+      ],
+      "approvalRisk": "low",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "afterBriefCreated"
+      ],
+      "events": [
+        "marketing.brief_created",
+        "marketing.signal_alert"
+      ]
+    },
+    {
       "id": "webhook-delivery",
       "name": "Webhook Delivery",
       "version": "0.1.0",

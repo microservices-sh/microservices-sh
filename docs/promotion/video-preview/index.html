@@ -1839,42 +1839,35 @@
 
       .voiceover {
         position: absolute;
-        left: 22px;
-        right: 22px;
-        bottom: 22px;
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: 15px;
-        align-items: center;
-        border: 1px solid rgba(98, 241, 138, 0.16);
-        border-left: 3px solid var(--green);
-        border-radius: 13px;
-        background: linear-gradient(110deg, rgba(8, 11, 9, 0.94), rgba(11, 15, 12, 0.68));
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        box-shadow: 0 22px 60px -20px rgba(0, 0, 0, 0.85);
-        padding: 13px 18px 13px 16px;
+        left: 50%;
+        bottom: 76px;
+        transform: translateX(-50%);
+        width: max-content;
+        max-width: min(80%, 700px);
+        text-align: center;
+        background: rgba(7, 10, 8, 0.82);
+        border-radius: 9px;
+        padding: 7px 16px;
+        pointer-events: none;
       }
 
       .vo-badge {
         display: inline-flex;
+        flex-direction: column;
         align-items: center;
-        gap: 9px;
-        align-self: stretch;
-        padding-right: 15px;
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
-        color: var(--green);
-        font-family: var(--mono);
-        font-size: 0.62rem;
-        font-weight: 500;
-        letter-spacing: 0.18em;
+        gap: 6px;
+        align-self: center;
+        padding: 9px 13px;
+        border: 1px solid rgba(98, 241, 138, 0.2);
+        border-radius: 12px;
+        background: rgba(98, 241, 138, 0.06);
       }
 
       .vo-eq {
         display: flex;
         align-items: flex-end;
         gap: 2px;
-        height: 15px;
+        height: 14px;
       }
 
       .vo-eq i {
@@ -1887,7 +1880,7 @@
       }
 
       .vo-eq i:nth-child(1) { height: 7px; animation-delay: 0s; }
-      .vo-eq i:nth-child(2) { height: 15px; animation-delay: 0.18s; }
+      .vo-eq i:nth-child(2) { height: 14px; animation-delay: 0.18s; }
       .vo-eq i:nth-child(3) { height: 9px; animation-delay: 0.36s; }
       .vo-eq i:nth-child(4) { height: 12px; animation-delay: 0.1s; }
 
@@ -1896,13 +1889,181 @@
         50% { transform: scaleY(1); }
       }
 
+      .vo-label {
+        font-family: var(--mono);
+        font-size: 0.52rem;
+        font-weight: 500;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: #7f9a85;
+      }
+
       .vo-text {
         margin: 0;
         color: var(--paper);
-        font-size: clamp(0.9rem, 1.3vw, 1.16rem);
-        font-weight: 500;
+        font-size: clamp(1.02rem, 1.45vw, 1.3rem);
+        font-weight: 600;
         line-height: 1.4;
-        letter-spacing: -0.005em;
+        letter-spacing: -0.008em;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 2px 18px rgba(0, 0, 0, 0.7);
+      }
+
+      .vo-text .w {
+        display: inline-block;
+        opacity: 0;
+        animation: wordIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes wordIn {
+        from { opacity: 0; transform: translateY(0.5em); filter: blur(5px); }
+        to { opacity: 1; transform: none; filter: blur(0); }
+      }
+
+      .vo-prog {
+        display: none;
+      }
+
+      .vo-prog::after {
+        content: "";
+        position: absolute;
+        right: 0;
+        top: 50%;
+        width: 7px;
+        height: 7px;
+        transform: translate(50%, -50%);
+        border-radius: 50%;
+        background: #d6ffe2;
+        box-shadow: 0 0 10px var(--green);
+      }
+
+      /* end card */
+      .endcard {
+        position: absolute;
+        inset: 0;
+        z-index: 20;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        background:
+          radial-gradient(78% 60% at 50% 36%, rgba(98, 241, 138, 0.13), transparent 70%),
+          linear-gradient(180deg, #0c120e, #070907);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.5s ease;
+      }
+
+      .stage.is-end .endcard {
+        opacity: 1;
+      }
+
+      .stage.is-end .video-frame,
+      .stage.is-end .voiceover {
+        opacity: 0;
+        transition: opacity 0.4s ease;
+      }
+
+      .ec-inner {
+        display: grid;
+        justify-items: center;
+        gap: 13px;
+        padding: 24px;
+        max-width: 92%;
+      }
+
+      .stage.is-end .ec-inner > * {
+        animation: ecIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      .stage.is-end .ec-inner > *:nth-child(1) { animation-delay: 0.15s; }
+      .stage.is-end .ec-inner > *:nth-child(2) { animation-delay: 0.28s; }
+      .stage.is-end .ec-inner > *:nth-child(3) { animation-delay: 0.41s; }
+      .stage.is-end .ec-inner > *:nth-child(4) { animation-delay: 0.54s; }
+      .stage.is-end .ec-inner > *:nth-child(5) { animation-delay: 0.67s; }
+      .stage.is-end .ec-inner > *:nth-child(6) { animation-delay: 0.8s; }
+
+      @keyframes ecIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: none; }
+      }
+
+      .ec-logo {
+        display: grid;
+        place-items: center;
+        width: 66px;
+        height: 66px;
+        border: 1px solid var(--line-strong);
+        border-radius: 17px;
+        background: linear-gradient(180deg, rgba(98, 241, 138, 0.13), rgba(98, 241, 138, 0.02));
+        color: var(--green);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 14px 44px -14px rgba(98, 241, 138, 0.6);
+      }
+
+      .ec-logo svg {
+        width: 34px;
+        height: 34px;
+      }
+
+      .ec-eyebrow {
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--green);
+      }
+
+      .ec-word {
+        margin: 0;
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: clamp(1.9rem, 4vw, 3rem);
+        letter-spacing: -0.035em;
+        color: var(--text);
+      }
+
+      .ec-word span {
+        color: var(--green);
+      }
+
+      .ec-slogan {
+        margin: 0 0 4px;
+        color: var(--paper-soft);
+        font-size: clamp(0.95rem, 1.5vw, 1.2rem);
+        font-weight: 500;
+      }
+
+      .ec-cmds {
+        display: grid;
+        gap: 8px;
+      }
+
+      .ec-cmd {
+        border: 1px solid var(--line-strong);
+        border-radius: 10px;
+        background: #0a0f0b;
+        color: var(--paper);
+        font-family: var(--term);
+        font-size: clamp(0.74rem, 1.1vw, 0.9rem);
+        padding: 11px 18px;
+        white-space: nowrap;
+      }
+
+      .ec-cmd .ec-dollar {
+        color: var(--green);
+        margin-right: 9px;
+      }
+
+      .ec-reg {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+
+      .ec-reg .mk {
+        color: var(--green);
       }
 
       .controls {
@@ -2409,13 +2570,29 @@
             </div>
 
             <div class="voiceover">
-              <span class="vo-badge">
-                <span class="vo-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-                VO
-              </span>
               <p class="vo-text" id="voiceover">
-                AI agents are fast at the first 70 percent of an app. The risky part is the production 30 percent.
+                Coding agents nail the first seventy percent of an app — the UI.
               </p>
+              <span class="vo-prog" id="vo-prog"></span>
+            </div>
+
+            <div class="endcard" id="endcard" aria-hidden="true">
+              <div class="ec-inner">
+                <span class="ec-logo">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 2 21 7v10l-9 5-9-5V7z"></path>
+                    <path d="M9.5 9.5 7 12l2.5 2.5M14.5 9.5 17 12l-2.5 2.5" stroke-width="1.6"></path>
+                  </svg>
+                </span>
+                <span class="ec-eyebrow">agents build the 70% · you ship the 30%</span>
+                <h2 class="ec-word">microservices<span>.sh</span></h2>
+                <p class="ec-slogan">Production foundations for agent-built apps.</p>
+                <div class="ec-cmds">
+                  <span class="ec-cmd"><span class="ec-dollar">$</span>npm create microservices-app@latest</span>
+                  <span class="ec-cmd"><span class="ec-dollar">$</span>npx -y @microservices-sh/mcp</span>
+                </div>
+                <span class="ec-reg"><span class="mk">◆</span> Official MCP Registry · sh.microservices/mcp</span>
+              </div>
             </div>
           </div>
 
@@ -2468,6 +2645,11 @@
           browserUrl: "microservices.sh",
           appPill: "Agent-readable foundations",
           voiceover: "Coding agents nail the first seventy percent of an app — the UI. The dangerous thirty percent is production: the part that leaks data, loses money, and can't be undone.",
+          captions: [
+            { at: 0, text: "Coding agents nail the first 70% — the UI." },
+            { at: 4, text: "The dangerous 30% is production:" },
+            { at: 6.3, text: "the part that leaks data, loses money, and can't be undone." }
+          ],
           lines: [
             { text: "$ agent: build a booking SaaS", type: "prompt" },
             { text: "UI · routes · admin · dashboard", type: "ok", note: "looks done in minutes" },
@@ -2497,6 +2679,11 @@
           browserUrl: "terminal",
           appPill: "SvelteKit + Workers + D1",
           voiceover: "microservices.sh gives you that thirty percent as Cloudflare-native foundations your agent can read and change — generated in one command.",
+          captions: [
+            { at: 0, text: "microservices.sh gives you that 30%" },
+            { at: 3.4, text: "as Cloudflare-native foundations your agent can read and change —" },
+            { at: 7, text: "generated in one command." }
+          ],
           lines: [
             { text: "$ npm create microservices-app@latest studio-booking -- --template booking-sveltekit", type: "prompt" },
             { text: "scaffolded booking-sveltekit · 8 modules", type: "muted" },
@@ -2520,7 +2707,14 @@
           terminalFoot: "browser tab: generated app",
           browserUrl: "localhost:5173",
           appPill: "Running locally",
-          voiceover: "It's a real app, not a mockup — SvelteKit on Workers, a D1 database, a working booking flow, and source you own.",
+          voiceover: "It's a real app — not a mockup. Your customer picks a service, a date and a time, enters their details, and pays. Booking confirmed, on SvelteKit, Workers and D1 — with source you own.",
+          captions: [
+            { at: 0, text: "It's a real app — not a mockup." },
+            { at: 2.6, text: "Your customer picks a service," },
+            { at: 5.2, text: "a date, and a time," },
+            { at: 8, text: "enters their details, and pays." },
+            { at: 11, text: "Booking confirmed — SvelteKit on Workers, D1, source you own." }
+          ],
           lines: [
             { text: "$ pnpm microservices local setup", type: "prompt" },
             { text: "D1 local database ready", type: "muted" },
@@ -2545,6 +2739,11 @@
           browserUrl: "workspace files",
           appPill: "Pinned contracts",
           voiceover: "Before it edits, the agent reads the module's contract — its boundaries, its pinned version, and what needs your approval.",
+          captions: [
+            { at: 0, text: "Before it edits, the agent reads the module's contract —" },
+            { at: 3.6, text: "its boundaries, its pinned version," },
+            { at: 5.4, text: "and what needs your approval." }
+          ],
           lines: [
             { text: "$ pnpm microservices docs booking", type: "prompt" },
             { text: "Booking · mount /bookings · requires auth, customer", type: "muted" },
@@ -2571,6 +2770,10 @@
           browserUrl: "checks",
           appPill: "Deterministic checks",
           voiceover: "One command runs deterministic checks, so you see exactly what's safe before anything ships.",
+          captions: [
+            { at: 0, text: "One command runs deterministic checks —" },
+            { at: 3, text: "you see exactly what's safe before anything ships." }
+          ],
           lines: [
             { text: "$ pnpm microservices modules list --json", type: "prompt" },
             { text: "gateway auth identity customer booking audit-log payment email", type: "muted" },
@@ -2595,6 +2798,11 @@
           browserUrl: "registry.modelcontextprotocol.io",
           appPill: "Official MCP Registry",
           voiceover: "The same tools work inside your agent — Claude, Cursor, Codex — through one MCP server in the official registry.",
+          captions: [
+            { at: 0, text: "The same tools work inside your agent —" },
+            { at: 3, text: "Claude, Cursor, Codex —" },
+            { at: 4.8, text: "through one MCP server in the official registry." }
+          ],
           lines: [
             { text: "$ npx -y @microservices-sh/mcp", type: "prompt" },
             { text: "MCP server ready", type: "muted" },
@@ -2619,6 +2827,11 @@
           browserUrl: "deploy plan",
           appPill: "Confirmation required",
           voiceover: "And deploys stay gated. The agent prepares everything — but production waits for you.",
+          captions: [
+            { at: 0, text: "And deploys stay gated." },
+            { at: 2.3, text: "The agent prepares everything —" },
+            { at: 4, text: "but production waits for you." }
+          ],
           lines: [
             { text: "$ pnpm microservices deploy run --help", type: "prompt" },
             { text: "preview ✓ · provision · migrate · upload", type: "muted" },
@@ -2634,6 +2847,17 @@
             { label: "Human step", value: "Confirm" },
             { code: "approval-gated deploy plans" }
           ]
+        },
+        {
+          start: 70,
+          end: 77,
+          title: "Start building",
+          short: "Two commands. Production foundations you own.",
+          endcard: true,
+          terminalTitle: "",
+          terminalFoot: "",
+          voiceover: "microservices.sh — production foundations for agent-built apps.",
+          lines: []
         }
       ];
 
@@ -2651,6 +2875,7 @@
         voiceover: document.querySelector("#voiceover"),
         surface: document.querySelector("#surface"),
         videoFrame: document.querySelector(".video-frame"),
+        stage: document.querySelector(".stage"),
         progress: document.querySelector("#progress"),
         play: document.querySelector("#play"),
         prev: document.querySelector("#prev"),
@@ -2659,10 +2884,47 @@
         sceneRange: document.querySelector("#scene-range"),
         timeline: document.querySelector("#timeline"),
         voAudio: document.querySelector("#vo-audio"),
-        voToggle: document.querySelector("#vo-toggle")
+        voToggle: document.querySelector("#vo-toggle"),
+        voProg: document.querySelector("#vo-prog")
       };
 
       let voOn = false;
+      let lastCaption = "";
+
+      function currentCaption(scene, local) {
+        if (scene.captions && scene.captions.length) {
+          let text = scene.captions[0].text;
+          for (const c of scene.captions) {
+            if (local >= c.at) {
+              text = c.text;
+            }
+          }
+          return text;
+        }
+        return scene.voiceover;
+      }
+
+      function updateCaption() {
+        const scene = scenes[getSceneIndex(currentTime)];
+        const dur = (scene.end - scene.start) || 1;
+        const local = currentTime - scene.start;
+        const cap = currentCaption(scene, local);
+        if (cap !== lastCaption) {
+          lastCaption = cap;
+          const el = elements.voiceover;
+          el.textContent = "";
+          cap.split(" ").forEach((word, i) => {
+            const s = document.createElement("span");
+            s.className = "w";
+            s.textContent = word;
+            s.style.animationDelay = `${i * 0.045}s`;
+            el.append(s, document.createTextNode(" "));
+          });
+        }
+        if (elements.voProg) {
+          elements.voProg.style.width = `${Math.min(100, Math.max(0, (local / dur) * 100))}%`;
+        }
+      }
 
       function playSceneVO() {
         const a = elements.voAudio;
@@ -2971,6 +3233,11 @@
               <div class="dep-gate" id="dep-gate">agent prepared the plan</div>
               <div class="dep-btn" id="dep-btn">Confirm deploy</div>
             </div>`
+        },
+        {
+          url: "microservices.sh",
+          tag: "",
+          html: ""
         }
       ];
 
@@ -3382,12 +3649,14 @@
           elements.videoFrame.classList.toggle("video-frame--hero", !!scene.fullTerminal);
           elements.videoFrame.classList.remove("is-opening");
         }
+        if (elements.stage) {
+          elements.stage.classList.toggle("is-end", !!scene.endcard);
+        }
 
         elements.sceneKicker.textContent = `Scene ${index + 1} of ${scenes.length}`;
         elements.sceneHeading.textContent = scene.title;
         elements.terminalTitle.textContent = scene.terminalTitle;
         elements.terminalFoot.textContent = scene.terminalFoot;
-        elements.voiceover.textContent = scene.voiceover;
         elements.sceneRange.textContent = `${formatTime(scene.start)}-${formatTime(scene.end)}`;
 
         renderSurface(index);
@@ -3418,6 +3687,7 @@
         elements.clock.textContent = `${formatTime(currentTime)} / ${formatTime(totalDuration)}`;
         elements.progress.value = currentTime;
         updateRail();
+        updateCaption();
       }
 
       function setTime(value) {

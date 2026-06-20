@@ -1,0 +1,257 @@
+<template id="scene-8-template">
+  <div id="scene-8" data-composition-id="scene-8" data-width="1920" data-height="1080">
+    <div class="scene-content">
+      <!-- background layers -->
+      <div class="bg-glow" aria-hidden="true"></div>
+      <svg class="hive-ghost" viewBox="0 0 600 600" aria-hidden="true">
+        <path d="M300 60 L470 158 L470 354 L300 452 L130 354 L130 158 Z" />
+        <path d="M300 160 L385 209 L385 307 L300 356 L215 307 L215 209 Z" />
+      </svg>
+      <span class="reg reg--tl" aria-hidden="true">+ dogfood</span>
+      <span class="reg reg--br" aria-hidden="true">microservices ▸ admin-shell</span>
+
+      <!-- header zone -->
+      <div class="head">
+        <span class="kicker">STEP 08 · WE DOGFOOD IT</span>
+        <h1 class="headline">We run on it. Found a gap. Fixed it.</h1>
+      </div>
+
+      <!-- split body -->
+      <div class="split">
+        <!-- LEFT: our admin UI -->
+        <div class="pane pane--left">
+          <div class="pane-label">our <b>/admin</b> · users</div>
+          <div class="user-row u1">
+            <span class="u-name">Dana Cole</span>
+            <span class="u-tag">admin</span>
+          </div>
+          <div class="user-row u2">
+            <span class="u-name">Sam Ortiz</span>
+            <span class="u-tag">staff</span>
+          </div>
+          <div class="user-row u3">
+            <span class="u-name">Maya Chen</span>
+            <span class="u-tag">viewer</span>
+          </div>
+          <div class="pane-note">running on the admin-shell module</div>
+        </div>
+
+        <!-- RIGHT: the module fix -->
+        <div class="pane pane--right">
+          <div class="pane-label">admin-shell · <b>the fix we shipped</b></div>
+          <div class="code">
+            <span class="cl">export const listUsers = route({</span>
+            <span class="cl cl--add"><span class="plus">+</span>      permission: "users.read",   // the gap we hit</span>
+            <span class="cl">      handler: (ctx) =&gt; ctx.db.users.all(),</span>
+            <span class="cl">})</span>
+          </div>
+          <div class="ship-note">found by using it → fixed in the module → every install gets it</div>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      @font-face { font-family: "Bricolage Grotesque"; font-weight: 800; font-display: block; src: url("../fonts/bricolage-800.woff2") format("woff2"); }
+      @font-face { font-family: "Hanken Grotesk"; font-weight: 400; font-display: block; src: url("../fonts/hanken-400.woff2") format("woff2"); }
+      @font-face { font-family: "Hanken Grotesk"; font-weight: 600; font-display: block; src: url("../fonts/hanken-600.woff2") format("woff2"); }
+      @font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: block; src: url("../fonts/plexmono-400.woff2") format("woff2"); }
+      @font-face { font-family: "IBM Plex Mono"; font-weight: 600; font-display: block; src: url("../fonts/plexmono-600.woff2") format("woff2"); }
+
+      #scene-8 {
+        position: absolute;
+        inset: 0;
+        background: #070a08;
+        font-family: "Hanken Grotesk", sans-serif;
+        overflow: hidden;
+      }
+      #scene-8 .scene-content {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        padding: 90px 110px;
+        display: flex;
+        flex-direction: column;
+        gap: 44px;
+      }
+
+      /* background */
+      #scene-8 .bg-glow {
+        position: absolute;
+        left: 50%;
+        top: 180px;
+        transform: translateX(-50%);
+        width: 1200px;
+        height: 1200px;
+        background: radial-gradient(circle, rgba(56, 255, 136, 0.15), rgba(7, 10, 8, 0) 62%);
+        pointer-events: none;
+      }
+      #scene-8 .hive-ghost {
+        position: absolute;
+        right: -150px;
+        bottom: -180px;
+        width: 780px;
+        height: 780px;
+        fill: none;
+        stroke: #2a3c30;
+        stroke-width: 3;
+        opacity: 0.5;
+        pointer-events: none;
+      }
+      #scene-8 .reg {
+        position: absolute;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 20px;
+        letter-spacing: 0.16em;
+        color: #5e7568;
+        text-transform: uppercase;
+      }
+      #scene-8 .reg--tl { left: 110px; top: 52px; }
+      #scene-8 .reg--br { right: 110px; bottom: 52px; }
+
+      /* header */
+      #scene-8 .head { display: flex; flex-direction: column; gap: 18px; }
+      #scene-8 .kicker {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 24px;
+        letter-spacing: 0.3em;
+        color: #38ff88;
+      }
+      #scene-8 .headline {
+        margin: 0;
+        font-family: "Bricolage Grotesque", sans-serif;
+        font-weight: 800;
+        font-size: 66px;
+        letter-spacing: -0.015em;
+        color: #eafbf1;
+        line-height: 1.02;
+      }
+
+      /* split */
+      #scene-8 .split {
+        display: flex;
+        gap: 40px;
+        flex: 1;
+        min-height: 0;
+      }
+      #scene-8 .pane {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        background: #0b0f0c;
+        border: 2px solid #2a3c30;
+        border-radius: 16px;
+        padding: 32px 34px 30px;
+        box-shadow: 0 50px 130px -30px rgba(0, 0, 0, 0.85), 0 0 90px -40px rgba(56, 255, 136, 0.18);
+      }
+      #scene-8 .pane-label {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 22px;
+        letter-spacing: 0.06em;
+        color: #5e7568;
+      }
+      #scene-8 .pane-label b { color: #9fffc2; font-weight: 600; }
+
+      /* left: user rows */
+      #scene-8 .user-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #0f1511;
+        border: 2px solid #1d2a22;
+        border-radius: 8px;
+        padding: 16px 18px;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 30px;
+      }
+      #scene-8 .u-name { color: #9fb4a6; }
+      #scene-8 .u-tag {
+        font-size: 22px;
+        color: #38ff88;
+        border: 2px solid rgba(56, 255, 136, 0.4);
+        background: rgba(56, 255, 136, 0.08);
+        border-radius: 999px;
+        padding: 4px 16px;
+      }
+      #scene-8 .pane-note {
+        margin-top: auto;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 22px;
+        color: #5e7568;
+      }
+
+      /* right: code block */
+      #scene-8 .code {
+        background: #0f1511;
+        border: 2px solid #1d2a22;
+        border-radius: 10px;
+        padding: 24px 0;
+        display: flex;
+        flex-direction: column;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 30px;
+        line-height: 1.6;
+        overflow: hidden;
+      }
+      #scene-8 .cl {
+        white-space: pre;
+        color: #91a89a;
+        padding: 0 28px;
+      }
+      #scene-8 .cl--add {
+        color: #00f57a;
+        background: rgba(56, 255, 136, 0.09);
+      }
+      #scene-8 .cl--add .plus { color: #38ff88; font-weight: 600; }
+      #scene-8 .ship-note {
+        margin-top: auto;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 22px;
+        color: #38ff88;
+        letter-spacing: 0.02em;
+      }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // header
+      tl.fromTo('#scene-8 .kicker', { opacity: 0, letterSpacing: "0.6em" }, { opacity: 1, letterSpacing: "0.3em", duration: 0.6, ease: "power2.out" }, 0.25);
+      tl.fromTo('#scene-8 .headline', { opacity: 0, y: 46 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, 0.4);
+
+      // panes settle in from their respective sides
+      tl.fromTo('#scene-8 .pane--left', { opacity: 0, x: -54 }, { opacity: 1, x: 0, duration: 0.72, ease: "expo.out" }, 0.75);
+      tl.fromTo('#scene-8 .pane--right', { opacity: 0, x: 54 }, { opacity: 1, x: 0, duration: 0.72, ease: "expo.out" }, 0.9);
+
+      // pane labels
+      tl.fromTo('#scene-8 .pane--left .pane-label', { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "none" }, 1.35);
+      tl.fromTo('#scene-8 .pane--right .pane-label', { opacity: 0 }, { opacity: 1, duration: 0.45, ease: "none" }, 1.45);
+
+      // LEFT — user rows cascade
+      tl.fromTo('#scene-8 .u1', { opacity: 0, x: -22 }, { opacity: 1, x: 0, duration: 0.4, ease: "power2.out" }, 1.55);
+      tl.fromTo('#scene-8 .u2', { opacity: 0, x: -22 }, { opacity: 1, x: 0, duration: 0.4, ease: "power2.out" }, 1.72);
+      tl.fromTo('#scene-8 .u3', { opacity: 0, x: -22 }, { opacity: 1, x: 0, duration: 0.4, ease: "power2.out" }, 1.89);
+      tl.fromTo('#scene-8 .pane-note', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5, ease: "sine.out" }, 2.2);
+
+      // RIGHT — code block context lines settle
+      tl.fromTo('#scene-8 .code', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 1.7);
+      tl.fromTo('#scene-8 .code .cl:nth-child(1)', { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "none" }, 2.05);
+      tl.fromTo('#scene-8 .code .cl:nth-child(3)', { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "none" }, 2.2);
+      tl.fromTo('#scene-8 .code .cl:nth-child(4)', { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "none" }, 2.35);
+
+      // the diff add line lands decisively
+      tl.fromTo('#scene-8 .cl--add', { opacity: 0, x: -28, scale: 0.96 }, { opacity: 1, x: 0, scale: 1, duration: 0.5, ease: "back.out(2.4)" }, 2.7);
+
+      // ship note resolves
+      tl.fromTo('#scene-8 .ship-note', { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power1.out" }, 3.25);
+
+      // breathe — the fix line glows gently (finite ambient)
+      tl.to('#scene-8 .cl--add', { backgroundColor: "rgba(56, 255, 136, 0.18)", duration: 1.0, ease: "sine.inOut", yoyo: true, repeat: 3 }, 3.9);
+
+      window.__timelines["scene-8"] = tl;
+    </script>
+  </div>
+</template>

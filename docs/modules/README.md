@@ -63,6 +63,7 @@ Future MCP/CLI tools should expose the same content through:
 | [`idempotency`](./idempotency.md) | Available | Scoped idempotency records for safe retry, replay, and duplicate side-effect prevention. |
 | [`email`](./email.md) | Planned | Transactional email sending, templates, jobs, and delivery events. |
 | [`audit-log`](./audit-log.md) | Available | Append-only audit trail; pure event sink with signed-envelope verification. |
+| [`marketing-research`](./marketing-research.md) | Available | Cite-or-refuse market research briefs with swappable signal/synthesis ports and approval-gated external fetches. |
 | [`webhook-delivery`](./webhook-delivery.md) | Available | Outbound mirror of the event bus: HMAC-signed event delivery to external endpoints with delivery logging. |
 
 ## Version Selection

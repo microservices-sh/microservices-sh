@@ -1,0 +1,289 @@
+<template id="reel-5-template">
+  <div id="reel-5" data-composition-id="reel-5" data-width="1080" data-height="1920">
+    <div class="scene-content">
+      <!-- background layers -->
+      <div class="bg-glow" aria-hidden="true"></div>
+      <svg class="hive-ghost" viewBox="0 0 600 600" aria-hidden="true">
+        <path d="M300 60 L470 158 L470 354 L300 452 L130 354 L130 158 Z" />
+        <path d="M300 160 L385 209 L385 307 L300 356 L215 307 L215 209 Z" />
+      </svg>
+      <span class="reg reg--tl" aria-hidden="true">+ deploy</span>
+      <span class="reg reg--br" aria-hidden="true">▸ own</span>
+
+      <!-- header zone -->
+      <div class="head">
+        <span class="kicker">DEPLOY · OWN</span>
+        <h1 class="headline">Your Cloudflare.<br />Real code you&nbsp;own.</h1>
+      </div>
+
+      <!-- deploy terminal -->
+      <div class="term">
+        <div class="term-bar">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <span class="term-title">studio ▸ deploy</span>
+        </div>
+        <div class="term-body">
+          <div class="row row--prompt t1"><span class="arrow">❯</span><span class="prog">pnpm</span><span class="args">&nbsp;microservices deploy</span></div>
+          <div class="row row--out t2"><span class="rv-dim">uploading to Cloudflare…</span></div>
+          <div class="row row--ok t3">
+            <span class="ok-glow" aria-hidden="true"></span>
+            <span class="ic ic--ok">✓</span><span class="rv">live · <b>studio.workers.dev</b></span>
+            <span class="note">your account</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- source code card -->
+      <div class="editor">
+        <div class="tabs">
+          <span class="tab tab--active">session.ts</span>
+          <span class="tab">routes.ts</span>
+        </div>
+        <div class="code">
+          <span class="ln c1"><span class="cm">// in YOUR repo — fork it, keep it</span></span>
+          <span class="ln c2"><span class="kw">export</span> <span class="kw">function</span> requireSession(req) {</span>
+          <span class="ln c3">  <span class="kw">if</span> (!token) <span class="kw">throw</span> Unauthorized()</span>
+          <span class="ln c4">}</span>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      @font-face { font-family: "Bricolage Grotesque"; font-weight: 800; font-display: block; src: url("../fonts/bricolage-800.woff2") format("woff2"); }
+      @font-face { font-family: "Hanken Grotesk"; font-weight: 400; font-display: block; src: url("../fonts/hanken-400.woff2") format("woff2"); }
+      @font-face { font-family: "Hanken Grotesk"; font-weight: 600; font-display: block; src: url("../fonts/hanken-600.woff2") format("woff2"); }
+      @font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: block; src: url("../fonts/plexmono-400.woff2") format("woff2"); }
+      @font-face { font-family: "IBM Plex Mono"; font-weight: 600; font-display: block; src: url("../fonts/plexmono-600.woff2") format("woff2"); }
+
+      #reel-5 {
+        position: absolute;
+        inset: 0;
+        background: #070a08;
+        font-family: "Hanken Grotesk", sans-serif;
+        overflow: hidden;
+      }
+      #reel-5 .scene-content {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        padding: 120px 60px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 36px;
+      }
+
+      /* background */
+      #reel-5 .bg-glow {
+        position: absolute;
+        left: 50%;
+        top: 360px;
+        width: 1280px;
+        height: 1280px;
+        transform: translateX(-50%);
+        background: radial-gradient(circle, rgba(56, 255, 136, 0.18), rgba(7, 10, 8, 0) 62%);
+        pointer-events: none;
+      }
+      #reel-5 .hive-ghost {
+        position: absolute;
+        left: -200px;
+        bottom: -160px;
+        width: 760px;
+        height: 760px;
+        fill: none;
+        stroke: #2a3c30;
+        stroke-width: 3;
+        opacity: 0.4;
+        pointer-events: none;
+      }
+      #reel-5 .reg {
+        position: absolute;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 24px;
+        letter-spacing: 0.16em;
+        color: #5e7568;
+        text-transform: uppercase;
+      }
+      #reel-5 .reg--tl { left: 60px; top: 210px; }
+      #reel-5 .reg--br { right: 60px; bottom: 210px; }
+
+      /* header */
+      #reel-5 .head { display: flex; flex-direction: column; gap: 22px; }
+      #reel-5 .kicker {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 26px;
+        letter-spacing: 0.3em;
+        color: #38ff88;
+      }
+      #reel-5 .headline {
+        margin: 0;
+        font-family: "Bricolage Grotesque", sans-serif;
+        font-weight: 800;
+        font-size: 76px;
+        letter-spacing: -0.015em;
+        color: #eafbf1;
+        line-height: 1.04;
+      }
+
+      /* terminal */
+      #reel-5 .term {
+        position: relative;
+        background: #0b0f0c;
+        border: 2px solid #2a3c30;
+        border-radius: 18px;
+        box-shadow: 0 50px 130px -30px rgba(0, 0, 0, 0.85), 0 0 90px -30px rgba(56, 255, 136, 0.2);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      #reel-5 .term-bar {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        padding: 20px 30px;
+        background: #0f1511;
+        border-bottom: 2px solid #1d2a22;
+      }
+      #reel-5 .dots { display: inline-flex; gap: 12px; }
+      #reel-5 .dots i { width: 18px; height: 18px; border-radius: 999px; background: #2a3c30; display: block; }
+      #reel-5 .term-title {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 26px;
+        color: #91a89a;
+      }
+      #reel-5 .term-body {
+        padding: 34px 34px 38px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 32px;
+        line-height: 1.4;
+      }
+      #reel-5 .row { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+      #reel-5 .row--prompt { color: #eafbf1; }
+      #reel-5 .arrow { color: #38ff88; font-weight: 600; }
+      #reel-5 .prog { color: #9fffc2; }
+      #reel-5 .args { color: #91a89a; }
+      #reel-5 .rv-dim { color: #5e7568; }
+      #reel-5 .ic { width: 36px; flex: 0 0 36px; text-align: center; font-weight: 700; }
+      #reel-5 .ic--ok { color: #38ff88; }
+      #reel-5 .rv { color: #eafbf1; }
+      #reel-5 .rv b { color: #00f57a; font-weight: 600; }
+      #reel-5 .note {
+        font-size: 24px;
+        color: #5e7568;
+        letter-spacing: 0.04em;
+      }
+      #reel-5 .row--ok {
+        position: relative;
+        margin: 2px -14px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        background: rgba(56, 255, 136, 0.07);
+      }
+      #reel-5 .ok-glow {
+        position: absolute;
+        inset: -2px -10px;
+        border-radius: 14px;
+        background: radial-gradient(ellipse at 10% 50%, rgba(56, 255, 136, 0.34), rgba(56, 255, 136, 0) 58%);
+        pointer-events: none;
+        opacity: 0;
+        z-index: 0;
+      }
+      #reel-5 .row--ok .ic,
+      #reel-5 .row--ok .rv,
+      #reel-5 .row--ok .note { position: relative; z-index: 1; }
+
+      /* editor */
+      #reel-5 .editor {
+        position: relative;
+        background: #0b0f0c;
+        border: 2px solid #2a3c30;
+        border-radius: 16px;
+        box-shadow: 0 50px 130px -30px rgba(0, 0, 0, 0.85), 0 0 90px -40px rgba(77, 216, 255, 0.16);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      #reel-5 .tabs {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        background: #0f1511;
+        border-bottom: 2px solid #1d2a22;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 24px;
+      }
+      #reel-5 .tab {
+        padding: 16px 28px;
+        color: #5e7568;
+        border-right: 2px solid #1d2a22;
+      }
+      #reel-5 .tab--active {
+        color: #9fffc2;
+        background: #0b0f0c;
+        border-bottom: 2px solid #38ff88;
+        margin-bottom: -2px;
+      }
+      #reel-5 .code {
+        padding: 30px 30px 34px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-family: "IBM Plex Mono", monospace;
+        font-weight: 400;
+        font-size: 30px;
+        line-height: 1.55;
+        color: #eafbf1;
+      }
+      #reel-5 .ln { white-space: pre; display: block; }
+      #reel-5 .kw { color: #4dd8ff; }
+      #reel-5 .st { color: #9fffc2; }
+      #reel-5 .cm { color: #5e7568; }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // header — kicker tightens, headline rises (different eases)
+      tl.fromTo('#reel-5 .kicker', { opacity: 0, letterSpacing: "0.62em" }, { opacity: 1, letterSpacing: "0.3em", duration: 0.6, ease: "power2.out" }, 0.25);
+      tl.fromTo('#reel-5 .headline', { opacity: 0, y: 46 }, { opacity: 1, y: 0, duration: 0.78, ease: "power3.out" }, 0.42);
+
+      // corner marks drift in
+      tl.fromTo('#reel-5 .reg--tl', { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.5, ease: "sine.out" }, 0.7);
+      tl.fromTo('#reel-5 .reg--br', { opacity: 0, x: 14 }, { opacity: 1, x: 0, duration: 0.5, ease: "sine.out" }, 0.8);
+
+      // terminal frame rises in
+      tl.fromTo('#reel-5 .term', { opacity: 0, y: 64, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 0.72, ease: "expo.out" }, 0.95);
+      tl.fromTo('#reel-5 .term-bar', { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "none" }, 1.35);
+
+      // terminal rows cascade
+      tl.fromTo('#reel-5 .t1', { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.4, ease: "power2.out" }, 1.6);
+      tl.fromTo('#reel-5 .t2', { opacity: 0, x: -16 }, { opacity: 1, x: 0, duration: 0.34, ease: "power1.out" }, 1.92);
+
+      // the live success — first focal beat, pops with glow
+      tl.fromTo('#reel-5 .t3', { opacity: 0, scale: 0.82, x: -8 }, { opacity: 1, scale: 1, x: 0, duration: 0.5, ease: "back.out(2)" }, 2.3);
+      tl.fromTo('#reel-5 .ok-glow', { opacity: 0, scale: 0.92 }, { opacity: 0.95, scale: 1, duration: 0.52, ease: "power2.out" }, 2.45);
+
+      // source card rises in — second focal point
+      tl.fromTo('#reel-5 .editor', { opacity: 0, y: 90, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.82, ease: "power4.out" }, 2.95);
+      tl.fromTo('#reel-5 .tabs', { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "none" }, 3.5);
+      tl.fromTo('#reel-5 .tab--active', { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.36, ease: "back.out(1.7)" }, 3.62);
+
+      // code lines cascade up
+      tl.fromTo('#reel-5 .c1', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.32, ease: "power1.out" }, 3.85);
+      tl.fromTo('#reel-5 .c2', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.32, ease: "power1.out" }, 3.98);
+      tl.fromTo('#reel-5 .c3', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.32, ease: "power1.out" }, 4.11);
+      tl.fromTo('#reel-5 .c4', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.32, ease: "power1.out" }, 4.24);
+
+      // ambient — confident glow breathes on the live row (finite)
+      tl.to('#reel-5 .ok-glow', { opacity: 0.55, scale: 1.05, duration: 1.0, ease: "sine.inOut", yoyo: true, repeat: 3 }, 4.7);
+
+      window.__timelines["reel-5"] = tl;
+    </script>
+  </div>
+</template>

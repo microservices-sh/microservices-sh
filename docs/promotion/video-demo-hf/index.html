@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>microservices.sh — demo</title>
+    <style>
+      html, body { margin: 0; padding: 0; background: #070a08; }
+      @font-face { font-family: "Hanken Grotesk"; font-weight: 600; font-display: block; src: url("fonts/hanken-600.woff2") format("woff2"); }
+      /* burned-in captions (synced to the VO, for muted autoplay) */
+      .cap {
+        position: absolute;
+        left: 50%;
+        bottom: 46px;
+        transform: translateX(-50%);
+        width: max-content;
+        max-width: 1420px;
+        text-align: center;
+        font-family: "Hanken Grotesk", sans-serif;
+        font-weight: 600;
+        font-size: 34px;
+        line-height: 1.3;
+        letter-spacing: -0.005em;
+        color: #eafbf1;
+        background: rgba(6, 9, 7, 0.86);
+        padding: 13px 30px;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px -12px rgba(0, 0, 0, 0.7);
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+        z-index: 60;
+        white-space: normal;
+      }
+    </style>
+  </head>
+  <body>
+    <div data-composition-id="root" data-start="0" data-duration="71" data-width="1920" data-height="1080">
+      <!-- ── scenes (alternating tracks so consecutive clips can overlap for crossfades) ── -->
+      <div id="clip-0" data-composition-id="scene-0" data-composition-src="compositions/scene-0.html" data-start="0"    data-duration="3.6" data-track-index="2"></div>
+      <div id="clip-1" data-composition-id="scene-1" data-composition-src="compositions/scene-1.html" data-start="3.2"  data-duration="8.5" data-track-index="1"></div>
+      <div id="clip-2" data-composition-id="scene-2" data-composition-src="compositions/scene-2.html" data-start="11.3" data-duration="8"   data-track-index="2"></div>
+      <div id="clip-3" data-composition-id="scene-3" data-composition-src="compositions/scene-3.html" data-start="18.9" data-duration="7"   data-track-index="1"></div>
+      <div id="clip-4" data-composition-id="scene-4" data-composition-src="compositions/scene-4.html" data-start="25.5" data-duration="8"   data-track-index="2"></div>
+      <div id="clip-5" data-composition-id="scene-5" data-composition-src="compositions/scene-5.html" data-start="33.1" data-duration="8"   data-track-index="1"></div>
+      <div id="clip-6" data-composition-id="scene-6" data-composition-src="compositions/scene-6.html" data-start="40.7" data-duration="7.5" data-track-index="2"></div>
+      <div id="clip-7" data-composition-id="scene-7" data-composition-src="compositions/scene-7.html" data-start="47.8" data-duration="9"   data-track-index="1"></div>
+      <div id="clip-8" data-composition-id="scene-8" data-composition-src="compositions/scene-8.html" data-start="56.4" data-duration="8"   data-track-index="2"></div>
+      <div id="clip-9" data-composition-id="scene-9" data-composition-src="compositions/scene-9.html" data-start="64"   data-duration="7"   data-track-index="1"></div>
+
+      <!-- ── voiceover ── -->
+      <audio id="vo-0" src="assets/vo/vo-0.mp3" data-start="0.3"  data-duration="3.2" data-track-index="5" data-volume="1"></audio>
+      <audio id="vo-1" src="assets/vo/vo-1.mp3" data-start="3.7"  data-duration="8"   data-track-index="5" data-volume="1"></audio>
+      <audio id="vo-2" src="assets/vo/vo-2.mp3" data-start="11.8" data-duration="7.5" data-track-index="5" data-volume="1"></audio>
+      <audio id="vo-3" src="assets/vo/vo-3.mp3" data-start="19.4" data-duration="5"   data-track-index="5" data-volume="1"></audio>
+      <audio id="vo-4" src="assets/vo/vo-4.mp3" data-start="26"   data-duration="7"   data-track-index="5" data-volume="1"></audio>
+      <audio id="vo-5" src="assets/vo/vo-5.mp3" data-start="33.6" data-duration="6.5" data-track-index="5" data-volume="1"></audio>
+      <audio id="vo-6" src="assets/vo/vo-6.mp3" data-start="41.2" data-duration="6.5" data-track-index="5" data-volume="1"></audio>
+      <audio id="vo-7" src="assets/vo/vo-7.mp3" data-start="48.3" data-duration="8.5" data-track-index="5" data-volume="1"></audio>
+      <audio id="vo-8" src="assets/vo/vo-8.mp3" data-start="56.9" data-duration="7.5" data-track-index="5" data-volume="1"></audio>
+      <audio id="vo-9" src="assets/vo/vo-9.mp3" data-start="64.5" data-duration="6"   data-track-index="5" data-volume="1"></audio>
+
+      <!-- ── captions (one per scene, synced to its VO line, track 4) ── -->
+      <div id="cap-0" class="clip cap" data-start="0.4"  data-duration="3"   data-track-index="4">Let your agent build the whole backend. Safely.</div>
+      <div id="cap-1" class="clip cap" data-start="3.8"  data-duration="7.2" data-track-index="4">Your agent builds most of it — just not the parts that run a business.</div>
+      <div id="cap-2" class="clip cap" data-start="11.9" data-duration="6.7" data-track-index="4">Auth, payments, tenancy: the 30% that breaks quietly.</div>
+      <div id="cap-3" class="clip cap" data-start="19.5" data-duration="4.2" data-track-index="4">Compose them from verified modules instead.</div>
+      <div id="cap-4" class="clip cap" data-start="26.1" data-duration="6.6" data-track-index="4">Every contract gets checked — the agent left /admin open.</div>
+      <div id="cap-5" class="clip cap" data-start="33.7" data-duration="6.3" data-track-index="4">One line gates it. /admin fails closed, check passes.</div>
+      <div id="cap-6" class="clip cap" data-start="41.3" data-duration="5.9" data-track-index="4">Modules connect by contract: typed calls, events, hooks.</div>
+      <div id="cap-7" class="clip cap" data-start="48.4" data-duration="7.9" data-track-index="4">Deploys to your own Cloudflare. Real code you own.</div>
+      <div id="cap-8" class="clip cap" data-start="57"   data-duration="7"   data-track-index="4">We run our own admin on these modules. Found a gap — fixed it for everyone.</div>
+      <div id="cap-9" class="clip cap" data-start="64.6" data-duration="5.4" data-track-index="4">microservices.sh — let your agent build, own the code.</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const root = gsap.timeline({ paused: true });
+
+      // 0.4s crossfades at each scene boundary (outgoing fades out as incoming fades in)
+      root.to('#clip-0', { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 3.2);
+      root.fromTo('#clip-1', { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.inOut" }, 3.2);
+      root.to('#clip-1', { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 11.3);
+      root.fromTo('#clip-2', { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.inOut" }, 11.3);
+      root.to('#clip-2', { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 18.9);
+      root.fromTo('#clip-3', { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.inOut" }, 18.9);
+      root.to('#clip-3', { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 25.5);
+      root.fromTo('#clip-4', { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.inOut" }, 25.5);
+      root.to('#clip-4', { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 33.1);
+      root.fromTo('#clip-5', { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.inOut" }, 33.1);
+      root.to('#clip-5', { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 40.7);
+      root.fromTo('#clip-6', { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.inOut" }, 40.7);
+      root.to('#clip-6', { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 47.8);
+      root.fromTo('#clip-7', { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.inOut" }, 47.8);
+      root.to('#clip-7', { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 56.4);
+      root.fromTo('#clip-8', { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.inOut" }, 56.4);
+      root.to('#clip-8', { opacity: 0, duration: 0.4, ease: "power1.inOut" }, 64);
+      root.fromTo('#clip-9', { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.inOut" }, 64);
+
+      // caption fades (quick in/out so they don't pop)
+      root.fromTo('#cap-0', { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, 0.4);
+      root.to('#cap-0', { opacity: 0, duration: 0.25, ease: "power1.in" }, 3.15);
+      root.fromTo('#cap-1', { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, 3.8);
+      root.to('#cap-1', { opacity: 0, duration: 0.25, ease: "power1.in" }, 10.75);
+      root.fromTo('#cap-2', { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, 11.9);
+      root.to('#cap-2', { opacity: 0, duration: 0.25, ease: "power1.in" }, 18.35);
+      root.fromTo('#cap-3', { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, 19.5);
+      root.to('#cap-3', { opacity: 0, duration: 0.25, ease: "power1.in" }, 23.45);
+      root.fromTo('#cap-4', { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, 26.1);
+      root.to('#cap-4', { opacity: 0, duration: 0.25, ease: "power1.in" }, 32.45);
+      root.fromTo('#cap-5', { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, 33.7);
+      root.to('#cap-5', { opacity: 0, duration: 0.25, ease: "power1.in" }, 39.75);
+      root.fromTo('#cap-6', { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, 41.3);
+      root.to('#cap-6', { opacity: 0, duration: 0.25, ease: "power1.in" }, 46.95);
+      root.fromTo('#cap-7', { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, 48.4);
+      root.to('#cap-7', { opacity: 0, duration: 0.25, ease: "power1.in" }, 56.05);
+      root.fromTo('#cap-8', { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, 57);
+      root.to('#cap-8', { opacity: 0, duration: 0.25, ease: "power1.in" }, 63.75);
+      root.fromTo('#cap-9', { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power1.out" }, 64.6);
+      root.to('#cap-9', { opacity: 0, duration: 0.3, ease: "power1.in" }, 69.7);
+
+      window.__timelines["root"] = root;
+    </script>
+  </body>
+</html>

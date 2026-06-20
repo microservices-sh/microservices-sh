@@ -36,10 +36,13 @@ This directory contains the actionable plan for starting the microservices.sh MV
 31. `28-fly-runtime-graphrag-agent.md` - Fly-hosted runtime, graph/RAG, and agent execution planning.
 32. `29-lp-marketing-product-roadmap.md` - landing page audit, System Harness positioning, marketing strategy, and product roadmap.
 33. `30-product-roadmap-status-audit.md` - one-by-one roadmap status audit against current repo evidence, launch gaps, and verification results.
-34. `../docs/system-harness.md` - public product definition, canonical create/package CLI workflow, deploy-language boundary, and operator-pilot boundary.
-35. `../docs/quickstart-proof.md` - latest clean quickstart commands, timing, and generated-app verification results.
-36. `../docs/operator-pilot-boundary.md` - Agent Center, Hermes, Ads Manager, and Marketing Research private-pilot gates.
-37. `managed-deploy-oauth.md` - managed deploy into a user's own Cloudflare account, with API-token-first and OAuth-later sequencing.
+34. `31-hermes-graphify-ingest.md` - wires graphify-out → research graph store on the Hermes Fly runtime; ingest adapter + on-box build job (fills Plan 28's missing seam).
+35. `32-hermes-information-access.md` - comprehensive info-access architecture for the operational assistant: knowledge plane (graph) + operations plane (governed live operate-plane read-back) + connector sync; source taxonomy, retrieval orchestration, governance, phasing.
+36. `33-erp-shell-desktop-companion.md` - desktop companion roadmap for local document intake, OCR/LLM extraction review, and approved sync into ERP Shell modules.
+37. `../docs/system-harness.md` - public product definition, canonical create/package CLI workflow, deploy-language boundary, and operator-pilot boundary.
+38. `../docs/quickstart-proof.md` - latest clean quickstart commands, timing, and generated-app verification results.
+39. `../docs/operator-pilot-boundary.md` - Agent Center, Hermes, Ads Manager, and Marketing Research private-pilot gates.
+40. `managed-deploy-oauth.md` - managed deploy into a user's own Cloudflare account, with API-token-first and OAuth-later sequencing.
 
 ## Core Decision
 The MVP is good enough to start if it remains narrow:
@@ -89,3 +92,4 @@ The MVP is good enough to start if it remains narrow:
 24. Use `docs/system-harness.md` and `docs/quickstart-proof.md` as the public launch proof docs.
 25. Use `docs/operator-pilot-boundary.md` before making Agent Center, Hermes, Ads Manager, or Marketing Research public claims.
 26. Use `managed-deploy-oauth.md` for the user's-own-Cloudflare deploy path; prove the scoped-token flow before OAuth.
+27. Use `33-erp-shell-desktop-companion.md` before expanding the desktop MVP beyond local intake and reviewed sync.
