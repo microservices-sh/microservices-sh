@@ -20,6 +20,7 @@
     "@microservices-sh/document-extraction": "workspace:*",
     "@microservices-sh/file-media": "workspace:*",
     "@microservices-sh/forms-intake": "workspace:*",
+    "@microservices-sh/image-generation": "workspace:*",
     "@microservices-sh/invoice": "workspace:*",
     "@microservices-sh/jobs-workflows": "workspace:*",
     "@microservices-sh/marketing-research": "workspace:*",

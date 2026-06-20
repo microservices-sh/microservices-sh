@@ -6,6 +6,7 @@
   "description": "Prebuilt microservices.sh image-generation module: text-to-image + edit across pluggable providers (kie.ai, Gemini, GPT-image), R2-backed bytes with tenant-scoped keys, D1 gallery, default provider + fallback.",
   "exports": {
     ".": "./src/index.ts",
+    "./preview": "./reference-ui/Preview.svelte",
     "./types": "./src/types.ts",
     "./schemas": "./src/schemas.ts",
     "./hooks": "./src/hooks.ts",
@@ -37,6 +38,8 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",
+    "@microservices-sh/ui": "workspace:*",
+    "svelte": "^5.0.0",
     "typescript": "^5.9.3"
   }
 }
