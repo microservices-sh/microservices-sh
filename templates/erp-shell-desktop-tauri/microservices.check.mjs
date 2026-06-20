@@ -6,12 +6,22 @@ export default function check({ assertFileIncludesAll }) {
   );
   assertFileIncludesAll(
     "src/App.svelte",
-    ["PageHeader", "MetricStrip", "ResourceTable", "Drop or Select Documents"],
-    "Desktop MVP uses shared UI primitives for import, runtime, and sync surfaces."
+    ["AppShell", "PageHeader", "MetricStrip", "ResourceTable", "Drop or Select Documents"],
+    "Desktop MVP uses the ERP shell chrome and shared UI primitives."
+  );
+  assertFileIncludesAll(
+    "src/lib/ui/index.ts",
+    ["AppShell", "Logo", "PageHeader", "ResourceTable"],
+    "Desktop MVP exports the same app shell and logo primitives as ERP Shell."
+  );
+  assertFileIncludesAll(
+    "index.html",
+    ["IBM+Plex+Mono", "IBM+Plex+Sans", "document.documentElement.dataset.theme"],
+    "Desktop MVP loads the same ERP Shell fonts and theme bootstrap."
   );
   assertFileIncludesAll(
     "src/app.css",
-    ['@import "./lib/ui/tokens.css"', "var(--color-panel)", "var(--color-line)"],
+    ['@import "./lib/ui/tokens.css"', "var(--color-panel-subtle)", "var(--color-line)"],
     "Desktop MVP uses the shared UI token stylesheet instead of a standalone palette."
   );
   assertFileIncludesAll(

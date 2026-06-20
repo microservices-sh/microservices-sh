@@ -58,7 +58,7 @@ before installing dependencies, so host `node_modules`, `dist`, and Cargo
 
 - Svelte/Vite desktop UI.
 - Shared ERP Shell UI tokens and component primitives vendored under
-  `src/lib/ui`.
+  `src/lib/ui`, including the canonical `AppShell` sidebar and `Logo`.
 - Tauri shell for macOS and Windows bundles.
 - Rust commands for folder selection, drag/drop path import, SQLite queue
   persistence, runtime status, and sync status.
