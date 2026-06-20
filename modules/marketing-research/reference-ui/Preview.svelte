@@ -46,7 +46,12 @@
 <header class="rc-head">
   <Eyebrow>Cited marketing research</Eyebrow>
   <h1 class="rc-title">Marketing Research</h1>
-  <p class="rc-lede">Pull community &amp; competitive signals into a brief that <strong>cites every claim</strong> — or refuses when nothing grounds it.</p>
+  <p class="rc-lede">Turn what people are actually saying online into a marketing brief you can trust — every claim tied to a real source.</p>
+  <ol class="rc-how">
+    <li><span class="rc-how__n mono">01</span><span><strong>Listen</strong> — pull recent signals from communities (Reddit, Hacker News, GitHub) about a topic.</span></li>
+    <li><span class="rc-how__n mono">02</span><span><strong>Synthesize</strong> — write a brief + implications that <strong>cite every claim</strong> to a source, or <strong>refuse</strong> if nothing grounds it (no invented demand).</span></li>
+    <li><span class="rc-how__n mono">03</span><span><strong>Report coverage honestly</strong> — you see exactly which sources returned signal and which came back empty.</span></li>
+  </ol>
 </header>
 
 <section class="rc-console" aria-label="Run research">
@@ -58,10 +63,13 @@
         <input class="rc-input" bind:value={topic} placeholder="e.g. Cloudflare Workers" />
       </label>
       <label class="rc-field">
-        <span class="rc-label">Channels <em>optional</em></span>
+        <span class="rc-label">Channels <em>optional · subreddits</em></span>
         <input class="rc-input" bind:value={channels} placeholder="CloudFlare, Supabase" />
       </label>
     </div>
+    <p class="rc-fieldnote">
+      <strong>Channels</strong> = the communities to scope the listening to — comma-separated subreddits (e.g. <code>CloudFlare, Supabase</code>). Leave blank to search broadly across sources.
+    </p>
 
     {#if config}
       <div class="rc-config">{@render config()}</div>
@@ -196,4 +204,36 @@
 
   @keyframes rc-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
   @media (prefers-reduced-motion: reduce) { .rc-card { animation: none; } }
+
+  /* ── How it works ── */
+  .rc-how { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: 0.5rem; max-width: 64ch; }
+  .rc-how li { display: grid; grid-template-columns: auto 1fr; gap: 0.7rem; align-items: baseline; font-size: 0.9rem; color: var(--color-ink-soft); }
+  .rc-how strong { color: var(--color-ink); font-weight: 600; }
+  .rc-how__n { color: var(--color-green); font-size: 0.72rem; }
+  .rc-fieldnote { margin: 0.8rem 0 0; font-size: 0.78rem; color: var(--color-ink-faint); max-width: 62ch; }
+  .rc-fieldnote strong { color: var(--color-ink-soft); }
+  .rc-fieldnote code { font-family: var(--font-mono); color: var(--color-green); font-size: 0.92em; }
+
+  /* ── White "paper" result cards (fixed light palette so the brief reads as a
+     clean report regardless of the shell theme) ── */
+  .rc-brief, .rc-card--refused {
+    --p-ink: #1a1f36; --p-soft: #475067; --p-faint: #8a93a3;
+    --p-line: #e6ebf1; --p-green: #0c8f5a; --p-amber: #b45309;
+  }
+  .rc-card { background: #ffffff; color: var(--p-ink); border-color: var(--p-line); box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 16px 32px -20px rgba(16, 24, 40, 0.25); }
+  .rc-eyebrow { color: var(--p-faint); }
+  .rc-summary { color: var(--p-ink); }
+  .rc-impl li { color: var(--p-soft); }
+  .rc-impl li::before { color: var(--p-green); }
+  .rc-cite { background: #fbfcfe; border-color: var(--p-line); }
+  .rc-cite:hover { border-color: color-mix(in srgb, var(--p-green) 50%, var(--p-line)); background: #ffffff; }
+  .rc-cite__host { color: var(--p-faint); }
+  .rc-cite__title { color: var(--p-ink); }
+  .rc-cite__go { color: var(--p-green); }
+  .rc-chip { color: var(--p-faint); border-color: var(--p-line); }
+  .rc-chip--on { color: var(--p-green); border-color: color-mix(in srgb, var(--p-green) 40%, var(--p-line)); }
+  .rc-coverage__note { color: var(--p-amber); }
+  .rc-card--refused { background: #fffbeb; border-color: #f3d59a; }
+  .rc-refused__code { color: var(--p-amber); }
+  .rc-refused__msg { color: var(--p-ink); }
 </style>
