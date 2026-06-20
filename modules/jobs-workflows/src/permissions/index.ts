@@ -5,5 +5,6 @@ export const permissions = [
   "workflows.define",
   "workflows.run",
   "workflows.read",
+  "workflows.artifacts",
   "workflows.admin"
 ] as const;

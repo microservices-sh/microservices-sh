@@ -9,3 +9,7 @@ export { defineWorkflow } from "../use-cases/define-workflow";
 export { startWorkflowRun } from "../use-cases/start-workflow-run";
 export { runNextWorkflowStep } from "../use-cases/run-next-workflow-step";
 export { resumeWorkflowStep } from "../use-cases/resume-workflow-step";
+export { recordWorkflowArtifact } from "../use-cases/record-workflow-artifact";
+export { listWorkflowArtifacts } from "../use-cases/list-workflow-artifacts";
+export { appendWorkflowStepEvent } from "../use-cases/append-workflow-step-event";
+export { listWorkflowStepEvents } from "../use-cases/list-workflow-step-events";

@@ -1,0 +1,38 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Agent Dispatch Module",
+    "version": "0.1.0",
+    "description": "Runtime-neutral agent dispatch with capability grants and one-time resume tokens."
+  },
+  "paths": {
+    "/agent-runs": {
+      "post": {
+        "summary": "Dispatch an agent run",
+        "responses": {
+          "201": { "description": "Agent run dispatched" },
+          "400": { "description": "Invalid input" }
+        }
+      }
+    },
+    "/agent-runs/{id}/resume": {
+      "post": {
+        "summary": "Resume an agent run from an executor callback",
+        "responses": {
+          "200": { "description": "Agent run resumed" },
+          "403": { "description": "Invalid or expired resume token" },
+          "404": { "description": "Agent run not found" }
+        }
+      }
+    },
+    "/agent-runs/{id}/cancel": {
+      "post": {
+        "summary": "Cancel an agent run",
+        "responses": {
+          "200": { "description": "Agent run canceled" },
+          "404": { "description": "Agent run not found" }
+        }
+      }
+    }
+  }
+}

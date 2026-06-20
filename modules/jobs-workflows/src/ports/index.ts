@@ -4,8 +4,10 @@ import type {
   JobRun,
   JobSchedule,
   WorkflowDefinition,
+  WorkflowArtifact,
   WorkflowRun,
   WorkflowRunStatus,
+  WorkflowStepEvent,
   WorkflowStepRun
 } from "../types";
 
@@ -69,4 +71,15 @@ export interface WorkflowStepRunStore {
   claimPending(ownerId: string, workflowRunId: string, stepId: string, nowIso: string): Promise<WorkflowStepRun | null>;
   update(stepRun: WorkflowStepRun): Promise<void>;
   listForRun(ownerId: string, workflowRunId: string): Promise<WorkflowStepRun[]>;
+}
+
+export interface WorkflowArtifactStore {
+  insert(artifact: WorkflowArtifact): Promise<void>;
+  listForRun(ownerId: string, workflowRunId: string): Promise<WorkflowArtifact[]>;
+  listForStep(ownerId: string, workflowRunId: string, stepRunId: string): Promise<WorkflowArtifact[]>;
+}
+
+export interface WorkflowStepEventStore {
+  append(event: WorkflowStepEvent): Promise<void>;
+  listForRun(ownerId: string, workflowRunId: string, limit?: number): Promise<WorkflowStepEvent[]>;
 }

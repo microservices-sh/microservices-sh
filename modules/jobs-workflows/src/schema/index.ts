@@ -5,5 +5,7 @@ export {
   workflowStepDefinitionSchema,
   defineWorkflowInputSchema,
   startWorkflowRunInputSchema,
-  resumeWorkflowStepInputSchema
+  resumeWorkflowStepInputSchema,
+  recordWorkflowArtifactInputSchema,
+  appendWorkflowStepEventInputSchema
 } from "../schemas";

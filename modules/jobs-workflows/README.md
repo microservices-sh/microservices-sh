@@ -35,8 +35,10 @@ It encapsulates the things AI agents reliably get wrong with background work:
 import {
   enqueueJob, runJob, runDueJobs, dueScheduledJobs, upsertSchedule, listJobs, listSchedules,
   defineWorkflow, startWorkflowRun, runNextWorkflowStep, resumeWorkflowStep,
+  recordWorkflowArtifact, listWorkflowArtifacts, appendWorkflowStepEvent, listWorkflowStepEvents,
   createD1JobStore, createD1JobRunStore, createD1ScheduleStore, createCfQueueProducer,
-  createD1WorkflowDefinitionStore, createD1WorkflowRunStore, createD1WorkflowStepRunStore
+  createD1WorkflowDefinitionStore, createD1WorkflowRunStore, createD1WorkflowStepRunStore,
+  createD1WorkflowArtifactStore, createD1WorkflowStepEventStore
 } from "@microservices-sh/jobs-workflows";
 ```
 
@@ -51,6 +53,8 @@ import {
 - `startWorkflowRun(input, { definitionStore, runStore, stepRunStore })` — create an idempotent run and first pending step.
 - `runNextWorkflowStep(runId, handlers, { ownerId, runStore, stepRunStore })` — execute the current step through a typed handler registry after an owner-scoped atomic claim.
 - `resumeWorkflowStep(input, { runStore, stepRunStore })` — complete a waiting agent/approval step; `input.ownerId` scopes the resume to one tenant.
+- `recordWorkflowArtifact(input, { artifactStore })` — persist durable workflow outputs such as reports, logs, diffs, files, and URLs.
+- `appendWorkflowStepEvent(input, { eventStore })` — append runtime/operator events for audit and run detail timelines.
 
 ## Wiring (host app)
 
@@ -109,7 +113,8 @@ await resumeWorkflowStep({
 
 - D1 (`DB`): tables `jobs`, `job_runs`, `job_schedules` (migration `0001`) and
   `workflow_definitions`, `workflow_runs`, `workflow_step_runs` (migration
-  `0002`).
+  `0002`), plus `workflow_artifacts` and `workflow_step_events` (migration
+  `0003`).
 - Queue (`JOBS_QUEUE`, optional): wake-up hint only; D1 is the source of truth.
 
 ## Verification

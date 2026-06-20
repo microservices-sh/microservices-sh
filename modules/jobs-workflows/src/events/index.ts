@@ -13,7 +13,9 @@ export const events = {
     "workflow.step.failed",
     "workflow.waiting",
     "workflow.succeeded",
-    "workflow.failed"
+    "workflow.failed",
+    "workflow.artifact.recorded",
+    "workflow.step.event_recorded"
   ],
   consumed: []
 } as const;

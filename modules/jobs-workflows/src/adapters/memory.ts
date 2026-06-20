@@ -4,3 +4,5 @@ export { createMemoryScheduleStore } from "./memory-schedule-store";
 export { createMemoryWorkflowDefinitionStore } from "./memory-workflow-definition-store";
 export { createMemoryWorkflowRunStore } from "./memory-workflow-run-store";
 export { createMemoryWorkflowStepRunStore } from "./memory-workflow-step-run-store";
+export { createMemoryWorkflowArtifactStore } from "./memory-workflow-artifact-store";
+export { createMemoryWorkflowStepEventStore } from "./memory-workflow-step-event-store";

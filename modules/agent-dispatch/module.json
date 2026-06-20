@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "agent-dispatch",
+  "name": "Agent Dispatch",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "platform",
+  "summary": "Runtime-neutral agent dispatch bridge with capability grants, one-time resume tokens, and workflow resume payloads. This keeps Hermes, Fly Machines, Vercel Sandbox, and tool-only executors outside the workflow control plane.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["sveltekit", "hono-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    { "type": "d1", "binding": "DB", "tables": ["agent_runs", "capability_grants"] }
+  ],
+  "permissions": ["agent-dispatch.run", "agent-dispatch.read", "agent-dispatch.cancel", "agent-dispatch.admin"],
+  "connections": {
+    "requires": ["jobs-workflows"],
+    "optional": ["audit-log", "operator-work", "research"],
+    "rpc": {
+      "exposes": [
+        { "method": "dispatchAgentRun", "scope": "agent-dispatch.run", "public": false },
+        { "method": "resumeAgentRun", "scope": "agent-dispatch.run", "public": false },
+        { "method": "cancelAgentRun", "scope": "agent-dispatch.cancel", "public": false }
+      ],
+      "calls": []
+    },
+    "events": {
+      "emits": ["agent_dispatch.dispatched", "agent_dispatch.waiting", "agent_dispatch.succeeded", "agent_dispatch.failed", "agent_dispatch.canceled"],
+      "consumes": ["workflow.waiting"]
+    },
+    "hookPoints": {},
+    "provides": { "hooks": [] }
+  },
+  "customization": {
+    "default": "runtime-adapter",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [{ "label": "Agent Runs", "path": "/settings/agent-runs", "permission": "agent-dispatch.read", "icon": "Bot" }]
+    },
+    "visitor": { "applicable": false },
+    "agentic": {
+      "applicable": true,
+      "tools": ["agent-dispatch.dispatchAgentRun", "agent-dispatch.resumeAgentRun", "agent-dispatch.cancelAgentRun"],
+      "approvalRequiredFor": ["agent-dispatch.dispatchAgentRun", "agent-dispatch.cancelAgentRun"]
+    }
+  },
+  "approval": {
+    "risk": "high",
+    "requiresApprovalFor": ["migrations", "runtime-dispatch", "secret-brokering", "production-deploy"]
+  }
+}

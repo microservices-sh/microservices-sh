@@ -9,12 +9,18 @@ import {
   startWorkflowRun,
   runNextWorkflowStep,
   resumeWorkflowStep,
+  recordWorkflowArtifact,
+  listWorkflowArtifacts,
+  appendWorkflowStepEvent,
+  listWorkflowStepEvents,
   createMemoryJobStore,
   createMemoryJobRunStore,
   createMemoryScheduleStore,
   createMemoryWorkflowDefinitionStore,
   createMemoryWorkflowRunStore,
   createMemoryWorkflowStepRunStore,
+  createMemoryWorkflowArtifactStore,
+  createMemoryWorkflowStepEventStore,
   computeBackoffMs
 } from "./index";
 import type { JobHandler } from "./types";
@@ -492,5 +498,60 @@ describe("jobs-workflows: workflow orchestration", () => {
     expect(failedData.status).toBe("failed");
     expect(failedData.run.status).toBe("failed");
     expect(failedData.event.name).toBe("workflow.failed");
+  });
+
+  it("records tenant-scoped workflow artifacts and step events", async () => {
+    const artifactStore = createMemoryWorkflowArtifactStore();
+    const eventStore = createMemoryWorkflowStepEventStore();
+
+    const artifact = await recordWorkflowArtifact(
+      {
+        ownerId: "org_1",
+        workflowRunId: "wfr_1",
+        stepRunId: "wfsr_1",
+        kind: "json",
+        name: "agent-output",
+        content: { reportId: "report_1" },
+        metadata: { agentRunId: "agr_1" }
+      },
+      { artifactStore, now: fixedNow(T0) }
+    );
+    expect(artifact.ok).toBe(true);
+    if (!artifact.ok) throw new Error("expected ok");
+    expect(artifact.data.event.name).toBe("workflow.artifact.recorded");
+
+    const stepEvent = await appendWorkflowStepEvent(
+      {
+        ownerId: "org_1",
+        workflowRunId: "wfr_1",
+        stepRunId: "wfsr_1",
+        stepId: "agent",
+        name: "workflow.step.artifact_recorded",
+        payload: { artifactId: artifact.data.artifact.id }
+      },
+      { eventStore, now: fixedNow(T0 + 1) }
+    );
+    expect(stepEvent.ok).toBe(true);
+
+    const listedArtifacts = await listWorkflowArtifacts(
+      { ownerId: "org_1", workflowRunId: "wfr_1" },
+      { artifactStore }
+    );
+    if (!listedArtifacts.ok) throw new Error("expected ok");
+    expect(listedArtifacts.data.count).toBe(1);
+
+    const otherTenantArtifacts = await listWorkflowArtifacts(
+      { ownerId: "org_2", workflowRunId: "wfr_1" },
+      { artifactStore }
+    );
+    if (!otherTenantArtifacts.ok) throw new Error("expected ok");
+    expect(otherTenantArtifacts.data.count).toBe(0);
+
+    const listedEvents = await listWorkflowStepEvents(
+      { ownerId: "org_1", workflowRunId: "wfr_1" },
+      { eventStore }
+    );
+    if (!listedEvents.ok) throw new Error("expected ok");
+    expect(listedEvents.data.events[0].name).toBe("workflow.step.artifact_recorded");
   });
 });

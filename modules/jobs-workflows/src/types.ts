@@ -65,6 +65,7 @@ export type WorkflowDefinitionStatus = "draft" | "active" | "archived";
 export type WorkflowRunStatus = "queued" | "running" | "waiting" | "succeeded" | "failed" | "canceled";
 export type WorkflowStepRunStatus = "pending" | "running" | "waiting" | "succeeded" | "failed" | "dead" | "skipped";
 export type WorkflowStepKind = "tool" | "agent" | "approval" | "condition" | "wait" | "emit";
+export type WorkflowArtifactKind = "json" | "text" | "file" | "url" | "diff" | "log" | "image" | "other";
 
 export interface WorkflowStepDefinition {
   id: string;
@@ -130,6 +131,39 @@ export interface WorkflowStepRun {
   updatedAt: string;
 }
 
+export interface WorkflowArtifact {
+  id: string;
+  ownerId: string;
+  workflowRunId: string;
+  stepRunId: string | null;
+  kind: WorkflowArtifactKind;
+  name: string;
+  uri: string | null;
+  content: Record<string, unknown> | string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export type WorkflowStepEventName =
+  | "workflow.step.claimed"
+  | "workflow.step.waiting"
+  | "workflow.step.resumed"
+  | "workflow.step.artifact_recorded"
+  | "workflow.step.runtime_event"
+  | "workflow.step.canceled"
+  | "workflow.step.timed_out";
+
+export interface WorkflowStepEvent {
+  id: string;
+  ownerId: string;
+  workflowRunId: string;
+  stepRunId: string | null;
+  stepId: string | null;
+  name: WorkflowStepEventName;
+  payload: Record<string, unknown>;
+  createdAt: string;
+}
+
 export interface WorkflowStepContext {
   workflowRun: WorkflowRun;
   stepRun: WorkflowStepRun;
@@ -160,7 +194,9 @@ export type WorkflowEventName =
   | "workflow.step.failed"
   | "workflow.waiting"
   | "workflow.succeeded"
-  | "workflow.failed";
+  | "workflow.failed"
+  | "workflow.artifact.recorded"
+  | "workflow.step.event_recorded";
 
 export interface DomainEvent {
   name: JobEventName | WorkflowEventName;

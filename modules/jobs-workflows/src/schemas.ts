@@ -117,9 +117,39 @@ export const resumeWorkflowStepInputSchema = z.object({
   contextPatch: z.record(z.string(), z.unknown()).default({})
 });
 
+export const recordWorkflowArtifactInputSchema = z.object({
+  ownerId: z.string().min(1),
+  workflowRunId: z.string().min(1),
+  stepRunId: z.string().min(1).optional().nullable(),
+  kind: z.enum(["json", "text", "file", "url", "diff", "log", "image", "other"]),
+  name: z.string().min(1),
+  uri: z.string().min(1).optional().nullable(),
+  content: z.union([z.record(z.string(), z.unknown()), z.string()]).optional().nullable(),
+  metadata: z.record(z.string(), z.unknown()).default({})
+});
+
+export const appendWorkflowStepEventInputSchema = z.object({
+  ownerId: z.string().min(1),
+  workflowRunId: z.string().min(1),
+  stepRunId: z.string().min(1).optional().nullable(),
+  stepId: z.string().min(1).optional().nullable(),
+  name: z.enum([
+    "workflow.step.claimed",
+    "workflow.step.waiting",
+    "workflow.step.resumed",
+    "workflow.step.artifact_recorded",
+    "workflow.step.runtime_event",
+    "workflow.step.canceled",
+    "workflow.step.timed_out"
+  ]),
+  payload: z.record(z.string(), z.unknown()).default({})
+});
+
 export type EnqueueJobInput = z.infer<typeof enqueueJobInputSchema>;
 export type UpsertScheduleInput = z.infer<typeof upsertScheduleInputSchema>;
 export type ListJobsFilter = z.infer<typeof listJobsFilterSchema>;
 export type DefineWorkflowInput = z.infer<typeof defineWorkflowInputSchema>;
 export type StartWorkflowRunInput = z.infer<typeof startWorkflowRunInputSchema>;
 export type ResumeWorkflowStepInput = z.infer<typeof resumeWorkflowStepInputSchema>;
+export type RecordWorkflowArtifactInput = z.infer<typeof recordWorkflowArtifactInputSchema>;
+export type AppendWorkflowStepEventInput = z.infer<typeof appendWorkflowStepEventInputSchema>;

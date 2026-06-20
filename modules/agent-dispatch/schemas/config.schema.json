@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent Dispatch Module Config",
+  "type": "object",
+  "properties": {
+    "defaultTtlMs": { "type": "integer", "minimum": 1, "maximum": 86400000, "default": 3600000 }
+  },
+  "additionalProperties": false
+}

@@ -14,16 +14,16 @@
   },
   "entrypoint": "src/index.ts",
   "resources": [
-    { "type": "d1", "binding": "DB", "tables": ["jobs", "job_runs", "job_schedules", "workflow_definitions", "workflow_runs", "workflow_step_runs"] },
+    { "type": "d1", "binding": "DB", "tables": ["jobs", "job_runs", "job_schedules", "workflow_definitions", "workflow_runs", "workflow_step_runs", "workflow_artifacts", "workflow_step_events"] },
     { "type": "queue", "binding": "JOBS_QUEUE", "optional": true }
   ],
-  "permissions": ["jobs.enqueue", "jobs.read", "jobs.admin", "workflows.define", "workflows.run", "workflows.read", "workflows.admin", "jobs-workflows.extend"],
+  "permissions": ["jobs.enqueue", "jobs.read", "jobs.admin", "workflows.define", "workflows.run", "workflows.read", "workflows.artifacts", "workflows.admin", "jobs-workflows.extend"],
   "connections": {
     "requires": [],
     "optional": ["audit-log"],
     "rpc": { "exposes": [], "calls": [] },
     "events": {
-      "emits": ["job.enqueued", "job.succeeded", "job.retried", "job.dead", "job.scheduled", "workflow.defined", "workflow.started", "workflow.step.succeeded", "workflow.step.failed", "workflow.waiting", "workflow.succeeded", "workflow.failed"],
+      "emits": ["job.enqueued", "job.succeeded", "job.retried", "job.dead", "job.scheduled", "workflow.defined", "workflow.started", "workflow.step.succeeded", "workflow.step.failed", "workflow.waiting", "workflow.succeeded", "workflow.failed", "workflow.artifact.recorded", "workflow.step.event_recorded"],
       "consumes": []
     },
     "hookPoints": {
@@ -48,9 +48,9 @@
     },
     "agentic": {
       "applicable": true,
-      "tools": ["jobs-workflows.enqueueJob", "jobs-workflows.listJobs", "jobs-workflows.listSchedules", "jobs-workflows.runJob", "jobs-workflows.runDueJobs", "jobs-workflows.upsertSchedule", "jobs-workflows.dueScheduledJobs", "jobs-workflows.defineWorkflow", "jobs-workflows.startWorkflowRun", "jobs-workflows.runNextWorkflowStep", "jobs-workflows.resumeWorkflowStep"],
+      "tools": ["jobs-workflows.enqueueJob", "jobs-workflows.listJobs", "jobs-workflows.listSchedules", "jobs-workflows.runJob", "jobs-workflows.runDueJobs", "jobs-workflows.upsertSchedule", "jobs-workflows.dueScheduledJobs", "jobs-workflows.defineWorkflow", "jobs-workflows.startWorkflowRun", "jobs-workflows.runNextWorkflowStep", "jobs-workflows.resumeWorkflowStep", "jobs-workflows.recordWorkflowArtifact", "jobs-workflows.listWorkflowArtifacts", "jobs-workflows.appendWorkflowStepEvent", "jobs-workflows.listWorkflowStepEvents"],
       "skillPaths": ["skills/jobs-workflows-operator/SKILL.md"],
-      "approvalRequiredFor": ["jobs-workflows.enqueueJob", "jobs-workflows.runJob", "jobs-workflows.runDueJobs", "jobs-workflows.upsertSchedule", "jobs-workflows.defineWorkflow", "jobs-workflows.startWorkflowRun", "jobs-workflows.runNextWorkflowStep", "jobs-workflows.resumeWorkflowStep"]
+      "approvalRequiredFor": ["jobs-workflows.enqueueJob", "jobs-workflows.runJob", "jobs-workflows.runDueJobs", "jobs-workflows.upsertSchedule", "jobs-workflows.defineWorkflow", "jobs-workflows.startWorkflowRun", "jobs-workflows.runNextWorkflowStep", "jobs-workflows.resumeWorkflowStep", "jobs-workflows.recordWorkflowArtifact", "jobs-workflows.appendWorkflowStepEvent"]
     }
   },
   "skills": [

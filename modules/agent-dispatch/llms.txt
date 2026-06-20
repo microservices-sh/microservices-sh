@@ -1,0 +1,23 @@
+# Agent Dispatch Module LLM Guide
+
+Purpose: bridge workflow agent steps to isolated executors without letting
+executors own workflow state.
+
+Entry points:
+- `src/index.ts` exports the safe public surface.
+- `dispatchAgentRun` creates an agent run, capability grant, and one-time resume
+  token, then starts an injected runtime.
+- `resumeAgentRun` verifies owner scope and the resume token, marks the run
+  terminal, revokes the grant, and returns a workflow resume payload.
+- `cancelAgentRun` cancels a non-terminal run and revokes the grant.
+
+Model:
+- `agent_runs` tracks runtime-neutral execution state.
+- `capability_grants` tracks short-lived tool/resource access for one agent run.
+- Runtime adapters are injected through the `AgentRuntime` interface.
+
+Agent rules:
+- Keep use cases framework-neutral and runtime-neutral.
+- Do not persist raw resume tokens.
+- Do not bypass `jobs-workflows` for workflow state transitions.
+- Use memory adapters in tests.

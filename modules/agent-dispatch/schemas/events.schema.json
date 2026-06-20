@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent Dispatch Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": [
+        "agent_dispatch.dispatched",
+        "agent_dispatch.waiting",
+        "agent_dispatch.succeeded",
+        "agent_dispatch.failed",
+        "agent_dispatch.canceled"
+      ]
+    },
+    "entityType": {
+      "type": "string",
+      "const": "agent_run"
+    }
+  },
+  "required": ["eventName", "entityType"]
+}

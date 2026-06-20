@@ -4,3 +4,5 @@ export { createD1ScheduleStore } from "./d1-schedule-store";
 export { createD1WorkflowDefinitionStore } from "./d1-workflow-definition-store";
 export { createD1WorkflowRunStore } from "./d1-workflow-run-store";
 export { createD1WorkflowStepRunStore } from "./d1-workflow-step-run-store";
+export { createD1WorkflowArtifactStore } from "./d1-workflow-artifact-store";
+export { createD1WorkflowStepEventStore } from "./d1-workflow-step-event-store";
