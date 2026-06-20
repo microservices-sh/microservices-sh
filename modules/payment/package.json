@@ -6,6 +6,7 @@
   "description": "Prebuilt microservices.sh payment module: Stripe-backed payment intents, payment records, and signed webhook verification.",
   "exports": {
     ".": "./src/index.ts",
+    "./preview": "./reference-ui/Preview.svelte",
     "./types": "./src/types.ts",
     "./schemas": "./src/schemas.ts",
     "./hooks": "./src/hooks.ts",
@@ -36,6 +37,8 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",
+    "@microservices-sh/ui": "workspace:*",
+    "svelte": "^5.0.0",
     "typescript": "^5.9.3"
   }
 }
