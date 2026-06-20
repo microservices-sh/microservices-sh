@@ -6,6 +6,7 @@
   "description": "Prebuilt microservices.sh file-media module: R2-backed uploads with tenant-scoped keys, optional owner-scoped listing, validated upload tickets, orphan cleanup, and soft-deletes.",
   "exports": {
     ".": "./src/index.ts",
+    "./preview": "./reference-ui/Preview.svelte",
     "./types": "./src/types.ts",
     "./schemas": "./src/schemas.ts",
     "./hooks": "./src/hooks.ts",
@@ -33,6 +34,8 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",
+    "@microservices-sh/ui": "workspace:*",
+    "svelte": "^5.0.0",
     "typescript": "^5.9.3"
   }
 }
