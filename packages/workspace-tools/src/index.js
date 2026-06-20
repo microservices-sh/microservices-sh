@@ -10,6 +10,19 @@ const FORBIDDEN_FRAMEWORK_IMPORTS = ["@sveltejs/kit", "from \"hono\"", "from 'ho
 const MODULE_SOURCE_REPO = "microservices-sh/microservices-sh";
 const MODULE_SOURCE_URL = `https://github.com/${MODULE_SOURCE_REPO}.git`;
 
+// plans/33 L5 guard: tenant-scoped use-cases that have an enforced `*Scoped`
+// variant. A template ROUTE must call the scoped wrapper (which sources the
+// tenant from the AuthContext) — importing the raw, input-trusting use-case in a
+// request path is the cross-tenant-leak regression this guard catches. Use-cases
+// with a server-set tenant and no scoped variant (createInvoice) or that are
+// intentionally public (submitForm) are NOT listed.
+const BOUNDARY_SCOPED_USECASES = {
+  invoice: ["listInvoices", "recordPayment", "issueInvoice", "voidInvoice", "addLineItem"],
+  "support-ticket": ["createTicket", "listTickets", "getTicket", "updateTicket"],
+  "file-media": ["createUploadTicket", "completeUpload", "listFiles", "deleteFile"],
+  "forms-intake": ["createForm", "getForm", "updateForm", "listForms", "listSubmissions", "reviewSubmission"]
+};
+
 function moduleReleaseTag(id, version) {
   return `modules/${id}/v${version}`;
 }
@@ -739,6 +752,49 @@ function localModulePackageName(rootPath, moduleId) {
   return readJson(packagePath).name;
 }
 
+// Scan one source file's text for raw (non-`*Scoped`) imports of tenant-scoped
+// use-cases from the migrated modules. Returns a list of "name from @ms/module"
+// offenders. Handles multi-line imports and `type`/`as` qualifiers.
+function findRawTenantUsecaseImports(text) {
+  const offenders = [];
+  const importRe = /import\s*(?:type\s+)?\{([\s\S]*?)\}\s*from\s*["']@microservices-sh\/(invoice|support-ticket|file-media|forms-intake)["']/g;
+  let match;
+  while ((match = importRe.exec(text)) !== null) {
+    const moduleId = match[2];
+    const forbidden = BOUNDARY_SCOPED_USECASES[moduleId];
+    const names = match[1]
+      .split(",")
+      .map((name) => name.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0].trim())
+      .filter(Boolean);
+    for (const name of names) {
+      if (forbidden.includes(name)) offenders.push(`${name} from @microservices-sh/${moduleId}`);
+    }
+  }
+  return offenders;
+}
+
+// plans/33 L5 guard. A template's request paths (`src/routes`) must call the
+// enforced `*Scoped` use-cases, never the raw input-trusting ones. Seed/demo code
+// (`src/lib`) and the public `submitForm` are out of scope by design.
+async function assertEnforcedTenantBoundary(checks, targetPath) {
+  const routesDir = join(targetPath, "src/routes");
+  if (!existsSync(routesDir)) return;
+  const files = (await listFiles(routesDir)).filter((file) => file.endsWith(".ts") || file.endsWith(".js"));
+  const offenders = [];
+  for (const file of files) {
+    const found = findRawTenantUsecaseImports(readText(file));
+    if (found.length > 0) {
+      const rel = file.split("/src/routes/")[1] ?? file;
+      offenders.push(`${rel} (${found.join(", ")})`);
+    }
+  }
+  const message =
+    offenders.length === 0
+      ? "Template routes call the enforced *Scoped tenant use-cases (plan 33)."
+      : `Template routes must call the *Scoped tenant use-cases (plan 33); raw input-trusting calls found in: ${offenders.join("; ")}`;
+  assertCheck(checks, "template:enforced-tenant-boundary", offenders.length === 0, message);
+}
+
 async function checkTemplate(targetPath, rootPath) {
   const checks = [];
   assertRequiredFiles(checks, targetPath, TEMPLATE_REQUIRED_FILES, "template");
@@ -783,6 +839,8 @@ async function checkTemplate(targetPath, rootPath) {
     vendoredModuleFiles.length === 0,
     "Template does not own vendored module internals."
   );
+
+  await assertEnforcedTenantBoundary(checks, targetPath);
 
   await runPolicy({ checks, kind: "template", rootPath, targetPath, manifest, lock, packageJson });
 
