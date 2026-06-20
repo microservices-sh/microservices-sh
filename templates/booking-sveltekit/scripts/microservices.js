@@ -2872,6 +2872,28 @@ function deployDomainAddPlan(deploymentId, hostname, flags) {
   };
 }
 
+function isWorkersRouteAuthFailure(result) {
+  const output = `${result?.data?.stdout ?? ""}\n${result?.data?.stderr ?? ""}`;
+  return output.includes("/workers/routes") && /Authentication error/i.test(output);
+}
+
+function domainRouteAuthFailure(result, hostname) {
+  return fail(
+    "DOMAIN_ROUTE_AUTH_FAILED",
+    `Cloudflare rejected the Workers route update for ${hostname}.`,
+    "Update CLOUDFLARE_API_TOKEN with zone-level Workers Routes Edit on the hostname's Cloudflare zone, then rerun deploy domain add.",
+    {
+      command: result.data?.command,
+      exitCode: result.data?.exitCode,
+      requiredCloudflarePermissions: [
+        "Account: Workers Scripts Edit",
+        "Zone: Workers Routes Edit",
+        "Zone: DNS Write if the custom domain DNS record must be created"
+      ]
+    }
+  );
+}
+
 async function deployDomainAdd(deploymentId, flags) {
   const resolved = deploymentIdArg(deploymentId, flags);
   if (!resolved.ok) return resolved;
@@ -2915,7 +2937,10 @@ async function deployDomainAdd(deploymentId, flags) {
   if (!bundle.ok) return bundle;
 
   const wrangler = runCommand("deploy:domain", "wrangler", wranglerDomainArgs(workerName, hostname), flags);
-  if (!wrangler.ok) return wrangler;
+  if (!wrangler.ok) {
+    if (isWorkersRouteAuthFailure(wrangler)) return domainRouteAuthFailure(wrangler, hostname);
+    return wrangler;
+  }
 
   const url = deploymentUrlForHostname(hostname);
   const activated = await deployActivate(deploymentId, {
