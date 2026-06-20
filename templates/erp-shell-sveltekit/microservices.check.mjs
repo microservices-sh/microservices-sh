@@ -64,6 +64,22 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     ["route:/", "route:/app:auth-redirect"],
     "HTTP smoke script verifies the public pages and the /app auth gate."
   );
+  assertFileIncludesAll(
+    "src/routes/api/desktop/import/+server.ts",
+    [
+      "DESKTOP_IMPORT_TOKEN",
+      "desktop.draft.import",
+      "enqueueJob",
+      "recordEvent",
+      "canonicalStore: \"remote-d1\""
+    ],
+    "Desktop import API authenticates approved desktop drafts, queues a module job, and records an audit event."
+  );
+  assertFileIncludesAll(
+    "wrangler.jsonc",
+    ["DB", "MEDIA_BUCKET", "RATE_LIMIT_KV", "IMAGE_BUCKET", "JOB_QUEUE", "DESKTOP_IMPORT_ALLOWED_ORIGIN"],
+    "Cloudflare deployment config declares canonical D1 plus R2/KV/Queue bindings used by the ERP Worker."
+  );
   assert(
     !exists("src/lib/server/modules/org-team-rbac/index.ts"),
     "Template does not own org-team-rbac internals.",

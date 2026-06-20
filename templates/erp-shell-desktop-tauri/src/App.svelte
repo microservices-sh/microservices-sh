@@ -16,30 +16,34 @@
   import {
     approveJob,
     extractDocument,
+    getErpImportSettings,
+    getImportStatus,
     getRuntimeSettings,
     getRuntimeStatus,
-    getSyncStatus,
     importDocumentPaths,
     installGemmaModel,
     loadDocumentDraft,
     loadQueueDocuments,
     listenForDroppedDocuments,
     rejectJob,
+    saveErpImportSettings,
     saveRuntimeSettings,
     selectImportFiles,
     selectImportFolder,
+    submitApprovedDraft,
+    type ErpImportSettings,
     updateDraftField,
     type ExtractionDraft,
     type ExtractedField,
+    type ImportStatus,
     type ImportFolder,
     type ImportResult,
     type QueueJob,
     type RuntimeSettings,
     type RuntimeStatus,
-    type SyncStatus
   } from "./lib/desktop";
 
-  type StatusKey = RuntimeStatus["ocr"] | SyncStatus["state"] | QueueJob["status"];
+  type StatusKey = RuntimeStatus["ocr"] | ImportStatus["state"] | QueueJob["status"];
 
   let runtime: RuntimeStatus = {
     ocr: "checking",
@@ -58,7 +62,14 @@
     ollamaInstalled: false,
     tesseractInstalled: false
   };
-  let sync: SyncStatus = { baseUrl: "http://localhost:5174", state: "not-configured", pendingDrafts: 0 };
+  let erpImport: ImportStatus = {
+    baseUrl: "http://localhost:5173",
+    state: "not-configured",
+    pendingDrafts: 0,
+    importedDrafts: 0,
+    tokenConfigured: false
+  };
+  let erpImportSettings: ErpImportSettings = { baseUrl: "http://localhost:5173", tokenConfigured: false };
   let folder: ImportFolder | null = null;
   let jobs: QueueJob[] = [];
   let busy = false;
@@ -69,14 +80,19 @@
   let confirmingRejectId: string | null = null;
   let installingModel = false;
   let savingSettings = false;
+  let savingImportSettings = false;
+  let submittingImportJobId: string | null = null;
   let dragActive = false;
   let activePathname = "#import";
   let selectedJobId: string | null = null;
   let selectedDraft: ExtractionDraft | null = null;
   let settingsDraftModel = "gemma4:e4b";
   let settingsDraftOcrLanguage = "eng";
+  let erpImportBaseUrl = "http://localhost:5173";
+  let erpImportToken = "";
   let settingsMessage = "Runtime settings are local to this desktop app.";
   let importMessage = "Select a folder to create local draft jobs.";
+  let erpSubmitMessage = "Approved drafts submit to the remote ERP database. Local storage remains draft-only.";
   let metrics: Metric[] = [];
 
   const desktopNav = [
@@ -85,7 +101,7 @@
       items: [
         { href: "#import", label: "Import Queue", icon: "folder" },
         { href: "#runtime", label: "Local Runtime", icon: "bot" },
-        { href: "#sync", label: "Sync Status", icon: "workflow" },
+        { href: "#erp-import", label: "ERP Import", icon: "workflow" },
         { href: "#settings", label: "Settings", icon: "settings" }
       ]
     }
@@ -113,7 +129,7 @@
     review: "Review",
     approved: "Approved",
     rejected: "Rejected",
-    synced: "Synced"
+    synced: "Imported"
   };
 
   const kindLabel: Record<QueueJob["kind"], string> = {
@@ -124,7 +140,7 @@
 
   $: reviewCount = jobs.filter((job) => job.status === "review").length;
   $: approvedCount = jobs.filter((job) => job.status === "approved").length;
-  $: syncedCount = jobs.filter((job) => job.status === "synced").length;
+  $: importedDraftCount = jobs.filter((job) => job.status === "synced").length;
   $: duplicateCount = folder?.duplicateDocuments ?? 0;
   $: skippedCount = folder?.skippedDocuments ?? 0;
   $: importedCount = folder?.newDocuments ?? jobs.length;
@@ -150,21 +166,28 @@
     { label: "Imported", value: importedCount, tone: importedCount > 0 ? "good" : "neutral", hint: "new documents" },
     { label: "Duplicates", value: duplicateCount, tone: duplicateCount > 0 ? "warn" : "neutral", hint: "hash matches" },
     { label: "Skipped", value: skippedCount, tone: skippedCount > 0 ? "warn" : "neutral", hint: "unsupported paths" },
-    { label: "Review", value: reviewCount, tone: reviewCount > 0 ? "warn" : "neutral", hint: "needs approval" }
+    { label: "Review", value: reviewCount, tone: reviewCount > 0 ? "warn" : "neutral", hint: "needs approval" },
+    { label: "Approved", value: approvedCount, tone: approvedCount > 0 ? "good" : "neutral", hint: "ready to submit" }
   ];
 
   async function refresh() {
-    const [runtimeStatus, syncStatus, queued, settings] = await Promise.all([
+    const [runtimeStatus, importStatus, queued, settings, importSettings] = await Promise.all([
       getRuntimeStatus(),
-      getSyncStatus(),
+      getImportStatus(),
       jobs.length ? Promise.resolve(jobs) : loadQueueDocuments(),
-      getRuntimeSettings()
+      getRuntimeSettings(),
+      getErpImportSettings()
     ]);
     runtime = runtimeStatus;
-    sync = syncStatus;
+    erpImport = importStatus;
     jobs = queued;
     applyRuntimeSettings(settings);
+    applyErpImportSettings(importSettings);
     selectedJobId = selectedJobId ?? queued.find((job) => job.draft)?.id ?? queued[0]?.id ?? null;
+  }
+
+  function approvedImportCount() {
+    return jobs.filter((item) => item.status === "approved").length;
   }
 
   function isModelInstalled(model: string) {
@@ -239,7 +262,11 @@
     jobs = result.jobs;
     selectedJobId = result.jobs.find((job) => job.draft)?.id ?? result.jobs[0]?.id ?? null;
     selectedDraft = selectedJobId ? (result.jobs.find((job) => job.id === selectedJobId)?.draft ?? null) : null;
-    sync = { ...sync, pendingDrafts: jobs.filter((job) => job.status !== "synced").length };
+    erpImport = {
+      ...erpImport,
+      pendingDrafts: result.jobs.filter((job) => job.status === "approved").length,
+      importedDrafts: result.jobs.filter((job) => job.status === "synced").length
+    };
     importMessage = [
       `${result.folder.newDocuments} new`,
       `${result.folder.duplicateDocuments} duplicates`,
@@ -263,7 +290,7 @@
       const result = await extractDocument(job.id);
       jobs = jobs.map((item) => (item.id === result.job.id ? result.job : item));
       selectedDraft = result.draft;
-      sync = { ...sync, pendingDrafts: pendingCount() };
+      erpImport = { ...erpImport, pendingDrafts: approvedImportCount(), importedDrafts: importedDraftCount };
       importMessage = `${result.job.name} converted to a review draft`;
       runtime = await getRuntimeStatus();
     } catch (error) {
@@ -273,14 +300,15 @@
     }
   }
 
-  function pendingCount() {
-    return jobs.filter((item) => item.status !== "synced" && item.status !== "rejected").length;
-  }
-
   function mergeJob(updated: QueueJob) {
-    jobs = jobs.map((item) => (item.id === updated.id ? updated : item));
+    const nextJobs = jobs.map((item) => (item.id === updated.id ? updated : item));
+    jobs = nextJobs;
     if (updated.id === selectedJobId) selectedDraft = updated.draft ?? selectedDraft;
-    sync = { ...sync, pendingDrafts: pendingCount() };
+    erpImport = {
+      ...erpImport,
+      pendingDrafts: nextJobs.filter((item) => item.status === "approved").length,
+      importedDrafts: nextJobs.filter((item) => item.status === "synced").length
+    };
   }
 
   async function saveField(job: QueueJob, field: ExtractedField, value: string) {
@@ -311,7 +339,7 @@
     decidingJobId = job.id;
     try {
       mergeJob(await approveJob(job.id));
-      importMessage = `${job.name} approved for sync`;
+      importMessage = `${job.name} approved for ERP import`;
     } catch (error) {
       importMessage = error instanceof Error ? error.message : "Approve failed";
     } finally {
@@ -342,6 +370,23 @@
     }
   }
 
+  async function submitApprovedToErp(job: QueueJob) {
+    if (submittingImportJobId) return;
+
+    submittingImportJobId = job.id;
+    erpSubmitMessage = `Submitting ${job.name} to ERP`;
+    try {
+      const imported = await submitApprovedDraft(job.id);
+      mergeJob(imported);
+      erpImport = await getImportStatus();
+      erpSubmitMessage = `${job.name} was imported into the remote ERP queue`;
+    } catch (error) {
+      erpSubmitMessage = error instanceof Error ? error.message : "ERP import failed";
+    } finally {
+      submittingImportJobId = null;
+    }
+  }
+
   function handleBrowserDrag(event: DragEvent) {
     event.preventDefault();
     if (runtime.mode === "browser-preview") {
@@ -368,6 +413,30 @@
     runtimeSettings = settings;
     settingsDraftModel = settings.gemmaModel;
     settingsDraftOcrLanguage = settings.ocrLanguage;
+  }
+
+  function applyErpImportSettings(settings: ErpImportSettings) {
+    erpImportSettings = settings;
+    erpImportBaseUrl = settings.baseUrl;
+    erpImportToken = "";
+  }
+
+  async function saveImportSettings() {
+    savingImportSettings = true;
+    erpSubmitMessage = "Saving ERP import settings";
+
+    try {
+      const settings = await saveErpImportSettings(erpImportBaseUrl, erpImportToken);
+      applyErpImportSettings(settings);
+      erpImport = await getImportStatus();
+      erpSubmitMessage = settings.tokenConfigured
+        ? "ERP import settings saved"
+        : "ERP app URL saved. Add an import token before submitting approved drafts.";
+    } catch (error) {
+      erpSubmitMessage = error instanceof Error ? error.message : "ERP import settings save failed";
+    } finally {
+      savingImportSettings = false;
+    }
   }
 
   async function saveSettings() {
@@ -418,11 +487,6 @@
     return `${Math.round(confidence * 100)}%`;
   }
 
-  function fieldValueLabel(field: ExtractedField) {
-    if (field.value === null || field.value === undefined || field.value === "") return "Needs review";
-    return String(field.value);
-  }
-
   function fieldEditValue(field: ExtractedField) {
     if (field.value === null || field.value === undefined) return "";
     return String(field.value);
@@ -461,7 +525,7 @@
   footer={{ title: "ERP Shell Desktop", subtitle: runtime.mode === "tauri" ? "Desktop companion" : "Browser preview" }}
   status={{
     role: runtime.mode === "tauri" ? "desktop" : "preview",
-    center: sync.pendingDrafts ? `${sync.pendingDrafts} pending drafts` : statusLabel[sync.state],
+    center: erpImport.pendingDrafts ? `${erpImport.pendingDrafts} approved drafts` : statusLabel[erpImport.state],
     right: "microservices.sh · erp"
   }}
 >
@@ -479,7 +543,7 @@
     <PageHeader
       eyebrow="Connected companion"
       title="Local intake bridge"
-      description="Import scanned documents into a local draft queue, review extraction state, then sync approved records into ERP Shell."
+      description="Import scanned documents into a local draft queue, review extraction state, then submit approved records into ERP Shell."
     >
       {#snippet meta()}
         <span>{folder?.path ?? "No folder selected"}</span>
@@ -587,7 +651,7 @@
           {#if activeDraft}
             <div class="draft-summary">
               <strong>{selectedJob?.name ?? "Selected document"}</strong>
-              <span>{activeDraft.summary ?? "Review extracted fields before sync."}</span>
+              <span>{activeDraft.summary ?? "Review extracted fields before ERP import."}</span>
               <div class="draft-meta">
                 <Badge tone={activeDraft.confidence >= 0.85 ? "good" : "warn"}>{confidenceLabel(activeDraft.confidence)}</Badge>
                 <span>{activeDraft.schemaId}</span>
@@ -681,6 +745,16 @@
                 >
                   {selectedJob?.status === "rejected" ? "Rejected" : "Reject"}
                 </Button>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  disabled={!selectedJob ||
+                    selectedJob.status !== "approved" ||
+                    Boolean(submittingImportJobId)}
+                  onclick={() => selectedJob && void submitApprovedToErp(selectedJob)}
+                >
+                  {submittingImportJobId === selectedJob?.id ? "Submitting" : "Submit to ERP"}
+                </Button>
               {/if}
             </div>
 
@@ -696,25 +770,80 @@
         </Card>
       </div>
 
-      <div id="sync" class="side-section">
-        <Card title="Sync status" class="side-card">
+      <div id="erp-import" class="side-section">
+        <Card title="ERP import" class="side-card">
           {#snippet header()}
-            <Badge tone={toneForStatus(sync.state)}>{statusLabel[sync.state]}</Badge>
+            <Badge tone={toneForStatus(erpImport.state)}>{statusLabel[erpImport.state]}</Badge>
           {/snippet}
           <dl class="status-list">
             <div>
               <dt>Target</dt>
-              <dd>{sync.baseUrl}</dd>
+              <dd>{erpImport.baseUrl}</dd>
             </div>
             <div>
-              <dt>Pending Drafts</dt>
-              <dd>{sync.pendingDrafts}</dd>
+              <dt>Approved</dt>
+              <dd>{erpImport.pendingDrafts}</dd>
             </div>
             <div>
-              <dt>Synced</dt>
-              <dd>{syncedCount}</dd>
+              <dt>Imported</dt>
+              <dd>{erpImport.importedDrafts}</dd>
+            </div>
+            <div>
+              <dt>Token</dt>
+              <dd>{erpImportSettings.tokenConfigured ? "Configured" : "Not configured"}</dd>
             </div>
           </dl>
+
+          <form
+            class="settings-form import-settings-form"
+            onsubmit={(event) => {
+              event.preventDefault();
+              void saveImportSettings();
+            }}
+          >
+            <label class="setting-field" for="erp-import-url">
+              <span>ERP app URL</span>
+              <input
+                id="erp-import-url"
+                type="url"
+                required
+                autocomplete="url"
+                spellcheck="false"
+                bind:value={erpImportBaseUrl}
+              />
+            </label>
+
+            <label class="setting-field" for="erp-import-token">
+              <span>Import token</span>
+              <input
+                id="erp-import-token"
+                type="password"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder={erpImportSettings.tokenConfigured ? "Saved; leave blank to keep it" : "Paste DESKTOP_IMPORT_TOKEN"}
+                bind:value={erpImportToken}
+              />
+            </label>
+
+            <div class="settings-actions">
+              <Button type="submit" size="sm" disabled={savingImportSettings}>
+                {savingImportSettings ? "Saving" : "Save Import Settings"}
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                disabled={!selectedJob ||
+                  selectedJob.status !== "approved" ||
+                  Boolean(submittingImportJobId)}
+                onclick={() => selectedJob && void submitApprovedToErp(selectedJob)}
+              >
+                {submittingImportJobId ? "Submitting" : "Submit Selected"}
+              </Button>
+            </div>
+
+            <p class="settings-message" aria-live="polite">{erpSubmitMessage}</p>
+          </form>
         </Card>
       </div>
 

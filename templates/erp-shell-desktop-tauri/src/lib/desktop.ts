@@ -27,10 +27,23 @@ export type ModelInstallResult = {
   settings: RuntimeSettings;
 };
 
-export type SyncStatus = {
+export type ImportStatus = {
   baseUrl: string;
   state: "connected" | "not-configured" | "offline";
   pendingDrafts: number;
+  importedDrafts: number;
+  tokenConfigured: boolean;
+};
+
+export type ErpImportSettings = {
+  baseUrl: string;
+  tokenConfigured: boolean;
+};
+
+type DesktopImportRequest = {
+  endpoint: string;
+  token: string;
+  payload: Record<string, unknown>;
 };
 
 export type ImportFolder = {
@@ -151,12 +164,59 @@ export async function installGemmaModel(model: string) {
   );
 }
 
-export async function getSyncStatus() {
-  return call<SyncStatus>("sync_status", undefined, {
-    baseUrl: "http://localhost:5174",
+export async function getImportStatus() {
+  return call<ImportStatus>("import_status", undefined, {
+    baseUrl: "http://localhost:5173",
     state: "not-configured",
-    pendingDrafts: 3
+    pendingDrafts: 1,
+    importedDrafts: 1,
+    tokenConfigured: false
   });
+}
+
+export async function getSyncStatus() {
+  return getImportStatus();
+}
+
+export async function getErpImportSettings() {
+  return call<ErpImportSettings>("erp_import_settings", undefined, {
+    baseUrl: "http://localhost:5173",
+    tokenConfigured: false
+  });
+}
+
+export async function saveErpImportSettings(baseUrl: string, token: string) {
+  return call<ErpImportSettings>(
+    "save_erp_import_settings",
+    { baseUrl, token },
+    { baseUrl: baseUrl.trim().replace(/\/+$/, ""), tokenConfigured: Boolean(token.trim()) }
+  );
+}
+
+export async function submitApprovedDraft(jobId: string) {
+  const request = await call<DesktopImportRequest>("desktop_import_request", { jobId });
+  const headers: Record<string, string> = {
+    authorization: `Bearer ${request.token}`,
+    "content-type": "application/json"
+  };
+  try {
+    const hostname = new URL(request.endpoint).hostname;
+    if (hostname.endsWith(".ngrok-free.app") || hostname.endsWith(".ngrok.app")) {
+      headers["ngrok-skip-browser-warning"] = "true";
+    }
+  } catch {
+    // Let fetch surface malformed endpoint URLs.
+  }
+  const response = await fetch(request.endpoint, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(request.payload)
+  });
+  const body = (await response.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+  if (!response.ok || body?.ok !== true) {
+    throw new Error(body?.error ?? `ERP import failed with HTTP ${response.status}`);
+  }
+  return call<QueueJob>("mark_job_imported", { jobId }, { ...previewJob(jobId), status: "synced" });
 }
 
 export async function selectImportFolder() {

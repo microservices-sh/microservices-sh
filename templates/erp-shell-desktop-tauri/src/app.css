@@ -421,6 +421,10 @@ meter {
   gap: 16px;
 }
 
+.import-settings-form {
+  margin-block-start: 16px;
+}
+
 .settings-grid {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(190px, 0.7fr) minmax(220px, 1fr);

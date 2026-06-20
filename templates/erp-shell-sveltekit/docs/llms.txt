@@ -32,10 +32,16 @@ src/routes/app/team/+page.server.ts      -> inviteMember / updateMemberRole
 src/routes/app/team/accept/+page.server.ts -> acceptInvitation
 src/routes/app/billing/+page.server.ts   -> listPlans / startSubscription / changePlan
 src/routes/admin/[resource]/+page.server.ts -> listRecords (admin-shell)
+src/routes/api/desktop/import/+server.ts -> authenticated approved-draft import adapter
 
 src/lib/server/stores.ts   -> resolves D1 or memory module adapters per request
 src/lib/server/org-context.ts -> active-org tracking + requireOrgPermission gate
 ```
+
+Desktop import is not bidirectional database sync. The Tauri app keeps local
+files, local draft JSON, review edits, and retry context. The Worker is the
+canonical multi-user ERP backend: D1 for records, R2 for bytes, KV for shared
+gateway state, Queues for async module jobs, and audit-log for traceability.
 
 ## Tenancy Rules
 

@@ -58,10 +58,46 @@ struct ModelInstallResult {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct SyncStatus {
+struct ImportStatus {
     base_url: String,
     state: &'static str,
     pending_drafts: u32,
+    imported_drafts: u32,
+    token_configured: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ErpImportSettings {
+    base_url: String,
+    token_configured: bool,
+}
+
+struct ErpImportTransport {
+    base_url: String,
+    token: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ErpImportRequest {
+    endpoint: String,
+    token: String,
+    payload: ErpImportPayload,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ErpImportPayload {
+    local_job_id: String,
+    file_name: String,
+    file_hash: String,
+    kind: String,
+    status: String,
+    confidence: f32,
+    pages: u32,
+    draft: ExtractionDraft,
+    submitted_at: String,
 }
 
 #[derive(Serialize)]
@@ -173,15 +209,44 @@ fn ocr_engine_label(tesseract_ready: bool, llm_ready: bool) -> &'static str {
 }
 
 #[tauri::command]
-fn sync_status(app: tauri::AppHandle) -> Result<SyncStatus, String> {
-    let pending_drafts = open_queue(&app)?.pending_count()?;
+fn import_status(app: tauri::AppHandle) -> Result<ImportStatus, String> {
+    let queue = open_queue(&app)?;
+    let settings = queue.erp_import_settings()?;
+    let pending_drafts = queue.approved_count()?;
+    let imported_drafts = queue.imported_count()?;
 
-    Ok(SyncStatus {
-        base_url: std::env::var("MICROSERVICES_DESKTOP_SYNC_URL")
-            .unwrap_or_else(|_| "http://localhost:5174".to_string()),
-        state: "not-configured",
+    Ok(ImportStatus {
+        state: if settings.token_configured && !settings.base_url.trim().is_empty() {
+            "connected"
+        } else {
+            "not-configured"
+        },
+        base_url: settings.base_url,
         pending_drafts,
+        imported_drafts,
+        token_configured: settings.token_configured,
     })
+}
+
+#[tauri::command]
+fn sync_status(app: tauri::AppHandle) -> Result<ImportStatus, String> {
+    import_status(app)
+}
+
+#[tauri::command]
+fn erp_import_settings(app: tauri::AppHandle) -> Result<ErpImportSettings, String> {
+    open_queue(&app)?.erp_import_settings()
+}
+
+#[tauri::command]
+fn save_erp_import_settings(
+    app: tauri::AppHandle,
+    base_url: String,
+    token: String,
+) -> Result<ErpImportSettings, String> {
+    let queue = open_queue(&app)?;
+    queue.save_erp_import_settings(&base_url, &token)?;
+    queue.erp_import_settings()
 }
 
 #[tauri::command]
@@ -382,6 +447,48 @@ fn approve_job(app: tauri::AppHandle, job_id: String) -> Result<QueueJob, String
 #[tauri::command]
 fn reject_job(app: tauri::AppHandle, job_id: String, reason: String) -> Result<QueueJob, String> {
     open_queue(&app)?.reject(&job_id, &reason)
+}
+
+#[tauri::command]
+fn desktop_import_request(
+    app: tauri::AppHandle,
+    job_id: String,
+) -> Result<ErpImportRequest, String> {
+    let queue = open_queue(&app)?;
+    let settings = queue.erp_import_transport()?;
+    let job = queue
+        .get_job(&job_id)?
+        .ok_or_else(|| format!("Draft job not found: {job_id}"))?;
+    if job.status != "approved" {
+        return Err(format!(
+            "Only approved drafts can be imported into ERP: {job_id}"
+        ));
+    }
+    let draft = job
+        .draft
+        .clone()
+        .ok_or_else(|| format!("Approved draft has no extraction payload: {job_id}"))?;
+
+    Ok(ErpImportRequest {
+        endpoint: format!("{}/api/desktop/import", settings.base_url.trim_end_matches('/')),
+        token: settings.token,
+        payload: ErpImportPayload {
+            local_job_id: job.id,
+            file_name: job.name,
+            file_hash: job.file_hash,
+            kind: job.kind,
+            status: "approved".to_string(),
+            confidence: job.confidence,
+            pages: job.pages,
+            draft,
+            submitted_at: now_unix_seconds().to_string(),
+        },
+    })
+}
+
+#[tauri::command]
+fn mark_job_imported(app: tauri::AppHandle, job_id: String) -> Result<QueueJob, String> {
+    open_queue(&app)?.mark_imported(&job_id)
 }
 
 fn import_folder(app: &tauri::AppHandle, path: PathBuf) -> Result<ImportResult, String> {
@@ -1065,6 +1172,24 @@ fn configured_ocr_language() -> String {
         .unwrap_or_else(|| DEFAULT_OCR_LANGUAGE.to_string())
 }
 
+fn configured_erp_import_url() -> String {
+    std::env::var("MICROSERVICES_DESKTOP_IMPORT_URL")
+        .ok()
+        .and_then(|value| normalize_erp_import_url(&value).ok())
+        .unwrap_or_else(|| "http://localhost:5173".to_string())
+}
+
+fn normalize_erp_import_url(value: &str) -> Result<String, String> {
+    let trimmed = value.trim().trim_end_matches('/').to_string();
+    if trimmed.is_empty() {
+        return Err("Enter the ERP app URL before saving import settings.".to_string());
+    }
+    if trimmed.len() > 240 || !(trimmed.starts_with("https://") || trimmed.starts_with("http://")) {
+        return Err("ERP app URL must start with http:// or https://.".to_string());
+    }
+    Ok(trimmed)
+}
+
 fn normalize_ocr_language(value: &str) -> String {
     value
         .trim()
@@ -1562,8 +1687,8 @@ impl DraftQueue {
         self.update_extraction(job_id, &job.status, job.confidence, &draft)
     }
 
-    /// Approve a reviewed draft so only operator-approved records become
-    /// sync-eligible. Approval is audited.
+    /// Approve a reviewed draft so only operator-approved records can be
+    /// submitted to the ERP Worker. Approval is audited.
     fn approve(&self, job_id: &str) -> Result<QueueJob, String> {
         let job = self
             .get_job(job_id)?
@@ -1580,7 +1705,7 @@ impl DraftQueue {
             .ok_or_else(|| format!("Draft job not found after approve: {job_id}"))
     }
 
-    /// Reject a draft with an audited reason. Rejected drafts never sync.
+    /// Reject a draft with an audited reason. Rejected drafts never import.
     fn reject(&self, job_id: &str, reason: &str) -> Result<QueueJob, String> {
         let job = self
             .get_job(job_id)?
@@ -1617,7 +1742,7 @@ impl DraftQueue {
         Ok(())
     }
 
-    // Used by tests today; kept for the upcoming audit-trail view (M4 sync).
+    // Used by tests today; kept for the upcoming audit-trail view (M4 import).
     #[allow(dead_code)]
     #[cfg(test)]
     fn edit_count(&self, job_id: &str) -> Result<u32, String> {
@@ -1638,6 +1763,92 @@ impl DraftQueue {
                 |row| row.get::<_, u32>(0),
             )
             .map_err(|error| format!("Failed to count pending drafts: {error}"))
+    }
+
+    fn approved_count(&self) -> Result<u32, String> {
+        self.conn
+            .query_row(
+                "SELECT COUNT(*) FROM draft_jobs WHERE status = 'approved'",
+                [],
+                |row| row.get::<_, u32>(0),
+            )
+            .map_err(|error| format!("Failed to count approved drafts: {error}"))
+    }
+
+    fn imported_count(&self) -> Result<u32, String> {
+        self.conn
+            .query_row(
+                "SELECT COUNT(*) FROM draft_jobs WHERE status = 'synced'",
+                [],
+                |row| row.get::<_, u32>(0),
+            )
+            .map_err(|error| format!("Failed to count imported drafts: {error}"))
+    }
+
+    fn erp_import_settings(&self) -> Result<ErpImportSettings, String> {
+        let base_url = self
+            .setting("erp_import_base_url")?
+            .unwrap_or_else(configured_erp_import_url);
+        let token = self
+            .setting("erp_import_token")?
+            .or_else(|| std::env::var("MICROSERVICES_DESKTOP_IMPORT_TOKEN").ok())
+            .unwrap_or_default();
+
+        Ok(ErpImportSettings {
+            base_url,
+            token_configured: !token.trim().is_empty(),
+        })
+    }
+
+    fn save_erp_import_settings(&self, base_url: &str, token: &str) -> Result<(), String> {
+        let normalized_base_url = normalize_erp_import_url(base_url)?;
+        self.set_setting("erp_import_base_url", &normalized_base_url)?;
+
+        let trimmed_token = token.trim();
+        if !trimmed_token.is_empty() {
+            self.set_setting("erp_import_token", trimmed_token)?;
+        }
+
+        Ok(())
+    }
+
+    fn erp_import_transport(&self) -> Result<ErpImportTransport, String> {
+        let settings = self.erp_import_settings()?;
+        let token = self
+            .setting("erp_import_token")?
+            .or_else(|| std::env::var("MICROSERVICES_DESKTOP_IMPORT_TOKEN").ok())
+            .unwrap_or_default();
+
+        if settings.base_url.trim().is_empty() {
+            return Err("Configure the ERP app URL before importing approved drafts.".to_string());
+        }
+        if token.trim().is_empty() {
+            return Err("Configure the desktop import token before importing approved drafts.".to_string());
+        }
+
+        Ok(ErpImportTransport {
+            base_url: settings.base_url,
+            token,
+        })
+    }
+
+    fn mark_imported(&self, job_id: &str) -> Result<QueueJob, String> {
+        let job = self
+            .get_job(job_id)?
+            .ok_or_else(|| format!("Draft job not found: {job_id}"))?;
+        if job.status == "synced" {
+            return Ok(job);
+        }
+        if job.status != "approved" {
+            return Err(format!(
+                "Only approved drafts can be marked imported: {job_id}"
+            ));
+        }
+
+        self.record_edit(job_id, "*status", Some(&job.status), Some("synced"))?;
+        self.update_status(job_id, "synced", job.confidence)?;
+        self.get_job(job_id)?
+            .ok_or_else(|| format!("Draft job not found after import: {job_id}"))
     }
 
     fn runtime_settings(&self) -> Result<RuntimeSettings, String> {
@@ -1855,7 +2066,10 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             runtime_status,
+            import_status,
             sync_status,
+            erp_import_settings,
+            save_erp_import_settings,
             select_import_folder,
             select_import_files,
             import_folder_path,
@@ -1869,7 +2083,9 @@ fn main() {
             enqueue_sample_documents,
             update_draft_field,
             approve_job,
-            reject_job
+            reject_job,
+            desktop_import_request,
+            mark_job_imported
         ])
         .run(tauri::generate_context!())
         .expect("failed to run ERP Shell Desktop");
@@ -2092,6 +2308,30 @@ mod tests {
         let approved = queue.approve(&job.id).expect("approved");
         assert_eq!(approved.status, "approved");
         assert_eq!(queue.edit_count(&job.id).expect("edit count"), 1);
+    }
+
+    #[test]
+    fn import_settings_and_mark_imported_keep_local_state_draft_only() {
+        let workspace = tempdir().expect("temp workspace");
+        let queue = DraftQueue::open(workspace.path().join("drafts.sqlite3")).expect("draft queue");
+        let job = seed_review_job(&queue, "approved-invoice.png");
+
+        queue
+            .save_erp_import_settings("http://localhost:5173/", "dev-token")
+            .expect("import settings saved");
+        let settings = queue.erp_import_settings().expect("import settings");
+        assert_eq!(settings.base_url, "http://localhost:5173");
+        assert!(settings.token_configured);
+
+        assert!(queue.mark_imported(&job.id).is_err());
+        let approved = queue.approve(&job.id).expect("approved");
+        assert_eq!(approved.status, "approved");
+        assert_eq!(queue.approved_count().expect("approved count"), 1);
+
+        let imported = queue.mark_imported(&job.id).expect("imported");
+        assert_eq!(imported.status, "synced");
+        assert_eq!(queue.approved_count().expect("approved count"), 0);
+        assert_eq!(queue.imported_count().expect("imported count"), 1);
     }
 
     #[test]

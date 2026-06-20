@@ -5,6 +5,7 @@ import { createKvRateLimitStore } from "@microservices-sh/gateway/adapters/kv-ra
 import { createMemoryRateLimitStore } from "@microservices-sh/gateway/adapters/memory-rate-limit";
 import { createStripePaymentGateway } from "@microservices-sh/payment/adapters/stripe-gateway";
 import { createMemoryPaymentGateway } from "@microservices-sh/payment/adapters/memory-gateway";
+import { createCfQueueProducer } from "@microservices-sh/jobs-workflows";
 import {
   buildProviders,
   createMemoryImageProvider,
@@ -52,6 +53,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.notificationStore = stores.notificationStore;
   event.locals.jobStore = stores.jobStore;
   event.locals.scheduleStore = stores.scheduleStore;
+  event.locals.jobQueue = env?.JOB_QUEUE ? createCfQueueProducer(env.JOB_QUEUE) : undefined;
   event.locals.webhookEndpointStore = stores.webhookEndpointStore;
   event.locals.webhookDeliveryLog = stores.webhookDeliveryLog;
   event.locals.accountStore = stores.accountStore;

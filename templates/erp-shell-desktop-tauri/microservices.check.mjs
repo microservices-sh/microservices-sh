@@ -6,7 +6,17 @@ export default function check({ assertFileIncludesAll }) {
   );
   assertFileIncludesAll(
     "src/App.svelte",
-    ["AppShell", "CustomSelect", "PageHeader", "MetricStrip", "ResourceTable", "Drop or Select Documents", "Runtime settings"],
+    [
+      "AppShell",
+      "CustomSelect",
+      "PageHeader",
+      "MetricStrip",
+      "ResourceTable",
+      "Drop or Select Documents",
+      "ERP import",
+      "Submit Selected",
+      "Runtime settings"
+    ],
     "Desktop MVP uses the ERP shell chrome and shared UI primitives."
   );
   assertFileIncludesAll(
@@ -31,7 +41,15 @@ export default function check({ assertFileIncludesAll }) {
   );
   assertFileIncludesAll(
     "src-tauri/src/main.rs",
-    ["select_import_files", "import_document_paths", "draft_queue_dedupes_by_file_hash", "extract_document", "draft_json"],
+    [
+      "select_import_files",
+      "import_document_paths",
+      "draft_queue_dedupes_by_file_hash",
+      "extract_document",
+      "draft_json",
+      "desktop_import_request",
+      "mark_job_imported"
+    ],
     "Desktop intake supports dropped files/folders, queue dedupe, and persisted extraction drafts."
   );
   assertFileIncludesAll(
@@ -60,8 +78,8 @@ export default function check({ assertFileIncludesAll }) {
   );
   assertFileIncludesAll(
     "src/App.svelte",
-    ["saveField", "approveDraft", "rejectDraft", "field-input"],
-    "Desktop review UI allows editing extracted fields and approving or rejecting drafts."
+    ["saveField", "approveDraft", "rejectDraft", "submitApprovedToErp", "field-input"],
+    "Desktop review UI allows editing extracted fields, approving or rejecting drafts, and submitting approved drafts."
   );
   assertFileIncludesAll(
     "docs/api-boundary.md",
@@ -72,8 +90,11 @@ export default function check({ assertFileIncludesAll }) {
       "silently download model weights",
       "update_draft_field",
       "approve_job",
-      "reject_job"
+      "reject_job",
+      "desktop_import_request",
+      "mark_job_imported",
+      "remote ERP database is canonical"
     ],
-    "Desktop API boundary documents local extraction, correction, and approval commands and the no-silent-download rule."
+    "Desktop API boundary documents local extraction, correction, approval, and remote ERP import boundaries."
   );
 }

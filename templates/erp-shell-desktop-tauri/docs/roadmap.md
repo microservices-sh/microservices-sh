@@ -5,7 +5,7 @@ image OCR slice started.
 
 This template is the desktop companion for generated ERP Shell apps. It is not
 the canonical ERP database. Its job is to make local document intake,
-extraction review, optional local AI runtime control, and approved sync usable
+extraction review, optional local AI runtime control, and approved ERP import usable
 on macOS and Windows.
 
 ## Product Modes
@@ -13,8 +13,8 @@ on macOS and Windows.
 | Mode | Purpose | State |
 |---|---|---|
 | `browser-preview` | Review the UI without launching Tauri. | Built |
-| `desktop-connected` | Read local files, keep draft state locally, sync to the ERP backend. | In progress |
-| `desktop-local-first` | Queue and review extraction while offline; sync after approval. | Later |
+| `desktop-connected` | Read local files, keep draft state locally, submit approved drafts to the ERP backend. | In progress |
+| `desktop-local-first` | Queue and review extraction while offline; submit after approval. | Later |
 | `offline-extraction` | Run OCR and local LLM extraction without cloud dependency. | Started for scanned images |
 
 ## Milestones
@@ -28,7 +28,7 @@ Scope:
 - Svelte/Vite UI.
 - Tauri/Rust shell.
 - Browser preview fallback.
-- Stubbed import queue, runtime status, and sync status.
+- Stubbed import queue, runtime status, and ERP import status.
 - Linux Docker native check for WebKitGTK/Tauri compilation.
 
 Acceptance:
@@ -59,7 +59,7 @@ Acceptance:
 - Importing a folder creates local draft jobs without touching the ERP backend.
 - Re-importing the same file does not create duplicates.
 - Draft state survives app restart.
-- The UI clearly separates local drafts from synced records.
+- The UI clearly separates local drafts from remote-imported records.
 
 ### M2 — OCR and Extraction Review
 
@@ -80,7 +80,8 @@ Built:
 - Queue action and draft review panel in the desktop UI.
 - Human review and correction: inline field editing, plus approve/reject, with
   every edit and decision recorded in a local `draft_edits` audit table. Only
-  approved drafts become sync-eligible; rejected drafts leave the pending queue.
+  approved drafts can be submitted to the ERP Worker; rejected drafts leave the
+  pending queue.
 
 Remaining scope:
 
@@ -95,7 +96,7 @@ Acceptance:
 - The user can approve, reject, or re-run extraction for a job. ✅
 - Each extracted field has source evidence and confidence. (text source only;
   bounding boxes pending)
-- Low-confidence fields are highlighted before sync. ✅ (needs validator-backed
+- Low-confidence fields are highlighted before import. ✅ (needs validator-backed
   confidence)
 
 ### M3 — Local AI Runtime Manager
@@ -124,22 +125,22 @@ Acceptance:
 - Extraction works with a local adapter or a configured remote fallback.
 - Failures leave drafts intact and visible for manual review.
 
-### M4 — Governed Sync to ERP Shell
+### M4 — Governed ERP Import
 
 Scope:
 
-- Sync client from desktop drafts to generated ERP Shell backend APIs.
+- Import client from desktop drafts to generated ERP Shell backend APIs.
 - Authenticated workspace connection.
 - Draft-to-record mapping for `document-extraction`, `file-media`, `invoice`,
   `customer`, `support-ticket`, and `jobs-workflows` as each module supports it.
-- Audit events for approve/sync operations.
+- Audit events for approve/import operations.
 
 Acceptance:
 
-- Only approved drafts sync.
-- Sync failures are retryable and idempotent.
+- Only approved drafts import.
+- Import failures are retryable and idempotent.
 - The backend remains the canonical source for production records.
-- Each synced record links back to the local draft and source file metadata.
+- Each imported record links back to the local draft and source file metadata.
 
 ### M5 — Signed Desktop Distribution
 
@@ -176,7 +177,7 @@ not when it merely proves local OCR.
 ## Non-Goals
 
 - Do not build a full offline ERP database in the desktop app.
-- Do not sync unreviewed extracted data into production records.
+- Do not submit unreviewed extracted data into production records.
 - Do not bundle large local LLM weights in the default installer.
 - Do not hard-code one model vendor as the product architecture.
 - Do not let Svelte call filesystem/model/process capabilities directly; Rust
@@ -186,7 +187,7 @@ not when it merely proves local OCR.
 
 1. Add image preprocessing before OCR/Gemma vision.
 2. Add watched folder configuration and a persisted import source list.
-3. Add a real `desktop-connected` configuration shape for backend sync URL and
+3. Add a real `desktop-connected` configuration shape for backend import URL and
    workspace identity.
-4. Add document-extraction sync API contracts.
+4. Add document-extraction import API contracts.
 5. Keep Docker Linux checks green while adding macOS/Windows CI packaging.

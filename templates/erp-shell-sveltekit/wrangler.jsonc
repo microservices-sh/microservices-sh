@@ -19,13 +19,32 @@
       "migrations_dir": "migrations"
     }
   ],
+  "kv_namespaces": [
+    {
+      "binding": "RATE_LIMIT_KV",
+      "id": "REPLACE_WITH_RATE_LIMIT_KV_ID"
+    }
+  ],
   "r2_buckets": [
     {
       "binding": "MEDIA_BUCKET",
       "bucket_name": "erp-shell-sveltekit-files"
+    },
+    {
+      "binding": "IMAGE_BUCKET",
+      "bucket_name": "erp-shell-sveltekit-images"
     }
   ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "JOB_QUEUE",
+        "queue": "erp-shell-sveltekit-jobs"
+      }
+    ]
+  },
   "vars": {
+    "DESKTOP_IMPORT_ALLOWED_ORIGIN": "*",
     "MICROSERVICES_DEPLOYMENT_ID": "",
     "MICROSERVICES_OBSERVABILITY_URL": "https://api.microservices.sh",
     "MICROSERVICES_TEMPLATE_ID": "erp-shell-sveltekit"

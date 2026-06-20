@@ -2,12 +2,13 @@
 
 Desktop companion MVP for the microservices.sh ERP Shell. It gives Mac and
 Windows users a local intake workspace for document folders, extraction jobs,
-runtime status, and sync readiness before approved records are pushed into a
+runtime status, and ERP import readiness before approved records are submitted to a
 deployed ERP Shell app.
 
 This is intentionally not a fully offline ERP. The first desktop slice is a
-local bridge: keep files and draft extraction state on the machine, then sync
-reviewed records into the governed Cloudflare app.
+local bridge: keep files and draft extraction state on the machine, then submit
+reviewed records into the governed Cloudflare app. The remote ERP database is
+canonical for multi-user business records.
 
 ## Commands
 
@@ -93,13 +94,16 @@ before installing dependencies, so host `node_modules`, `dist`, and Cargo
 - Rust commands for file/folder selection, drag/drop path import, SQLite queue
   persistence, runtime status, PDF rasterization + local OCR extraction, optional
   local Gemma vision/normalization, runtime settings, explicit model install, audited
-  field correction / approve / reject, and sync status.
+  field correction / approve / reject, and remote ERP import status.
 - PDF intake: multi-page PDFs are rasterized with poppler `pdftoppm` and OCR'd
   page by page (the first document-heavy vertical is invoices, which are mostly
   PDF).
 - Human-in-the-loop review: edit extracted field values inline, then approve or
   reject a draft. Edits and decisions are written to a local `draft_edits` audit
-  table, and only approved drafts are sync-eligible.
+  table, and only approved drafts can be submitted to the ERP Worker.
+- Remote ERP import: configure an ERP app URL plus desktop import token, submit
+  approved drafts to `/api/desktop/import`, and mark the local draft imported
+  only after the Worker accepts the request.
 - Browser preview fallback so the interface can be reviewed without launching
   Tauri.
 
@@ -118,6 +122,5 @@ acceptance criteria, and the next engineering slice.
   fabricated heuristic confidence as the review signal).
 - Add source-region bounding boxes and a document-image preview in review.
 - Add watched folder configuration.
-- Add document-extraction module sync endpoints (governed sync of approved
-  drafts only).
+- Add richer document-extraction module import processors for approved drafts.
 - Add signed release builds for macOS and Windows.

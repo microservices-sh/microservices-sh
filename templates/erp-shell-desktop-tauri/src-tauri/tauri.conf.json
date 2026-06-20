@@ -28,7 +28,7 @@
     "targets": ["dmg", "nsis"],
     "publisher": "microservices.sh",
     "shortDescription": "macOS and Windows ERP Shell desktop companion.",
-    "longDescription": "Desktop companion MVP for local document intake, extraction queue review, local runtime status, and sync readiness for microservices.sh ERP Shell apps.",
+    "longDescription": "Desktop companion MVP for local document intake, extraction queue review, local runtime status, and approved-draft ERP import for microservices.sh ERP Shell apps.",
     "macOS": {
       "minimumSystemVersion": "12.0"
     },

@@ -17,13 +17,16 @@ Rust commands own native capabilities:
 - local OCR command execution
 - local Gemma/Ollama adapter calls
 - audited operator corrections (field edit, approve, reject)
-- sync client transport
+- ERP import request preparation
 
 The Svelte UI calls Rust through Tauri commands and renders state. Current
 intake commands are `select_import_files`, `select_import_folder`, `import_document_paths`,
 `queue_documents`, `runtime_settings`, `save_runtime_settings`,
 `install_gemma_model`, `extract_document`, `document_draft`,
-`update_draft_field`, `approve_job`, `reject_job`, and `sync_status`.
+`update_draft_field`, `approve_job`, `reject_job`, `import_status`,
+`erp_import_settings`, `save_erp_import_settings`, `desktop_import_request`,
+and `mark_job_imported`. `sync_status` remains a compatibility alias for older
+clients, but new UI and docs should use import terminology.
 
 ## Local Extraction Boundary
 
@@ -40,7 +43,9 @@ module. The native app may:
 - persist draft JSON in local SQLite for human review;
 - let an operator edit extracted field values, then approve or reject a draft;
 - record every field edit and approve/reject decision in a local `draft_edits`
-  audit table so only approved drafts become sync-eligible;
+  audit table so only approved drafts can be submitted to the ERP Worker;
+- prepare an authenticated import payload for an approved local draft;
+- mark a draft imported only after the remote API accepts the request;
 - keep source file paths, hashes, confidence, warnings, and raw OCR text.
 
 The native app must not:
@@ -49,7 +54,8 @@ The native app must not:
 - bundle large LLM weights in the default installer;
 - call remote AI providers from the desktop template without an explicit
   governed adapter;
-- sync unreviewed extraction output into production ERP records.
+- submit unreviewed extraction output into production ERP records;
+- become a second canonical ERP database.
 
 ## Backend Boundary
 
@@ -60,5 +66,6 @@ The deployed ERP Shell app owns:
 - audit log
 - production object storage
 
-Desktop sync must create draft or reviewed records through explicit backend API
-calls once those endpoints exist.
+Desktop import must create draft or reviewed records through explicit backend
+API calls. The remote ERP database is canonical; local SQLite is only for local
+draft queue state, runtime settings, review edits, and retry context.

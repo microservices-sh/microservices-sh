@@ -33,6 +33,7 @@ audit-log, gateway) do not.
 | `/app/team/accept` | Accept a single-use, expiring invitation |
 | `/app/settings` | Company details, your permissions, recent audit activity |
 | `/admin`, `/admin/[resource]` | Super-admin CRUD over tables via admin-shell |
+| `/api/desktop/import` | Authenticated desktop approved-draft import endpoint |
 
 `/app/*` is gated by company membership through `authorize` / `resolvePermissions`.
 
@@ -45,6 +46,22 @@ composition glue only.
 
 Stores resolve to D1/R2 adapters in production and in-memory adapters locally, so
 the app runs out of the box for development (seeded via `src/lib/server/demo.ts`).
+The deployed Worker is the canonical multi-user ERP backend: D1 stores business
+records and module tables, R2 stores file/image bytes, KV backs shared gateway
+rate limits, and Queues carry async module jobs such as approved desktop imports.
+
+Desktop approved-draft import follows this boundary:
+
+```txt
+Desktop Tauri app -> authenticated HTTPS import API on ERP Worker -> module use cases/jobs
+  -> D1/R2/KV/Queues -> audit log
+```
+
+Set `DESKTOP_IMPORT_TOKEN` as a Worker secret before enabling desktop imports:
+
+```bash
+wrangler secret put DESKTOP_IMPORT_TOKEN
+```
 
 See `CLAUDE.md` for how the lock-driven sidebar works and where to wire modules.
 
@@ -76,8 +93,10 @@ gh secret set CLOUDFLARE_API_TOKEN
 gh secret set CLOUDFLARE_ACCOUNT_ID
 ```
 
-Before the first deploy, replace `database_id` (`REPLACE_WITH_D1_ID`) in
-`wrangler.jsonc` with your provisioned D1 database id.
+Before the first deploy, replace `database_id` (`REPLACE_WITH_D1_ID`) and the
+KV id placeholders in `wrangler.jsonc` with your provisioned Cloudflare resource
+ids. Create or rename the R2 buckets and queue to match the bindings in
+`wrangler.jsonc`.
 
 ## Theming
 

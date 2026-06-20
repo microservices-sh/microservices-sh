@@ -7,7 +7,7 @@ import type { TicketStore } from "@microservices-sh/support-ticket/ports";
 import type { InvoiceStore, NumberAllocator } from "@microservices-sh/invoice/ports";
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
 import type { NotificationStore } from "@microservices-sh/notifications-inapp/ports";
-import type { JobStore, ScheduleStore } from "@microservices-sh/jobs-workflows/ports";
+import type { JobStore, QueueProducer, ScheduleStore } from "@microservices-sh/jobs-workflows/ports";
 import type { DeliveryLogStore, WebhookEndpointStore } from "@microservices-sh/webhook-delivery/ports";
 import type { AccountStore, LoginCodeStore, SessionStore } from "@microservices-sh/identity";
 import type { RateLimitStore } from "@microservices-sh/gateway/ports";
@@ -27,8 +27,11 @@ declare global {
         DB?: D1Database;
         MEDIA_BUCKET?: R2Bucket;
         RATE_LIMIT_KV?: KVNamespace;
+        JOB_QUEUE?: Queue<{ jobId: string }>;
         STRIPE_SECRET_KEY?: string;
         IMAGE_BUCKET?: R2Bucket;
+        DESKTOP_IMPORT_TOKEN?: string;
+        DESKTOP_IMPORT_ALLOWED_ORIGIN?: string;
         // Optional Workers Analytics Engine dataset for per-request data points.
         // Absent by default — the observability sink no-ops without it.
         OBSERVABILITY?: AnalyticsEngineDataset;
@@ -61,6 +64,7 @@ declare global {
       notificationStore: NotificationStore;
       jobStore: JobStore;
       scheduleStore: ScheduleStore;
+      jobQueue?: QueueProducer;
       webhookEndpointStore: WebhookEndpointStore;
       webhookDeliveryLog: DeliveryLogStore;
       // Passwordless identity stores (@microservices-sh/identity): accounts,

@@ -26,7 +26,7 @@ Templates may share modules and SDK code through workspace packages, but generat
 | `erp-shell-sveltekit` | ready | Single-company ERP shell for customers, invoices, files, support tickets, teams, admin, and audit-log-backed operations. |
 | `saas-starter-sveltekit` | ready | Multi-tenant B2B SaaS starter with org sign-up, team RBAC, subscriptions, admin shell, and audit log. |
 | `dot-ai-os` | draft / private pilot | Agent-native operator OS with task board, focus planning, calendar context, daily review, knowledge/content pipelines, AI team routing, files, team roles, and module-backed work surfaces. Keep public claims pilot-only until runtime creation and approval persistence are proven. |
-| `erp-shell-desktop-tauri` | draft | Mac and Windows desktop companion for ERP Shell: local document intake, extraction queue review, runtime status, and sync readiness. |
+| `erp-shell-desktop-tauri` | draft | Mac and Windows desktop companion for ERP Shell: local document intake, extraction queue review, runtime status, and approved-draft ERP import. |
 | `wordpress-emdash-blog-astro` | experimental | WordPress blog migration to Astro + EmDash on Cloudflare Workers with exporter-first content import, theme ZIP intake, D1/R2, and source probing. |
 
 The public launch path should lead with `booking-sveltekit` through `create-microservices-app` and the generated project CLI. The root workspace CLI is for internal SDK/control-plane development until its template catalog is synced with the create-package registry.

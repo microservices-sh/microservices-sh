@@ -14,6 +14,18 @@ cases. SvelteKit `+page.server.ts` files are adapters.
 | Adapter | concrete infrastructure | `createD1RbacStore`, `createMemoryBillingStore` |
 | Hook | user customization | `beforeInvite`, `beforeSubscriptionChange` |
 
+## Desktop Import Boundary
+
+`src/routes/api/desktop/import/+server.ts` is an HTTP adapter for the desktop
+companion. It authenticates with `DESKTOP_IMPORT_TOKEN`, validates an approved
+draft payload, resolves the company org, enqueues a `desktop.draft.import` job,
+and records an audit event. It must not bypass module use cases or write
+production records directly from the route.
+
+The desktop app keeps local draft state only. The Worker remains the canonical
+multi-user ERP backend: D1 for module records, R2 for files/images, KV for
+shared gateway state, Queues for async processing, and audit-log for traceability.
+
 ## Route Adapter Shape
 
 ```ts
