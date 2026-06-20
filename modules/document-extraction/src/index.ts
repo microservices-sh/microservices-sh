@@ -20,6 +20,7 @@ export { listExtractionJobs } from "./use-cases/list-extraction-jobs";
 export { normalizeExtraction } from "./use-cases/normalize-extraction";
 export { reviewExtraction } from "./use-cases/review-extraction";
 export { submitExtractionDraft } from "./use-cases/submit-extraction-draft";
+export { createD1DocumentExtractionStore } from "./adapters/d1-document-extraction-store";
 export { createMemoryDocumentExtractionStore } from "./adapters/memory-document-extraction-store";
 export { createGemmaExtractionNormalizer } from "./adapters/gemma-normalizer";
 export type {
