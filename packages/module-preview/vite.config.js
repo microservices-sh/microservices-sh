@@ -15,8 +15,8 @@ function liveResearchApi() {
         for await (const c of req) body += c;
         try {
           const mod = await server.ssrLoadModule("/src/server/research-handler.ts");
-          const { topic, channels } = JSON.parse(body || "{}");
-          const out = await mod.research(String(topic ?? ""), Array.isArray(channels) ? channels : []);
+          const { topic, channels, apiKey, model } = JSON.parse(body || "{}");
+          const out = await mod.research(String(topic ?? ""), Array.isArray(channels) ? channels : [], { apiKey, model });
           res.setHeader("content-type", "application/json");
           res.end(JSON.stringify(out));
         } catch (e) {

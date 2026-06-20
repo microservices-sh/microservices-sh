@@ -44,27 +44,36 @@ const store = createMemoryMarketingStore();
 const listen = createLast30daysListenPort({ run: runner });
 const actor = { id: "founder", tenantId: "founder", scopes: ["marketing.run", "ai.invoke"] };
 
-// Real ai-gateway synthesis when a BYOK key is configured; else the stand-in.
-// On Cloudflare this would be keyless (Workers AI) instead of OpenRouter.
-const gatewaySynth: Synthesizer | null = OPENROUTER_KEY
-  ? createGatewaySynthesizer((messages) =>
-      complete(
-        { messages },
-        {
-          config: { provider: "openrouter", completeModel: AI_MODEL, embedModel: "" } as any,
-          providers: { openrouter: createOpenRouterProvider({ apiKey: OPENROUTER_KEY }) } as any,
-          actor
-        }
-      ) as any
-    )
-  : null;
-const synthesizer = gatewaySynth ?? devSynth;
-export const synthMode = gatewaySynth ? `ai-gateway:openrouter:${AI_MODEL}` : "deterministic-stand-in";
-
-export async function research(topic: string, channels: string[]) {
-  const res = await runResearch(
-    { topic, channels: channels.length ? channels : undefined },
-    { store, listen, synthesizer, now: () => Date.now(), actor }
+// Pick the synthesizer per request: a BYOK key (from the UI or env) → real
+// ai-gateway synthesis; otherwise the deterministic stand-in. On Cloudflare this
+// would be keyless (Workers AI) instead of OpenRouter. The key is never logged.
+function pickSynth(apiKey?: string, model?: string): { synthesizer: Synthesizer; synthMode: string } {
+  const key = (apiKey || OPENROUTER_KEY || "").trim();
+  if (!key) return { synthesizer: devSynth, synthMode: "deterministic-stand-in" };
+  const m = (model || AI_MODEL).trim();
+  const synthesizer = createGatewaySynthesizer((messages) =>
+    complete(
+      { messages },
+      {
+        config: { provider: "openrouter", completeModel: m, embedModel: "" } as any,
+        providers: { openrouter: createOpenRouterProvider({ apiKey: key }) } as any,
+        actor
+      }
+    ) as any
   );
-  return res.ok ? { brief: res.data.brief, synthMode } : { refused: res.error, status: res.status, synthMode };
+  return { synthesizer, synthMode: `ai-gateway:openrouter:${m}` };
+}
+
+export async function research(topic: string, channels: string[], opts: { apiKey?: string; model?: string } = {}) {
+  const { synthesizer, synthMode } = pickSynth(opts.apiKey, opts.model);
+  try {
+    const res = await runResearch(
+      { topic, channels: channels.length ? channels : undefined },
+      { store, listen, synthesizer, now: () => Date.now(), actor }
+    );
+    return res.ok ? { brief: res.data.brief, synthMode } : { refused: res.error, status: res.status, synthMode };
+  } catch (e) {
+    // Provider/auth errors from a bad key surface as a clean message, not a 500 dump.
+    return { refused: { code: "SYNTHESIS_FAILED", message: String((e as Error).message || e) }, status: 502, synthMode };
+  }
 }
