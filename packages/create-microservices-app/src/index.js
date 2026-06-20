@@ -7,6 +7,7 @@ import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { generateProject, listModuleDocs, listModules, listTemplates } from "@microservices-sh/sdk-internal";
 import { loadFrameworks, resolveFramework, buildC3Command, applyFrameworkHook, frameworkNextSteps } from "./framework-starter.js";
+import { BUNDLED_MODULES, BUNDLED_PACKAGES } from "./bundled-deps.js";
 import { track, telemetryNotice } from "./telemetry.js";
 
 const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
@@ -61,31 +62,6 @@ const REPO_TEMPLATES = {
     summary: "Cloudflare SvelteKit ERP shell - customers, invoices, files, support tickets, teams, admin, and audit log.",
   },
 };
-const BUNDLED_MODULES = [
-  "admin-shell",
-  "ads-manager",
-  "audit-log",
-  "auth",
-  "billing-subscriptions",
-  "booking",
-  "calendar-google",
-  "customer",
-  "email",
-  "file-media",
-  "forms-intake",
-  "gateway",
-  "identity",
-  "image-generation",
-  "invoice",
-  "jobs-workflows",
-  "notifications-inapp",
-  "operator-work",
-  "org-team-rbac",
-  "payment",
-  "research",
-  "support-ticket",
-];
-
 function readOwnPackageVersion(packageRoot) {
   try {
     const packageJson = JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8"));
@@ -94,14 +70,6 @@ function readOwnPackageVersion(packageRoot) {
     return "0.0.0";
   }
 }
-const BUNDLED_PACKAGES = new Map([
-  ["@microservices-sh/connection-contract", "connection-contract"],
-  // ops-token's codec (mint/verify) is vendored like connection-contract so the
-  // generated operate-app can verify ops tokens; it's pulled in transitively by
-  // the research module (booking's /ops read-back route). See plan 32.
-  ["@microservices-sh/ops-token", "ops-token"],
-]);
-
 function modulePackageName(moduleId) {
   return `@microservices-sh/${moduleId}`;
 }
