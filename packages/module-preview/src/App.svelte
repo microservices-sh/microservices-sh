@@ -60,7 +60,7 @@
   // Module test config (dev only). The BYOK key is a harness/test concern, NOT
   // part of the module's production surface — so it lives here, not in Preview.
   let aiKey = $state("");
-  let aiModel = $state("anthropic/claude-3.5-haiku");
+  let aiModel = $state("deepseek/deepseek-v4-flash");
   let synthMode = $state<string>("");
 
   async function onrun(topic: string, channels: string[]) {
@@ -120,7 +120,7 @@
               </label>
               <label class="byok__f">
                 <span>Model</span>
-                <input bind:value={aiModel} placeholder="anthropic/claude-3.5-haiku" />
+                <input bind:value={aiModel} placeholder="deepseek/deepseek-v4-flash" />
               </label>
             </div>
             <p class="byok__note">Local-dev only — sent to the local endpoint, never stored or logged. On Cloudflare this is keyless (Workers AI).</p>

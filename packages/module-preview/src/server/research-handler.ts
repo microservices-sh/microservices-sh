@@ -14,7 +14,7 @@ const SKILL_DIR =
 const PYTHON = process.env.L30_PYTHON ?? "python3";
 // BYOK in Node dev (no Workers AI binding). On Cloudflare this would be keyless.
 const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
-const AI_MODEL = process.env.AI_MODEL ?? "anthropic/claude-3.5-haiku";
+const AI_MODEL = process.env.AI_MODEL ?? "deepseek/deepseek-v4-flash";
 
 const runner: Last30daysRunner = ({ topic, channels }) =>
   new Promise((resolve, reject) => {
