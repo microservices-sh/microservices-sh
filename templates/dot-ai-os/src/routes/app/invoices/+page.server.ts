@@ -1,6 +1,6 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
-import { listInvoices, createInvoice, issueInvoice, recordPayment } from "@microservices-sh/invoice";
+import { createInvoice, listInvoicesScoped, issueInvoiceScoped, recordPaymentScoped, authContext } from "@microservices-sh/invoice";
 import { listCustomers } from "@microservices-sh/customer";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { requireOrgPermission } from "$lib/server/org-context";
@@ -47,8 +47,10 @@ export const load: PageServerLoad = async ({ locals, cookies, parent }) => {
   const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "org.read", locals.rbacStore);
 
   // Work packets are scoped to the single workspace org; its id is the tenant.
+  // Enforced boundary (plan 33): listInvoicesScoped forces tenantId = session org.
+  const ctx = authContext({ orgId: activeOrgId, actorId: locals.user.id, roles: permissions });
   const [invoicesResult, customersResult] = await Promise.all([
-    listInvoices({ tenantId: activeOrgId }, { invoiceStore: locals.invoiceStore }),
+    listInvoicesScoped(ctx, {}, { invoiceStore: locals.invoiceStore }),
     listCustomers({ customerRepository: locals.customerRepository })
   ]);
 
@@ -80,7 +82,8 @@ export const actions: Actions = {
     if (!activeOrgId || !locals.user) return fail(403, { error: "Not signed in to a workspace." });
 
     // Write gate: issuing work packets requires member.manage in the workspace org.
-    await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+    const ctx = authContext({ orgId: activeOrgId, actorId: locals.user.id, roles: permissions });
 
     const form = await request.formData();
     const customerId = String(form.get("customerId") ?? "").trim();
@@ -102,7 +105,8 @@ export const actions: Actions = {
       return fail(draft.status ?? 400, { error: draft.error?.message ?? "Could not create the work packet." });
     }
 
-    const issued = await issueInvoice(
+    const issued = await issueInvoiceScoped(
+      ctx,
       { invoiceId: draft.data.id, termsDays },
       { invoiceStore: locals.invoiceStore, allocator: locals.numberAllocator }
     );
@@ -132,7 +136,8 @@ export const actions: Actions = {
     const { activeOrgId } = await parent();
     if (!activeOrgId || !locals.user) return fail(403, { error: "Not signed in to a workspace." });
 
-    await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+    const ctx = authContext({ orgId: activeOrgId, actorId: locals.user.id, roles: permissions });
 
     const form = await request.formData();
     const invoiceId = String(form.get("invoiceId") ?? "").trim();
@@ -142,7 +147,9 @@ export const actions: Actions = {
     if (!invoiceId) return fail(400, { error: "Missing work packet." });
     if (amountCents <= 0) return fail(400, { error: "Enter a payment amount greater than zero." });
 
-    const result = await recordPayment({ invoiceId, amountCents }, { invoiceStore: locals.invoiceStore });
+    // Enforced boundary (plan 33): recordPaymentScoped checks ownership against the
+    // session org before applying the payment.
+    const result = await recordPaymentScoped(ctx, { invoiceId, amountCents }, { invoiceStore: locals.invoiceStore });
     if (!result.ok || !result.data) {
       return fail(result.status ?? 400, { error: result.error?.message ?? "Could not record the payment." });
     }

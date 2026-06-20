@@ -1,6 +1,6 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
-import { listTickets, createTicket, getTicket, updateTicket } from "@microservices-sh/support-ticket";
+import { listTicketsScoped, createTicketScoped, updateTicketScoped, authContext } from "@microservices-sh/support-ticket";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { requireOrgPermission } from "$lib/server/org-context";
 
@@ -11,7 +11,9 @@ export const load: PageServerLoad = async ({ locals, cookies, parent }) => {
   // Read gate: any employee with org.read can view the support queue.
   const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "org.read", locals.rbacStore);
 
-  const result = await listTickets({ tenantId: activeOrgId }, { store: locals.ticketStore });
+  // Enforced boundary (plan 33): tenant from the resolved session org.
+  const ctx = authContext({ orgId: activeOrgId, actorId: locals.user.id, roles: permissions });
+  const result = await listTicketsScoped(ctx, {}, { store: locals.ticketStore });
 
   return {
     canManage: permissions.includes("*") || permissions.includes("member.manage"),
@@ -31,7 +33,8 @@ export const actions: Actions = {
     if (!activeOrgId || !locals.user) return fail(403, { error: "Not signed in to a workspace." });
 
     // Write gate: opening tickets requires member.manage in the workspace org.
-    await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+    const ctx = authContext({ orgId: activeOrgId, actorId: locals.user.id, roles: permissions });
 
     const form = await request.formData();
     const subject = String(form.get("subject") ?? "").trim();
@@ -46,8 +49,10 @@ export const actions: Actions = {
       });
     }
 
-    const result = await createTicket(
-      { tenantId: activeOrgId, subject, description, requesterEmail, priority },
+    // Enforced boundary (plan 33): the ticket's tenant is stamped from the session org.
+    const result = await createTicketScoped(
+      ctx,
+      { subject, description, requesterEmail, priority },
       { store: locals.ticketStore }
     );
     if (!result.ok || !result.data) {
@@ -74,7 +79,8 @@ export const actions: Actions = {
     if (!activeOrgId || !locals.user) return fail(403, { error: "Not signed in to a workspace." });
 
     // Write gate: changing ticket status requires member.manage in the workspace org.
-    await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+    const ctx = authContext({ orgId: activeOrgId, actorId: locals.user.id, roles: permissions });
 
     const form = await request.formData();
     const id = String(form.get("id") ?? "").trim();
@@ -84,14 +90,12 @@ export const actions: Actions = {
       return fail(400, { error: "Pick a ticket and a status." });
     }
 
-    const existing = await getTicket({ id }, { store: locals.ticketStore });
-    if (!existing.ok || !existing.data || existing.data.ticket.tenantId !== activeOrgId) {
-      return fail(404, { error: "Ticket not found for this workspace." });
-    }
-
-    const result = await updateTicket({ id, status }, { store: locals.ticketStore });
+    // Enforced boundary (plan 33): updateTicketScoped checks ownership against the
+    // session org before mutating, replacing the hand-rolled tenant re-check. 404
+    // covers both "missing" and "belongs to another workspace".
+    const result = await updateTicketScoped(ctx, { id, status }, { store: locals.ticketStore });
     if (!result.ok || !result.data) {
-      return fail(400, { error: "Could not update the ticket." });
+      return fail(result.status ?? 400, { error: "Ticket not found for this workspace." });
     }
 
     await recordEvent(

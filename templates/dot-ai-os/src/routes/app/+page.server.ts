@@ -1,7 +1,7 @@
 import type { PageServerLoad } from "./$types";
 import { listMembers } from "@microservices-sh/org-team-rbac";
 import { listCustomers } from "@microservices-sh/customer";
-import { listInvoices } from "@microservices-sh/invoice";
+import { listInvoicesScoped, authContext } from "@microservices-sh/invoice";
 import { getOperatorWorkbench } from "@microservices-sh/operator-work";
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
@@ -11,11 +11,13 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
   const today = new Date().toISOString().slice(0, 10);
 
   // Workspace-scoped operational summary. Membership is gated in the /app layout;
-  // every list is a thin adapter over a module use case.
+  // every list is a thin adapter over a module use case. Enforced boundary
+  // (plan 33): the tenant comes from the resolved session org.
+  const ctx = authContext({ orgId: activeOrgId, actorId: locals.user!.id, roles: [] });
   const [members, customers, invoices, operatorWorkbench] = await Promise.all([
     listMembers(activeOrgId, { store: locals.rbacStore }),
     listCustomers({ customerRepository: locals.customerRepository }),
-    listInvoices({ tenantId: activeOrgId }, { invoiceStore: locals.invoiceStore }),
+    listInvoicesScoped(ctx, {}, { invoiceStore: locals.invoiceStore }),
     getOperatorWorkbench({ orgId: activeOrgId, date: today }, { store: locals.operatorWorkStore })
   ]);
 
