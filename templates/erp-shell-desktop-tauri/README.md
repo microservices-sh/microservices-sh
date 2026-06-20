@@ -28,6 +28,8 @@ Install Xcode Command Line Tools and Rust first:
 
 ```bash
 xcode-select --install
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
 rustup toolchain install 1.88.0
 rustup default 1.88.0
 ```
