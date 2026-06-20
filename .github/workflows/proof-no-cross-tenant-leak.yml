@@ -1,0 +1,44 @@
+name: Proof — no cross-tenant leak
+
+# The buyer-facing proof that a cross-tenant read fails our build. Runs the
+# executable proof against the real shipped module, plus the L5 route guard.
+# A green run here is the linkable artifact behind the differentiator claim.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "proofs/no-cross-tenant-leak/**"
+      - "modules/invoice/**"
+      - "packages/workspace-tools/**"
+  pull_request:
+    paths:
+      - "proofs/no-cross-tenant-leak/**"
+      - "modules/invoice/**"
+      - "packages/workspace-tools/**"
+  workflow_dispatch:
+
+jobs:
+  proof:
+    name: A cross-tenant read fails the build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Proof — the leak is real, and the boundary closes it
+        run: npx vitest run --config proofs/no-cross-tenant-leak/vitest.config.ts
+
+      - name: L5 guard — a regression cannot ship
+        run: ./proofs/no-cross-tenant-leak/simulate-regression.sh
