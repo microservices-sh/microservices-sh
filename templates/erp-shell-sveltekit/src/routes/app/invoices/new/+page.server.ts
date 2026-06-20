@@ -1,6 +1,6 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
-import { createInvoice, issueInvoice } from "@microservices-sh/invoice";
+import { createInvoice, issueInvoiceScoped, authContext } from "@microservices-sh/invoice";
 import { listCustomers } from "@microservices-sh/customer";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { requireOrgPermission, loadCompanyContext } from "$lib/server/org-context";
@@ -65,7 +65,8 @@ export const actions: Actions = {
     if (!org) return fail(403, { error: "Not signed in to a company." });
     const activeOrgId = org.id;
 
-    await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+    const ctx = authContext({ orgId: activeOrgId, actorId: locals.user.id, roles: permissions });
 
     const form = await request.formData();
     const customerId = String(form.get("customerId") ?? "").trim();
@@ -87,7 +88,8 @@ export const actions: Actions = {
       return fail(draft.status ?? 400, { error: draft.error?.message ?? "Could not create the invoice." });
     }
 
-    const issued = await issueInvoice(
+    const issued = await issueInvoiceScoped(
+      ctx,
       { invoiceId: draft.data.id, termsDays },
       { invoiceStore: locals.invoiceStore, allocator: locals.numberAllocator }
     );

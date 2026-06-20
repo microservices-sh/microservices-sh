@@ -18,6 +18,10 @@ export {
   voidInvoiceScoped,
   addLineItemScoped
 } from "./use-cases/scoped";
+// Re-export the auth primitive so consumers of the *Scoped use-cases have a
+// validated way to build the AuthContext they require (plan 33).
+export { authContext } from "@microservices-sh/connection-contract";
+export type { AuthContext } from "@microservices-sh/connection-contract";
 export { computeTotals, lineAmountCents, lineTaxCents } from "./totals";
 export { createD1InvoiceStore } from "./adapters/d1-invoice-store";
 export { createD1NumberAllocator } from "./adapters/d1-number-allocator";

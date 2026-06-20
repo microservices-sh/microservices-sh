@@ -1,6 +1,7 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { error, fail, redirect } from "@sveltejs/kit";
-import { listInvoices, recordPayment } from "@microservices-sh/invoice";
+import { getInvoiceScoped, recordPaymentScoped, authContext } from "@microservices-sh/invoice";
+import type { AuthContext } from "@microservices-sh/invoice";
 import { getCustomer } from "@microservices-sh/customer";
 import { listEvents, recordEvent } from "@microservices-sh/audit-log";
 import { notify } from "@microservices-sh/notifications-inapp";
@@ -19,11 +20,12 @@ const eventTone = (e: string): Tone => {
   return "neutral";
 };
 
-// There's no single-invoice use case (only listInvoices), so resolve by id from
-// the tenant's list — same read path the ledger uses.
-async function findInvoice(tenantId: string, id: string, store: App.Locals["invoiceStore"]) {
-  const res = await listInvoices({ tenantId }, { invoiceStore: store });
-  return res.ok && res.data ? res.data.invoices.find((i) => i.id === id) : undefined;
+// Enforced boundary (plan 33): resolve one invoice by id within the session org.
+// getInvoiceScoped returns 404 for a foreign id, replacing the old list-then-find
+// tenant scan.
+async function findInvoice(ctx: AuthContext, id: string, store: App.Locals["invoiceStore"]) {
+  const res = await getInvoiceScoped(ctx, id, { invoiceStore: store });
+  return res.ok && res.data ? res.data.invoice : undefined;
 }
 
 export const load: PageServerLoad = async ({ params, locals, cookies, parent, platform }) => {
@@ -35,8 +37,9 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
   const canManage = permissions.includes("*") || permissions.includes("member.manage");
   const now = Date.now();
 
+  const ctx = authContext({ orgId: activeOrgId, actorId: locals.user.id, roles: permissions });
   const [invoice, eventsResult] = await Promise.all([
-    findInvoice(activeOrgId, params.id, locals.invoiceStore),
+    findInvoice(ctx, params.id, locals.invoiceStore),
     listEvents({ entityType: "invoice", entityId: params.id, limit: 20 }, { auditStore: locals.auditStore })
   ]);
   if (!invoice) throw error(404, "Invoice not found");
@@ -91,7 +94,8 @@ export const actions: Actions = {
     if (!org) return fail(403, { error: "Not signed in to a company." });
     const activeOrgId = org.id;
 
-    await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+    const ctx = authContext({ orgId: activeOrgId, actorId: locals.user.id, roles: permissions });
 
     const invoiceId = params.id;
     const form = await request.formData();
@@ -99,7 +103,9 @@ export const actions: Actions = {
     const amountCents = Number.isFinite(amount) ? Math.round(amount * 100) : 0;
     if (amountCents <= 0) return fail(400, { error: "Enter a payment amount greater than zero." });
 
-    const result = await recordPayment({ invoiceId, amountCents }, { invoiceStore: locals.invoiceStore });
+    // Enforced boundary (plan 33): recordPaymentScoped checks ownership against
+    // the session org before applying the payment — a cross-tenant write is 404.
+    const result = await recordPaymentScoped(ctx, { invoiceId, amountCents }, { invoiceStore: locals.invoiceStore });
     if (!result.ok || !result.data) {
       return fail(result.status ?? 400, { error: result.error?.message ?? "Could not record the payment." });
     }
@@ -117,7 +123,7 @@ export const actions: Actions = {
     );
 
     const paid = result.data.status === "paid";
-    const invoice = await findInvoice(activeOrgId, invoiceId, locals.invoiceStore);
+    const invoice = await findInvoice(ctx, invoiceId, locals.invoiceStore);
     let customerName = "a customer";
     if (invoice) {
       const cust = await getCustomer({ id: invoice.customerId }, { customerRepository: locals.customerRepository });

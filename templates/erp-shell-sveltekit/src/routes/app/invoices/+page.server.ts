@@ -1,6 +1,6 @@
 import type { PageServerLoad } from "./$types";
 import { redirect } from "@sveltejs/kit";
-import { listInvoices } from "@microservices-sh/invoice";
+import { listInvoicesScoped, authContext } from "@microservices-sh/invoice";
 import { listCustomers } from "@microservices-sh/customer";
 import { requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
@@ -16,8 +16,10 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
   // Invoices are scoped to the single company org; its id is the tenant. The
   // ledger is read-only here — creating happens at /app/invoices/new, and
   // recording payments happens on the invoice detail page (/app/invoices/[id]).
+  // Enforced boundary (plan 33): listInvoicesScoped forces tenantId = session org.
+  const ctx = authContext({ orgId: activeOrgId, actorId: locals.user.id, roles: permissions });
   const [invoicesResult, customersResult] = await Promise.all([
-    listInvoices({ tenantId: activeOrgId }, { invoiceStore: locals.invoiceStore }),
+    listInvoicesScoped(ctx, {}, { invoiceStore: locals.invoiceStore }),
     listCustomers({ customerRepository: locals.customerRepository })
   ]);
 
