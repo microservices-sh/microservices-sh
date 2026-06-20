@@ -14,9 +14,13 @@ Boots the GraphRAG research/advise agent for **one client** on its own Fly machi
 ```
 fly apps create acme-research-agent
 fly volumes create research_data --size 1 -a acme-research-agent
-fly secrets set OPENROUTER_API_KEY=sk-or-... -a acme-research-agent
+fly secrets set OPENROUTER_API_KEY=sk-or-... RUNTIME_TOKEN=$(openssl rand -hex 32) -a acme-research-agent
 fly deploy -a acme-research-agent --dockerfile Dockerfile
 ```
+
+`POST /research` requires `Authorization: Bearer $RUNTIME_TOKEN`; the actor
+identity is fixed server-side (`OWNER_ID`), never taken from the request body.
+`/health` is unauthenticated and leaks no config.
 
 Storage driver defaults to node:sqlite (zero-dep). Swap to libsql/Turso via
 `@microservices-sh/research/adapters/libsql-graph` for a replicated DB.

@@ -5,6 +5,7 @@
 import { createServer } from "node:http";
 import { readFileSync, realpathSync } from "node:fs";
 import { resolve, sep } from "node:path";
+import { timingSafeEqual } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { createNodeSqliteDatabase, runMigration } from "@microservices-sh/research/adapters/node-sqlite-graph";
 import { createOpenRouterProvider } from "@microservices-sh/ai-gateway/adapters/openrouter";
@@ -16,6 +17,18 @@ const MODEL = process.env.AI_MODEL ?? "anthropic/claude-3.5-haiku";
 const PORT = Number(process.env.PORT ?? 8080);
 const KEY = process.env.OPENROUTER_API_KEY;
 if (!KEY) throw new Error("OPENROUTER_API_KEY is required (set it as a Fly secret).");
+// Caller auth: a shared bearer token (Fly secret). The actor identity is derived
+// from server-side config, never from the request body — one box = one client.
+const RUNTIME_TOKEN = process.env.RUNTIME_TOKEN;
+if (!RUNTIME_TOKEN) throw new Error("RUNTIME_TOKEN is required (set it as a Fly secret).");
+const OWNER_ID = process.env.OWNER_ID ?? "owner";
+
+function authorized(header: string | undefined): boolean {
+  const expected = `Bearer ${RUNTIME_TOKEN}`;
+  const got = Buffer.from(header ?? "");
+  const want = Buffer.from(expected);
+  return got.length === want.length && timingSafeEqual(got, want);
+}
 
 // Migrations from the installed module packages.
 const require_ = (p: string) => readFileSync(p, "utf8");
@@ -58,15 +71,21 @@ const runtime = bootResearchRuntime({
 
 createServer(async (req, res) => {
   if (req.url === "/health") {
+    // Unauthenticated (Fly health checks) — must not leak config.
     res.writeHead(200, { "content-type": "application/json" });
-    return res.end(JSON.stringify({ ok: true, model: MODEL }));
+    return res.end(JSON.stringify({ ok: true }));
   }
   if (req.method === "POST" && req.url === "/research") {
+    if (!authorized(req.headers.authorization)) {
+      res.writeHead(401, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ ok: false, error: { code: "UNAUTHORIZED" } }));
+    }
     const chunks: Buffer[] = [];
     for await (const c of req) chunks.push(c as Buffer);
     const body = JSON.parse(Buffer.concat(chunks).toString() || "{}");
-    const actor = { id: body.actorId ?? "owner", scopes: ["research.read", "ai.invoke"] };
-    const result = await runtime.research({ question: body.question }, actor);
+    // Actor identity comes from server-side config, NOT the request body.
+    const actor = { id: OWNER_ID, tenantId: OWNER_ID, scopes: ["research.read", "ai.invoke"] };
+    const result = await runtime.research({ question: String(body.question ?? "") }, actor);
     res.writeHead(result.ok ? 200 : 422, { "content-type": "application/json" });
     return res.end(JSON.stringify(result));
   }

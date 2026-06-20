@@ -11,7 +11,9 @@ primary_region = "iad"
   AI_MODEL = "anthropic/claude-3.5-haiku"
   PORT = "8080"
 
-# Secrets (NOT here): fly secrets set OPENROUTER_API_KEY=sk-or-...
+# Secrets (NOT here): fly secrets set OPENROUTER_API_KEY=sk-or-... RUNTIME_TOKEN=<random>
+# Optional [env] OWNER_ID identifies the client org for this machine (default "owner").
+# /research requires Authorization: Bearer $RUNTIME_TOKEN.
 [mounts]
   source = "research_data"
   destination = "/data"
