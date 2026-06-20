@@ -5,7 +5,9 @@
 [![license](https://img.shields.io/npm/l/create-microservices-app.svg)](https://www.npmjs.com/package/create-microservices-app)
 [![node](https://img.shields.io/node/v/create-microservices-app.svg)](https://nodejs.org)
 
-The Cloudflare SaaS starter / boilerplate that scaffolds a production-shaped app in one command — Cloudflare Workers, D1, and your choice of SvelteKit or Hono, wired to source-visible [microservices.sh](https://microservices.sh) modules (auth, booking, payment, email) and a project CLI.
+Create a production-shaped Cloudflare app foundation in one command.
+
+`create-microservices-app` is the local entry point for the [microservices.sh System Harness](../../docs/system-harness.md): source-visible modules, local contracts, lockfiles, checks, approval-gated plans, and a project CLI that stays with the generated app.
 
 ## Quick start
 
@@ -25,22 +27,24 @@ npm create microservices-app@latest
 
 Requires **Node.js >= 20**. The first argument (`my-app`) is the app directory and slug.
 
+The current clean quickstart proof is recorded in [`docs/quickstart-proof.md`](../../docs/quickstart-proof.md).
+
 ## What you get
 
 - A Cloudflare Workers runtime — Hono (`booking-business`) or a full SvelteKit app (`booking-sveltekit`)
 - D1 schema + `wrangler.jsonc` local-dev config
 - Contract-checked microservices.sh modules wired in or planned through `add --plan`
 - `microservices.lock.json` and LLM-readable module docs under `docs/`
-- A project CLI exposed as `<pm> microservices` — `modules list`, `add --plan`, `upgrade --plan`, `check`, `updates`, and managed deploy commands
-- In Corporate OS mode, a company intake file plus operating, research, advisory, and pilot docs
+- A project CLI exposed as `<pm> microservices` — `modules list`, `add --plan`, `upgrade --plan`, `check`, `updates`, and managed deploy-plan commands
+- In Corporate OS mode, a company intake file plus operating, research, advisory, and pilot docs. This is a private-pilot lane until runtime creation, audit persistence, and approval-card flows are proven end-to-end.
 
 ## Why this
 
-Most "SaaS boilerplate" generators hand you a Vercel/Node + Postgres stack and a pile of files to maintain. This one is Cloudflare-native and module-based:
+Most starters hand you a framework repo and leave the agent to invent the production boundary. This package gives your agent a checked Cloudflare-native foundation:
 
 - **Edge-native by default** — Cloudflare Workers + D1, deployed to the edge, no separate database service to provision.
 - **Source-visible modules, not a black box** — auth, booking, payment, email, billing, and more are real contract-checked modules you can read, upgrade (`add --plan` / `upgrade --plan`), and own.
-- **A CLI that stays with the project** — `<pm> microservices` keeps managing modules, checks, and managed deploys after scaffolding, instead of running once and disappearing.
+- **A CLI that stays with the project** — `<pm> microservices` keeps managing modules, checks, and managed deploy plans after scaffolding, instead of running once and disappearing.
 
 ### Compared to other starters
 
@@ -63,10 +67,11 @@ Pass with `--template <id>`. Default is `booking-sveltekit`.
 | `booking-sveltekit` | Full Cloudflare SvelteKit booking app — public flow, admin, D1, typed hooks (default) |
 | `booking-business` | Cloudflare Worker / Hono booking app, generated from the module contract |
 | `saas-starter-sveltekit` | Multi-tenant B2B SaaS starter (SvelteKit) — org sign-up, team RBAC, subscriptions, admin, audit log |
-| `dot-ai-os` | Corporate OS workspace on Cloudflare SvelteKit — workflows, knowledge, decisions, files, roles, and module-backed work surfaces |
+| `dot-ai-os` | Private-pilot Corporate OS workspace on Cloudflare SvelteKit — workflows, knowledge, decisions, files, roles, and module-backed work surfaces |
 | `client-portal-sveltekit` | SvelteKit client portal — customers see their own invoices and files; auth, customer, audit-log |
 | `erp-shell-sveltekit` | SvelteKit ERP shell - customers, invoices, files, support tickets, teams, admin, audit-log |
 | `company-landing-astro` | Static Astro company landing page, no backend modules |
+| `wordpress-emdash-blog-astro` | Astro + EmDash WordPress blog migration template with D1/R2-ready content pipeline |
 | `nextjs` `astro` `react-router` `nuxt` `hono` `sveltekit` | Empty Cloudflare framework starters (via C3); add modules afterward |
 
 ## Options
@@ -96,7 +101,7 @@ Module ids are validated against the live registry — run `<pm> microservices m
 
 ## Corporate OS onboarding
 
-`--os` starts from the `dot-ai-os` template and writes a first-pass company operating model:
+`--os` starts from the `dot-ai-os` template and writes a first-pass company operating model. Treat this as a private operator-pilot surface, not the broad public launch path.
 
 - `microservices.os.json`
 - `docs/company-model.md`
@@ -106,6 +111,8 @@ Module ids are validated against the live registry — run `<pm> microservices m
 - `docs/pilot-plan.md`
 
 The prompts ask what company is being encoded, who owns the rollout, what operating loop matters first, which workflow to ship, what knowledge sources to research, which recurring decisions need briefs, and how the pilot will be judged.
+
+Agent Center, Hermes runtime, Ads Manager, and Marketing Research examples should remain pilot/demo language until runtime creation, audit history, approval persistence, and provider write gates are verified.
 
 ## After scaffolding
 
@@ -131,15 +138,21 @@ pnpm microservices updates --json
 
 ## Deploying
 
-Generated apps include managed, approval-gated deploy commands that proxy to the microservices.sh control plane — no `wrangler login`, no manual D1/KV ids:
+Generated apps include managed, approval-gated deploy planning commands that proxy to the microservices.sh control plane. For public launch copy, describe this as deploy planning/readiness unless live hosted Worker/assets upload and route activation have been verified:
 
 ```bash
 pnpm microservices auth login
-pnpm microservices deploy run --plan            # preview the managed deploy
-pnpm microservices deploy run --confirm deploy  # build + deploy, wait for live
+pnpm microservices deploy run --plan            # preview the managed deploy workflow
+pnpm microservices deploy upload-plan --json    # inspect hosted upload readiness
 ```
 
-`deploy run` prepares the deployment and waits for the control plane to take it live. The control plane owns remote state and resource ids; `wrangler.jsonc` stays a local-dev config. The granular `provision → migrate → upload` steps (and BYO-Cloudflare via `--cloudflare-config`) live under `pnpm microservices deploy --help-all`. See the [deployment docs](https://microservices.sh/docs) for CI usage.
+The control plane owns remote state and resource ids; `wrangler.jsonc` stays a local-dev config. End-to-end live hosted previews remain gated by the hosted upload adapter and route activation path. The granular `provision → migrate → upload` steps (and BYO-Cloudflare via `--cloudflare-config`) live under `pnpm microservices deploy --help-all`.
+
+## Which CLI To Use
+
+The generated project CLI, `<pm> microservices`, is the public launch path. It is copied into the app, reads the app's lockfile, and exposes the module/check/deploy-plan commands the app actually supports.
+
+The root `@microservices-sh/cli` workspace package is for internal SDK and control-plane development. Do not use it in public template demos until its catalog is synced with the create-package registry.
 
 ## Telemetry
 

@@ -1,0 +1,21 @@
+# Marketing Research Module LLM Guide
+
+Purpose: cited, coverage-honest marketing research for agent-operated business workflows.
+
+## Rules
+
+1. `marketing.getBrief` is read-only.
+2. `marketing.runResearch` requires approval because it may fetch external signals and call a provider.
+3. Never make marketing claims that are not grounded in returned citations.
+4. Surface coverage honestly: searched sources, returned sources, and notes.
+5. Refusal states are valid output. Do not rewrite them as success.
+
+## Read First
+
+- `module.json`
+- `README.md`
+- `README.agent.md`
+- `openapi.json`
+- `src/index.ts`
+- `src/types.ts`
+- `reference-ui/README.md`

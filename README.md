@@ -6,9 +6,11 @@
 [![CI](https://github.com/microservices-sh/microservices-sh/actions/workflows/ci.yml/badge.svg)](https://github.com/microservices-sh/microservices-sh/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/node/v/create-microservices-app.svg)](https://nodejs.org)
 
-Production foundations for AI-built apps on Cloudflare — a contract-checked Cloudflare SaaS boilerplate / starter for Workers, D1, and SvelteKit, with verified auth, payments, and multi-tenant modules.
+Production foundations for AI-built Cloudflare apps.
 
-For developers using Claude Code, Cursor, Codex, or another coding agent on Cloudflare: start from working Workers, D1, and SvelteKit apps with source-visible, contract-checked modules for the dangerous production 30% — auth, identity, payments, webhooks, email, audit logs, tenant boundaries, and deploy checks. Your coding agent can inspect the docs, plan changes, run checks, and deploy when you are ready. Local generation does not require a microservices.sh account or a Cloudflare account.
+microservices.sh is a System Harness for agent-built apps: source-visible Cloudflare-native modules, local contracts, lockfiles, deterministic checks, project CLI commands, MCP tools, and approval-gated deploy plans.
+
+For developers using Claude Code, Cursor, Codex, or another coding agent on Cloudflare: start from working Workers, D1, and SvelteKit apps with source-visible, contract-checked modules for the dangerous production 30% — auth, identity, payments, webhooks, email, audit logs, tenant boundaries, and deploy checks. Your coding agent can inspect the docs, plan changes, run checks, and prepare deploy plans when you are ready. Local generation does not require a microservices.sh account or a Cloudflare account.
 
 ```bash
 pnpm create microservices-app@latest studio-booking --template booking-sveltekit
@@ -33,9 +35,12 @@ npm create microservices-app@latest studio-booking -- --template booking-sveltek
 - D1 migrations, Wrangler config, local dev commands, and HTTP smoke checks.
 - `microservices.lock.json` to pin module versions and make upgrades reviewable.
 - LLM-readable docs under `docs/` so Claude, Codex, Cursor, or another agent can inspect before editing.
-- A project CLI exposed as `pnpm microservices` for module discovery, checks, upgrades, local setup, and managed preview deployment requests.
+- A project CLI exposed as `pnpm microservices` for module discovery, checks, upgrades, local setup, and managed preview-deploy planning.
 
 The goal is not to hide generated code behind a platform. The generated project is a normal repo you can read, change, export, and deploy.
+
+Read the product definition in [What Is microservices.sh System Harness?](./docs/system-harness.md).
+The latest clean quickstart proof is recorded in [Quickstart Proof](./docs/quickstart-proof.md).
 
 ## Pick A Starter
 
@@ -43,8 +48,11 @@ The goal is not to hide generated code behind a platform. The generated project 
 |---------|----------|----------|
 | `booking-sveltekit` | Service businesses, appointment products, agency demos | Public booking flow, admin screens, auth, customers, booking, audit log, D1 |
 | `saas-starter-sveltekit` | Multi-tenant B2B SaaS apps | Org signup, team RBAC, subscriptions, admin shell, audit log |
-| `dot-ai-os` | Agent-native operator workspaces | Tasks, focus plan, calendar, review, knowledge/content pipelines, AI team, contacts, files, support, team RBAC |
 | `client-portal-sveltekit` | Customer portals and account areas | Customer auth, invoices, files, audit log |
+| `erp-shell-sveltekit` | Internal operations and agency ERP demos | Customers, invoices, files, support tickets, teams, admin, audit log |
+| `dot-ai-os` | Private operator pilot workspaces | Tasks, focus plan, calendar, review, knowledge/content pipelines, AI team, contacts, files, support, team RBAC |
+| `company-landing-astro` | Static company sites | Astro landing page with content contract, no backend modules |
+| `wordpress-emdash-blog-astro` | WordPress blog migrations | Astro + EmDash import path, redirects, RSS, sitemap, D1/R2 |
 | `booking-business` | Lower-level Workers/Hono generation | API-first booking baseline generated from module contracts |
 
 ## Good Fits
@@ -65,11 +73,11 @@ This is probably not the right fit if you want a no-code builder, a black-box ho
 - `microservices.lock.json` pins module versions so upgrades are explicit and reviewable.
 - Project commands expose `check`, `add --plan`, `upgrade --plan`, smoke tests, and deploy plans as agent-friendly CLI surfaces.
 - Module installs are version-pinned so downgrade/upgrade proposals are explicit instead of hidden in generated code.
-- Secrets, migrations, provider actions, and managed deploys stay approval-gated.
+- Secrets, migrations, provider actions, and managed deploy plans stay approval-gated.
 
 ## CLI And MCP
 
-Use the generated project CLI when you want direct terminal control inside an app:
+Use the generated project CLI when you want direct terminal control inside an app. This is the canonical public CLI story for launch because it ships inside the generated project and knows that project's lockfile, modules, and template.
 
 ```bash
 pnpm microservices modules list --json
@@ -78,7 +86,9 @@ pnpm microservices check --json
 pnpm microservices deploy run --plan
 ```
 
-Use the MCP server when you want Claude, Codex, Cursor, or another MCP client to inspect modules, compose app plans, run checks, and create confirmation-gated deploy plans.
+The root repo CLI under `packages/cli` is for internal SDK/control-plane development. Do not use it as the public template demo path until its catalog is synced with the create-package templates.
+
+Use the MCP server when you want Claude, Codex, Cursor, or another MCP client to inspect modules, compose app plans, run checks, and prepare confirmation-gated deploy plans.
 
 ```bash
 npx -y @microservices-sh/mcp
@@ -192,12 +202,12 @@ pnpm microservices add payment --plan --json
 pnpm microservices check --json
 ```
 
-Managed preview deploys are intentionally approval-gated and routed through the microservices.sh API. The generated app should not ask users to run `wrangler login`, create D1/KV resources, or paste Cloudflare resource ids.
+Managed preview deploys are intentionally approval-gated and routed through the microservices.sh API. For the public launch path, present this as deploy planning and readiness inspection unless the hosted control plane has been verified for live Worker/assets upload and route activation.
 
 ```bash
 pnpm microservices auth login
-pnpm microservices deploy run --plan               # preview the whole managed deploy
-pnpm microservices deploy run --confirm deploy     # build + deploy, wait for live
+pnpm microservices deploy run --plan               # preview the managed deploy workflow
+pnpm microservices deploy upload-plan --json       # inspect hosted upload readiness
 pnpm microservices local smoke --url <preview-url>
 ```
 
@@ -213,7 +223,7 @@ pnpm microservices deploy status --input deployment.json
 pnpm microservices deploy cleanup --input deployment.json --plan
 ```
 
-The generated app is ready for local testing now. Managed preview can now proxy artifact upload, D1/KV provisioning, remote D1 migrations, status checks, and cleanup through the API. End-to-end live preview remains gated by the hosted Worker/assets upload adapter; `deploy upload-plan --input deployment.json` reports the current readiness/blockers.
+The generated app is ready for local testing now. Managed preview commands can prepare deployment records, plan resources, report status, and expose readiness/blockers through the API. End-to-end live hosted preview remains gated by the hosted Worker/assets upload adapter and route activation; `deploy upload-plan --input deployment.json` reports the current readiness/blockers.
 
 For CI, use a workspace API key and keep Cloudflare credentials out of the customer pipeline:
 

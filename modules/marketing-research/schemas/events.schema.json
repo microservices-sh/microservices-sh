@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Marketing Research Events",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "marketing.brief_created": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ownerId": { "type": "string" },
+        "topic": { "type": "string" },
+        "citations": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["ownerId", "topic", "citations"]
+    },
+    "marketing.signal_alert": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "ownerId": { "type": "string" },
+        "topic": { "type": "string" },
+        "message": { "type": "string" }
+      },
+      "required": ["ownerId", "topic", "message"]
+    }
+  }
+}

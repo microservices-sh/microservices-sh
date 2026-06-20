@@ -26,7 +26,7 @@ Hosted Streamable HTTP endpoint:
 https://api.microservices.sh/mcp
 ```
 
-The MCP server exposes module/template inspection, app composition, local checks, and confirmation-gated preview deployment tools for Cloudflare-native business apps.
+The MCP server exposes module/template inspection, app composition, local checks, and confirmation-gated preview-deploy planning tools for Cloudflare-native business apps.
 
 ## X Launch Post
 
@@ -69,7 +69,7 @@ microservices.sh packages those pieces as Cloudflare-native modules with local d
 You can use it two ways:
 
 - CLI: generate and inspect a working SvelteKit/Workers app locally.
-- MCP: let an agent inspect modules, compose plans, run checks, and prepare deploy actions from an MCP client.
+- MCP: let an agent inspect modules, compose plans, run checks, and prepare approval-gated deploy plans from an MCP client.
 
 First install:
 
@@ -112,7 +112,7 @@ microservices.sh packages those pieces as source-visible Cloudflare-native modul
 Current surfaces:
 
 - `npm create microservices-app@latest`
-- project CLI for checks, docs, upgrades, and deploy plans
+- generated project CLI for checks, docs, upgrades, and deploy plans
 - official MCP Registry server: `sh.microservices/mcp`
 - hosted MCP endpoint: `https://api.microservices.sh/mcp`
 

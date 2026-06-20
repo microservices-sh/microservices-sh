@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Marketing Research API",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "runResearch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "topic": { "type": "string", "minLength": 1 },
+        "channels": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "required": ["topic"]
+    },
+    "getBrief": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "briefId": { "type": "string", "minLength": 1 }
+      },
+      "required": ["briefId"]
+    }
+  }
+}

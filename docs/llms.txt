@@ -4,7 +4,7 @@ Purpose: help LLM agents understand, inspect, and safely use microservices.sh mo
 
 ## Product Summary
 
-microservices.sh is agent-native application infrastructure. A developer uses their own agent, such as Claude, Codex, Cursor, or another MCP-compatible client, to compose verified Cloudflare-native modules into production app foundations.
+microservices.sh is a System Harness for agent-built Cloudflare apps. A developer uses their own agent, such as Claude, Codex, Cursor, or another MCP-compatible client, to compose verified Cloudflare-native modules into production app foundations with source-visible contracts, lockfiles, local checks, and approval-gated deploy plans.
 
 ## Canonical Module Documentation
 
@@ -21,6 +21,9 @@ Use these files before installing or modifying modules:
 - `docs/modules/payment-stripe.md` - planned Stripe payment provider module reference
 - `docs/modules/email.md` - planned transactional email module reference
 - `docs/modules/audit-log.md` - planned audit log module reference
+- `docs/system-harness.md` - product definition and public workflow boundary
+- `docs/quickstart-proof.md` - latest clean quickstart commands and verification result
+- `docs/operator-pilot-boundary.md` - private-pilot boundary for Agent Center, Hermes, and Ads Manager, plus Marketing Research approval gates
 - `docs/templates/README.md` - template documentation index
 - `docs/templates/template-spec-standard.md` - standard for predefined repo-style templates
 - `docs/templates/booking-sveltekit.md` - full Cloudflare SvelteKit booking app template spec and current shell
@@ -30,7 +33,7 @@ Use these files before installing or modifying modules:
 1. Prefer module docs and `module.json` over assumptions.
 2. Inspect dependencies, secrets, env vars, resources, permissions, hooks, and upgrade notes before modifying code.
 3. Never ask the user to paste secret values into chat.
-4. Treat payment, email, auth, PII, webhooks, migrations, and production deploys as approval-gated.
+4. Treat payment, email, auth, PII, webhooks, migrations, and deploy actions as approval-gated.
 5. Use config and hooks before editing module internals.
 6. Treat forked modules as user-owned code with manual or agent-assisted upgrades.
 7. Generate patches or PRs against user-owned repos; do not hide source code changes.
@@ -39,8 +42,8 @@ Use these files before installing or modifying modules:
 
 ## Preferred Agent Flow
 
-1. For a new app, start with `pnpm create microservices-app <name> --template booking-business` once the create package is available.
-2. In the current repo-local MVP, use `pnpm cli -- ...` commands as the precursor to the create package.
+1. For a new app, start with `pnpm create microservices-app@latest <name> --template booking-sveltekit`.
+2. Use the generated project CLI, `<pm> microservices`, as the public workflow surface. The root repo CLI is internal until its catalog is synced with the create-package templates.
 3. Read `README.agent.md`, `docs/llms.txt`, and `microservices.lock.json` in generated projects.
 4. Read `docs/modules/catalog.json`.
 5. Read the relevant module Markdown files.
@@ -51,6 +54,6 @@ Use these files before installing or modifying modules:
 10. For version changes, produce an upgrade plan from `microservices.lock.json`.
 11. Generate or update code.
 12. Run checks.
-13. Deploy dev for managed remote iteration when local dev is not enough.
-14. Deploy preview for user or stakeholder review.
+13. Use `pnpm microservices deploy run --plan` for deploy planning/readiness.
+14. Use live hosted deploy language only after the control plane has verified Worker/assets upload and route activation for the target environment.
 15. Require explicit approval for production.

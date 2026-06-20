@@ -1,0 +1,129 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Marketing Research Module API",
+    "version": "0.1.0",
+    "description": "Cited marketing research use cases exposed through host routes or agent tools."
+  },
+  "paths": {
+    "/marketing-research/briefs": {
+      "post": {
+        "operationId": "runMarketingResearch",
+        "summary": "Run cited marketing research",
+        "description": "Fetch external signals, synthesize a cite-constrained brief, and refuse ungrounded output.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RunResearchInput" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Brief created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MarketingBriefResponse" }
+              }
+            }
+          },
+          "400": { "description": "Invalid input" },
+          "401": { "description": "Actor required" },
+          "403": { "description": "Missing marketing.run scope" },
+          "422": { "description": "No grounded signals or uncited synthesis" }
+        }
+      }
+    },
+    "/marketing-research/briefs/{briefId}": {
+      "get": {
+        "operationId": "getMarketingBrief",
+        "summary": "Get a marketing research brief",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "briefId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Brief",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MarketingBriefResponse" }
+              }
+            }
+          },
+          "401": { "description": "Actor required" },
+          "403": { "description": "Missing marketing.read scope" },
+          "404": { "description": "Brief not found or not visible" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer" }
+    },
+    "schemas": {
+      "RunResearchInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "topic": { "type": "string", "minLength": 1 },
+          "channels": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          }
+        },
+        "required": ["topic"]
+      },
+      "Coverage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "searched": { "type": "array", "items": { "type": "string" } },
+          "returned": { "type": "array", "items": { "type": "string" } },
+          "note": { "type": "string" }
+        },
+        "required": ["searched", "returned"]
+      },
+      "Citation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sourceUrl": { "type": "string", "format": "uri" },
+          "title": { "type": "string" }
+        },
+        "required": ["sourceUrl", "title"]
+      },
+      "MarketingBrief": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "topic": { "type": "string" },
+          "summary": { "type": "string" },
+          "implications": { "type": "array", "items": { "type": "string" } },
+          "citations": { "type": "array", "items": { "$ref": "#/components/schemas/Citation" } },
+          "coverage": { "$ref": "#/components/schemas/Coverage" },
+          "ownerId": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "topic", "summary", "implications", "citations", "coverage", "ownerId", "createdAt"]
+      },
+      "MarketingBriefResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "brief": { "$ref": "#/components/schemas/MarketingBrief" }
+        },
+        "required": ["brief"]
+      }
+    }
+  }
+}

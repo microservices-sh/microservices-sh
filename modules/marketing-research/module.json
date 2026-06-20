@@ -3,7 +3,7 @@
   "id": "marketing-research",
   "name": "Marketing Research",
   "version": "0.1.0",
-  "status": "draft",
+  "status": "available",
   "class": "provider",
   "summary": "Composable, cited marketing research: pull external demand, competitive, and community signals through swappable ports, snapshot over time, and produce cite-or-refuse marketing briefs (no fake proof). v0 covers community listening + cited synthesis.",
   "runtime": {
@@ -39,15 +39,24 @@
   "surfaces": {
     "admin": {
       "applicable": true,
-      "nav": [{ "label": "Marketing Research", "path": "/marketing-research", "permission": "marketing.read", "icon": "Search" }]
+      "nav": [{ "label": "Marketing Research", "path": "/marketing-research", "permission": "marketing.read", "icon": "Search" }],
+      "referenceUi": ["reference-ui/README.md"]
     },
     "visitor": { "applicable": false },
     "agentic": {
       "applicable": true,
       "tools": ["marketing.runResearch", "marketing.getBrief"],
+      "skillPaths": ["skills/marketing-research-operator/SKILL.md"],
       "approvalRequiredFor": ["marketing.runResearch"]
     }
   },
+  "skills": [
+    {
+      "id": "marketing-research-operator",
+      "path": "skills/marketing-research-operator/SKILL.md",
+      "recommendedFor": ["marketing-operations", "market-research", "campaign-planning", "cited-briefs"]
+    }
+  ],
   "approval": {
     "risk": "low",
     "requiresApprovalFor": ["migrations", "external-signal-fetch", "ai-provider-calls", "production-deploy"]

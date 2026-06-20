@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 37
+Phase 44
 
 ## Phases
 
@@ -292,6 +292,54 @@ Phase 37
 - [x] Open public listing PRs for Awesome MCP Servers, MCPFind, MCPSvr, and Docker MCP Registry.
 - [x] Identify blocked/non-PR directories and remaining official registry namespace-auth requirement.
 - [x] Publish `sh.microservices/mcp` to the official MCP Registry after DNS authentication.
+- **Status:** complete
+
+### Phase 39: Marketing Skills Validation And Competitor Positioning
+- [x] Read available marketing and repo-local product skills.
+- [x] Re-check current competitor/category sources.
+- [x] Validate production positioning, ICP persona, and product-development priorities.
+- [x] Update findings and progress with the revised recommendation.
+- **Status:** complete
+
+### Phase 40: Landing Page Content, Marketing Strategy, And Product Roadmap
+- [x] Audit landing page and adjacent marketing pages against the `microservices.sh System Harness` positioning.
+- [x] Revise landing page, agency page, quickstart, pricing, compare, writing, footer, nav, and landing repo README copy so CLI/MCP are access surfaces rather than the headline.
+- [x] Add a current marketing strategy and product roadmap document for developer proof, agency pilots, business-operator pilots, and distribution scale.
+- [x] Update planning index, findings, and progress with the revised launch/readiness guidance.
+- [x] Validate the landing-page build and whitespace checks.
+- **Status:** complete
+
+### Phase 41: Product Roadmap Status Audit
+- [x] Check the latest product roadmap one by one against current repository evidence.
+- [x] Verify create-package, module, template, registry, shim, and CLI surfaces where practical.
+- [x] Fix two small launch-trust issues found during audit: stale booking spec policy and stale create-package help version.
+- [x] Identify which roadmap items are done, partial, open, pilot-only, or not verifiable from this repo.
+- [x] Add `plans/30-product-roadmap-status-audit.md` as the current execution status source of truth.
+- **Status:** complete
+
+### Phase 42: Launch Docs, CLI Boundary, Quickstart Proof, And Pilot Boundary
+- [x] Update public docs away from SaaS-boilerplate framing and toward `microservices.sh System Harness`.
+- [x] List all current templates and mark `dot-ai-os` as draft/private pilot.
+- [x] Make generated project CLI the canonical public CLI path and root CLI internal until catalog sync.
+- [x] Keep managed deploy claims to planning/readiness until hosted upload and route activation are verified.
+- [x] Keep Agent Center, Hermes, and Ads Manager as private-pilot/demo surfaces; publish Marketing Research only as an approval-gated cited research module.
+- [x] Run a clean `booking-sveltekit` quickstart from a packed create-package artifact and record timing/results.
+- **Status:** complete
+
+### Phase 43: Marketing Research Module Contract Completion
+- [x] Verify `modules/marketing-research` implementation build status.
+- [x] Add the standard module docs, OpenAPI, schemas, migration, package exports, and concern-folder entrypoints.
+- [x] Preserve approval gates for `marketing-research` provider/runtime actions until workflow proof exists.
+- [x] Verify `pnpm --filter @microservices-sh/marketing-research build`.
+- [x] Verify `pnpm --filter @microservices-sh/marketing-research check:spec`.
+- **Status:** complete
+
+### Phase 44: Marketing Research Publish-Ready Metadata
+- [x] Mark `marketing-research` as an available catalog module.
+- [x] Add reference UI metadata and an agent operator skill.
+- [x] Update roadmap/operator docs so Marketing Research is publishable as governed cited research, while external provider actions stay approval-gated.
+- [x] Verify `pnpm spec:check:all`.
+- [x] Verify generated registry lists `marketing-research` as `available` with skill and approval metadata.
 - **Status:** complete
 
 ## Key Questions

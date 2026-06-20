@@ -56,6 +56,139 @@
 | What have I learned? | See `findings.md`. |
 | What have I done? | Created root planning files and the `plans/` artifact set. |
 
+## Session: 2026-06-20
+
+### Phase 41: Product Roadmap Status Audit
+- **Status:** complete
+- Actions taken:
+  - Audited `plans/29-lp-marketing-product-roadmap.md` one by one against current repo evidence.
+  - Reconciled the newer product roadmap with the older `plans/03-development-roadmap.md`.
+  - Verified create package behavior, template specs, module registry counts, project shim sync, root CLI drift, and video asset consistency.
+  - Isolated the full spec failure to `modules/marketing-research`.
+  - Fixed the booking module spec policy so it checks the current Drizzle interval-overlap implementation.
+  - Fixed the create package help/version display so it reads `package.json` and prints `0.4.3` instead of stale `0.2.6`.
+  - Added a dedicated status audit document that marks each roadmap item as done, mostly done, partial, open, or not verifiable.
+- Files created/modified:
+  - `plans/30-product-roadmap-status-audit.md`
+  - `plans/README.md`
+  - `task_plan.md`
+  - `findings.md`
+  - `progress.md`
+  - `modules/booking/microservices.check.mjs`
+  - `packages/create-microservices-app/src/index.js`
+
+## Latest Product Roadmap Verification Results
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm --filter create-microservices-app start -- --help` | Help prints current package version | Printed `create-microservices-app 0.4.3` | Pass |
+| `pnpm --filter create-microservices-app test` | Create package tests pass | 15/15 passed | Pass |
+| `pnpm --filter create-microservices-app smoke` | Pack/generate/project CLI smoke passes | Passed; framework smoke skipped unless `--network` | Pass |
+| `pnpm --filter @microservices-sh/booking build` | Booking module typecheck passes | Passed | Pass |
+| `pnpm --filter @microservices-sh/booking test` | Booking module tests pass | 6 files / 41 tests passed | Pass |
+| `pnpm --filter @microservices-sh/template-booking-sveltekit check:spec` | Booking template spec passes | Passed | Pass |
+| `pnpm --filter @microservices-sh/template-client-portal-sveltekit check:spec` | Client portal template spec passes | Passed | Pass |
+| `pnpm --filter @microservices-sh/template-erp-shell-sveltekit check:spec` | ERP shell template spec passes | Passed | Pass |
+| `node packages/workspace-tools/src/index.js registry build --out /tmp/ms-roadmap-registry --json` | Registry build succeeds | Passed; 28 modules and 7 templates | Pass |
+| `node packages/workspace-tools/src/index.js shims check --json` | Project shims are in sync | Passed | Pass |
+| Per-module spec loop | Identify broad spec blocker | Only `modules/marketing-research` failed | Pass |
+| `pnpm spec:check:all` | Full spec suite passes | Initially failed on `modules/marketing-research`; resolved in Phase 43/44 | Resolved |
+
+### Phase 42: Launch Docs, CLI Boundary, Quickstart Proof, And Pilot Boundary
+- **Status:** complete
+- Actions taken:
+  - Updated root and package README positioning to `microservices.sh System Harness`.
+  - Updated `templates/README.md` to list all 7 current templates and mark `dot-ai-os` as draft/private pilot.
+  - Added `docs/system-harness.md` with the canonical product definition, public workflow, CLI boundary, deploy-language guardrails, and operator-pilot boundary.
+  - Added `docs/operator-pilot-boundary.md` to keep Agent Center, Hermes, and Ads Manager private-pilot/demo until runtime, audit, approval, billing, and provider-write gates are met; Marketing Research now stays public only with approval-gated provider actions.
+  - Added `docs/quickstart-proof.md` with exact clean quickstart commands, timing, and results.
+  - Updated `docs/llms.txt` so agents start with `booking-sveltekit` and the generated project CLI instead of the old root-CLI/`booking-business` precursor flow.
+  - Updated launch copy to say preview-deploy planning tools instead of preview deployment tools.
+  - Ran a clean quickstart from a packed `create-microservices-app@0.4.3` artifact under `/tmp`.
+- Files created/modified:
+  - `README.md`
+  - `packages/create-microservices-app/README.md`
+  - `templates/README.md`
+  - `docs/system-harness.md`
+  - `docs/operator-pilot-boundary.md`
+  - `docs/quickstart-proof.md`
+  - `docs/llms.txt`
+  - `docs/promotion/launch-copy.md`
+  - `task_plan.md`
+  - `findings.md`
+  - `progress.md`
+
+## Latest Launch Docs And Quickstart Verification Results
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| Packed create artifact quickstart | Generate default `booking-sveltekit` outside workspace and run first check | Passed from `/tmp/ms-clean-quickstart-20260620-024358`; time to first check 2.69s | Pass |
+| Generated app `pnpm install --offline` | Install without network if cache is warm | Failed because `@cloudflare/workers-types` was absent from local store | Expected on cold cache |
+| Generated app `pnpm install` | Fresh install with registry access succeeds | Passed in 12.3s | Pass |
+| Generated app `pnpm microservices check --json` after install | App-local checks pass | Passed | Pass |
+| Generated app `pnpm microservices modules list --json` | Module contracts are readable | Passed | Pass |
+| Generated app `pnpm microservices add payment --plan --json` | Approval/plan-only path returns without writing files | Passed with plan-only warning | Pass |
+| `pnpm --filter create-microservices-app test` | Create package tests still pass after docs/version changes | 15/15 passed | Pass |
+| `pnpm --filter @microservices-sh/template-booking-sveltekit check:spec` | Default template spec still passes | Passed | Pass |
+| `git diff --check` | No whitespace errors | Passed | Pass |
+
+### Phase 43: Marketing Research Module Contract Completion
+- **Status:** complete
+- Actions taken:
+  - Verified the `marketing-research` TypeScript implementation already built successfully.
+  - Confirmed `marketing-research` failed the module checker only because required contract/docs/schema files and required exports were missing.
+  - Added standard module docs: `README.md`, `README.agent.md`, `llms.txt`.
+  - Added OpenAPI, JSON schemas, D1 migration, and package-specific policy checks.
+  - Added required TypeScript concern exports under `src/types.ts`, `src/schemas.ts`, `src/hooks.ts`, `src/manifest`, `src/config`, `src/schema`, `src/events`, `src/permissions`, `src/resources`, `src/service`, and `src/ports`.
+  - Updated `package.json` exports to the standard module surface.
+  - Updated roadmap/operator docs so Marketing Research is no longer a spec blocker; provider/runtime actions remain approval-gated until proof exists.
+- Files created/modified:
+  - `modules/marketing-research/README.md`
+  - `modules/marketing-research/README.agent.md`
+  - `modules/marketing-research/llms.txt`
+  - `modules/marketing-research/openapi.json`
+  - `modules/marketing-research/migrations/0001_marketing_research.sql`
+  - `modules/marketing-research/microservices.check.mjs`
+  - `modules/marketing-research/package.json`
+  - `modules/marketing-research/schemas/`
+  - `modules/marketing-research/src/types.ts`
+  - `modules/marketing-research/src/schemas.ts`
+  - `modules/marketing-research/src/hooks.ts`
+  - `modules/marketing-research/src/manifest/index.ts`
+  - `modules/marketing-research/src/config/index.ts`
+  - `modules/marketing-research/src/schema/index.ts`
+  - `modules/marketing-research/src/hooks/index.ts`
+  - `modules/marketing-research/src/events/index.ts`
+  - `modules/marketing-research/src/permissions/index.ts`
+  - `modules/marketing-research/src/resources/index.ts`
+  - `modules/marketing-research/src/service/index.ts`
+  - `modules/marketing-research/src/ports/index.ts`
+  - `plans/30-product-roadmap-status-audit.md`
+  - `docs/operator-pilot-boundary.md`
+  - `findings.md`
+  - `task_plan.md`
+  - `progress.md`
+
+## Latest Marketing Research Verification Results
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm --filter @microservices-sh/marketing-research build` | Module typecheck passes | Passed | Pass |
+| `pnpm --filter @microservices-sh/marketing-research check:spec` | Marketing Research module contract passes | Passed | Pass |
+| `pnpm --filter @microservices-sh/marketing-research test` | Existing test script/status does not fail | Passed/no output | Pass |
+
+### Phase 44: Marketing Research Publish-Ready Metadata
+- **Status:** complete
+- Completed:
+  - Marked `marketing-research` as `available` in `module.json` and the exported manifest.
+  - Added admin reference UI metadata and `skills/marketing-research-operator/SKILL.md`.
+  - Updated roadmap/operator docs to position it as governed cited research with approval-gated external fetch and AI-provider actions.
+
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+| `pnpm --filter @microservices-sh/marketing-research build` | Module typecheck still passes after metadata changes | Passed | Pass |
+| `pnpm --filter @microservices-sh/marketing-research check:spec` | Module contract still passes after metadata changes | Passed | Pass |
+| `pnpm spec:check:all` | Full workspace spec is no longer blocked | Passed; 28 modules and 7 templates, 35 targets | Pass |
+| `node packages/workspace-tools/src/index.js registry build --out /tmp/ms-publish-registry --json` | Registry build includes publishable module metadata | Passed; `marketing-research` is `available` with skill and approval metadata | Pass |
+| `git diff --check` | No whitespace errors | Passed | Pass |
+
 ## Session: 2026-06-13
 
 ### Phase 6: Proposition And Pricing Consolidation
@@ -972,3 +1105,37 @@
 | `node admin/scripts/microservices.js deploy preview --plan --json` | Admin deploy plan uses control-plane profile | Modules: `admin-shell`; no app-owned D1 migration | Pass |
 | `pnpm check:shims -- --json` | Generated shims stay synced | Passed | Pass |
 | `pnpm --filter create-microservices-app smoke` | Create package smoke keeps default and profile-aware shims working | Passed | Pass |
+
+## Session: 2026-06-20 (marketing skills validation and competitor positioning)
+### Phase 39 validation
+- **Status:** complete
+- Goal: use available marketing skills and repo-local product skills to validate competitor research, production positioning, ICP persona, and product-development priorities.
+- Confirmed the project-local `./.agents/` directory is empty and no `.agents/product-marketing.md` exists; used installed `social` and `paid-ads` skills plus repo-local `skills/microservices-*` and `modules/ads-manager/skills/ads-manager-operator`.
+- Re-checked current official/category sources for Lovable, Bolt, Replit Agent, v0, Supabase, Firebase, Cloudflare Agents, Composio, Stack Overflow Developer Survey 2025, and HN Show HN rules.
+- Verified `@microservices-sh/mcp` current npm version is `0.1.3`; the official MCP Registry API also reports version `0.1.3` as `isLatest: true`.
+- Updated `findings.md` with the validated recommendation: lead publicly with "Production foundations for AI-built Cloudflare apps" and use "microservices.sh System Harness" as the explanatory category for a contract-driven environment for agent-built apps.
+- Revised ICP: primary is AI-heavy technical founders, agencies, fractional CTOs, and Cloudflare-oriented developers; business operators remain a pilot lane until Hermes/Agent Center/research approvals are end-to-end.
+- Product priority: prove one no-handwaving workflow from create-app to contracts/checks/risk gate/deploy plan before adding more broad modules or paid ads.
+- Noted launch blockers: stale MCP version/duration labels in non-HyperFrames video previews and Hermes docs still need hosted-vs-BYO clarity. Marketing Research has since moved from `draft` to available, while external/AI actions remain approval-gated.
+
+| Check | Expected | Actual | Status |
+|------|----------|--------|--------|
+| Local skill audit | Find requested `./.agents/skills` or fallback | `./.agents/` empty; installed and repo-local skills used | Pass |
+| Current source review | Validate competitor/category claims against current sources | Official/current pages checked and recorded in `findings.md` | Pass |
+| Planning files | Track phase and findings | `task_plan.md`, `progress.md`, and `findings.md` updated | Pass |
+
+## Session: 2026-06-20 (landing page content and roadmap)
+### Phase 40 audit and revision
+- **Status:** complete
+- Goal: audit and revise the landing-page content for the `microservices.sh System Harness` direction, then capture a marketing strategy and product roadmap.
+- Updated the landing page hero, problem, solution, quickstart, agency, mission, and final CTA copy to lead with production foundations, contracts, checks, lockfiles, approval gates, and source-visible Cloudflare modules.
+- Updated adjacent marketing pages in the landing repo: agency page, quickstart page, pricing page, compare index, writing index, footer, nav CTA, and README messaging guardrails.
+- Fixed shared nav CTA anchors from `#quickstart` to `/#quickstart` so secondary pages route to the home quickstart section.
+- Added `plans/29-lp-marketing-product-roadmap.md` with LP audit findings, revised positioning stack, marketing strategy, channel plan, content pillars, and product roadmap.
+- Updated planning index and findings to point at the new plan.
+
+| Check | Expected | Actual | Status |
+|------|----------|--------|--------|
+| LP content audit | Copy aligns around System Harness, not MCP/package-only positioning | Core pages patched in the landing-page repo | Pass |
+| Strategy artifact | Marketing strategy and product roadmap captured | Added `plans/29-lp-marketing-product-roadmap.md` | Pass |
+| Build validation | Landing build and whitespace checks pass | `pnpm build`, landing `git diff --check`, and planning-doc `git diff --check` passed | Pass |

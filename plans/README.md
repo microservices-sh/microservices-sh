@@ -33,7 +33,13 @@ This directory contains the actionable plan for starting the microservices.sh MV
 28. `25-module-connection-standard.md` - honeycomb module-connection standard: three primitives (RPC/events/hooks), unified Result envelope, build-time composer, thin runtime dispatch.
 29. `26-identity-better-auth.md` - identity layer on Better Auth (user accounts, login, sessions) that bridges to `@microservices-sh/auth` token minting; does not replace the token module. (Draft)
 30. `27-market-product-direction-and-mcp-distribution.md` - ICP-focused product direction, distribution posture, MCP packaging, registry, and directory strategy.
-31. `managed-deploy-oauth.md` - managed deploy into a user's own Cloudflare account, with API-token-first and OAuth-later sequencing.
+31. `28-fly-runtime-graphrag-agent.md` - Fly-hosted runtime, graph/RAG, and agent execution planning.
+32. `29-lp-marketing-product-roadmap.md` - landing page audit, System Harness positioning, marketing strategy, and product roadmap.
+33. `30-product-roadmap-status-audit.md` - one-by-one roadmap status audit against current repo evidence, launch gaps, and verification results.
+34. `../docs/system-harness.md` - public product definition, canonical create/package CLI workflow, deploy-language boundary, and operator-pilot boundary.
+35. `../docs/quickstart-proof.md` - latest clean quickstart commands, timing, and generated-app verification results.
+36. `../docs/operator-pilot-boundary.md` - Agent Center, Hermes, Ads Manager, and Marketing Research private-pilot gates.
+37. `managed-deploy-oauth.md` - managed deploy into a user's own Cloudflare account, with API-token-first and OAuth-later sequencing.
 
 ## Core Decision
 The MVP is good enough to start if it remains narrow:
@@ -78,4 +84,8 @@ The MVP is good enough to start if it remains narrow:
 19. Keep `21-auth-first-account-and-cli-plan.md` as the auth source of truth before product billing, so Stripe subscriptions can attach to trusted workspaces and deploy entitlements.
 20. Do not start `22-product-billing-cli-admin-portal.md` implementation until the portal API-key UI is complete and the auth gates remain green.
 21. Use `27-market-product-direction-and-mcp-distribution.md` as the current ICP and MCP distribution source of truth.
-22. Use `managed-deploy-oauth.md` for the user's-own-Cloudflare deploy path; prove the scoped-token flow before OAuth.
+22. Use `29-lp-marketing-product-roadmap.md` as the current public positioning, LP, launch, and product-roadmap source of truth.
+23. Use `30-product-roadmap-status-audit.md` to decide what is truly done, what is pilot-only, and what blocks public launch.
+24. Use `docs/system-harness.md` and `docs/quickstart-proof.md` as the public launch proof docs.
+25. Use `docs/operator-pilot-boundary.md` before making Agent Center, Hermes, Ads Manager, or Marketing Research public claims.
+26. Use `managed-deploy-oauth.md` for the user's-own-Cloudflare deploy path; prove the scoped-token flow before OAuth.

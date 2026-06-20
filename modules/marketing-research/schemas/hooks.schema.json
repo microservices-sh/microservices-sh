@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Marketing Research Hooks",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "beforeResearchRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "actorId": { "type": "string" },
+        "topic": { "type": "string" },
+        "channels": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["actorId", "topic", "channels"]
+    },
+    "afterBriefCreated": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "briefId": { "type": "string" },
+        "topic": { "type": "string" },
+        "citationCount": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["briefId", "topic", "citationCount"]
+    }
+  }
+}

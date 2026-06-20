@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Marketing Research Config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "default": true },
+    "defaultChannels": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "default": ["hackernews", "reddit", "github"]
+    },
+    "maxSignalsPerRun": { "type": "integer", "minimum": 1, "default": 25 },
+    "requireApprovalForRun": { "type": "boolean", "default": true }
+  }
+}
