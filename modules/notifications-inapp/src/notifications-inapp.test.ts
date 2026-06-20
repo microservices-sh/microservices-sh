@@ -6,8 +6,14 @@ import {
   markRead,
   markAllRead,
   getUnreadCount,
+  listNotificationsScoped,
+  markReadScoped,
+  markAllReadScoped,
+  getUnreadCountScoped,
+  authContext,
   createMemoryNotificationStore
 } from "./index";
+import type { AuthContext } from "./index";
 
 const fixedNow = (ms: number) => () => ms;
 const T0 = Date.parse("2026-01-01T00:00:00.000Z");
@@ -61,6 +67,42 @@ describe("notifications-inapp: unread count + markRead/markAllRead", () => {
     const res = await markRead({ userId: "A", ids: [data(bItem).id] }, { store });
     expect(data(res).updated).toBe(0);
     expect(data(await getUnreadCount({ userId: "B" }, { store })).count).toBe(1);
+  });
+});
+
+// plans/33 — the enforced authorization boundary on the ACTOR dimension. The
+// notification feed's leak is cross-USER (not cross-org): the recipient is taken
+// from AuthContext.actorId, never from caller input.
+describe("notifications-inapp: enforced actor boundary (cross-user leak test)", () => {
+  it("an actor scoped to user A can never read, count, or clear user B's feed", async () => {
+    const store = createMemoryNotificationStore();
+    await notify({ userId: "A", type: "t", title: "A1" }, { store, now: fixedNow(T0) });
+    const bItem = await notify({ userId: "B", type: "t", title: "B1" }, { store, now: fixedNow(T0) });
+    const ctxA = authContext({ orgId: "org-1", actorId: "A" });
+
+    // LIST as A returns only A's items — even with a forged userId on the input.
+    const listed = await listNotificationsScoped(ctxA, { userId: "B" }, { store });
+    expect(listed.ok).toBe(true);
+    expect(data(listed).notifications.map((n) => n.title)).toEqual(["A1"]);
+
+    // COUNT as A is A's unread, not B's.
+    expect(data(await getUnreadCountScoped(ctxA, { userId: "B" }, { store })).count).toBe(1);
+
+    // MARK B's id as A updates nothing (the forced actor doesn't own it).
+    expect(data(await markReadScoped(ctxA, { userId: "B", ids: [data(bItem).id] }, { store })).updated).toBe(0);
+
+    // CLEAR ALL as A (forging B) clears A's feed and leaves B's untouched.
+    expect(data(await markAllReadScoped(ctxA, { userId: "B" }, { store })).updated).toBe(1);
+    expect(data(await getUnreadCount({ userId: "B" }, { store })).count).toBe(1);
+
+    // A call with no actor scope is refused (403).
+    const noActor = await listNotificationsScoped(
+      { orgId: "o", actorId: "", roles: [] } as unknown as AuthContext,
+      {},
+      { store }
+    );
+    expect(noActor.ok).toBe(false);
+    expect(noActor.status).toBe(403);
   });
 });
 
