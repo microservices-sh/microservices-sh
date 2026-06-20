@@ -20,7 +20,8 @@
     "./ports": "./src/ports/index.ts",
     "./rpc": "./src/rpc.ts",
     "./adapters/d1": "./src/adapters/d1-booking-repository.ts",
-    "./adapters/memory": "./src/adapters/memory-booking-repository.ts"
+    "./adapters/memory": "./src/adapters/memory-booking-repository.ts",
+    "./preview": "./reference-ui/Preview.svelte"
   },
   "scripts": {
     "build": "tsc --noEmit",
@@ -36,6 +37,8 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",
     "@microservices-sh/test-utils": "workspace:*",
+    "@microservices-sh/ui": "workspace:*",
+    "svelte": "^5.0.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   }

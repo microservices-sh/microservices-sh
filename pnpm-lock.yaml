@@ -147,6 +147,12 @@ importers:
       '@microservices-sh/test-utils':
         specifier: workspace:*
         version: link:../../packages/test-utils
+      '@microservices-sh/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      svelte:
+        specifier: ^5.0.0
+        version: 5.56.3
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -527,6 +533,9 @@ importers:
       '@microservices-sh/ai-gateway':
         specifier: workspace:*
         version: link:../../modules/ai-gateway
+      '@microservices-sh/booking':
+        specifier: workspace:*
+        version: link:../../modules/booking
       '@microservices-sh/marketing-research':
         specifier: workspace:*
         version: link:../../modules/marketing-research
