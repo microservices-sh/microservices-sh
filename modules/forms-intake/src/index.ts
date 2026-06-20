@@ -10,6 +10,14 @@ export { submitForm } from "./use-cases/submit-form";
 export { listSubmissions } from "./use-cases/list-submissions";
 export { reviewSubmission } from "./use-cases/review-submission";
 export { listForms } from "./use-cases/list-forms";
+export {
+  createFormScoped,
+  getFormScoped,
+  updateFormScoped,
+  listFormsScoped,
+  listSubmissionsScoped,
+  reviewSubmissionScoped
+} from "./use-cases/scoped";
 export { validateSubmission, validateAttachment } from "./validate-submission";
 export { createD1FormStore } from "./adapters/d1-form-store";
 export { createMemoryFormStore } from "./adapters/memory-form-store";
