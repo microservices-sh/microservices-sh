@@ -1,0 +1,23 @@
+{
+  "name": "@microservices-sh/research-agent-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Per-client Fly runtime: boots the GraphRAG research/advise agent over node:sqlite + ai-gateway (BYOK).",
+  "exports": {
+    ".": "./src/runtime.ts"
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build": "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=dist/server.mjs"
+  },
+  "dependencies": {
+    "@microservices-sh/research": "workspace:*",
+    "@microservices-sh/decision": "workspace:*",
+    "@microservices-sh/ai-gateway": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@cloudflare/workers-types": "^4.20250109.0"
+  }
+}

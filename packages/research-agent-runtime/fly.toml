@@ -1,0 +1,29 @@
+# Template — one app per client (fly apps create <client>-research-agent).
+app = "CLIENT-research-agent"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  DB_PATH = "/data/graph.db"
+  SOURCES_DIR = "/data/sources"
+  AI_MODEL = "anthropic/claude-3.5-haiku"
+  PORT = "8080"
+
+# Secrets (NOT here): fly secrets set OPENROUTER_API_KEY=sk-or-...
+[mounts]
+  source = "research_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0   # scale-to-zero per client; cold start on first request
+
+[[http_service.checks]]
+  path = "/health"
+  interval = "30s"
+  timeout = "5s"

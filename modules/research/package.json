@@ -22,6 +22,7 @@
     "./adapters/sqlite-graph": "./src/adapters/sqlite-graph-store.ts",
     "./adapters/node-sqlite-graph": "./src/adapters/node-sqlite-graph.ts",
     "./adapters/libsql-graph": "./src/adapters/libsql-graph.ts",
+    "./adapters/sqlite-research-store": "./src/adapters/sqlite-research-store.ts",
     "./adapters/gateway-synthesizer": "./src/adapters/gateway-synthesizer.ts",
     "./adapters/memory": "./src/index.ts"
   },

@@ -18,6 +18,8 @@
     "./service": "./src/service/index.ts",
     "./ports": "./src/ports/index.ts",
     "./adapters/d1": "./src/adapters/d1-decision-store.ts",
+    "./adapters/sqlite-decision-store": "./src/adapters/sqlite-decision-store.ts",
+    "./adapters/gateway-proposer": "./src/adapters/gateway-proposer.ts",
     "./adapters/memory": "./src/index.ts"
   },
   "scripts": {
