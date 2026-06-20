@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "erp-shell-desktop-tauri",
+  "version": "0.1.0",
+  "status": "draft",
+  "displayName": "ERP Shell Desktop Tauri",
+  "category": "desktop-companion",
+  "summary": "Mac and Windows desktop companion for ERP Shell: local document intake, extraction queue, and sync bridge into a deployed microservices.sh ERP app.",
+  "runtime": {
+    "language": "typescript+rust",
+    "framework": "tauri-svelte",
+    "adapter": "tauri",
+    "platform": "desktop",
+    "entrypoint": "src-tauri/src/main.rs"
+  },
+  "deployment": {
+    "defaultMode": "desktop-bundle",
+    "targets": ["macos", "windows"],
+    "connectedBackend": "erp-shell-sveltekit"
+  },
+  "modules": {
+    "required": [],
+    "optional": ["file-media", "forms-intake", "invoice", "customer", "support-ticket", "audit-log", "ai-gateway"]
+  },
+  "desktop": {
+    "mode": "connected-companion",
+    "localFeatures": ["folder-import", "document-extraction-queue", "model-runtime-status", "sync-status"],
+    "syncTarget": "microservices.sh ERP app URL",
+    "offlineWritePolicy": "drafts-only"
+  },
+  "sourcePolicy": {
+    "templateOwns": ["desktop shell", "local intake UI", "Tauri command bridge", "sync-client stubs"],
+    "modulesOwn": ["domain behavior", "schemas", "use cases", "ports", "migrations"],
+    "apiLogic": "desktop-companion-calls-generated-app-api"
+  },
+  "checks": [
+    { "id": "tauri-config", "file": "src-tauri/tauri.conf.json" },
+    { "id": "desktop-entry", "file": "src/App.svelte" },
+    { "id": "rust-entry", "file": "src-tauri/src/main.rs" }
+  ]
+}

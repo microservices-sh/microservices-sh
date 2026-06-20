@@ -1,0 +1,30 @@
+{
+  "name": "@microservices-sh/template-erp-shell-desktop-tauri",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Desktop companion MVP for the ERP shell: local document intake, extraction queue, and sync status for macOS and Windows.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 1420",
+    "build": "vite build",
+    "preview": "vite preview",
+    "dev:desktop": "tauri dev",
+    "build:desktop": "tauri build",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "check:spec": "node ../../packages/workspace-tools/src/index.js check template --path .",
+    "microservices": "node scripts/microservices.js"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.10.0",
+    "svelte": "^5.0.0"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^4.0.4",
+    "@tauri-apps/cli": "^2.10.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.0.0"
+  }
+}

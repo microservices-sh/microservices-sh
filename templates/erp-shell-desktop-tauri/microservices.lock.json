@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "2026-06-13",
+  "generatedAt": "desktop-mvp",
+  "template": {
+    "id": "erp-shell-desktop-tauri",
+    "version": "0.1.0",
+    "source": "workspace:templates/erp-shell-desktop-tauri"
+  },
+  "modules": []
+}

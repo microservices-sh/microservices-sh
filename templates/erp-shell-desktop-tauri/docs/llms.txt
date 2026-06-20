@@ -1,0 +1,16 @@
+# ERP Shell Desktop Tauri
+
+Template ID: erp-shell-desktop-tauri
+Status: draft
+Purpose: Mac and Windows desktop companion for local ERP document intake,
+extraction queue review, local runtime status, and sync readiness.
+Framework: Tauri + Svelte + Rust
+Check: pnpm check:spec
+Roadmap: docs/roadmap.md
+
+Use this template when a project needs local files, local model/OCR runtime
+control, or batch import into a generated ERP Shell app.
+
+Do not treat it as a standalone offline ERP. The MVP only creates local drafts
+and sync status. Approved business records still belong in the Cloudflare ERP
+backend.

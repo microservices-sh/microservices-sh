@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "2026-06-13",
+  "app": {
+    "id": "erp-shell-desktop-tauri",
+    "name": "ERP Shell Desktop",
+    "profile": "desktop-companion"
+  },
+  "desktop": {
+    "syncBaseUrl": "http://localhost:5174",
+    "mode": "connected",
+    "localDraftsOnly": true
+  }
+}

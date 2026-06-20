@@ -1,0 +1,6 @@
+{
+  // Required by the shared template checker. This desktop template does not deploy
+  // a Worker; sync targets a generated ERP Shell app.
+  "name": "erp-shell-desktop-tauri",
+  "compatibility_date": "2026-06-13"
+}
