@@ -40,7 +40,12 @@
   const sample = $derived(SAMPLES[pick]);
 
   const kb = (b: number) => (b < 1_000_000 ? `${Math.round(b / 1000)} KB` : `${(b / 1_000_000).toFixed(1)} MB`);
-  const icon = (ct: string) => (ct.startsWith("image/") ? "🖼️" : ct.startsWith("video/") ? "🎬" : ct === "application/pdf" ? "📄" : "📎");
+  function icon(ct: string): string {
+    if (ct.startsWith("image/")) return "🖼️";
+    if (ct.startsWith("video/")) return "🎬";
+    if (ct === "application/pdf") return "📄";
+    return "📎";
+  }
   const overCap = (t: Ticket) => t.bytes > t.maxBytes;
 
   function request() {

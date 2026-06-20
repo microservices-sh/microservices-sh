@@ -39,6 +39,19 @@
   const isVisible = (f: FormField) => !f.visibleWhen || String(values[f.visibleWhen.field] ?? "") === f.visibleWhen.equals;
   const visibleFields = $derived(fields.filter(isVisible));
 
+  // HTML input type for a field type (select/checkbox are handled separately).
+  function inputType(type: FormField["type"]): "number" | "email" | "text" {
+    if (type === "number") return "number";
+    if (type === "email") return "email";
+    return "text";
+  }
+
+  // Coerce a raw input string to the value the validator expects for the field.
+  function coerceValue(type: FormField["type"], raw: string): string | number {
+    if (type !== "number") return raw;
+    return raw === "" ? "" : Number(raw);
+  }
+
   function submit(e: Event) {
     e.preventDefault();
     const result = validateSubmission(fields, values);
@@ -86,11 +99,10 @@
           {:else}
             <input
               id={`fi_${f.id}`}
-              type={f.type === "number" ? "number" : f.type === "email" ? "email" : "text"}
+              type={inputType(f.type)}
               value={values[f.id] ?? ""}
               oninput={(e) => {
-                const v = (e.target as HTMLInputElement).value;
-                values = { ...values, [f.id]: f.type === "number" ? (v === "" ? "" : Number(v)) : v };
+                values = { ...values, [f.id]: coerceValue(f.type, (e.target as HTMLInputElement).value) };
               }}
             />
           {/if}

@@ -47,7 +47,11 @@
     const s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
     return s < 60 ? `${s}s ago` : `${Math.round(s / 60)}m ago`;
   };
-  const everyLabel = (ms: number) => (ms % 86400000 === 0 ? `${ms / 86400000}d` : ms % 3600000 === 0 ? `${ms / 3600000}h` : `${Math.round(ms / 60000)}m`);
+  function everyLabel(ms: number): string {
+    if (ms % 86400000 === 0) return `${ms / 86400000}d`;
+    if (ms % 3600000 === 0) return `${ms / 3600000}h`;
+    return `${Math.round(ms / 60000)}m`;
+  }
 </script>
 
 <header class="jw-head">

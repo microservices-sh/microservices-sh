@@ -50,7 +50,11 @@
   const blockedBy = $derived(gate.find((g) => !g.ok) ?? null);
 
   const num = (n: number) => new Intl.NumberFormat("en").format(n);
-  const codeTint = (s: number) => (s === 200 ? "#0c8f5a" : s === 429 ? "#f59e0b" : "#ef4444");
+  function codeTint(status: number): string {
+    if (status === 200) return "#0c8f5a";
+    if (status === 429) return "#f59e0b";
+    return "#ef4444";
+  }
   const when = (iso: string) => new Date(iso).toLocaleTimeString("en", { hour: "numeric", minute: "2-digit", second: "2-digit" });
 
   function run(e: Event) {
