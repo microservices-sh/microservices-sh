@@ -55,6 +55,30 @@ pnpm build
 pnpm check:spec
 ```
 
+## Deploy
+
+This app ships with a self-hosted deploy pipeline you own and run:
+`.github/workflows/deploy.yml`. On every push to `main` it verifies the app
+(`pnpm run check:spec` + `pnpm run build`), applies remote D1 migrations
+(`wrangler d1 migrations apply DB --remote`), then deploys to **your** Cloudflare
+account (`wrangler deploy`). Deploy only runs if the verify step passes.
+
+Set these two repo secrets (GitHub → Settings → Secrets and variables → Actions
+→ New repository secret), or with the `gh` CLI:
+
+| Secret | What it is |
+|--------|------------|
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API token with `Workers Scripts:Edit` and `D1:Edit` permissions |
+| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account id |
+
+```bash
+gh secret set CLOUDFLARE_API_TOKEN
+gh secret set CLOUDFLARE_ACCOUNT_ID
+```
+
+Before the first deploy, replace `database_id` (`REPLACE_WITH_D1_ID`) in
+`wrangler.jsonc` with your provisioned D1 database id.
+
 ## Theming
 
 The design system is token-driven (Tailwind v4, CSS-first) in `src/app.css`. Change
