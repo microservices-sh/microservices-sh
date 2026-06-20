@@ -524,6 +524,9 @@ importers:
 
   packages/module-preview:
     dependencies:
+      '@microservices-sh/ai-gateway':
+        specifier: workspace:*
+        version: link:../../modules/ai-gateway
       '@microservices-sh/marketing-research':
         specifier: workspace:*
         version: link:../../modules/marketing-research

@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./adapters/memory": "./src/index.ts",
     "./adapters/last30days": "./src/adapters/last30days-listen.ts",
+    "./adapters/gateway-synthesizer": "./src/adapters/gateway-synthesizer.ts",
     "./preview": "./reference-ui/Preview.svelte"
   },
   "scripts": {

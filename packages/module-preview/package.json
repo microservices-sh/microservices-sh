@@ -9,6 +9,7 @@
     "build": "vite build"
   },
   "dependencies": {
+    "@microservices-sh/ai-gateway": "workspace:*",
     "@microservices-sh/marketing-research": "workspace:*",
     "@microservices-sh/ui": "workspace:*"
   },
