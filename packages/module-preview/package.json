@@ -1,0 +1,20 @@
+{
+  "name": "@microservices-sh/module-preview",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone preview harness for module surfaces. Renders each module's reference-ui/Preview.svelte with the shared design system (@microservices-sh/ui) — no template scaffold, no auth, no bindings.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@microservices-sh/marketing-research": "workspace:*",
+    "@microservices-sh/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^4.0.4",
+    "svelte": "^5.0.0",
+    "vite": "^5.0.0"
+  }
+}

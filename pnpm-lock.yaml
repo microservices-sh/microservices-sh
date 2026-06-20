@@ -358,6 +358,12 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20250109.0
         version: 4.20260613.1
+      '@microservices-sh/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      svelte:
+        specifier: ^5.0.0
+        version: 5.56.3
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -515,6 +521,25 @@ importers:
         version: 15.0.4
 
   packages/module-contract: {}
+
+  packages/module-preview:
+    dependencies:
+      '@microservices-sh/marketing-research':
+        specifier: workspace:*
+        version: link:../../modules/marketing-research
+      '@microservices-sh/ui':
+        specifier: workspace:*
+        version: link:../ui
+    devDependencies:
+      '@sveltejs/vite-plugin-svelte':
+        specifier: ^4.0.4
+        version: 4.0.4(svelte@5.56.3)(vite@5.4.21(@types/node@25.9.3)(lightningcss@1.32.0))
+      svelte:
+        specifier: ^5.0.0
+        version: 5.56.3
+      vite:
+        specifier: ^5.0.0
+        version: 5.4.21(@types/node@25.9.3)(lightningcss@1.32.0)
 
   packages/research-agent-runtime:
     dependencies:

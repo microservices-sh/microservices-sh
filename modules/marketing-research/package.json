@@ -7,12 +7,13 @@
   "exports": {
     ".": "./src/index.ts",
     "./adapters/memory": "./src/index.ts",
-    "./adapters/last30days": "./src/adapters/last30days-listen.ts"
+    "./adapters/last30days": "./src/adapters/last30days-listen.ts",
+    "./preview": "./reference-ui/Preview.svelte"
   },
   "scripts": {
     "build": "tsc --noEmit",
     "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path ."
   },
   "dependencies": { "zod": "^4.4.3" },
-  "devDependencies": { "@cloudflare/workers-types": "^4.20250109.0", "typescript": "^5.9.3" }
+  "devDependencies": { "@cloudflare/workers-types": "^4.20250109.0", "@microservices-sh/ui": "workspace:*", "svelte": "^5.0.0", "typescript": "^5.9.3" }
 }
