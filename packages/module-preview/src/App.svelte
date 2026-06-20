@@ -29,14 +29,32 @@
 
   const MODULES = [{ id: "marketing-research", name: "Marketing Research", Preview: MarketingResearchPreview }];
   let activeId = $state(MODULES[0].id);
-  let view = $state<"brief" | "refused">("brief");
   const active = $derived(MODULES.find((m) => m.id === activeId)!);
 
-  function onrun(topic: string) {
-    // No live engine in the harness — echo the topic into the demo brief.
-    DEMO_BRIEF.topic = topic;
-    DEMO_BRIEF.summary = `Builders are hand-rolling the 30% for "${topic}"; cited 3 signals.`;
-    view = "brief";
+  let brief = $state<any>(DEMO_BRIEF);
+  let refused = $state<any>(null);
+  let busy = $state(false);
+
+  // Live: POST to the dev middleware which runs the real module + /last30days.
+  // Static build (no backend) falls back to a demo brief.
+  async function onrun(topic: string, channels: string[]) {
+    busy = true;
+    try {
+      const r = await fetch("/api/research", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ topic, channels }) });
+      if (!r.ok) throw new Error("no live backend");
+      const out = await r.json();
+      brief = out.brief ?? null;
+      refused = out.refused ?? null;
+    } catch {
+      brief = { ...DEMO_BRIEF, topic, summary: `(demo — no live backend) signals for "${topic}".` };
+      refused = null;
+    }
+    busy = false;
+  }
+
+  function showRefusalDemo() {
+    refused = DEMO_REFUSED;
+    brief = null;
   }
 </script>
 
@@ -49,16 +67,15 @@
       {/each}
     </nav>
     <div class="states">
-      <span class="lbl">state</span>
-      <button class:active={view === "brief"} onclick={() => (view = "brief")}>Brief</button>
-      <button class:active={view === "refused"} onclick={() => (view = "refused")}>Refused</button>
+      <span class="lbl">demo state</span>
+      <button onclick={showRefusalDemo}>Preview refusal</button>
     </div>
-    <p class="note">Demo data — the real module renders the same component with live data. DS tokens from @microservices-sh/ui.</p>
+    <p class="note">Live in <code>vite dev</code> (real /last30days engine); demo data in the static build. Same Preview component as the template route. DS tokens from @microservices-sh/ui.</p>
   </aside>
   <main>
-    {#key activeId + view}
+    {#key activeId}
       {@const Preview = active.Preview}
-      <Preview brief={view === "brief" ? DEMO_BRIEF : null} refused={view === "refused" ? DEMO_REFUSED : null} {onrun} />
+      <Preview {brief} {refused} {busy} {onrun} />
     {/key}
   </main>
 </div>
