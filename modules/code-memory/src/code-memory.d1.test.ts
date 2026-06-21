@@ -44,8 +44,8 @@ describe("D1 code-memory store", () => {
         sourceId: source.id,
         name: "D1 pagination helper",
         purpose: "Paginate tenant-scoped D1 list queries.",
-        files: ["src/db/pagination.ts"],
-        tests: ["src/db/pagination.test.ts"],
+        files: ["src/auth/pagination.ts"],
+        tests: ["src/auth/pagination.test.ts"],
         dependencies: ["zod"],
         constraints: ["Always include tenant_id in WHERE clauses."],
         approvalStatus: "approved"
@@ -53,8 +53,8 @@ describe("D1 code-memory store", () => {
     );
 
     const fetched = unwrap(await memory.getLogicCapsule(ctx, capsule.slug)).capsule;
-    expect(fetched.files).toEqual(["src/db/pagination.ts"]);
-    expect(fetched.tests).toEqual(["src/db/pagination.test.ts"]);
+    expect(fetched.files).toEqual(["src/auth/pagination.ts"]);
+    expect(fetched.tests).toEqual(["src/auth/pagination.test.ts"]);
     expect(fetched.dependencies).toEqual(["zod"]);
     expect(fetched.constraints).toEqual(["Always include tenant_id in WHERE clauses."]);
     expect(fetched.provenance.repoUrl).toBe("https://github.com/acme/auth-kit");

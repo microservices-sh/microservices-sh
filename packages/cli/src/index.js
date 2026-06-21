@@ -503,7 +503,7 @@ Usage:
   microservices billing usage [--api-url https://api.microservices.sh] [--api-key <key>] [--json]  # alias for account billing
   microservices usage [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices memory source add <github-url> [--visibility public|private|unknown] [--path src/auth] [--ref main] [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
-  microservices memory source scan <source-id> [--dir ./repo] [--files src/a.ts,test/a.test.ts] [--max-candidates 10] [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices memory source scan <source-id> [--dir ./repo] [--path containers/app] [--files src/a.ts,test/a.test.ts] [--max-candidates 10] [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices memory source list [--limit 50] [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices memory github status [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices memory github install [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
@@ -901,10 +901,14 @@ function formatLogicCapsule(result) {
 
 function formatMemoryScan(result) {
   const scanned = result.scanned ?? {};
+  const scanSummary = result.sourceVersion?.scanSummary ?? {};
   const candidates = Array.isArray(result.candidates) ? result.candidates : [];
   return `Trusted Source scan: ${result.source?.repoOwner}/${result.source?.repoName}
 Ref: ${scanned.ref ?? result.sourceVersion?.ref ?? "unknown"}
 Files inspected: ${scanned.fileCount ?? 0}
+Files skipped: ${scanSummary.localSkippedFileCount ?? 0}
+Large files without content: ${scanSummary.largeFileCount ?? 0}
+Collection truncated: ${scanSummary.collectionTruncated ? "yes" : "no"}
 Candidates created: ${scanned.candidateCount ?? candidates.length}
 ${candidates.length ? `\nCandidates:\n${candidates.map((candidate) => `- ${candidate.slug}: ${candidate.name}`).join("\n")}\n` : ""}
 Next:
@@ -1019,6 +1023,14 @@ function memoryCapsuleBody(flags) {
   };
 }
 
+function cleanMemoryScanPath(value) {
+  const trimmed = optionalString(value);
+  if (!trimmed) return null;
+  const normalized = trimmed.replaceAll("\\", "/").replace(/^\/+/, "").replace(/\/+$/, "");
+  if (!normalized || normalized.split("/").includes("..")) return null;
+  return normalized;
+}
+
 const CODE_MEMORY_SCAN_EXTENSIONS = new Set([
   ".cjs",
   ".go",
@@ -1040,8 +1052,39 @@ const CODE_MEMORY_SCAN_SKIP_DIRS = new Set([".git", ".next", ".svelte-kit", ".tu
 const CODE_MEMORY_SCAN_MAX_FILES = 400;
 const CODE_MEMORY_SCAN_MAX_BYTES = 64 * 1024;
 
+function createMemoryScanStats() {
+  return {
+    filesSeen: 0,
+    filesIncluded: 0,
+    skippedFileCount: 0,
+    largeFileCount: 0,
+    skippedDirCount: 0,
+    collectionTruncated: false,
+    maxFiles: CODE_MEMORY_SCAN_MAX_FILES,
+    maxFileBytes: CODE_MEMORY_SCAN_MAX_BYTES,
+  };
+}
+
 function scanRoot(flags) {
   return resolve(USER_CWD, optionalString(flags.dir) ?? ".");
+}
+
+async function gitOutput(root, args) {
+  const result = await runCommand("git", ["-C", root, ...args], root);
+  if (result.exitCode !== 0) return null;
+  const value = result.stdout.trim();
+  return value || null;
+}
+
+async function localMemoryScanGitMetadata(root, ref) {
+  const commitSha = await gitOutput(root, ["rev-parse", "--verify", "HEAD"]);
+  const treeChecksum = commitSha ? await gitOutput(root, ["rev-parse", "HEAD^{tree}"]) : null;
+  const branch = ref ? null : await gitOutput(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
+  return {
+    ref: ref ?? (branch && branch !== "HEAD" ? branch : null),
+    commitSha,
+    treeChecksum,
+  };
 }
 
 function shouldUseLocalMemoryScan(flags) {
@@ -1058,36 +1101,77 @@ function supportsCodeMemoryScanFile(path) {
   return CODE_MEMORY_SCAN_EXTENSIONS.has(extname(path).toLowerCase());
 }
 
-async function addScanFile(root, target, files) {
-  if (files.length >= CODE_MEMORY_SCAN_MAX_FILES || !supportsCodeMemoryScanFile(target)) return;
+function prefixedScanPath(pathPrefix, sourcePath) {
+  return pathPrefix ? `${pathPrefix}/${sourcePath}` : sourcePath;
+}
+
+async function addScanFile(root, target, files, stats, pathPrefix) {
+  stats.filesSeen += 1;
+  if (files.length >= CODE_MEMORY_SCAN_MAX_FILES) {
+    stats.collectionTruncated = true;
+    stats.skippedFileCount += 1;
+    return;
+  }
+  if (!supportsCodeMemoryScanFile(target)) {
+    stats.skippedFileCount += 1;
+    return;
+  }
   const info = await lstat(target);
-  if (!info.isFile() || info.isSymbolicLink()) return;
+  if (!info.isFile() || info.isSymbolicLink()) {
+    stats.skippedFileCount += 1;
+    return;
+  }
   const sourcePath = relative(root, target).replaceAll("\\", "/");
   let content = null;
   if (info.size <= CODE_MEMORY_SCAN_MAX_BYTES) {
     content = await readFile(target, "utf8").catch(() => null);
+  } else {
+    stats.largeFileCount += 1;
   }
-  files.push({ path: sourcePath, sizeBytes: info.size, content });
+  files.push({ path: prefixedScanPath(pathPrefix, sourcePath), sizeBytes: info.size, content });
+  stats.filesIncluded = files.length;
 }
 
-async function collectScanFiles(root, dir, files) {
-  if (files.length >= CODE_MEMORY_SCAN_MAX_FILES) return;
+async function collectScanFiles(root, dir, files, stats, pathPrefix) {
+  if (files.length >= CODE_MEMORY_SCAN_MAX_FILES) {
+    stats.collectionTruncated = true;
+    return;
+  }
   const entries = await readdir(dir, { withFileTypes: true });
   entries.sort((a, b) => a.name.localeCompare(b.name));
   for (const entry of entries) {
-    if (files.length >= CODE_MEMORY_SCAN_MAX_FILES) return;
+    if (files.length >= CODE_MEMORY_SCAN_MAX_FILES) {
+      stats.collectionTruncated = true;
+      return;
+    }
     if (entry.isSymbolicLink()) continue;
     const target = join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (!CODE_MEMORY_SCAN_SKIP_DIRS.has(entry.name)) await collectScanFiles(root, target, files);
+      if (CODE_MEMORY_SCAN_SKIP_DIRS.has(entry.name)) {
+        stats.skippedDirCount += 1;
+      } else {
+        await collectScanFiles(root, target, files, stats, pathPrefix);
+      }
       continue;
     }
-    if (entry.isFile()) await addScanFile(root, target, files);
+    if (entry.isFile()) await addScanFile(root, target, files, stats, pathPrefix);
   }
 }
 
 async function localMemoryScanFiles(flags) {
   const root = scanRoot(flags);
+  const pathPrefix = cleanMemoryScanPath(flags.path);
+  if (optionalString(flags.path) && !pathPrefix) {
+    return {
+      ok: false,
+      response: failResponse(
+        "MEMORY_SCAN_PATH_INVALID",
+        "Code Memory scan path must be a repo-relative path.",
+        "Pass --path containers/accounting-system or omit --path.",
+        { path: flags.path }
+      )
+    };
+  }
   const info = await stat(root).catch((error) => ({ error }));
   if (info.error || !info.isDirectory()) {
     return {
@@ -1102,13 +1186,20 @@ async function localMemoryScanFiles(flags) {
   }
 
   const files = [];
+  const stats = createMemoryScanStats();
   if (flags.files?.length) {
     for (const file of flags.files) {
       const target = resolveInsideRoot(root, file);
-      if (target) await addScanFile(root, target, files).catch(() => undefined);
+      if (target) {
+        await addScanFile(root, target, files, stats, pathPrefix).catch(() => {
+          stats.skippedFileCount += 1;
+        });
+      } else {
+        stats.skippedFileCount += 1;
+      }
     }
   } else {
-    await collectScanFiles(root, root, files);
+    await collectScanFiles(root, root, files, stats, pathPrefix);
   }
 
   if (!files.length) {
@@ -1123,7 +1214,7 @@ async function localMemoryScanFiles(flags) {
     };
   }
 
-  return { ok: true, files };
+  return { ok: true, root, files, stats, pathPrefix };
 }
 
 async function memorySourceScanBody(sourceId, flags) {
@@ -1146,19 +1237,39 @@ async function memorySourceScanBody(sourceId, flags) {
   const collected = await localMemoryScanFiles(flags);
   if (!collected.ok) return collected;
 
+  const metadata = await localMemoryScanGitMetadata(collected.root, ref);
+  const scanRef = metadata.ref ?? ref;
   const { suggestLogicCapsulesFromFiles } = await import("@microservices-sh/code-memory/scanner");
   const suggestions = suggestLogicCapsulesFromFiles({
     sourceId,
-    ref,
+    ref: scanRef,
+    commitSha: metadata.commitSha,
+    treeChecksum: metadata.treeChecksum,
     files: collected.files,
     maxCandidates
   });
+  const scanSummary = {
+    ...suggestions.scanSummary,
+    candidateTruncated: suggestions.scanSummary.truncated,
+    collectionTruncated: collected.stats.collectionTruncated,
+    truncated: suggestions.scanSummary.truncated || collected.stats.collectionTruncated,
+    filesSeen: collected.stats.filesSeen,
+    filesIncluded: collected.stats.filesIncluded,
+    localSkippedFileCount: collected.stats.skippedFileCount,
+    largeFileCount: collected.stats.largeFileCount,
+    skippedDirCount: collected.stats.skippedDirCount,
+    maxFiles: collected.stats.maxFiles,
+    maxFileBytes: collected.stats.maxFileBytes,
+    pathPrefix: collected.pathPrefix ?? undefined,
+  };
 
   return {
     ok: true,
     body: {
-      ref: ref ?? undefined,
-      scanSummary: suggestions.scanSummary,
+      ref: scanRef ?? undefined,
+      commitSha: metadata.commitSha ?? undefined,
+      treeChecksum: metadata.treeChecksum ?? undefined,
+      scanSummary,
       candidates: suggestions.candidates
     }
   };

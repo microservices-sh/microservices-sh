@@ -63,6 +63,13 @@ function parseStdout(result) {
   }
 }
 
+function runGit(cwd, args) {
+  return spawnSync("git", args, {
+    cwd,
+    encoding: "utf8",
+  });
+}
+
 async function withApiServer(handler, fn) {
   const requests = [];
   const server = createServer(async (request, response) => {
@@ -443,6 +450,18 @@ describe("CLI Code Memory commands", () => {
         "rejects webhook payloads when the stripe signature is invalid",
         "utf8"
       );
+      const hasGit = runGit(repoDir, ["--version"]).status === 0;
+      let commitSha = null;
+      let treeChecksum = null;
+      if (hasGit) {
+        expect(runGit(repoDir, ["init"]).status).toBe(0);
+        expect(runGit(repoDir, ["config", "user.email", "test@example.com"]).status).toBe(0);
+        expect(runGit(repoDir, ["config", "user.name", "Test User"]).status).toBe(0);
+        expect(runGit(repoDir, ["add", "."]).status).toBe(0);
+        expect(runGit(repoDir, ["commit", "-m", "initial donor scan"]).status).toBe(0);
+        commitSha = runGit(repoDir, ["rev-parse", "--verify", "HEAD"]).stdout.trim();
+        treeChecksum = runGit(repoDir, ["rev-parse", "HEAD^{tree}"]).stdout.trim();
+      }
 
       await withApiServer(async (request, body) => {
         if (request.method === "POST" && request.url === "/memory/sources/memsrc_1/scan") {
@@ -475,6 +494,8 @@ describe("CLI Code Memory commands", () => {
           repoDir,
           "--files",
           "src/billing/stripe-webhooks.ts,src/booking/availability.ts,test/billing/stripe-webhooks.test.ts",
+          "--path",
+          "containers/invoice-system-bao",
           "--ref",
           "main",
           "--max-candidates",
@@ -496,10 +517,27 @@ describe("CLI Code Memory commands", () => {
         expect(requests.at(-1).body.scanSummary).toMatchObject({
           fileCount: 3,
           candidateCount: 2,
+          candidateTruncated: false,
+          collectionTruncated: false,
+          filesSeen: 3,
+          filesIncluded: 3,
+          localSkippedFileCount: 0,
+          pathPrefix: "containers/invoice-system-bao",
           heuristics: ["stripe-webhook-verifier", "booking-overlap-checker"],
         });
+        if (commitSha && treeChecksum) {
+          expect(requests.at(-1).body).toMatchObject({
+            commitSha,
+            treeChecksum,
+          });
+          expect(requests.at(-1).body.scanSummary).toMatchObject({
+            commitSha,
+            treeChecksum,
+          });
+        }
         expect(requests.at(-1).body.candidates.map((candidate) => candidate.slug)).toEqual(["stripe-webhook-verifier", "booking-overlap-checker"]);
-        expect(requests.at(-1).body.candidates[0].tests).toEqual(["test/billing/stripe-webhooks.test.ts"]);
+        expect(requests.at(-1).body.candidates[0].files).toEqual(["containers/invoice-system-bao/src/billing/stripe-webhooks.ts"]);
+        expect(requests.at(-1).body.candidates[0].tests).toEqual(["containers/invoice-system-bao/test/billing/stripe-webhooks.test.ts"]);
       });
     } finally {
       await rm(repoDir, { recursive: true, force: true });

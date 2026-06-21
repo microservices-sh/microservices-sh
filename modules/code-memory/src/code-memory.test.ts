@@ -97,6 +97,57 @@ describe("code-memory service", () => {
     });
   });
 
+  it("rejects scan candidates outside Trusted Source allowed paths", async () => {
+    const memory = service();
+    const { source } = unwrap(
+      await memory.addTrustedSource(ctx, {
+        repoUrl: "https://github.com/acme/stacksuite",
+        path: "containers/accounting-system"
+      })
+    );
+
+    const rejected = await memory.recordSourceScan(ctx, {
+      sourceId: source.id,
+      ref: "main",
+      scanSummary: { fileCount: 1, truncated: false },
+      candidates: [
+        {
+          sourceId: source.id,
+          name: "Accounting journal posting",
+          purpose: "Create balanced journal entries.",
+          sourcePath: "src/lib/db/journal.ts",
+          files: ["src/lib/db/journal.ts"]
+        }
+      ]
+    });
+
+    expect(rejected).toMatchObject({
+      ok: false,
+      error: {
+        code: "capsule_path_outside_source"
+      }
+    });
+
+    const accepted = unwrap(
+      await memory.recordSourceScan(ctx, {
+        sourceId: source.id,
+        ref: "main",
+        scanSummary: { fileCount: 1, truncated: false },
+        candidates: [
+          {
+            sourceId: source.id,
+            name: "Accounting journal posting",
+            purpose: "Create balanced journal entries.",
+            sourcePath: "containers/accounting-system/src/lib/db/journal.ts",
+            files: ["containers/accounting-system/src/lib/db/journal.ts"]
+          }
+        ]
+      })
+    );
+
+    expect(accepted.candidates[0]?.sourcePath).toBe("containers/accounting-system/src/lib/db/journal.ts");
+  });
+
   it("rejects capsules so they no longer appear in approved search", async () => {
     const memory = service();
     const { source } = unwrap(await memory.addTrustedSource(ctx, { repoUrl: "https://github.com/acme/auth-kit" }));

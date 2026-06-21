@@ -89,6 +89,30 @@ function cleanList(values: string[] | undefined): string[] {
   return [...new Set((values ?? []).map(cleanText).filter((value): value is string => Boolean(value)))];
 }
 
+function pathInsideAllowedPath(path: string, allowedPath: string): boolean {
+  return path === allowedPath || path.startsWith(`${allowedPath}/`);
+}
+
+function pathInsideAllowedPaths(path: string, allowedPaths: string[]): boolean {
+  return !allowedPaths.length || allowedPaths.some((allowedPath) => pathInsideAllowedPath(path, allowedPath));
+}
+
+function validateCapsuleSourcePaths(input: CreateLogicCapsuleInput, source: TrustedSource): ModuleResult<null> {
+  const sourcePath = cleanPath(input.sourcePath) ?? cleanPath(input.files?.[0]) ?? null;
+  const files = cleanList(input.files ?? (sourcePath ? [sourcePath] : []));
+  const invalidSourcePath = [sourcePath, ...files]
+    .map((path) => cleanPath(path))
+    .filter((path): path is string => Boolean(path))
+    .find((path) => !pathInsideAllowedPaths(path, source.allowedPaths));
+  if (invalidSourcePath) {
+    return fail(
+      "capsule_path_outside_source",
+      `Logic Capsule path ${invalidSourcePath} is outside the Trusted Source allowed paths.`
+    );
+  }
+  return ok(null);
+}
+
 function slugFrom(value: string): string {
   return value
     .trim()
@@ -192,6 +216,9 @@ export function createCodeMemoryService(deps: CodeMemoryServiceDeps): CodeMemory
     if (!slug.ok || !slug.data) return fail(slug.error?.code ?? "slug_invalid", slug.error?.message ?? "Logic Capsule slug is invalid.");
     const timestamp = now(ctx);
     const sourcePath = cleanPath(input.sourcePath) ?? cleanPath(input.files?.[0]) ?? null;
+    const files = cleanList(input.files ?? (sourcePath ? [sourcePath] : []));
+    const validPaths = validateCapsuleSourcePaths(input, source);
+    if (!validPaths.ok) return fail(validPaths.error?.code ?? "capsule_path_outside_source", validPaths.error?.message ?? "Logic Capsule path is outside the Trusted Source allowed paths.");
     const capsule: LogicCapsule = {
       id: createId("cmcap"),
       tenantId: ctx.tenantId,
@@ -202,7 +229,7 @@ export function createCodeMemoryService(deps: CodeMemoryServiceDeps): CodeMemory
       purpose,
       reuseMode: normalizeReuseMode(input.reuseMode),
       sourcePath,
-      files: cleanList(input.files ?? (sourcePath ? [sourcePath] : [])),
+      files,
       tests: cleanList(input.tests),
       dependencies: cleanList(input.dependencies),
       requiredEnv: cleanList(input.requiredEnv),
@@ -282,6 +309,12 @@ export function createCodeMemoryService(deps: CodeMemoryServiceDeps): CodeMemory
       if (!sourceId) return fail("source_id_required", "Trusted Source id is required.");
       const source = await deps.store.getSource(ctx.tenantId, sourceId);
       if (!source) return fail("source_not_found", "Trusted Source was not found.");
+      for (const candidate of input.candidates ?? []) {
+        const validPaths = validateCapsuleSourcePaths(candidate, source);
+        if (!validPaths.ok) {
+          return fail(validPaths.error?.code ?? "capsule_path_outside_source", validPaths.error?.message ?? "Logic Capsule path is outside the Trusted Source allowed paths.");
+        }
+      }
       const timestamp = now(ctx);
       const status = normalizeScanStatus(input.scanStatus);
       const version: SourceVersion = {
