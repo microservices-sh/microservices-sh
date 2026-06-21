@@ -3,9 +3,12 @@ import { resolveStores } from "$lib/server/stores";
 import { getCurrentUser } from "$lib/server/session";
 import { createKvRateLimitStore } from "@microservices-sh/gateway/adapters/kv-rate-limit";
 import { createMemoryRateLimitStore } from "@microservices-sh/gateway/adapters/memory-rate-limit";
+import { createMemoryInvoicePaymentLinkProvider } from "@microservices-sh/invoice/adapters/memory-payment-link";
+import { createStripeInvoicePaymentLinkProvider } from "@microservices-sh/invoice/adapters/stripe-payment-link";
 import { createStripePaymentGateway } from "@microservices-sh/payment/adapters/stripe-gateway";
 import { createMemoryPaymentGateway } from "@microservices-sh/payment/adapters/memory-gateway";
 import { createCfQueueProducer } from "@microservices-sh/jobs-workflows";
+import { getEmailDeps } from "$lib/server/email-deps";
 import { reportRuntimeError, logRequest, generateRequestId } from "$lib/server/observability";
 import { readCompanyOrgId } from "$lib/server/org-context";
 
@@ -14,6 +17,7 @@ import { readCompanyOrgId } from "$lib/server/org-context";
 const memoryRateLimitStore = createMemoryRateLimitStore();
 // Memory payment gateway for local dev; Stripe when STRIPE_SECRET_KEY is set.
 const memoryPaymentGateway = createMemoryPaymentGateway();
+const memoryInvoicePaymentLinkProvider = createMemoryInvoicePaymentLinkProvider();
 
 // Wire module stores + the session user onto locals for every request. Stores are
 // D1/R2-backed in production and memory-backed locally. Route adapters consume
@@ -40,6 +44,13 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.invoiceStore = stores.invoiceStore;
   event.locals.recurringInvoiceStore = stores.recurringInvoiceStore;
   event.locals.numberAllocator = stores.numberAllocator;
+  event.locals.invoicePaymentLinkProvider = env?.STRIPE_SECRET_KEY
+    ? createStripeInvoicePaymentLinkProvider(env.STRIPE_SECRET_KEY)
+    : memoryInvoicePaymentLinkProvider;
+  const emailDeps = getEmailDeps(db, env);
+  event.locals.emailProvider = emailDeps.provider;
+  event.locals.emailRepository = emailDeps.emailRepository;
+  event.locals.emailFrom = emailDeps.from;
   event.locals.mediaStore = stores.mediaStore;
   event.locals.objectStorage = stores.objectStorage;
   event.locals.notificationStore = stores.notificationStore;

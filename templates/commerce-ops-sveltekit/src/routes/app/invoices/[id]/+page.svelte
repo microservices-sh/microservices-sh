@@ -12,6 +12,7 @@
 
   let { data, form } = $props();
   const inv = $derived(data.invoice);
+  const paymentLinkHref = $derived(form?.paymentLinkUrl ?? inv.paymentLinkUrl);
   const invoiceDocument = $derived<InvoiceDocumentData>({
     number: inv.number,
     status: inv.status,
@@ -83,6 +84,10 @@
 
   {#if form?.paymentRecorded}
     <Alert tone="success">{form.paid ? "Payment recorded — invoice marked paid." : "Payment recorded."}</Alert>
+  {:else if form?.invoiceSent}
+    <Alert tone="success">Invoice sent to {form.recipient}.</Alert>
+  {:else if form?.paymentLinkCreated}
+    <Alert tone="success">Payment link ready.</Alert>
   {:else if form?.error}
     <Alert tone="error">{form.error}</Alert>
   {/if}
@@ -116,6 +121,29 @@
 
     <div class="grid__side">
       {#if inv.isOpen && data.canManage}
+        <Card title="Payment link">
+          {#if paymentLinkHref}
+            <p class="status-note">Share this secure link for online payment.</p>
+            <Button href={paymentLinkHref} variant="primary" size="sm" target="_blank" rel="noreferrer">Open payment link</Button>
+          {:else}
+            <p class="status-note">Create a one-time online payment link for the outstanding balance.</p>
+            <form method="POST" action="?/paymentLink" use:enhance>
+              <FormActions submitLabel="Create payment link" />
+            </form>
+          {/if}
+        </Card>
+
+        <Card title="Send invoice">
+          {#if inv.customer.email}
+            <p class="status-note">Email the invoice and payment link to {inv.customer.email}.</p>
+            <form method="POST" action="?/sendInvoice" use:enhance>
+              <FormActions submitLabel={paymentLinkHref ? "Send invoice" : "Create link + send"} />
+            </form>
+          {:else}
+            <p class="status-note">Add an email address to this customer before sending invoices.</p>
+          {/if}
+        </Card>
+
         <Card title="Record payment">
           <form method="POST" action="?/payment" use:enhance={payEnhance}>
             <Field label="Amount" id="amount" hint={`Outstanding ${inv.outstanding}`}>

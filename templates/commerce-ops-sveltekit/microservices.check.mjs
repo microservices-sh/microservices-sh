@@ -151,13 +151,42 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/invoices/[id]/+page.server.ts",
-    ["lineItems: lineItems.map", "subtotalCents", "issuedAt", "paymentLinkUrl"],
-    "Invoice detail load exposes scoped raw document data for print and CSV exports."
+    [
+      "lineItems: lineItems.map",
+      "subtotalCents",
+      "issuedAt",
+      "paymentLinkUrl",
+      "createInvoicePaymentLinkScoped",
+      "sendEmail",
+      "buildInvoiceEmail",
+      "invoice.sent"
+    ],
+    "Invoice detail load exposes scoped raw document data and operator actions for payment links and invoice email sends."
   );
   assertFileIncludesAll(
     "src/routes/app/invoices/[id]/+page.svelte",
-    ["generateInvoicePrintHtml", "generateInvoiceLineItemsCsv", "printInvoice", "exportInvoiceLines", "Print", "CSV"],
-    "Invoice detail page exposes StackSuite-style print and CSV actions."
+    ["generateInvoicePrintHtml", "generateInvoiceLineItemsCsv", "printInvoice", "exportInvoiceLines", "Payment link", "Send invoice", "Print", "CSV"],
+    "Invoice detail page exposes StackSuite-style print, CSV, payment-link, and send-invoice actions."
+  );
+  assertFileIncludesAll(
+    "src/hooks.server.ts",
+    ["createStripeInvoicePaymentLinkProvider", "createMemoryInvoicePaymentLinkProvider", "getEmailDeps", "invoicePaymentLinkProvider", "emailProvider"],
+    "Request locals wire Stripe/memory invoice payment links and transactional email providers for invoice-send workflows."
+  );
+  assertFileIncludesAll(
+    "src/routes/api/payments/stripe-webhook/+server.ts",
+    ["request.text()", "verifyWebhookSignature", "parseStripeInvoiceSettlementEvent", "recordPaymentScoped", "recordEvent", "stripe-signature"],
+    "Stripe webhook route verifies raw signed payloads before recording invoice payments idempotently."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/stripe-invoice-settlement.ts",
+    ["checkout.session.completed", "payment_intent.succeeded", "metadata.invoiceId", "amount_received", "amount_total"],
+    "Stripe invoice settlement helper extracts invoice ids and payment amounts from payment-link webhook events."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/invoice-email.ts",
+    ["buildInvoiceEmail", "Pay this invoice online", "formatDocumentMoney", "escapeHtml"],
+    "Invoice email helper renders escaped customer-facing payment-link messages."
   );
   assertFileIncludesAll(
     "src/routes/app/invoices/+page.svelte",
