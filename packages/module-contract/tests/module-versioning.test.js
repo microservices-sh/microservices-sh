@@ -41,6 +41,21 @@ describe("module version selectors", () => {
     expect(resolveModuleIds(["payment@0.1.0"])).toEqual(["auth", "customer", "payment"]);
   });
 
+  it("resolves Code Memory through its identity dependency", () => {
+    expect(resolveModuleIds(["code-memory@0.1.0"])).toEqual(["auth", "identity", "code-memory"]);
+
+    const composition = composeApp({ templateId: "booking-business", modules: ["code-memory"] });
+    expect(composition.modules.map((module) => module.id)).toEqual([
+      "auth",
+      "gateway",
+      "customer",
+      "booking",
+      "identity",
+      "code-memory",
+    ]);
+    expect(composition.lock.modules.map((module) => module.id)).toEqual(composition.modules.map((module) => module.id));
+  });
+
   it("models subscription billing as a provider-backed customer app module", () => {
     expect(resolveModuleIds(["billing-subscriptions@0.1.0"])).toEqual(["billing-subscriptions"]);
     expect(inspectModule("billing-subscriptions@0.1.0")).toMatchObject({
@@ -151,6 +166,39 @@ describe("module version selectors", () => {
       approvalRequired: expect.arrayContaining([
         "code-memory.addTrustedSource",
         "code-memory.approveLogicCapsule",
+      ]),
+    });
+  });
+
+  it("models Identity as the Code Memory auth/session dependency", () => {
+    const module = inspectModule("identity@0.1.0");
+
+    expect(module).toMatchObject({
+      id: "identity",
+      status: "available",
+      category: "platform",
+      requires: ["auth"],
+      optional: ["email", "audit-log"],
+      runtime: { mount: "/identity" },
+      permissions: expect.arrayContaining(["identity.login", "identity.session"]),
+      rpc: expect.arrayContaining([
+        { method: "requestLoginCode", scope: "identity.login", public: false },
+        { method: "readSession", scope: "identity.session", public: false },
+      ]),
+      eventsEmitted: expect.arrayContaining([
+        "identity.login_code_issued",
+        "identity.session_created",
+      ]),
+    });
+    expect(module.surfaces.agentic).toMatchObject({
+      applicable: true,
+      tools: expect.arrayContaining([
+        "identity.requestLoginCode",
+        "identity.readSession",
+      ]),
+      approvalRequired: expect.arrayContaining([
+        "identity.requestLoginCode",
+        "identity.destroySession",
       ]),
     });
   });

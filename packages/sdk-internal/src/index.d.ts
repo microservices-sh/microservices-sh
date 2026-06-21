@@ -22,6 +22,70 @@ export interface GeneratedProject {
   nextSteps: string[];
 }
 
+export interface ToolDescriptor {
+  name: string;
+  module: string;
+  method: string;
+  scope: string | null;
+  public: boolean;
+  mutation: boolean;
+  requiresConfirmation: boolean;
+  description: string;
+}
+
+export interface ToolCallContext {
+  actor?: string | null;
+  scopes?: string[];
+  confirmed?: boolean;
+  [key: string]: unknown;
+}
+
+export interface ToolGatewayCallResult {
+  ok: boolean;
+  status: number;
+  data?: unknown;
+  awaitingConfirmation?: boolean;
+  tool?: string;
+  error?: { code: string; message: string };
+}
+
+export interface ToolGateway {
+  listTools(ctx?: ToolCallContext): ToolDescriptor[];
+  callTool(name: string, input?: Record<string, unknown>, ctx?: ToolCallContext): Promise<ToolGatewayCallResult>;
+}
+
+export interface ToolGatewayOptions {
+  manifest?: ToolDescriptor[];
+  handlers?: Record<string, (input: Record<string, unknown>, ctx: ToolCallContext) => unknown | Promise<unknown>>;
+  authorize?: (ctx: ToolCallContext, scope: string | null) => boolean | Promise<boolean>;
+  audit?: { record(event: Record<string, unknown>): unknown | Promise<unknown> };
+  now?: () => number;
+}
+
+export interface McpToolDefinition {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+  _meta: {
+    scope: string | null;
+    public: boolean;
+    mutation: boolean;
+    requiresConfirmation: boolean;
+  };
+}
+
+export interface McpToolCallResult {
+  content: Array<{ type: "text"; text: string }>;
+  isError: boolean;
+  _meta?: Record<string, unknown>;
+}
+
+export interface McpToolServer {
+  toolDefinitions(ctx?: ToolCallContext): McpToolDefinition[];
+  callTool(name: string, args?: Record<string, unknown>, ctx?: ToolCallContext): Promise<McpToolCallResult>;
+  handleRequest(request: { method?: string; params?: Record<string, unknown> }, ctx?: ToolCallContext): Promise<Record<string, unknown> | McpToolCallResult>;
+}
+
 export interface CheckResult {
   status: "pass" | "pending" | "fail";
   checks: Array<{ id: string; status: "pass" | "pending" | "fail"; message: string }>;
@@ -146,6 +210,14 @@ export function validateConfig(input?: Record<string, unknown>): SdkResponse<{
 }>;
 export function generateProject(input?: Record<string, unknown>): SdkResponse<GeneratedProject>;
 export function runChecks(input?: Record<string, unknown>): SdkResponse<CheckResult>;
+export function isReadMethod(method: Record<string, unknown>): boolean;
+export function toolName(moduleId: string, methodName: string): string;
+export function toolDescriptor(moduleId: string, method: Record<string, unknown>): ToolDescriptor;
+export function generateToolManifest(module: Record<string, unknown> | null | undefined): ToolDescriptor[];
+export function generateToolManifestFile(modules: Array<Record<string, unknown>>): string;
+export function createToolGateway(options?: ToolGatewayOptions): ToolGateway;
+export function createMcpToolServer(options?: { gateway?: ToolGateway; schemas?: Record<string, Record<string, unknown>> }): McpToolServer;
+export function generateMcpServerEntry(options?: { id?: string; name?: string; wiringModule?: string }): string;
 export function createMicroservicesClient(): {
   listTemplates: typeof listTemplates;
   inspectTemplate: typeof inspectTemplate;

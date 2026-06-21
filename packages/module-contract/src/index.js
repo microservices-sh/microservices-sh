@@ -74,6 +74,92 @@ const MODULES = Object.freeze([
     },
   },
   {
+    id: "identity",
+    name: "Identity",
+    version: "0.1.0",
+    status: "available",
+    category: "platform",
+    summary: "Passwordless email-code login and server-side sessions backed by auth-scoped service tokens.",
+    requires: ["auth"],
+    optional: ["email", "audit-log"],
+    storage: ["d1"],
+    runtime: {
+      framework: "sveltekit",
+      mount: "/identity",
+      bindings: ["DB"],
+    },
+    surfaces: moduleSurfaces({
+      admin: {
+        applicable: true,
+        nav: [{ label: "Identity", path: "/settings/identity", permission: "identity.admin", icon: "UserRoundCog" }],
+        referenceUi: ["reference-ui/README.md"],
+      },
+      visitor: {
+        applicable: true,
+        featureKey: "login",
+        referenceUi: ["reference-ui/README.md"],
+      },
+      agentic: {
+        applicable: true,
+        tools: [
+          "identity.requestLoginCode",
+          "identity.verifyLoginCode",
+          "identity.readSession",
+          "identity.destroySession",
+        ],
+        skillPaths: ["skills/identity-operator/SKILL.md"],
+        approvalRequired: [
+          "identity.requestLoginCode",
+          "identity.verifyLoginCode",
+          "identity.destroySession",
+        ],
+      },
+    }),
+    eventsEmitted: [
+      "identity.login_code_issued",
+      "identity.login_verified",
+      "identity.session_created",
+      "identity.session_destroyed",
+    ],
+    eventsConsumed: [],
+    permissions: [
+      "identity.login",
+      "identity.session",
+      "identity.admin",
+      "identity.extend",
+      "identity.observe",
+    ],
+    rpc: [
+      { method: "requestLoginCode", scope: "identity.login", public: false },
+      { method: "verifyLoginCode", scope: "identity.login", public: false },
+      { method: "readSession", scope: "identity.session", public: false },
+      { method: "destroySession", scope: "identity.session", public: false },
+    ],
+    hooks: [
+      {
+        name: "beforeVerifyCode",
+        timing: "pre",
+        purpose: "Guard login code verification before a session is created.",
+      },
+      {
+        name: "afterSessionCreated",
+        timing: "post",
+        purpose: "Observe session creation for audit, notification, or login support workflows.",
+      },
+    ],
+    customization: {
+      config: ["sessionTtlSeconds", "loginCodeTtlSeconds"],
+      hooks: ["beforeVerifyCode", "afterSessionCreated"],
+      forkable: true,
+    },
+    quality: {
+      tests: { unit: true, integration: true, fixtures: true },
+      agentDocs: true,
+      migrations: true,
+      upgradeNotes: true,
+    },
+  },
+  {
     id: "gateway",
     name: "Gateway",
     version: "0.1.0",

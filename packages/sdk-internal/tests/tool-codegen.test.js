@@ -38,6 +38,19 @@ const identity = {
   ],
 };
 const rbac = { id: "org-team-rbac", rpc: [{ method: "authorize", scope: "org.read", public: false }] };
+const codeMemory = {
+  id: "code-memory",
+  rpc: [
+    { method: "addTrustedSource", scope: "code-memory.write", public: false },
+    { method: "listTrustedSources", scope: "code-memory.read", public: false },
+    { method: "recordSourceScan", scope: "code-memory.write", public: false },
+    { method: "createLogicCapsule", scope: "code-memory.write", public: false },
+    { method: "searchLogicCapsules", scope: "code-memory.read", public: false },
+    { method: "getLogicCapsule", scope: "code-memory.read", public: false },
+    { method: "approveLogicCapsule", scope: "code-memory.approve", public: false },
+    { method: "rejectLogicCapsule", scope: "code-memory.approve", public: false },
+  ],
+};
 
 describe("isReadMethod", () => {
   it("read by name prefix", () => {
@@ -112,6 +125,30 @@ describe("generateToolManifest", () => {
       readSession: false,
       destroySession: true,
     });
+  });
+  it("classifies Code Memory reads, writes, and approval-gated tools", () => {
+    const tools = generateToolManifest(codeMemory);
+    expect(tools).toHaveLength(8);
+    expect(tools.map((tool) => tool.name)).toEqual([
+      "code-memory_addTrustedSource",
+      "code-memory_listTrustedSources",
+      "code-memory_recordSourceScan",
+      "code-memory_createLogicCapsule",
+      "code-memory_searchLogicCapsules",
+      "code-memory_getLogicCapsule",
+      "code-memory_approveLogicCapsule",
+      "code-memory_rejectLogicCapsule",
+    ]);
+
+    const byMethod = Object.fromEntries(tools.map((tool) => [tool.method, tool]));
+    expect(byMethod.listTrustedSources).toMatchObject({ mutation: false, requiresConfirmation: false, scope: "code-memory.read" });
+    expect(byMethod.searchLogicCapsules).toMatchObject({ mutation: false, requiresConfirmation: false, scope: "code-memory.read" });
+    expect(byMethod.getLogicCapsule).toMatchObject({ mutation: false, requiresConfirmation: false, scope: "code-memory.read" });
+    expect(byMethod.addTrustedSource).toMatchObject({ mutation: true, requiresConfirmation: true, scope: "code-memory.write" });
+    expect(byMethod.recordSourceScan).toMatchObject({ mutation: true, requiresConfirmation: true, scope: "code-memory.write" });
+    expect(byMethod.createLogicCapsule).toMatchObject({ mutation: true, requiresConfirmation: true, scope: "code-memory.write" });
+    expect(byMethod.approveLogicCapsule).toMatchObject({ mutation: true, requiresConfirmation: true, scope: "code-memory.approve" });
+    expect(byMethod.rejectLogicCapsule).toMatchObject({ mutation: true, requiresConfirmation: true, scope: "code-memory.approve" });
   });
   it("works for both connections.rpc.exposes and legacy flat rpc", () => {
     expect(generateToolManifest(auth).length).toBe(3); // nested connections

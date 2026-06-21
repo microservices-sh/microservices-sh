@@ -163,4 +163,64 @@ describe("end-to-end demo over the MCP wire", () => {
       "booking_createBooking:executed",
     ]);
   });
+
+  it("routes Code Memory reads and gates approval mutations", async () => {
+    const codeMemory = {
+      id: "code-memory",
+      rpc: [
+        { method: "searchLogicCapsules", scope: "code-memory.read", public: false },
+        { method: "getLogicCapsule", scope: "code-memory.read", public: false },
+        { method: "approveLogicCapsule", scope: "code-memory.approve", public: false },
+      ],
+    };
+    const manifest = generateToolManifest(codeMemory);
+    const calls = [];
+    const gateway = createToolGateway({
+      manifest,
+      handlers: {
+        "code-memory_searchLogicCapsules": async (input) => {
+          calls.push(["search", input.query]);
+          return { capsules: [{ slug: "stripe-webhook-verifier" }] };
+        },
+        "code-memory_approveLogicCapsule": async (input) => {
+          calls.push(["approve", input.idOrSlug]);
+          return { capsule: { slug: input.idOrSlug, approvalStatus: "approved" } };
+        },
+      },
+      authorize: async (ctx, scope) => (ctx?.scopes ?? []).includes(scope),
+    });
+    const server = createMcpToolServer({ gateway });
+    const agent = { actor: "agent:builder", scopes: ["code-memory.read", "code-memory.approve"] };
+
+    const listed = await server.handleRequest({ method: "tools/list" }, agent);
+    expect(listed.tools.map((tool) => tool.name)).toEqual([
+      "code-memory_searchLogicCapsules",
+      "code-memory_getLogicCapsule",
+      "code-memory_approveLogicCapsule",
+    ]);
+
+    const read = await server.handleRequest(
+      { method: "tools/call", params: { name: "code-memory_searchLogicCapsules", arguments: { query: "stripe" } } },
+      agent
+    );
+    expect(read.isError).toBe(false);
+    expect(JSON.parse(read.content[0].text).capsules[0].slug).toBe("stripe-webhook-verifier");
+
+    const gated = await server.handleRequest(
+      { method: "tools/call", params: { name: "code-memory_approveLogicCapsule", arguments: { idOrSlug: "stripe-webhook-verifier" } } },
+      agent
+    );
+    expect(gated).toMatchObject({ isError: true, _meta: { awaitingConfirmation: true, status: 202 } });
+
+    const approved = await server.handleRequest(
+      { method: "tools/call", params: { name: "code-memory_approveLogicCapsule", arguments: { idOrSlug: "stripe-webhook-verifier" } } },
+      { ...agent, confirmed: true }
+    );
+    expect(approved.isError).toBe(false);
+    expect(JSON.parse(approved.content[0].text).capsule.approvalStatus).toBe("approved");
+    expect(calls).toEqual([
+      ["search", "stripe"],
+      ["approve", "stripe-webhook-verifier"],
+    ]);
+  });
 });
