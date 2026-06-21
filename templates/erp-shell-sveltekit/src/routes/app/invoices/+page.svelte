@@ -36,6 +36,7 @@
     description="Issue and track invoices for your company, powered by the invoice module."
   >
     {#snippet actions()}
+      <Button href="/app/invoices/recurring" variant="ghost">Recurring invoices</Button>
       {#if data.canManage}
         <Button href="/app/invoices/new" variant="primary">New invoice</Button>
       {/if}

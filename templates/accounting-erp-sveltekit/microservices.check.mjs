@@ -30,6 +30,16 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Invoices route uses the invoice module list use case."
   );
   assertFileIncludesAll(
+    "src/routes/app/invoices/recurring/+page.server.ts",
+    ["listRecurringInvoiceTemplatesScoped", "updateRecurringInvoiceTemplateStatusScoped", "recurringInvoiceStore"],
+    "Recurring invoices route uses scoped invoice module recurring use cases."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/invoices/recurring/new/+page.server.ts",
+    ["createRecurringInvoiceTemplateScoped", "recurringInvoiceStore"],
+    "Recurring invoice creation route stays a thin adapter over the invoice module."
+  );
+  assertFileIncludesAll(
     "migrations/0004_invoice.sql",
     ["CREATE TABLE IF NOT EXISTS invoice_recurring_templates", "idx_invoices_recurring_occurrence"],
     "Template keeps recurring invoice tables and occurrence dedupe index aligned with the invoice module."
