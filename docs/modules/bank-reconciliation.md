@@ -31,7 +31,8 @@ Tenant-scoped bank accounts, statement imports, bank transactions, ledger matchi
 ## Events
 - bank-reconciliation.bank_account_created
 - bank-reconciliation.statement_imported
-- bank-reconciliation.transaction_matched
+- bank-reconciliation.match_created
+- bank-reconciliation.reconciliation_started
 - bank-reconciliation.reconciliation_completed
 
 ## Invariants

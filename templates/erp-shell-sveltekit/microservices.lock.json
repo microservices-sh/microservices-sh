@@ -304,7 +304,7 @@
         "permissions": ["bank-reconciliation.read", "bank-reconciliation.write", "bank-reconciliation.admin", "bank-reconciliation.extend", "bank-reconciliation.observe"],
         "rpc": [],
         "hooks": ["beforeBankAccountCreate", "beforeStatementImport", "beforeTransactionMatch", "beforeReconciliationComplete", "afterBankReconciliationChanged"],
-        "events": ["bank-reconciliation.bank_account_created", "bank-reconciliation.statement_imported", "bank-reconciliation.transaction_matched", "bank-reconciliation.reconciliation_completed"],
+        "events": ["bank-reconciliation.bank_account_created", "bank-reconciliation.statement_imported", "bank-reconciliation.match_created", "bank-reconciliation.reconciliation_started", "bank-reconciliation.reconciliation_completed"],
         "requires": ["accounting-core"]
       }
     },
