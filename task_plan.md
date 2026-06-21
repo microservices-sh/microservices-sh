@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 49
+Phase 52
 
 ## Phases
 
@@ -395,6 +395,14 @@ Phase 49
 - [x] Rank reusable module/template candidates and avoid full-app cloning.
 - [x] Add `plans/35-stacksuite-broader-adoption-plan.md`.
 - [x] Link the plan from `plans/README.md`, `findings.md`, and `progress.md`.
+- **Status:** complete
+
+### Phase 52: StackSuite SMS Campaigns Module
+- [x] Scaffold `modules/sms-campaigns` from the standard module layout.
+- [x] Implement tenant-scoped contacts, groups, templates, provider configs, campaigns, recipients, and delivery logs.
+- [x] Add memory and D1 stores, provider port, module schemas, resources, permissions, events, migration, and exports.
+- [x] Add tests for opt-in filtering, scheduled due selection, dispatch, idempotent delivery callbacks, and no-opt-in rejection.
+- [x] Verify build, tests, module spec, migration smoke, and whitespace checks for the module slice.
 - **Status:** complete
 
 ## Key Questions

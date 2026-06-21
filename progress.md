@@ -1282,3 +1282,18 @@
 | Bundle closure | Generated template module graph remains closed | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 22/22 | Pass |
 | Full spec | Workspace module/template checks pass | `pnpm spec:check:all` passed, 51 targets | Pass |
 | Whitespace | No diff whitespace errors | `git diff --check` passed | Pass |
+
+### Phase 52 StackSuite SMS Campaigns module
+
+- **Status:** complete.
+- Goal: turn the highest-priority remaining StackSuite donor app (`sms-crm`) into a reusable contract-checked module.
+- Added `modules/sms-campaigns` with typed service use cases for SMS contacts, groups, templates, provider configuration, campaign creation/scheduling, dispatch, delivery callback recording, and reporting.
+- Added memory and D1 stores, a provider port, migration tables for campaign state and delivery logs, package exports, schemas, metadata, permissions, events, resources, and module spec checks.
+- Added tests for opt-in recipient filtering, scheduled campaign lookup, provider dispatch, delivery reconciliation, idempotent vendor-message callbacks, and rejection when no recipient has opted in.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| SMS module build | TypeScript typecheck passes | `pnpm --filter @microservices-sh/sms-campaigns build` passed | Pass |
+| SMS module tests | Campaign lifecycle and guard tests pass | `pnpm --filter @microservices-sh/sms-campaigns test` passed, 3/3 | Pass |
+| SMS module spec | Module contract check passes | `pnpm --filter @microservices-sh/sms-campaigns check:spec` passed | Pass |
+| D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/sms-campaigns/migrations/0001_initial.sql"` passed | Pass |

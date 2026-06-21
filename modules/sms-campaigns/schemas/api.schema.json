@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SMS Campaigns API",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "contacts": {
+      "description": "Contact upsert/import surfaces"
+    },
+    "groups": {
+      "description": "Audience grouping surfaces"
+    },
+    "templates": {
+      "description": "Reusable SMS body template surfaces"
+    },
+    "campaigns": {
+      "description": "Campaign creation, scheduling, dispatch, and report surfaces"
+    },
+    "deliveries": {
+      "description": "Provider delivery callback surfaces"
+    }
+  }
+}

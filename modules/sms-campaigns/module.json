@@ -1,0 +1,145 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "sms-campaigns",
+  "name": "SMS Campaigns",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Tenant-scoped SMS campaign module for opted-in contacts, groups, reusable templates, provider configuration, scheduled sends, dispatch, and delivery callbacks.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": [
+      "hono-later",
+      "sveltekit-later"
+    ]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "sms_contacts",
+        "sms_contact_groups",
+        "sms_group_contacts",
+        "sms_templates",
+        "sms_provider_configs",
+        "sms_campaigns",
+        "sms_campaign_recipients",
+        "sms_delivery_logs",
+        "domain_events"
+      ]
+    }
+  ],
+  "permissions": [
+    "sms-campaigns.read",
+    "sms-campaigns.write",
+    "sms-campaigns.dispatch",
+    "sms-campaigns.admin",
+    "sms-campaigns.extend",
+    "sms-campaigns.observe"
+  ],
+  "connections": {
+    "requires": [],
+    "optional": [
+      "auth",
+      "audit-log"
+    ],
+    "rpc": {
+      "exposes": [],
+      "calls": []
+    },
+    "events": {
+      "emits": [
+        "sms-campaigns.contact_upserted",
+        "sms-campaigns.group_created",
+        "sms-campaigns.template_created",
+        "sms-campaigns.provider_configured",
+        "sms-campaigns.campaign_created",
+        "sms-campaigns.campaign_scheduled",
+        "sms-campaigns.campaign_dispatched",
+        "sms-campaigns.delivery_recorded"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeSmsCampaignsCreate": {
+        "kind": "filter",
+        "scope": "sms-campaigns.extend"
+      },
+      "afterSmsCampaignsUpdated": {
+        "kind": "observer",
+        "scope": "sms-campaigns.observe"
+      }
+    },
+    "provides": {
+      "hooks": []
+    }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": [
+      "config",
+      "hooks",
+      "overlay",
+      "fork"
+    ]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [
+        {
+          "label": "Sms Campaigns",
+          "path": "/sms-campaigns",
+          "permission": "sms-campaigns.read"
+        }
+      ],
+      "referenceUi": [
+        "reference-ui/admin/README.md"
+      ]
+    },
+    "visitor": {
+      "applicable": false,
+      "referenceUi": [
+        "reference-ui/visitor/README.md"
+      ]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": [
+        "sms-campaigns.read",
+        "sms-campaigns.write",
+        "sms-campaigns.dispatch"
+      ],
+      "skillPaths": [
+        "skills/sms-campaigns-operator/SKILL.md"
+      ],
+      "approvalRequiredFor": [
+        "sms-campaigns.write",
+        "sms-campaigns.dispatch"
+      ]
+    }
+  },
+  "skills": [
+    {
+      "id": "sms-campaigns-operator",
+      "path": "skills/sms-campaigns-operator/SKILL.md",
+      "recommendedFor": [
+        "admin-operations",
+        "agentic-tools"
+      ]
+    }
+  ],
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": [
+      "migrations",
+      "pii-fields",
+      "production-deploy",
+      "external-side-effects"
+    ]
+  }
+}

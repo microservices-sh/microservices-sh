@@ -36,7 +36,7 @@ Remaining gaps are mostly add-on business workflows, not more full-app cloning.
 
 | Priority | Candidate | Source Evidence | Recommendation |
 |---|---|---|---|
-| P0 | `sms-campaigns` module | `sms-crm` contacts, groups, templates, vendor configs, campaigns, recipients, SMS logs | Build as a module; add an `sms-crm-sveltekit` template only after module checks pass. |
+| P0 | `sms-campaigns` module | `sms-crm` contacts, groups, templates, vendor configs, campaigns, recipients, SMS logs | Implemented as a contract-checked module; add an `sms-crm-sveltekit` template only when route proof is needed. |
 | P0 | Support inbox/widget hardening | HelpGrid widget settings, quick actions, conversations, messages, ticket comments, attachments, sequences | Extend `support-ticket` and `knowledge-base-rag`, or add `support-inbox` if conversation/widget scope is too large for ticket CRUD. |
 | P1 | Membership and customer credits | Booking membership tiers, customer memberships, credits, credit transactions, membership history | Add `membership-credits` as a booking/customer/payment add-on module. |
 | P1 | Estimates/quotes and recurring invoice templates | Accounting Chiangs estimates, accepted/converted lifecycle, recurring invoices, recurring items, send/post/void schemas | Add `estimate-quote`; add recurring invoice generation either to `invoice` or a separate `recurring-documents` module. |
@@ -273,12 +273,12 @@ Recommended order:
 - Promote draft StackSuite modules only after D1/memory adapters, tests, and focused template routes are stable.
 
 ### Phase B: SMS Campaigns
-- Create `modules/sms-campaigns` with standard contract files.
-- Implement memory and D1 stores.
-- Add unit tests for campaign lifecycle, opt-out guard, idempotent delivery callback, scheduled dispatch selection.
-- Add provider port with a memory provider; do not ship raw provider credential storage.
-- Add reference UI metadata and operator skill.
-- Add `sms-crm-sveltekit` or routes in a broader CRM template.
+- Completed `modules/sms-campaigns` with standard contract files.
+- Completed memory and D1 stores.
+- Completed unit tests for campaign lifecycle, opt-out guard, idempotent delivery callback, and scheduled dispatch selection.
+- Completed provider port; raw provider credentials stay out of D1 and are represented by secret references.
+- Reference UI metadata and operator skill were scaffolded by the standard module layout; deepen them when adding a route proof.
+- Add `sms-crm-sveltekit` or routes in a broader CRM template only when the template surface is needed.
 
 ### Phase C: Support Inbox Split
 - Extend `support-ticket` with comments, attachments, public share token, and sequence numbers.
@@ -313,11 +313,11 @@ Recommended order:
 - Tenant checks happen at use-case boundaries, not only in page loaders.
 
 ## Decision
-The next valuable StackSuite adoption is not another accounting pass. It is:
+The next valuable StackSuite adoption is not another accounting pass. After completing the `sms-campaigns` module, it is:
 
-1. `sms-campaigns` as the next net-new module.
-2. Support inbox/widget hardening across `support-ticket`, `knowledge-base-rag`, and possibly a new `support-inbox`.
-3. Membership credits as the next booking add-on.
-4. Estimates/quotes and recurring documents as the next accounting add-on.
+1. Support inbox/widget hardening across `support-ticket`, `knowledge-base-rag`, and possibly a new `support-inbox`.
+2. Membership credits as the next booking add-on.
+3. Estimates/quotes and recurring documents as the next accounting add-on.
+4. A focused `sms-crm-sveltekit` route/template proof only if SMS becomes part of the public demo path.
 
 Everything else should stay P2 until the System Harness launch proof and existing focused templates are cleaner.

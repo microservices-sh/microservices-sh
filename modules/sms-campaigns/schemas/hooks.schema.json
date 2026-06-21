@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SMS Campaigns Hooks",
+  "type": "object",
+  "properties": {
+    "beforeSmsCampaignsCreate": {
+      "description": "Optional filter hook before campaign creation",
+      "type": "string"
+    },
+    "afterSmsCampaignsUpdated": {
+      "description": "Optional observer hook after campaign state changes",
+      "type": "string"
+    }
+  }
+}

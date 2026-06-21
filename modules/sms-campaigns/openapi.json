@@ -1,0 +1,134 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "SMS Campaigns Module",
+    "version": "0.1.0",
+    "description": "Route contract examples for tenant-scoped SMS contacts, templates, campaigns, dispatch, and delivery callbacks."
+  },
+  "paths": {
+    "/sms-campaigns/contacts": {
+      "post": {
+        "summary": "Upsert an SMS contact",
+        "operationId": "upsertSmsContact",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertSmsContact"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contact upserted"
+          }
+        }
+      }
+    },
+    "/sms-campaigns/templates": {
+      "post": {
+        "summary": "Create an SMS template",
+        "operationId": "createSmsTemplate",
+        "responses": {
+          "201": {
+            "description": "Template created"
+          }
+        }
+      }
+    },
+    "/sms-campaigns/campaigns": {
+      "post": {
+        "summary": "Create an SMS campaign from opted-in contacts or groups",
+        "operationId": "createSmsCampaign",
+        "responses": {
+          "201": {
+            "description": "Campaign created"
+          },
+          "422": {
+            "description": "No opted-in recipients or invalid campaign input"
+          }
+        }
+      }
+    },
+    "/sms-campaigns/campaigns/due": {
+      "get": {
+        "summary": "List scheduled campaigns due for dispatch",
+        "operationId": "listDueSmsCampaigns",
+        "responses": {
+          "200": {
+            "description": "Due campaigns"
+          }
+        }
+      }
+    },
+    "/sms-campaigns/campaigns/{campaignId}/dispatch": {
+      "post": {
+        "summary": "Dispatch a campaign through an approved SMS provider",
+        "operationId": "dispatchSmsCampaign",
+        "parameters": [
+          {
+            "name": "campaignId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dispatch report"
+          },
+          "409": {
+            "description": "Campaign is not dispatchable"
+          }
+        }
+      }
+    },
+    "/sms-campaigns/deliveries": {
+      "post": {
+        "summary": "Record or update provider delivery state",
+        "operationId": "recordSmsDelivery",
+        "responses": {
+          "200": {
+            "description": "Delivery log updated"
+          },
+          "404": {
+            "description": "Vendor message id not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "UpsertSmsContact": {
+        "type": "object",
+        "required": ["phone", "name"],
+        "properties": {
+          "phone": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": ["string", "null"]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "optIn": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      }
+    }
+  }
+}

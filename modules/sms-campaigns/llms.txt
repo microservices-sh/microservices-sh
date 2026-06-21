@@ -1,0 +1,16 @@
+# SMS Campaigns Module
+
+Module ID: sms-campaigns
+Status: draft
+Purpose: Tenant-scoped SMS contacts, consent-aware campaign creation, scheduled dispatch, provider delivery logs, and campaign reporting.
+Entrypoint: src/index.ts
+Check: pnpm check:spec
+Build: pnpm build
+Test: pnpm test
+Important files:
+- src/service/index.ts: use cases and consent/dispatch guards
+- src/ports/index.ts: storage and provider ports
+- src/adapters/memory.ts: in-memory store
+- src/adapters/d1.ts: D1 store
+- migrations/0001_initial.sql: D1 tables
+Do not store raw SMS provider credentials in D1.
