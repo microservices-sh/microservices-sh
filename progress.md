@@ -1551,3 +1551,16 @@
 | Commerce template build | SvelteKit/Cloudflare build compiles the updated hook | `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
 | Workspace specs | All module/template specs remain green after the commerce policy update | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 69 StackSuite public plan refresh
+
+- **Status:** complete.
+- Goal: keep the public StackSuite porting plan aligned with the committed accounting/commerce module and focused-template baseline.
+- Updated the document status, implementation baseline, explorer-finding status, phased execution status, and remaining backlog.
+- Added explicit Code Memory donor-scan guidance for `accounting-system` and `invoice-system-bao` local sources.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Documentation diff | Plan reflects completed parity and remaining backlog without changing code behavior | Reviewed `git diff -- docs/templates/stacksuite-porting-plan.md` | Pass |
+| Stale wording scan | Public plan no longer claims completed parity work is still absent | `rg -n "still thin|not yet represented|Both explorers flagged|Done or in progress|Add missing module API surface" docs/templates/stacksuite-porting-plan.md` returned no matches | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

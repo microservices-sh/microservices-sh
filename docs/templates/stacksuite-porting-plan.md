@@ -1,6 +1,6 @@
 # StackSuite Accounting And Invoice Porting Plan
 
-Status: draft
+Status: active implementation baseline
 Source review date: 2026-06-21
 
 ## Scope
@@ -14,7 +14,7 @@ This plan covers adopting the StackSuite source projects into `create-microservi
 
 The goal is not to copy the source apps wholesale. The CLI should expose reusable domain modules, compose those modules into focused templates, and keep generated projects upgradeable.
 
-This plan extends the earlier implementation tracker at `plans/34-stacksuite-accounting-commerce-port.md`. That tracker records the initial module/template port; this document captures the remaining adoption work after the first focused templates exist.
+This plan extends the earlier implementation tracker at `plans/34-stacksuite-accounting-commerce-port.md`. That tracker records the committed implementation slices; this document captures the public technical plan, current baseline, and remaining adoption work for the focused templates.
 
 ## Current Target Shape
 
@@ -27,19 +27,31 @@ The current repo already has the right foundation:
 
 Recent focused-template cleanup should be treated as the baseline: do not reintroduce broad ERP-shell modules into the focused accounting or commerce templates unless a route, migration, and module contract actually require them.
 
-## Explorer Findings
+## Implementation Baseline
+
+As of the latest StackSuite porting slices, the focused templates are CLI-discoverable and generated-app smoke covered:
+
+- `create-microservices-app` lists and bundles `accounting-erp-sveltekit` and `commerce-ops-sveltekit`.
+- Bundle closure and smoke coverage include the module source required by both templates.
+- Accounting routes cover ledger account/fiscal-period/journal workflows, trial balance, payables, receivables, banking, reports, invoice collection, signed Stripe settlement, and scheduled recurring-invoice posting/AR sync.
+- Commerce routes cover product catalog, inventory, sales orders, shipments, commerce sync, signed WooCommerce order webhooks, invoice/payment handoff, document exports, packing slips, pick lists, and scheduled runtime glue.
+- Request hooks, locks, manifests, enabled modules, migrations, docs, and template policy checks now agree on the focused module set.
+
+Keep the templates source-visible and module-backed. Template-side adapters may bridge modules, providers, and UI workflows, but durable business behavior should remain in module use cases or documented ports.
+
+## Explorer Findings And Status
 
 Two read-only explorer passes on 2026-06-21 identified the remaining adoption gaps:
 
-- Accounting depth is still thin relative to `accounting-system`: account hierarchy/subtypes, reconcilable flags, fiscal period generation/close/reopen/lock, journal numbering, posting/void/reversal workflows, general ledger, account balances, and full accounting setup are not yet represented.
-- AP has vendors, bills, payments, aging, and a recurring template primitive, but lacks approve/post/void bill flows, draft/post/void payment flows, payment-account handling, recurring bill generation, and pause/resume/cancel lifecycle.
-- AR currently stores invoice snapshots/payments/aging, but donor behavior posts invoices/customer payments into accounting, tracks deposit accounts, payment methods, references, void/reversal metadata, unapplied balances, and customer statements.
-- Banking migrations are richer than the service layer. Missing behavior includes import records/stats, CSV field mapping, duplicate handling, match scoring, confirm/remove/exclude match workflows, clear/unclear reconciliation, summaries/history, and balance updates on completion.
+- Accounting depth has moved past the original thin slice. Ledger posting, post/void/reversal workflows, trial balance, AR/AP posting adapters, invoice/customer-payment settlement, Stripe settlement, and recurring-invoice job posting are implemented in the template/module split. Remaining accounting backlog is setup depth, fiscal close/reopen/lock rules, richer account metadata, and full financial statements.
+- AP has vendors, bills, payments, aging, bill posting, payment settlement, and recurring bill storage primitives. Remaining backlog is recurring bill generation through jobs-workflows, pause/resume/cancel lifecycle, approval routing, and richer payment-account handling.
+- AR now stores invoice snapshots/payments/aging, customer statements, manual invoice issue/payment/void sync, Stripe settlement sync, customer-payment settlement posting, and recurring auto-issued invoice sync. Remaining backlog is richer deposit-account configuration, unapplied balance reporting, and reusable statement/export contracts.
+- Banking now exposes imports, match suggestions, match creation, reconciliation start, and reconciliation completion in the accounting template workflow. Remaining backlog is CSV field mapping, duplicate handling, confirm/remove/exclude match lifecycle, clear/unclear operations, richer summaries/history, and provider/OCR hooks.
 - BAO invoice documents include commerce-specific projections: sales-order link, product-backed lines, contact/address snapshots, shipping status, shipping fee, discount, terms, payment method, PDF key, Stripe payment-link fields, and external IDs. Keep invoice core lean and put document snapshots in a template projection or an invoice-document extension.
-- BAO fulfillment links invoices, shipment batches, and stock movement. Add invoice-as-shipment-source support in shipment/inventory rather than pushing fulfillment state directly into invoice core.
-- BAO WooCommerce behavior is provider-specific and should become a provider adapter below `commerce-sync`, not core neutral sync storage.
-- BAO MCP/reporting tools are useful, but write-capable tools need scoped tokens, audit logging, and strict provider/tenant wrappers before exposure.
-- Both explorers flagged a focused-template metadata mismatch around `gateway`. That has been closed by declaring gateway in the focused template manifests, locks, enabled-module lists, checks, and migrations while leaving API-key UI as future work.
+- BAO fulfillment links invoices, shipment batches, and stock movement. The commerce template now covers reservation/release, combo-component reservation, invoice-originated shipment deduction, shipment batches, packing slips, and pick lists. Remaining backlog is richer shipment detail/status routes and inventory reconciliation documents.
+- BAO WooCommerce behavior remains provider-specific. The current template has HMAC verification, manual page sync, signed order webhooks, order import, and audit events; future provider depth should stay below `commerce-sync` adapters and template bridges.
+- BAO MCP/reporting tools are useful, but write-capable tools still need scoped tokens, audit logging, and strict provider/tenant wrappers before public exposure.
+- The focused-template metadata mismatch around `gateway` has been closed by declaring gateway in manifests, locks, enabled-module lists, checks, and migrations while leaving API-key UI as future work.
 
 ## Source Feature Inventory
 
@@ -233,6 +245,22 @@ Every porting slice must update the CLI surface when it changes generated output
 - bundle closure tests when template dependency rules change.
 - registry checks if module/template status changes from draft to available.
 
+## Code Memory Donor Scan Guidance
+
+Use Code Memory when future agents need to mine the StackSuite donor projects for additional reusable capsules. The scan is metadata-only and must not execute donor code or copy unapproved snippets into generated apps.
+
+Recommended local-source registration:
+
+```bash
+microservices memory source add https://github.com/acme/stacksuite --path containers/accounting-system
+microservices memory source scan <source-id> --dir ~/Project/stacksuite/containers/accounting-system --path containers/accounting-system --max-candidates 10
+
+microservices memory source add https://github.com/acme/stacksuite --path containers/invoice-system-bao
+microservices memory source scan <source-id> --dir ~/Project/stacksuite/containers/invoice-system-bao --path containers/invoice-system-bao --max-candidates 10
+```
+
+Approve capsules only after reviewing provenance, tenant boundaries, idempotency, secret handling, and whether the reuse target is a module, template adapter, test fixture, or documentation pattern. For StackSuite ports, prefer module-owned capsules for accounting, AP/AR, banking, inventory, sales-order, shipment, and commerce-sync invariants; prefer template-adapter capsules for provider calls, printable documents, payment links, email send, and operator UI glue.
+
 ## Migration Strategy
 
 Translate source migrations into module-owned migrations; do not import Drizzle SQL verbatim unless names, scope, and ownership already match.
@@ -285,38 +313,55 @@ pnpm --dir /tmp/<generated-app> build
 
 ### Phase 0: Baseline Hardening
 
-Done or in progress:
+Done:
 
-- keep accounting and commerce focused templates from inheriting unrelated broad ERP-shell modules.
-- make module enablement, template manifests, locks, migrations, docs, and CLI bundled-deps agree.
+- make module enablement, template manifests, locks, migrations, docs, and CLI bundled-deps agree for both focused templates.
 - avoid D1 writes during accounting page loads.
-- expose support-ticket as a real route where it is required by focused templates.
+- expose inherited support, notifications, webhook, admin, team, and settings surfaces only when routes and contracts intentionally require them.
 - declare gateway consistently in the focused templates because hooks use gateway rate-limit stores and `RATE_LIMIT_KV`.
+- remove stale hook wiring for removed surfaces, such as obsolete commerce billing-store locals.
 
 ### Phase 1: Source Gap Closure
 
-Add missing module API surface without large template UI changes:
+Mostly done for the first StackSuite parity milestone:
 
-- invoice estimates and recurring invoice contracts.
-- AP recurring list/update/generate contracts.
-- accounting setup/report contracts.
-- commerce sync webhook/signature/sync-log/order-contact contracts.
-- inventory stock movement and reconciliation contracts.
+- recurring invoice contracts and scheduled auto-issued invoice accounting sync.
+- AP/AR posting and settlement adapters.
+- ledger posting, void/reversal, trial balance, AR/AP aging, and customer statement workflows.
+- commerce sync webhook/signature/sync-log/order-contact/order-import contracts.
+- inventory reservation/release/deduction contracts across sales orders, invoices, shipments, and MCP lifecycle tools.
+
+Still pending:
+
+- estimates and invoice-document extension contracts.
+- AP recurring bill generation and lifecycle APIs.
+- accounting setup packs, full statements, and fiscal close/reopen/lock contracts.
+- inventory receive/adjust/reconcile documents and alert read models.
 
 ### Phase 2: Focused Template Routes
 
-Add user-facing routes only after the backing module API exists:
+Done for the first accounting/commerce operator surface:
+
+- accounting ledger, payables, receivables, banking, reports, invoice collection, Stripe settlement, and scheduled jobs.
+- commerce products, inventory, sales orders, shipments, commerce sync, invoices, payment settlement, document exports, and scheduled jobs.
+
+Remaining routes should be added only after the backing module API exists:
 
 - accounting setup, chart, fiscal periods, reports, recurring AP/AR, estimates, banking import/reconciliation detail.
 - commerce sales-order detail/create/send, shipment detail/packing slip, inventory receive/adjust/reconcile, sync logs, MCP settings.
 
 ### Phase 3: External Operations
 
-Wire approval-gated provider operations:
+Partially done:
 
-- Stripe payment links and OAuth/connect status.
-- WooCommerce manual sync, scheduled sync, and webhooks.
-- Resend/SMTP email send attempts.
+- Stripe payment links and signed settlement webhooks.
+- WooCommerce manual page sync, signed order webhooks, order import, and scheduled runtime glue.
+- email send attempts through template-side provider dependencies.
+
+Still pending:
+
+- Stripe OAuth/connect status and richer provider account health.
+- WooCommerce provider setup UX and richer sync log rollups.
 - OCR/document extraction review loops.
 - MCP tools with audited tokens.
 

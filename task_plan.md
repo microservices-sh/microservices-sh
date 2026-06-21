@@ -540,6 +540,12 @@ Phase 67
 - [x] Verify commerce template check, commerce template build, and whitespace checks.
 - **Status:** complete
 
+### Phase 69: StackSuite Public Plan Refresh
+- [x] Refresh `docs/templates/stacksuite-porting-plan.md` so the public plan matches the committed accounting/commerce parity baseline.
+- [x] Add explicit Code Memory donor-scan guidance for the two StackSuite source projects.
+- [x] Verify documentation diff, stale wording scan, and whitespace checks.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.
