@@ -58,6 +58,12 @@ Future MCP/CLI tools should expose the same content through:
 | [`identity`](./identity.md) | Available | Passwordless email-code login, server-side sessions, and scoped service-token bridging through auth. |
 | [`gateway`](./gateway.md) | Available | Public trust boundary: API-key auth, rate limiting, scope narrowing, token exchange via auth. |
 | [`customer`](./customer.md) | Available | Customer profiles, tags, consent fields, and customer events. |
+| [`org-team-rbac`](./org-team-rbac.md) | Available | Organizations, memberships, roles, invitations, and tenant-scoped permission resolution. |
+| [`admin-shell`](./admin-shell.md) | Available | Schema-driven admin CRUD over host D1 tables with RBAC, search, pagination, and audit hooks. |
+| [`file-media`](./file-media.md) | Available | R2-backed file uploads, upload tickets, owner-scoped listing, soft-deletes, and media lifecycle events. |
+| [`jobs-workflows`](./jobs-workflows.md) | Available | Durable jobs, schedules, deterministic workflows, retry backoff, artifacts, and dead-letter handling. |
+| [`notifications-inapp`](./notifications-inapp.md) | Available | Per-user notification feed with read/unread state, reconnect catch-up, and idempotent delivery. |
+| [`support-ticket`](./support-ticket.md) | Available | Tenant-scoped support tickets, comments, attachments, assignment, and public follow-up links. |
 | [`product-catalog`](./product-catalog.md) | Draft | Product/category catalog, SKU uniqueness, external mappings, and combo products. |
 | [`inventory`](./inventory.md) | Draft | Tenant-scoped stock movements, reservations, deductions, reconciliation, and balances. |
 | [`sales-order`](./sales-order.md) | Draft | Sales orders, line items, status transitions, reservation handoff, and invoice draft handoff. |

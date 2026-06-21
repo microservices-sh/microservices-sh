@@ -8,6 +8,15 @@ import {
   planModuleUpgrade,
 } from "../src/index.js";
 
+const FOUNDATION_CATALOG_IDS = [
+  "org-team-rbac",
+  "admin-shell",
+  "file-media",
+  "jobs-workflows",
+  "notifications-inapp",
+  "support-ticket",
+];
+
 function lockWith(module) {
   return {
     schemaVersion: "2026-06-13",
@@ -223,5 +232,61 @@ describe("SDK module version planning", () => {
     });
     expect(receivables.ok).toBe(true);
     expect(receivables.data.missingDependencies).toEqual(["invoice"]);
+  });
+
+  it("includes locked foundation modules in generated docs", () => {
+    const docs = listModuleDocs();
+    expect(docs.ok).toBe(true);
+    expect(docs.data.map((module) => module.id)).toEqual(expect.arrayContaining(FOUNDATION_CATALOG_IDS));
+
+    const orgTeamRbac = getModuleDoc("org-team-rbac@0.1.0");
+    expect(orgTeamRbac.ok).toBe(true);
+    expect(orgTeamRbac.data.module).toMatchObject({
+      id: "org-team-rbac",
+      status: "available",
+      mount: "/orgs",
+      approvalRisk: "high",
+      docPath: "docs/modules/org-team-rbac.md",
+      events: expect.arrayContaining(["member.invited", "member.joined"]),
+    });
+    expect(orgTeamRbac.data.markdown).toContain("org-team-rbac.resolvePermissions");
+
+    const fileMedia = getModuleDoc("file-media@0.1.0");
+    expect(fileMedia.ok).toBe(true);
+    expect(fileMedia.data.module).toMatchObject({
+      id: "file-media",
+      mount: "/files",
+      approvalRisk: "high",
+      resources: expect.arrayContaining(["D1", "R2"]),
+      rpc: expect.arrayContaining([
+        { method: "createUploadTicket", scope: "media.upload", public: false },
+        { method: "deleteFile", scope: "media.admin", public: false },
+      ]),
+    });
+    expect(fileMedia.data.markdown).toContain("- R2");
+    expect(fileMedia.data.markdown).toContain("file-media.createUploadTicket");
+
+    const jobsWorkflows = getModuleDoc("jobs-workflows@0.1.0");
+    expect(jobsWorkflows.ok).toBe(true);
+    expect(jobsWorkflows.data.module).toMatchObject({
+      id: "jobs-workflows",
+      mount: "/jobs",
+      approvalRisk: "high",
+      permissions: expect.arrayContaining(["jobs.enqueue", "workflows.run"]),
+      events: expect.arrayContaining(["workflow.started", "workflow.artifact.recorded"]),
+    });
+    expect(jobsWorkflows.data.markdown).toContain("jobs-workflows.startWorkflowRun");
+
+    const supportTicket = getModuleDoc("support-ticket@0.1.0");
+    expect(supportTicket.ok).toBe(true);
+    expect(supportTicket.data.module).toMatchObject({
+      id: "support-ticket",
+      mount: "/support",
+      docPath: "docs/modules/support-ticket.md",
+      rpc: expect.arrayContaining([
+        { method: "resolveTicketShareToken", scope: "public-token", public: true },
+      ]),
+    });
+    expect(supportTicket.data.markdown).toContain("support-ticket.resolveTicketShareToken");
   });
 });

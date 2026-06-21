@@ -31,6 +31,15 @@ const STACKSUITE_CATALOG_IDS = [
   "bank-reconciliation",
 ];
 
+const FOUNDATION_CATALOG_IDS = [
+  "org-team-rbac",
+  "admin-shell",
+  "file-media",
+  "jobs-workflows",
+  "notifications-inapp",
+  "support-ticket",
+];
+
 describe("module version selectors", () => {
   it("parses inline module versions", () => {
     expect(parseModuleRef("auth@0.1.0")).toEqual({
@@ -269,6 +278,94 @@ describe("module version selectors", () => {
       eventsEmitted: expect.arrayContaining([
         "recurring-documents.generated",
         "recurring-documents.completed",
+      ]),
+    });
+  });
+
+  it("exposes locked foundation modules in the static contract catalog", () => {
+    expect(listModules().map((module) => module.id)).toEqual(expect.arrayContaining(FOUNDATION_CATALOG_IDS));
+
+    expect(inspectModule("org-team-rbac@0.1.0")).toMatchObject({
+      id: "org-team-rbac",
+      status: "available",
+      category: "platform",
+      approvalRisk: "high",
+      runtime: { mount: "/orgs" },
+      permissions: expect.arrayContaining(["org.read", "member.manage"]),
+      rpc: expect.arrayContaining([
+        { method: "inviteMember", scope: "member.manage", public: false },
+        { method: "resolvePermissions", scope: "org.read", public: false },
+      ]),
+      eventsEmitted: expect.arrayContaining(["member.invited", "member.joined"]),
+    });
+
+    expect(inspectModule("admin-shell@0.1.0")).toMatchObject({
+      id: "admin-shell",
+      status: "available",
+      category: "platform",
+      approvalRisk: "high",
+      runtime: { mount: "/admin" },
+      permissions: expect.arrayContaining(["admin.access", "admin.write"]),
+      rpc: expect.arrayContaining([
+        { method: "listRecords", scope: "admin.read", public: false },
+        { method: "deleteRecord", scope: "admin.write", public: false },
+      ]),
+      eventsEmitted: expect.arrayContaining(["admin.record_updated"]),
+    });
+
+    expect(inspectModule("file-media@0.1.0")).toMatchObject({
+      id: "file-media",
+      status: "available",
+      category: "provider",
+      approvalRisk: "high",
+      storage: expect.arrayContaining(["d1", "r2"]),
+      runtime: { mount: "/files", bindings: expect.arrayContaining(["MEDIA_BUCKET"]) },
+      rpc: expect.arrayContaining([
+        { method: "createUploadTicket", scope: "media.upload", public: false },
+        { method: "deleteFile", scope: "media.admin", public: false },
+      ]),
+      eventsEmitted: expect.arrayContaining(["media.uploaded", "media.ticket_expired"]),
+    });
+
+    expect(inspectModule("jobs-workflows@0.1.0")).toMatchObject({
+      id: "jobs-workflows",
+      status: "available",
+      category: "platform",
+      approvalRisk: "high",
+      storage: expect.arrayContaining(["d1", "queue"]),
+      runtime: { mount: "/jobs", bindings: expect.arrayContaining(["JOBS_QUEUE"]) },
+      permissions: expect.arrayContaining(["jobs.enqueue", "workflows.run"]),
+      rpc: expect.arrayContaining([
+        { method: "enqueueJob", scope: "jobs.enqueue", public: false },
+        { method: "startWorkflowRun", scope: "workflows.run", public: false },
+      ]),
+      eventsEmitted: expect.arrayContaining(["job.enqueued", "workflow.started"]),
+    });
+
+    expect(inspectModule("notifications-inapp@0.1.0")).toMatchObject({
+      id: "notifications-inapp",
+      status: "available",
+      runtime: { mount: "/notifications" },
+      permissions: expect.arrayContaining(["notifications.read", "notifications.write"]),
+      rpc: expect.arrayContaining([
+        { method: "notify", scope: "notifications.write", public: false },
+        { method: "getUnreadCount", scope: "notifications.read", public: false },
+      ]),
+      eventsEmitted: expect.arrayContaining(["notification.created", "notification.read"]),
+    });
+
+    expect(inspectModule("support-ticket@0.1.0")).toMatchObject({
+      id: "support-ticket",
+      status: "available",
+      runtime: { mount: "/support" },
+      permissions: expect.arrayContaining(["support.read", "support.manage"]),
+      rpc: expect.arrayContaining([
+        { method: "createTicket", scope: "support.manage", public: false },
+        { method: "resolveTicketShareToken", scope: "public-token", public: true },
+      ]),
+      eventsEmitted: expect.arrayContaining([
+        "support-ticket.status_changed",
+        "support-ticket.share-token.created",
       ]),
     });
   });

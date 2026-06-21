@@ -648,6 +648,14 @@ Phase 83
 - [x] Verify accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 
+### Phase 84: Locked Foundation Module Catalog Closure
+- [x] Add public docs catalog rows and reference pages for `org-team-rbac`, `admin-shell`, `file-media`, `jobs-workflows`, `notifications-inapp`, and `support-ticket`.
+- [x] Add internal `module-contract` catalog rows so `inspectModule("<id>@0.1.0")` and generated SDK docs cover those locked foundation modules.
+- [x] Broaden the template catalog drift guard from StackSuite-only rows to guarded locked modules used by SaaS, portal, commerce, accounting, and ERP templates.
+- [x] Add module-contract and SDK tests for foundation module visibility, mounts, approval risk, RPC, events, generated docs, and source doc paths.
+- [x] Verify package builds, focused template JSON checks, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

@@ -10,7 +10,13 @@ const IGNORED_DIRS = new Set([".git", ".svelte-kit", ".wrangler", "dist", "node_
 const FORBIDDEN_FRAMEWORK_IMPORTS = ["@sveltejs/kit", "from \"hono\"", "from 'hono'", "OpenAPIHono"];
 const MODULE_SOURCE_REPO = "microservices-sh/microservices-sh";
 const MODULE_SOURCE_URL = `https://github.com/${MODULE_SOURCE_REPO}.git`;
-const STACKSUITE_CATALOG_GUARD_MODULE_IDS = new Set([
+const LOCKED_MODULE_CATALOG_GUARD_IDS = new Set([
+  "org-team-rbac",
+  "admin-shell",
+  "file-media",
+  "jobs-workflows",
+  "notifications-inapp",
+  "support-ticket",
   "product-catalog",
   "inventory",
   "sales-order",
@@ -923,10 +929,10 @@ async function assertEnforcedTenantBoundary(checks, targetPath) {
   assertCheck(checks, "template:enforced-tenant-boundary", offenders.length === 0, message);
 }
 
-function assertStackSuiteCatalogCoverage(checks, rootPath, lock) {
+function assertLockedModuleCatalogCoverage(checks, rootPath, lock) {
   const lockModules = Array.isArray(lock.modules) ? lock.modules : [];
   const guardedModules = lockModules
-    .filter((module) => STACKSUITE_CATALOG_GUARD_MODULE_IDS.has(module.id))
+    .filter((module) => LOCKED_MODULE_CATALOG_GUARD_IDS.has(module.id))
     .map((module) => ({ id: module.id, version: module.version || "0.1.0" }));
   const guardedIds = guardedModules.map((module) => module.id);
 
@@ -935,11 +941,11 @@ function assertStackSuiteCatalogCoverage(checks, rootPath, lock) {
   const missingDocs = guardedIds.filter((id) => !docsCatalogIds.has(id));
   assertCheck(
     checks,
-    "template:stacksuite-docs-catalog-coverage",
+    "template:locked-module-docs-catalog-coverage",
     missingDocs.length === 0,
     missingDocs.length === 0
-      ? "Template StackSuite modules are represented in docs/modules/catalog.json."
-      : `Template StackSuite modules missing from docs/modules/catalog.json: ${missingDocs.join(", ")}.`
+      ? "Template guarded locked modules are represented in docs/modules/catalog.json."
+      : `Template guarded locked modules missing from docs/modules/catalog.json: ${missingDocs.join(", ")}.`
   );
 
   const missingInternal = [];
@@ -952,11 +958,11 @@ function assertStackSuiteCatalogCoverage(checks, rootPath, lock) {
   }
   assertCheck(
     checks,
-    "template:stacksuite-internal-catalog-coverage",
+    "template:locked-module-internal-catalog-coverage",
     missingInternal.length === 0,
     missingInternal.length === 0
-      ? "Template StackSuite modules are represented in the internal module-contract catalog."
-      : `Template StackSuite modules missing from the internal module-contract catalog: ${missingInternal.join(", ")}.`
+      ? "Template guarded locked modules are represented in the internal module-contract catalog."
+      : `Template guarded locked modules missing from the internal module-contract catalog: ${missingInternal.join(", ")}.`
   );
 }
 
@@ -978,7 +984,7 @@ async function checkTemplate(targetPath, rootPath) {
   }
 
   const lockModuleIds = Array.isArray(lock.modules) ? lock.modules.map((module) => module.id) : [];
-  assertStackSuiteCatalogCoverage(checks, rootPath, lock);
+  assertLockedModuleCatalogCoverage(checks, rootPath, lock);
   for (const moduleId of moduleIdsFromTemplate(manifest)) {
     assertCheck(
       checks,

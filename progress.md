@@ -1821,3 +1821,21 @@
 | Create app package | Packaged accounting template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed | Pass |
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 84 Locked foundation module catalog closure
+
+- **Status:** complete.
+- Goal: close the high-reuse locked-module catalog gap for foundation modules already used by SaaS, portal, DOT AI OS, commerce, accounting, and ERP templates.
+- Added public catalog rows and module docs for `org-team-rbac`, `admin-shell`, `file-media`, `jobs-workflows`, `notifications-inapp`, and `support-ticket`.
+- Added internal `module-contract` rows so `inspectModule("<id>@0.1.0")`, generated SDK docs, source refs, and add/upgrade planning can reason about those modules.
+- Broadened the shared template guard from StackSuite-only catalog coverage to guarded locked-module catalog coverage.
+- Added module-contract and SDK tests for foundation module mounts, approval risk, RPC, events, resources, generated docs, and doc paths.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Focused catalog tests | Module-contract and SDK generated-doc tests cover foundation module metadata | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js packages/sdk-internal/tests/module-versioning.test.js` passed, 26/26 | Pass |
+| Package builds | Catalog and checker entrypoints remain syntactically valid | `pnpm --filter @microservices-sh/module-contract build`, `pnpm --filter @microservices-sh/sdk-internal build`, and `pnpm --filter @microservices-sh/workspace-tools build` passed | Pass |
+| Guarded template JSON checks | Expanded locked-module guard passes for representative templates | `node packages/workspace-tools/src/index.js check template --path ... --json` passed for accounting, commerce, SaaS starter, and client portal | Pass |
+| Create app package | Packaged CLI rebuilds and tests remain green with refreshed catalog metadata | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed | Pass |
+| Workspace specs | All module/template specs remain green with the broader guard | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
