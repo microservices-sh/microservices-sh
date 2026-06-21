@@ -30,6 +30,7 @@ export {
 export { planOpsTools } from "./ops-plan";
 export { assistedBrief } from "./assist";
 export { createGroundedAnswerer } from "./grounded-answerer";
+export { customerSummary } from "./customer-summary";
 export { loadWorkspaceConfig, WORKSPACE_MAX_TOPK, type WorkspaceConfig, type WorkspaceSettings } from "./workspace";
 
 export type Actor = { id: string; scopes: string[] };
