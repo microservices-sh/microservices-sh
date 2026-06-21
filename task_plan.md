@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 44
+Phase 45
 
 ## Phases
 
@@ -341,6 +341,14 @@ Phase 44
 - [x] Verify `pnpm spec:check:all`.
 - [x] Verify generated registry lists `marketing-research` as `available` with skill and approval metadata.
 - **Status:** complete
+
+### Phase 45: StackSuite Commerce And Accounting Template Split
+- [x] Add StackSuite-derived modules for commerce, accounting, AP, AR, bank reconciliation, and commerce sync.
+- [x] Add `commerce-ops-sveltekit` and `accounting-erp-sveltekit` repo-style templates derived from `erp-shell-sveltekit`.
+- [x] Register the new templates in create-app template discovery and bundling metadata.
+- [x] Keep current route/UI limitations explicit: the templates are CLI/template-available, but product/inventory/sales/shipment/sync and accounting route pages are still pending.
+- [ ] Add route-level pages and sidebar entries for the StackSuite modules, then prune inherited broad ERP shell deps.
+- **Status:** template split in progress; CLI template availability added, route-level UI pending
 
 ## Key Questions
 1. Is the current plan good enough to start an MVP?

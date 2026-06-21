@@ -224,3 +224,9 @@
 - `pnpm --filter @microservices-sh/marketing-research build` passes.
 - `pnpm --filter @microservices-sh/marketing-research check:spec` passes.
 - `pnpm spec:check:all` now passes across 28 modules and 7 templates, 35 targets total. The previous full-spec blocker is resolved.
+
+## StackSuite Accounting And Commerce Port Findings
+- Donor app behavior from `accounting-system` and `invoice-system-bao` maps cleanly into module boundaries rather than copied full apps: product catalog, inventory, sales order, shipment, commerce sync, accounting core, accounts payable, accounts receivable, and bank reconciliation.
+- The module extraction is implemented and contract-checked. `erp-shell-sveltekit` now carries the StackSuite module migrations and optional slots.
+- `commerce-ops-sveltekit` and `accounting-erp-sveltekit` are now repo-style create-app templates with focused manifests, lockfiles, enabled-module sets, and StackSuite-specific agent docs.
+- The new templates intentionally keep inherited ERP shell code and broad package deps for now because the SvelteKit route layer still imports shared stores and dashboard behavior. Route-level pages for the StackSuite modules should land before pruning inherited deps/migrations.

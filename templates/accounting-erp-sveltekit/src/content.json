@@ -1,0 +1,15 @@
+{
+  "hero": {
+    "eyebrow": "Company operations",
+    "headline": "Run your company on one operational shell.",
+    "lead": "Sign in to your company workspace: customers, invoices, files, and team — operational modules that plug into one lock-driven app shell.",
+    "primaryCta": { "label": "Open the app", "href": "/app" },
+    "secondaryCta": { "label": "Log in", "href": "/login" }
+  },
+  "panel": {
+    "eyebrow": "What's inside",
+    "title": "Single company, modular operations",
+    "body": "One organization, role-based employees, and operational modules that surface in the sidebar only when installed — no boilerplate.",
+    "features": ["Customers & invoices", "File storage", "Role-based team", "Super-admin console", "Audit trail"]
+  }
+}

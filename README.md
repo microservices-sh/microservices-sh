@@ -257,6 +257,8 @@ modules/
 templates/
   booking-sveltekit/         Full-app booking template (default)
   saas-starter-sveltekit/    Multi-tenant B2B SaaS starter
+  commerce-ops-sveltekit/    Commerce operations template
+  accounting-erp-sveltekit/  Accounting ERP template
   dot-ai-os/                 Agent-native operator workspace
   client-portal-sveltekit/   Customer portal (invoices, files)
   company-landing-astro/     Static Astro landing page

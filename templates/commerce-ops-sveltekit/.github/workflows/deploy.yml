@@ -1,0 +1,100 @@
+# Self-hosted deploy pipeline for this generated ERP-shell app.
+#
+# This is the "you own AND operate it" pipeline: it deploys straight to YOUR
+# own Cloudflare account with Wrangler — no microservices.sh control plane in
+# the loop. On every push to `main` it verifies the app (spec check + build),
+# applies D1 migrations against your remote database, and only then deploys.
+#
+# Required GitHub repo secrets (Settings → Secrets and variables → Actions):
+#   - CLOUDFLARE_API_TOKEN    Cloudflare API token with Workers Scripts:Edit and D1:Edit
+#   - CLOUDFLARE_ACCOUNT_ID   Your Cloudflare account id
+# See README "Deploy" section for how to set these.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+# Never run two deploys for the same branch at once; cancel an in-flight one
+# if a newer commit lands so production reflects the latest green commit.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Gate ────────────────────────────────────────────────────────────────
+  # Verify the app before anything touches Cloudflare. If this job fails the
+  # `deploy` job below never runs (it `needs:` this one), so a broken build or
+  # a failing spec check can never reach production.
+  verify:
+    name: Verify (spec check + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22 # template engines requires Node >=20
+          package-manager-cache: false
+
+      # The template (and generated app) is a pnpm project.
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10 --activate
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # Spec / contract check. In a generated app this is rewritten to
+      # `node scripts/microservices.js check --json`, so it runs standalone.
+      - name: Check workspace contract
+        run: pnpm run check:spec
+
+      # `build` runs `prebuild` (content validation) then `vite build`, which
+      # produces the `.svelte-kit/cloudflare` worker output Wrangler deploys.
+      - name: Build
+        run: pnpm run build
+
+  # ── Deploy ──────────────────────────────────────────────────────────────
+  # Gated on `verify`. Rebuilds the worker output, applies remote D1
+  # migrations, then deploys with Wrangler to your Cloudflare account.
+  deploy:
+    name: Deploy to Cloudflare
+    needs: verify # deploy only runs if verify (build + check) passed
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10 --activate
+
+      - name: Install dependencies
+        run: pnpm install
+
+      # Produce the worker bundle (.svelte-kit/cloudflare) for this commit.
+      - name: Build
+        run: pnpm run build
+
+      # Apply pending D1 migrations from ./migrations to the REMOTE database
+      # bound as `DB` in wrangler.jsonc. `--remote` targets the real Cloudflare
+      # D1 (local dev uses `--local`). Wrangler tracks applied migrations, so
+      # re-running is a no-op when nothing is pending.
+      - name: Apply D1 migrations (remote)
+        run: pnpm exec wrangler d1 migrations apply DB --remote
+
+      # Deploy the worker named `erp-shell-sveltekit` (from wrangler.jsonc) to
+      # your Cloudflare account.
+      - name: Deploy with Wrangler
+        run: pnpm exec wrangler deploy

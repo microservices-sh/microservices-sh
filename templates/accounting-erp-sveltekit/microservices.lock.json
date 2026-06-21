@@ -1,0 +1,908 @@
+{
+  "schemaVersion": "2026-06-13",
+  "generatedAt": "template-scaffold",
+  "registry": {
+    "id": "microservices.sh",
+    "contractVersion": "2026-06-13"
+  },
+  "generator": {
+    "package": "create-microservices-app",
+    "version": "0.0.0"
+  },
+  "template": {
+    "id": "accounting-erp-sveltekit",
+    "version": "0.1.0",
+    "source": "registry:accounting-erp-sveltekit@0.1.0",
+    "checksum": "sha256:scaffold-accounting-erp-sveltekit-0.1.0"
+  },
+  "deploy": {
+    "mode": "embedded"
+  },
+  "modules": [
+    {
+      "id": "auth",
+      "version": "0.1.0",
+      "source": "registry:auth@0.1.0",
+      "checksum": "sha256:preview-auth-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/auth",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "auth.mint",
+          "auth.verify",
+          "auth.admin"
+        ],
+        "rpc": [
+          {
+            "method": "mintToken",
+            "scope": "auth.mint",
+            "public": false
+          },
+          {
+            "method": "verifyToken",
+            "scope": "auth.verify",
+            "public": false
+          },
+          {
+            "method": "getJwks",
+            "scope": null,
+            "public": true
+          }
+        ],
+        "hooks": [
+          "beforeMintToken",
+          "afterTokenMinted"
+        ],
+        "events": [
+          "auth.token_minted",
+          "auth.key_rotated"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "org-team-rbac",
+      "version": "0.1.0",
+      "source": "registry:org-team-rbac@0.1.0",
+      "checksum": "sha256:preview-org-team-rbac-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/orgs",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "org.read",
+          "org.manage",
+          "member.manage"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeInvite",
+          "onMembershipChanged"
+        ],
+        "events": [
+          "org.created",
+          "member.invited",
+          "member.joined",
+          "member.removed",
+          "role.updated"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "admin-shell",
+      "version": "0.1.0",
+      "source": "registry:admin-shell@0.1.0",
+      "checksum": "sha256:preview-admin-shell-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/admin",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [],
+        "permissions": [
+          "admin.access",
+          "admin.read",
+          "admin.write"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeWrite",
+          "onAdminAction"
+        ],
+        "events": [
+          "admin.record_created",
+          "admin.record_updated",
+          "admin.record_deleted"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "audit-log",
+      "version": "0.1.0",
+      "source": "registry:audit-log@0.1.0",
+      "checksum": "sha256:preview-audit-log-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/audit",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "audit.read",
+          "audit.export",
+          "audit.admin"
+        ],
+        "rpc": [],
+        "hooks": [
+          "redactAuditPayload",
+          "beforeAuditExport"
+        ],
+        "events": [
+          "audit.recorded",
+          "audit.exported"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "customer",
+      "version": "0.1.0",
+      "source": "registry:customer@0.1.0",
+      "checksum": "sha256:preview-customer-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/customers",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "customer.read",
+          "customer.write",
+          "customer.admin",
+          "customer.extend",
+          "customer.observe"
+        ],
+        "rpc": [
+          {
+            "method": "getCustomer",
+            "scope": "customer.read",
+            "public": false
+          },
+          {
+            "method": "listCustomers",
+            "scope": "customer.read",
+            "public": false
+          },
+          {
+            "method": "upsertCustomer",
+            "scope": "customer.write",
+            "public": false
+          }
+        ],
+        "hooks": [
+          "beforeCustomerCreate",
+          "afterCustomerUpdated"
+        ],
+        "events": [
+          "customer.created",
+          "customer.updated"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "support-ticket",
+      "version": "0.1.0",
+      "source": "registry:support-ticket@0.1.0",
+      "checksum": "sha256:preview-support-ticket-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/support",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "support.read",
+          "support.manage"
+        ],
+        "rpc": [
+          {
+            "method": "createTicket",
+            "scope": "support.manage",
+            "public": false
+          },
+          {
+            "method": "getTicket",
+            "scope": "support.read",
+            "public": false
+          },
+          {
+            "method": "listTickets",
+            "scope": "support.read",
+            "public": false
+          },
+          {
+            "method": "updateTicket",
+            "scope": "support.manage",
+            "public": false
+          }
+        ],
+        "hooks": [
+          "beforeTicketCreate",
+          "afterTicketUpdated"
+        ],
+        "events": [
+          "support-ticket.created",
+          "support-ticket.updated",
+          "support-ticket.status_changed"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "product-catalog",
+      "version": "0.1.0",
+      "source": "registry:product-catalog@0.1.0",
+      "checksum": "sha256:preview-product-catalog-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/products",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "product-catalog.read",
+          "product-catalog.write",
+          "product-catalog.admin",
+          "product-catalog.extend",
+          "product-catalog.observe"
+        ],
+        "rpc": [
+          {
+            "method": "listProducts",
+            "scope": "product-catalog.read",
+            "public": false
+          },
+          {
+            "method": "getProduct",
+            "scope": "product-catalog.read",
+            "public": false
+          },
+          {
+            "method": "createProduct",
+            "scope": "product-catalog.write",
+            "public": false
+          },
+          {
+            "method": "updateProduct",
+            "scope": "product-catalog.write",
+            "public": false
+          },
+          {
+            "method": "listCategories",
+            "scope": "product-catalog.read",
+            "public": false
+          },
+          {
+            "method": "createCategory",
+            "scope": "product-catalog.write",
+            "public": false
+          },
+          {
+            "method": "expandProductComponents",
+            "scope": "product-catalog.read",
+            "public": false
+          }
+        ],
+        "hooks": [
+          "beforeCategoryCreate",
+          "beforeProductCreate",
+          "afterCategoryUpdated",
+          "afterProductUpdated"
+        ],
+        "events": [
+          "product-catalog.category_created",
+          "product-catalog.category_updated",
+          "product-catalog.product_created",
+          "product-catalog.product_updated",
+          "product-catalog.combo_updated"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "sales-order",
+      "version": "0.1.0",
+      "source": "registry:sales-order@0.1.0",
+      "checksum": "sha256:preview-sales-order-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/sales-orders",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "sales-order.read",
+          "sales-order.write",
+          "sales-order.admin",
+          "sales-order.extend",
+          "sales-order.observe"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeSalesOrderCreate",
+          "beforeSalesOrderConfirm",
+          "beforeSalesOrderCancel",
+          "beforeSalesOrderInvoice",
+          "afterSalesOrderUpdated"
+        ],
+        "events": [
+          "sales-order.order_created",
+          "sales-order.order_confirmed",
+          "sales-order.order_cancelled",
+          "sales-order.order_invoiced"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "commerce-sync",
+      "version": "0.1.0",
+      "source": "registry:commerce-sync@0.1.0",
+      "checksum": "sha256:preview-commerce-sync-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/commerce-sync",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "commerce-sync.read",
+          "commerce-sync.write",
+          "commerce-sync.admin",
+          "commerce-sync.extend",
+          "commerce-sync.observe"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeCommerceConnectionCreate",
+          "beforeCommerceSyncRun",
+          "beforeCommerceWebhookRecord",
+          "afterCommercePayloadNormalized"
+        ],
+        "events": [
+          "commerce-sync.connection_created",
+          "commerce-sync.mapping_recorded",
+          "commerce-sync.sync_started",
+          "commerce-sync.sync_completed",
+          "commerce-sync.webhook_recorded",
+          "commerce-sync.payload_normalized"
+        ],
+        "requires": [
+          "product-catalog",
+          "sales-order"
+        ]
+      }
+    },
+    {
+      "id": "accounting-core",
+      "version": "0.1.0",
+      "source": "registry:accounting-core@0.1.0",
+      "checksum": "sha256:preview-accounting-core-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/accounting",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "accounting-core.read",
+          "accounting-core.write",
+          "accounting-core.admin",
+          "accounting-core.extend",
+          "accounting-core.observe"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeAccountCreate",
+          "beforeFiscalPeriodCreate",
+          "beforeJournalEntryCreate",
+          "beforeJournalEntryPost",
+          "beforeJournalEntryVoid",
+          "afterJournalEntryChanged"
+        ],
+        "events": [
+          "accounting-core.account_created",
+          "accounting-core.fiscal_period_created",
+          "accounting-core.fiscal_period_status_changed",
+          "accounting-core.journal_entry_created",
+          "accounting-core.journal_entry_updated",
+          "accounting-core.journal_entry_posted",
+          "accounting-core.journal_entry_voided"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "accounts-payable",
+      "version": "0.1.0",
+      "source": "registry:accounts-payable@0.1.0",
+      "checksum": "sha256:preview-accounts-payable-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/payables",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "accounts-payable.read",
+          "accounts-payable.write",
+          "accounts-payable.admin",
+          "accounts-payable.extend",
+          "accounts-payable.observe"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeVendorCreate",
+          "beforeBillCreate",
+          "beforeBillApprove",
+          "beforeBillPaymentRecord",
+          "afterPayableChanged"
+        ],
+        "events": [
+          "accounts-payable.vendor_created",
+          "accounts-payable.bill_created",
+          "accounts-payable.bill_approved",
+          "accounts-payable.bill_payment_recorded",
+          "accounts-payable.aging_generated"
+        ],
+        "requires": [
+          "accounting-core"
+        ]
+      }
+    },
+    {
+      "id": "accounts-receivable",
+      "version": "0.1.0",
+      "source": "registry:accounts-receivable@0.1.0",
+      "checksum": "sha256:preview-accounts-receivable-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/receivables",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "accounts-receivable.read",
+          "accounts-receivable.write",
+          "accounts-receivable.admin",
+          "accounts-receivable.extend",
+          "accounts-receivable.observe"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeCustomerPaymentRecord",
+          "beforePaymentApplication",
+          "beforeStatementGenerate",
+          "afterReceivableChanged"
+        ],
+        "events": [
+          "accounts-receivable.customer_payment_recorded",
+          "accounts-receivable.payment_applied",
+          "accounts-receivable.aging_generated",
+          "accounts-receivable.statement_generated"
+        ],
+        "requires": [
+          "invoice",
+          "payment"
+        ]
+      }
+    },
+    {
+      "id": "bank-reconciliation",
+      "version": "0.1.0",
+      "source": "registry:bank-reconciliation@0.1.0",
+      "checksum": "sha256:preview-bank-reconciliation-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/banking",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "bank-reconciliation.read",
+          "bank-reconciliation.write",
+          "bank-reconciliation.admin",
+          "bank-reconciliation.extend",
+          "bank-reconciliation.observe"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeBankAccountCreate",
+          "beforeStatementImport",
+          "beforeTransactionMatch",
+          "beforeReconciliationComplete",
+          "afterBankReconciliationChanged"
+        ],
+        "events": [
+          "bank-reconciliation.bank_account_created",
+          "bank-reconciliation.statement_imported",
+          "bank-reconciliation.transaction_matched",
+          "bank-reconciliation.reconciliation_completed"
+        ],
+        "requires": [
+          "accounting-core"
+        ]
+      }
+    },
+    {
+      "id": "invoice",
+      "version": "0.1.0",
+      "source": "registry:invoice@0.1.0",
+      "checksum": "sha256:preview-invoice-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/invoices",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "invoice.read",
+          "invoice.write",
+          "invoice.admin",
+          "invoice.extend",
+          "invoice.observe"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeInvoiceIssue",
+          "onInvoiceIssued",
+          "onInvoicePaid"
+        ],
+        "events": [
+          "invoice.created",
+          "invoice.issued",
+          "invoice.paid",
+          "invoice.voided",
+          "invoice.overdue"
+        ],
+        "requires": [
+          "customer"
+        ]
+      }
+    },
+    {
+      "id": "payment",
+      "version": "0.1.0",
+      "source": "registry:payment@0.1.0",
+      "checksum": "sha256:preview-payment-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/payments",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "payment.read",
+          "payment.write",
+          "payment.admin",
+          "payment.extend",
+          "payment.observe"
+        ],
+        "rpc": [],
+        "hooks": [],
+        "events": [
+          "payment.checkout_created",
+          "payment.succeeded",
+          "payment.refunded",
+          "payment.failed"
+        ],
+        "requires": [
+          "auth",
+          "customer"
+        ]
+      }
+    },
+    {
+      "id": "file-media",
+      "version": "0.1.0",
+      "source": "registry:file-media@0.1.0",
+      "checksum": "sha256:preview-file-media-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/files",
+        "bindings": [
+          "DB",
+          "MEDIA_BUCKET"
+        ],
+        "resources": [
+          "D1",
+          "R2"
+        ],
+        "permissions": [
+          "media.upload",
+          "media.read",
+          "media.admin",
+          "media.extend",
+          "media.observe"
+        ],
+        "rpc": [
+          {
+            "method": "createUploadTicket",
+            "scope": "media.upload",
+            "public": false
+          },
+          {
+            "method": "completeUpload",
+            "scope": "media.upload",
+            "public": false
+          },
+          {
+            "method": "listFiles",
+            "scope": "media.read",
+            "public": false
+          },
+          {
+            "method": "deleteFile",
+            "scope": "media.admin",
+            "public": false
+          }
+        ],
+        "hooks": [
+          "beforeUpload",
+          "allowContentType",
+          "onFileUploaded"
+        ],
+        "events": [
+          "media.upload_requested",
+          "media.uploaded",
+          "media.deleted",
+          "media.ticket_expired"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "identity",
+      "version": "0.1.0",
+      "source": "registry:identity@0.1.0",
+      "checksum": "sha256:preview-identity-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/identity",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "identity.login",
+          "identity.session",
+          "identity.admin",
+          "identity.extend",
+          "identity.observe"
+        ],
+        "rpc": [
+          {
+            "method": "requestLoginCode",
+            "scope": "identity.login",
+            "public": false
+          },
+          {
+            "method": "verifyLoginCode",
+            "scope": "identity.login",
+            "public": false
+          },
+          {
+            "method": "readSession",
+            "scope": "identity.session",
+            "public": false
+          },
+          {
+            "method": "destroySession",
+            "scope": "identity.session",
+            "public": false
+          }
+        ],
+        "hooks": [
+          "beforeVerifyCode",
+          "afterSessionCreated"
+        ],
+        "events": [
+          "identity.login_code_issued",
+          "identity.login_verified",
+          "identity.session_created",
+          "identity.session_destroyed"
+        ],
+        "requires": [
+          "auth"
+        ]
+      }
+    },
+    {
+      "id": "jobs-workflows",
+      "version": "0.1.0",
+      "source": "registry:jobs-workflows@0.1.0",
+      "checksum": "sha256:preview-jobs-workflows-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/jobs",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "jobs.enqueue",
+          "jobs.read",
+          "jobs.admin",
+          "jobs-workflows.extend"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeJobEnqueue",
+          "computeBackoffMs",
+          "onJobDead"
+        ],
+        "events": [
+          "job.enqueued",
+          "job.succeeded",
+          "job.retried",
+          "job.dead",
+          "job.scheduled"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "notifications-inapp",
+      "version": "0.1.0",
+      "source": "registry:notifications-inapp@0.1.0",
+      "checksum": "sha256:preview-notifications-inapp-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/notifications",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "notifications.read",
+          "notifications.write",
+          "notifications.admin",
+          "notifications-inapp.extend"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeNotify",
+          "renderNotification"
+        ],
+        "events": [
+          "notification.created",
+          "notification.read"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "webhook-delivery",
+      "version": "0.1.0",
+      "source": "registry:webhook-delivery@0.1.0",
+      "checksum": "sha256:preview-webhook-delivery-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/webhooks",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "webhook.read",
+          "webhook.write",
+          "webhook.admin",
+          "webhook-delivery.extend"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeWebhookDeliver",
+          "afterWebhookDelivered"
+        ],
+        "events": [
+          "webhook.delivered",
+          "webhook.failed"
+        ],
+        "requires": []
+      }
+    }
+  ],
+  "customizations": {
+    "config": true,
+    "hooks": [
+      "beforeInvite",
+      "onMembershipChanged",
+      "beforeWrite",
+      "onAdminAction",
+      "redactAuditPayload",
+      "beforeCustomerCreate",
+      "onInvoiceIssued"
+    ],
+    "overlays": [],
+    "forks": []
+  }
+}

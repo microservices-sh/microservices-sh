@@ -73,6 +73,26 @@ export const REPO_TEMPLATES = {
     weight: "heavy",
     summary: "Cloudflare SvelteKit ERP shell - customers, invoices, files, support tickets, teams, admin, and audit log.",
   },
+  "commerce-ops-sveltekit": {
+    id: "commerce-ops-sveltekit",
+    name: "Commerce Ops SvelteKit",
+    status: "ready",
+    visibility: "public",
+    distribution: "bundled",
+    category: "commerce",
+    weight: "heavy",
+    summary: "Cloudflare SvelteKit commerce operations template - products, inventory, sales orders, fulfillment, sync, invoices, payments, files, and jobs.",
+  },
+  "accounting-erp-sveltekit": {
+    id: "accounting-erp-sveltekit",
+    name: "Accounting ERP SvelteKit",
+    status: "ready",
+    visibility: "public",
+    distribution: "bundled",
+    category: "accounting",
+    weight: "heavy",
+    summary: "Cloudflare SvelteKit accounting ERP template - general ledger, payables, receivables, bank reconciliation, invoices, payments, webhooks, and jobs.",
+  },
 };
 
 export const PRIVATE_REPO_TEMPLATE_IDS = new Set(

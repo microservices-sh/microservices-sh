@@ -1139,3 +1139,20 @@
 | LP content audit | Copy aligns around System Harness, not MCP/package-only positioning | Core pages patched in the landing-page repo | Pass |
 | Strategy artifact | Marketing strategy and product roadmap captured | Added `plans/29-lp-marketing-product-roadmap.md` | Pass |
 | Build validation | Landing build and whitespace checks pass | `pnpm build`, landing `git diff --check`, and planning-doc `git diff --check` passed | Pass |
+
+## Session: 2026-06-21 (StackSuite accounting and commerce templates)
+### Phase 45 template split
+- **Status:** verified
+- Goal: turn the StackSuite accounting/commerce module extraction into create-app-visible repo templates.
+- Used subagents for parallel template directory starts, then closed them after partial/racy output and integrated the final version in the main thread.
+- Added `commerce-ops-sveltekit` and `accounting-erp-sveltekit` from the ERP shell with focused manifests, lockfiles, enabled-module sets, StackSuite-specific docs, and unique package/template ids.
+- Registered both templates in create-app template discovery and bundle metadata.
+- Recorded the remaining technical boundary: route-level product, inventory, sales order, shipment, sync, ledger, payables, receivables, and bank reconciliation pages are still pending, so inherited shell deps remain broad for now.
+
+| Check | Expected | Actual | Status |
+|------|----------|--------|--------|
+| Template specs | New templates pass shared template validation | `pnpm --filter @microservices-sh/template-commerce-ops-sveltekit check:spec`; `pnpm --filter @microservices-sh/template-accounting-erp-sveltekit check:spec` | Pass |
+| Create-app tests | Registry and bundle closure stay green | `pnpm --filter create-microservices-app test`; `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` | Pass |
+| Create-app build | Bundled templates include new template ids | `pnpm --filter create-microservices-app build` | Pass |
+| Create-app smoke | New templates generate standalone source trees | Both templates generated under `/tmp` with `--no-install --no-git`; commerce output includes `0006_support_ticket.sql` | Pass |
+| Full spec | Workspace module/template checks pass | `pnpm spec:check:all` passed 51 targets | Pass |

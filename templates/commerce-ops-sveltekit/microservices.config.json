@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "2026-06-13",
+  "template": "commerce-ops-sveltekit",
+  "business": {
+    "name": "Acme Commerce Ops",
+    "timezone": "UTC",
+    "currency": "USD"
+  },
+  "org": {
+    "defaultRoles": [
+      "owner",
+      "admin",
+      "member"
+    ],
+    "invitationTtlDays": 7
+  },
+  "theme": {
+    "primaryColor": "#0f766e",
+    "surface": "#ffffff",
+    "radius": "12px"
+  }
+}

@@ -150,8 +150,12 @@ Acceptance criteria:
 - `erp-shell-sveltekit` now declares the StackSuite commerce/accounting modules
   as optional slots, carries template migrations through `0027_commerce_sync.sql`,
   and is bundled by `create-microservices-app`.
-- Follow-up template split remains open: fork `commerce-ops-sveltekit` and
-  `accounting-erp-sveltekit` from the ERP shell once route-level UI proves stable.
+- Added CLI-discoverable repo templates `commerce-ops-sveltekit` and
+  `accounting-erp-sveltekit`, derived from the ERP shell with focused manifests,
+  lockfiles, enabled-module sets, docs, and create-app bundle registration.
+- Follow-up route/UI split remains open: add product catalog, inventory, sales
+  order, shipment, sync, ledger, payables, receivables, and bank reconciliation
+  pages, then prune inherited ERP shell deps and migrations.
 
 ## Open Questions
 
@@ -162,5 +166,6 @@ Acceptance criteria:
 3. Should `sales-order` convert to the current `invoice` module's cents-based
    invoice records, or should invoice be extended first for shipping/contact
    snapshots?
-4. Which template should be public first: `commerce-ops-sveltekit` or
-   `accounting-erp-sveltekit`?
+4. Should `commerce-ops-sveltekit` and `accounting-erp-sveltekit` stay public
+   while route-level module pages are still inherited from the ERP shell, or
+   should they be hidden until the UI split is complete?

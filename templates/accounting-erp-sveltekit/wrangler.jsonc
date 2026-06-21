@@ -1,0 +1,54 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "accounting-erp-sveltekit",
+  "main": ".svelte-kit/cloudflare/_worker.js",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "directory": ".svelte-kit/cloudflare",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "erp_shell_sveltekit",
+      "database_id": "REPLACE_WITH_D1_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "RATE_LIMIT_KV",
+      "id": "REPLACE_WITH_RATE_LIMIT_KV_ID"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_BUCKET",
+      "bucket_name": "accounting-erp-sveltekit-files"
+    },
+    {
+      "binding": "IMAGE_BUCKET",
+      "bucket_name": "accounting-erp-sveltekit-images"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "JOB_QUEUE",
+        "queue": "accounting-erp-sveltekit-jobs"
+      }
+    ]
+  },
+  "vars": {
+    "DESKTOP_IMPORT_ALLOWED_ORIGIN": "*",
+    "MICROSERVICES_DEPLOYMENT_ID": "",
+    "MICROSERVICES_OBSERVABILITY_URL": "https://api.microservices.sh",
+    "MICROSERVICES_TEMPLATE_ID": "accounting-erp-sveltekit"
+  }
+}

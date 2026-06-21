@@ -1,0 +1,212 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "accounting-erp-sveltekit",
+  "version": "0.1.0",
+  "status": "ready",
+  "displayName": "Accounting ERP SvelteKit",
+  "category": "accounting",
+  "summary": "Accounting ERP template for Cloudflare SvelteKit: chart of accounts, fiscal periods, journals, payables, receivables, bank reconciliation, invoices, payments, files, webhooks, and jobs in a lock-driven operator shell.",
+  "runtime": {
+    "language": "typescript",
+    "framework": "sveltekit",
+    "adapter": "@sveltejs/adapter-cloudflare",
+    "platform": "cloudflare-workers",
+    "entrypoint": ".svelte-kit/cloudflare/_worker.js"
+  },
+  "deployment": {
+    "defaultMode": "managed-cloudflare",
+    "managedNamespace": "microservices-sh",
+    "byoCloudflare": "later"
+  },
+  "modules": {
+    "required": [
+      "auth",
+      "org-team-rbac",
+      "admin-shell",
+      "audit-log",
+      "customer",
+      "invoice",
+      "payment",
+      "file-media",
+      "accounting-core",
+      "accounts-payable",
+      "accounts-receivable",
+      "bank-reconciliation",
+      "webhook-delivery",
+      "jobs-workflows"
+    ],
+    "optional": [
+      "identity",
+      "email",
+      "notifications-inapp",
+      "product-catalog",
+      "sales-order",
+      "commerce-sync",
+      "support-ticket"
+    ]
+  },
+  "slots": {
+    "identity": {
+      "activeModule": "auth",
+      "allowedModules": [
+        "auth",
+        "identity"
+      ],
+      "approvalRisk": "high"
+    },
+    "tenancy": {
+      "activeModule": "org-team-rbac",
+      "allowedModules": [
+        "org-team-rbac"
+      ],
+      "approvalRisk": "high"
+    },
+    "admin": {
+      "activeModule": "admin-shell",
+      "allowedModules": [
+        "admin-shell"
+      ],
+      "approvalRisk": "medium"
+    },
+    "audit": {
+      "activeModule": "audit-log",
+      "allowedModules": [
+        "audit-log"
+      ],
+      "approvalRisk": "medium"
+    },
+    "crm": {
+      "activeModule": "customer",
+      "allowedModules": [
+        "customer"
+      ],
+      "approvalRisk": "medium"
+    },
+    "invoicing": {
+      "activeModule": "invoice",
+      "allowedModules": [
+        "invoice"
+      ],
+      "approvalRisk": "medium"
+    },
+    "payments": {
+      "activeModule": "payment",
+      "allowedModules": [
+        "payment"
+      ],
+      "approvalRisk": "high"
+    },
+    "files": {
+      "activeModule": "file-media",
+      "allowedModules": [
+        "file-media"
+      ],
+      "approvalRisk": "medium"
+    },
+    "accounting": {
+      "activeModule": "accounting-core",
+      "allowedModules": [
+        "accounting-core"
+      ],
+      "approvalRisk": "medium"
+    },
+    "payables": {
+      "activeModule": "accounts-payable",
+      "allowedModules": [
+        "accounts-payable"
+      ],
+      "approvalRisk": "medium"
+    },
+    "receivables": {
+      "activeModule": "accounts-receivable",
+      "allowedModules": [
+        "accounts-receivable"
+      ],
+      "approvalRisk": "medium"
+    },
+    "banking": {
+      "activeModule": "bank-reconciliation",
+      "allowedModules": [
+        "bank-reconciliation"
+      ],
+      "approvalRisk": "medium"
+    },
+    "jobs": {
+      "activeModule": "jobs-workflows",
+      "allowedModules": [
+        "jobs-workflows"
+      ],
+      "approvalRisk": "low"
+    },
+    "webhooks": {
+      "activeModule": "webhook-delivery",
+      "allowedModules": [
+        "webhook-delivery"
+      ],
+      "approvalRisk": "high"
+    },
+    "notifications": {
+      "activeModule": "notifications-inapp",
+      "allowedModules": [
+        "notifications-inapp"
+      ],
+      "approvalRisk": "low"
+    },
+    "catalog": {
+      "activeModule": null,
+      "allowedModules": [
+        "product-catalog"
+      ],
+      "approvalRisk": "medium"
+    },
+    "salesOrders": {
+      "activeModule": null,
+      "allowedModules": [
+        "sales-order"
+      ],
+      "approvalRisk": "medium"
+    },
+    "commerceSync": {
+      "activeModule": null,
+      "allowedModules": [
+        "commerce-sync"
+      ],
+      "approvalRisk": "high"
+    },
+    "messaging": {
+      "activeModule": null,
+      "allowedModules": [
+        "email"
+      ],
+      "approvalRisk": "high"
+    }
+  },
+  "sourcePolicy": {
+    "templateOwns": [
+      "app shell",
+      "routes",
+      "layout",
+      "lock-driven sidebar nav",
+      "UI overlays",
+      "composition glue"
+    ],
+    "modulesOwn": [
+      "domain behavior",
+      "schemas",
+      "use cases",
+      "ports",
+      "migrations"
+    ],
+    "apiLogic": "detached-use-cases-with-sveltekit-adapters"
+  },
+  "checks": [
+    {
+      "id": "migrations",
+      "file": "migrations/0001_core.sql"
+    },
+    {
+      "id": "http-smoke",
+      "file": "scripts/smoke-http.mjs"
+    }
+  ]
+}

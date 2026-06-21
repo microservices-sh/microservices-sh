@@ -1,0 +1,20 @@
+export { default as Alert } from "./Alert.svelte";
+export { default as AgentAvatar } from "./AgentAvatar.svelte";
+export { default as AppShell } from "./AppShell.svelte";
+export { default as Badge } from "./Badge.svelte";
+export { default as Button } from "./Button.svelte";
+export { default as Card } from "./Card.svelte";
+export { default as CustomSelect } from "./CustomSelect.svelte";
+export { default as Eyebrow } from "./Eyebrow.svelte";
+export { default as Field } from "./Field.svelte";
+export { default as Logo } from "./Logo.svelte";
+export { default as ResourceTable } from "./ResourceTable.svelte";
+// Operator-console primitives
+export { default as PageHeader } from "./PageHeader.svelte";
+export { default as MetricStrip } from "./MetricStrip.svelte";
+export { default as EmptyState } from "./EmptyState.svelte";
+export { default as WorkflowTimeline } from "./WorkflowTimeline.svelte";
+export { default as EntitySummaryPanel } from "./EntitySummaryPanel.svelte";
+export { default as ActionRail } from "./ActionRail.svelte";
+export { default as FormActions } from "./FormActions.svelte";
+export type { Metric, TimelineEvent, SummaryRow, RailAction, Tone } from "./types";

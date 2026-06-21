@@ -1,0 +1,52 @@
+# Accounting ERP SvelteKit LLM Guide
+
+Purpose: guide agents customizing `accounting-erp-sveltekit`, a Cloudflare
+SvelteKit template for StackSuite-style accounting operations.
+
+## Read First
+
+- `microservices.template.json`
+- `microservices.config.json`
+- `microservices.lock.json`
+- `README.agent.md`
+- `docs/api-boundary.md`
+
+## Focus Modules
+
+- `accounting-core`: chart of accounts, fiscal periods, journals, trial balance.
+- `accounts-payable`: vendors, bills, bill payments, recurring bills.
+- `accounts-receivable`: customer payments, applications, aging, statements.
+- `bank-reconciliation`: bank accounts, statement imports, matching, closeout.
+- `invoice`, `payment`, `customer`, `file-media`, `webhook-delivery`,
+  `jobs-workflows`, `audit-log`: inherited ERP shell foundations.
+
+## Architecture Rule
+
+SvelteKit routes are adapters. Domain/API logic lives in detached module use
+cases, and cross-module work should use ports or events rather than direct table
+access.
+
+The current UI shell is intentionally conservative. The next UI slice should add
+accounting pages for ledger review, payables, receivables aging, bank statement
+import, and reconciliation, then update the sidebar mapping.
+
+## Approval Gates
+
+Require user approval before changing:
+
+- accounting posting rules
+- remote migrations
+- payment/email provider behavior
+- bank import or matching behavior
+- Cloudflare resources
+- remote deployments
+- forked module internals
+
+Local baseline commands may apply the checked-in D1 migrations to Wrangler local
+state:
+
+```bash
+pnpm microservices local migrate
+pnpm microservices local dev
+pnpm microservices local smoke
+```

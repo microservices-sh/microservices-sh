@@ -1,0 +1,13 @@
+{
+  "style": "web-portal",
+  "components": [
+    "Alert",
+    "AppShell",
+    "Badge",
+    "Button",
+    "Card",
+    "Eyebrow",
+    "Field",
+    "Logo"
+  ]
+}

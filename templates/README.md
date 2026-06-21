@@ -24,6 +24,8 @@ Templates may share modules and SDK code through workspace packages, but generat
 | `client-portal-sveltekit` | ready | Auth-gated Cloudflare SvelteKit client portal where customers see their own invoices, files, and account data; staff get an admin side. |
 | `company-landing-astro` | ready | Static Astro company landing page with content contract and no backend modules. |
 | `erp-shell-sveltekit` | ready | Single-company ERP shell for customers, invoices, files, support tickets, teams, admin, and audit-log-backed operations. |
+| `commerce-ops-sveltekit` | ready | StackSuite-derived commerce operations shell with product catalog, inventory, sales orders, fulfillment, commerce sync, invoices, payments, files, and jobs. |
+| `accounting-erp-sveltekit` | ready | StackSuite-derived accounting ERP shell with general ledger, payables, receivables, bank reconciliation, invoices, payments, webhooks, and jobs. |
 | `saas-starter-sveltekit` | ready | Multi-tenant B2B SaaS starter with org sign-up, team RBAC, subscriptions, admin shell, and audit log. |
 | `dot-ai-os` | private pilot | Agent-native operator OS with task board, focus planning, calendar context, daily review, knowledge/content pipelines, AI team routing, files, team roles, and module-backed work surfaces. Hidden from public create-app template lists; scaffold only by exact template id for private pilots. |
 | `erp-shell-desktop-tauri` | draft | Mac and Windows desktop companion for ERP Shell: local document intake, extraction queue review, runtime status, and approved-draft ERP import. |

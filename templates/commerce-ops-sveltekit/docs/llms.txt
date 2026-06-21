@@ -1,0 +1,53 @@
+# Commerce Ops SvelteKit LLM Guide
+
+Purpose: guide agents customizing `commerce-ops-sveltekit`, a Cloudflare
+SvelteKit template for StackSuite-style commerce operations.
+
+## Read First
+
+- `microservices.template.json`
+- `microservices.config.json`
+- `microservices.lock.json`
+- `README.agent.md`
+- `docs/api-boundary.md`
+
+## Focus Modules
+
+- `product-catalog`: categories, products, SKUs, combo product components.
+- `inventory`: stock movements, reservation, release, deduction, reconciliation.
+- `sales-order`: order lifecycle and invoice handoff.
+- `shipment`: fulfillment batches and shipment completion.
+- `commerce-sync`: provider connections, mappings, sync runs, webhooks.
+- `customer`, `invoice`, `payment`, `file-media`, `jobs-workflows`, `audit-log`:
+  inherited ERP shell foundations.
+
+## Architecture Rule
+
+SvelteKit routes are adapters. Domain/API logic lives in detached module use
+cases, and cross-module work should use ports or events rather than direct table
+access.
+
+The current UI shell is intentionally conservative. The next UI slice should add
+commerce pages for catalog, inventory, sales orders, shipments, and sync review,
+then update the sidebar mapping.
+
+## Approval Gates
+
+Require user approval before changing:
+
+- provider credentials or secret storage
+- remote migrations
+- payment/email provider behavior
+- commerce webhook write behavior
+- Cloudflare resources
+- remote deployments
+- forked module internals
+
+Local baseline commands may apply the checked-in D1 migrations to Wrangler local
+state:
+
+```bash
+pnpm microservices local migrate
+pnpm microservices local dev
+pnpm microservices local smoke
+```
