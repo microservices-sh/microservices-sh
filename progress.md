@@ -1390,3 +1390,18 @@
 | HR People Ops spec | Module contract check passes | `pnpm --filter @microservices-sh/hr-people-ops check:spec` passed | Pass |
 | D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/hr-people-ops/migrations/0001_initial.sql"` passed | Pass |
 | JSON docs | OpenAPI and JSON schema stubs parse | Node JSON parse check passed | Pass |
+
+### Phase 59 StackSuite URL Shortener module
+
+- **Status:** complete.
+- Goal: port the URL Shortener app's durable short-link and click-analytics workflow into a reusable utility module.
+- Added `modules/url-shortener` for tenant-scoped link creation, URL validation, custom aliases, expiry, deactivation, redirect resolution, click recording, stats, and recent-link reporting.
+- Kept KV redirect caching outside the module; app route adapters can cache resolved links while D1 remains the source of truth.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| URL Shortener build | TypeScript typecheck passes | `pnpm --filter @microservices-sh/url-shortener build` passed | Pass |
+| URL Shortener tests | Alias, expiry, redirect, analytics, and deactivation flows pass | `pnpm --filter @microservices-sh/url-shortener test` passed, 3/3 | Pass |
+| URL Shortener spec | Module contract check passes | `pnpm --filter @microservices-sh/url-shortener check:spec` passed | Pass |
+| D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/url-shortener/migrations/0001_initial.sql"` passed | Pass |
+| JSON docs | OpenAPI and JSON schema stubs parse | Node JSON parse check passed | Pass |

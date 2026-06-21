@@ -1,0 +1,48 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "URL Shortener Module",
+    "version": "0.1.0",
+    "description": "Tenant-scoped short links, redirects, expiry, deactivation, and click analytics."
+  },
+  "paths": {
+    "/links": {
+      "post": {
+        "summary": "Create a short link",
+        "responses": {
+          "201": {
+            "description": "Short link created"
+          }
+        }
+      },
+      "get": {
+        "summary": "List recent short links",
+        "responses": {
+          "200": {
+            "description": "Recent links"
+          }
+        }
+      }
+    },
+    "/links/{code}/resolve": {
+      "post": {
+        "summary": "Resolve a short link and optionally record analytics",
+        "responses": {
+          "200": {
+            "description": "Resolved original URL"
+          }
+        }
+      }
+    },
+    "/links/{code}/stats": {
+      "get": {
+        "summary": "Get short link click analytics",
+        "responses": {
+          "200": {
+            "description": "Short link stats"
+          }
+        }
+      }
+    }
+  }
+}

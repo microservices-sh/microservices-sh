@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 58
+Phase 59
 
 ## Phases
 
@@ -452,6 +452,15 @@ Phase 58
 - [x] Implement employee directory, department/position hierarchy, leave type/balance setup, leave request approval/rejection/cancellation, and attendance upsert workflows.
 - [x] Store leave balances as integer hundredths of a day instead of floating-point day totals.
 - [x] Add memory and D1 stores, migration, schemas, docs, module metadata, permissions, events, resources, exports, and tests.
+- [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
+- **Status:** complete
+
+### Phase 59: StackSuite URL Shortener Module
+- [x] Inspect URL Shortener D1 schema, shorten route, redirect route, and stats route.
+- [x] Scaffold `modules/url-shortener` from the standard module layout.
+- [x] Implement short-link creation, URL validation, reserved/custom aliases, expiry, deactivation, redirect resolution, click analytics, stats, and recent-link listing.
+- [x] Add memory and D1 stores, migration, schemas, docs, module metadata, permissions, events, resources, exports, and tests.
+- [x] Keep KV redirect caching as an app-adapter concern rather than module-owned state.
 - [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
 - **Status:** complete
 

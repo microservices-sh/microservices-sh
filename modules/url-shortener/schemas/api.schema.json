@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "URL Shortener API",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "url": {
+      "type": "string",
+      "minLength": 1
+    },
+    "customAlias": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 32
+    },
+    "expiresInDays": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "code": {
+      "type": "string",
+      "minLength": 1
+    },
+    "deviceType": {
+      "type": "string",
+      "enum": [
+        "desktop",
+        "mobile",
+        "tablet",
+        "bot",
+        "unknown"
+      ]
+    }
+  }
+}

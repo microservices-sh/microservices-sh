@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "URL Shortener Config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "baseUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "defaultCodeLength": {
+      "type": "integer",
+      "default": 6,
+      "minimum": 4,
+      "maximum": 16
+    },
+    "maxExpiryDays": {
+      "type": "integer",
+      "default": 365,
+      "minimum": 1
+    }
+  }
+}

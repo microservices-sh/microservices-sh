@@ -43,7 +43,7 @@ Remaining gaps are mostly add-on business workflows, not more full-app cloning.
 | P1 | Storage entitlements and expiring share links | DashDrive files, short IDs, expiry, download count, storage packages, purchases | `storage-entitlements` implemented; integrate with `file-media` or client portal routes later. |
 | P1 | HR people ops | HR employees, departments, positions, leave balances/requests, attendance | `hr-people-ops` implemented; template later, not before focused route proof demand. |
 | P2 | Content/CMS publishing | CMS, mini-CMS, blog, magazine | Add only if needed for landing/content-heavy generated apps. |
-| P2 | Utility modules | URL shortener, QR generator, document renderer, HTML renderer, video maker | Good free-tool examples, but not core until System Harness adoption is proven. |
+| P2 | Utility modules | URL shortener, QR generator, document renderer, HTML renderer, video maker | `url-shortener` implemented; remaining utilities stay small/free-tool candidates until System Harness adoption is proven. |
 | P2 | Runtime/control-plane patterns | OpenClaw launcher instance, integrations, channels, custom domains, managed instances | Mine for managed deploy/control-plane design, not as an app template yet. |
 
 ## P0 Module Plan: SMS Campaigns
@@ -244,7 +244,7 @@ The utility apps are useful as examples, but they should not distract from busin
 
 Adopt as small modules only when a concrete template needs them:
 
-- `url-shortener`: short links, redirect analytics, expiry.
+- `url-shortener`: implemented for short links, redirect analytics, expiry, deactivation, and recent-link reporting.
 - `qr-code`: generated QR assets, style presets, download formats.
 - `document-renderer`: HTML/Markdown-to-PDF render jobs.
 - `content-cms`: pages/posts/media/categories; could back marketing sites and docs.
@@ -297,6 +297,7 @@ Recommended order:
 
 ### Phase F: HR And Utility Modules
 - Completed `hr-people-ops` for employee directory, org structure, leave balances/requests, and attendance.
+- Completed `url-shortener` for tenant-scoped short links, expiry, deactivation, redirect analytics, and recent-link reporting.
 - Keep utility modules small and composable.
 - Add `hr-ops-sveltekit` only after there is route-proof demand.
 
@@ -318,6 +319,7 @@ The next valuable StackSuite adoption is not another accounting pass. After comp
 2. Ticket comments/attachments/share-token hardening once `support-ticket` concurrent edits settle.
 3. Route proof for `membership-credits` in booking template when booking membership becomes part of a demo path.
 4. HR people ops module proof is complete; add an HR template only after a pilot or demo path needs it.
-5. A focused `sms-crm-sveltekit` or support route/template proof only if those workflows become part of the public demo path.
+5. URL shortener utility proof is complete; keep QR/document/rendering utilities small and add them only when they support acquisition or a template.
+6. A focused `sms-crm-sveltekit` or support route/template proof only if those workflows become part of the public demo path.
 
 Everything else should stay P2 until the System Harness launch proof and existing focused templates are cleaner.

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "URL Shortener Events",
+  "type": "string",
+  "enum": [
+    "url-shortener.created",
+    "url-shortener.updated",
+    "url-shortener.link.created",
+    "url-shortener.link.resolved",
+    "url-shortener.link.deactivated",
+    "url-shortener.click.recorded"
+  ]
+}

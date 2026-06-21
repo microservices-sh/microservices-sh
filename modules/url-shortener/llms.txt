@@ -1,0 +1,19 @@
+# URL Shortener Module
+
+Use `src/index.ts` as the public entrypoint.
+
+Key exports:
+- `createUrlShortenerService`
+- `createUrlShortenerMemoryStore`
+- `createD1UrlShortenerStore`
+- `createSequentialUrlShortenerIdFactory`
+- `createSequentialUrlShortenerCodeFactory`
+
+Core workflows:
+- create short link
+- resolve short link and record click analytics
+- deactivate short link
+- get link stats
+- list recent links
+
+The module stores D1 link and click records. Route adapters may add KV redirect caching.
