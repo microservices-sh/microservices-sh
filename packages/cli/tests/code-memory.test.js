@@ -1,6 +1,8 @@
 import { spawn, spawnSync } from "node:child_process";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
@@ -67,13 +69,14 @@ async function withApiServer(handler, fn) {
     let body = "";
     request.setEncoding("utf8");
     for await (const chunk of request) body += chunk;
+    const parsedBody = body ? JSON.parse(body) : null;
     requests.push({
       method: request.method,
       url: request.url,
       authorization: request.headers.authorization,
-      body: body ? JSON.parse(body) : null,
+      body: parsedBody,
     });
-    const payload = await handler(request);
+    const payload = await handler(request, parsedBody);
     response.statusCode = payload.status ?? 200;
     response.setHeader("content-type", "application/json");
     response.end(JSON.stringify(payload.body));
@@ -417,5 +420,89 @@ describe("CLI Code Memory commands", () => {
         url: "/memory/capsules/stripe-webhook-verifier/reject",
       });
     });
+  });
+
+  it("posts local static scan candidates for Trusted Source scans", async () => {
+    const repoDir = await mkdtemp(join(tmpdir(), "microservices-memory-scan-"));
+    try {
+      await mkdir(join(repoDir, "src/billing"), { recursive: true });
+      await mkdir(join(repoDir, "src/booking"), { recursive: true });
+      await mkdir(join(repoDir, "test/billing"), { recursive: true });
+      await writeFile(
+        join(repoDir, "src/billing/stripe-webhooks.ts"),
+        "stripe.webhooks.constructEvent(rawBody, signature, STRIPE_WEBHOOK_SECRET)",
+        "utf8"
+      );
+      await writeFile(
+        join(repoDir, "src/booking/availability.ts"),
+        "export function hasBookingOverlap(slot, bookings) { return bookings.some((booking) => conflicts(slot, booking)); }",
+        "utf8"
+      );
+      await writeFile(
+        join(repoDir, "test/billing/stripe-webhooks.test.ts"),
+        "rejects webhook payloads when the stripe signature is invalid",
+        "utf8"
+      );
+
+      await withApiServer(async (request, body) => {
+        if (request.method === "POST" && request.url === "/memory/sources/memsrc_1/scan") {
+          return {
+            body: {
+              ok: true,
+              data: {
+                source: SOURCE,
+                sourceVersion: { id: "memver_1", ref: "main" },
+                candidates: body.candidates,
+                scanned: {
+                  ref: body.ref,
+                  fileCount: body.scanSummary.fileCount,
+                  candidateCount: body.candidates.length,
+                  truncated: body.scanSummary.truncated,
+                },
+                nextSteps: ["Review candidate Logic Capsules before approving them for agent reuse."],
+              },
+            },
+          };
+        }
+        return { status: 404, body: { ok: false, error: { message: `No route for ${request.url}` } } };
+      }, async (apiUrl, requests) => {
+        const scan = await runCli([
+          "memory",
+          "source",
+          "scan",
+          "memsrc_1",
+          "--dir",
+          repoDir,
+          "--files",
+          "src/billing/stripe-webhooks.ts,src/booking/availability.ts,test/billing/stripe-webhooks.test.ts",
+          "--ref",
+          "main",
+          "--max-candidates",
+          "2",
+          "--api-url",
+          apiUrl,
+          "--api-key",
+          "test-key",
+          "--json",
+        ]);
+
+        expect(scan.status).toBe(0);
+        expect(parseStdout(scan).data.scanned).toMatchObject({ ref: "main", fileCount: 3, candidateCount: 2 });
+        expect(requests.at(-1)).toMatchObject({
+          method: "POST",
+          url: "/memory/sources/memsrc_1/scan",
+          authorization: "Bearer test-key",
+        });
+        expect(requests.at(-1).body.scanSummary).toMatchObject({
+          fileCount: 3,
+          candidateCount: 2,
+          heuristics: ["stripe-webhook-verifier", "booking-overlap-checker"],
+        });
+        expect(requests.at(-1).body.candidates.map((candidate) => candidate.slug)).toEqual(["stripe-webhook-verifier", "booking-overlap-checker"]);
+        expect(requests.at(-1).body.candidates[0].tests).toEqual(["test/billing/stripe-webhooks.test.ts"]);
+      });
+    } finally {
+      await rm(repoDir, { recursive: true, force: true });
+    }
   });
 });

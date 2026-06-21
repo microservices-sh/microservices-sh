@@ -1102,6 +1102,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@microservices-sh/code-memory':
+        specifier: workspace:*
+        version: link:../../modules/code-memory
       '@microservices-sh/connection-contract':
         specifier: workspace:*
         version: link:../connection-contract

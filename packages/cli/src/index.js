@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
-import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join, normalize, resolve } from "node:path";
+import { dirname, extname, join, normalize, relative, resolve } from "node:path";
 import { stdin as nodeStdin, stdout as nodeStdout } from "node:process";
 import { createInterface } from "node:readline/promises";
 import { track, telemetryNotice } from "./telemetry.js";
@@ -97,6 +97,7 @@ function parseArgs(argv) {
     target: "cloudflare",
     goal: null,
     limit: null,
+    maxCandidates: null,
     d1: [],
     kv: [],
     agent: false,
@@ -299,6 +300,9 @@ function parseArgs(argv) {
     } else if (value === "--limit") {
       flags.limit = argv[index + 1];
       index += 1;
+    } else if (value === "--max-candidates") {
+      flags.maxCandidates = argv[index + 1];
+      index += 1;
     } else if (value === "--d1") {
       flags.d1.push(argv[index + 1]);
       index += 1;
@@ -497,7 +501,7 @@ Usage:
   microservices billing usage [--api-url https://api.microservices.sh] [--api-key <key>] [--json]  # alias for account billing
   microservices usage [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices memory source add <github-url> [--visibility public|private|unknown] [--path src/auth] [--ref main] [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
-  microservices memory source scan <source-id> [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices memory source scan <source-id> [--dir ./repo] [--files src/a.ts,test/a.test.ts] [--max-candidates 10] [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices memory source list [--limit 50] [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices memory github status [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices memory github install [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
@@ -934,6 +938,15 @@ function memoryLimit(flags, fallback = 25) {
   return limit;
 }
 
+function memoryMaxCandidates(flags) {
+  if (flags.maxCandidates === null || flags.maxCandidates === undefined) return undefined;
+  const maxCandidates = Number(flags.maxCandidates);
+  if (!Number.isInteger(maxCandidates) || maxCandidates < 1 || maxCandidates > 25) {
+    return null;
+  }
+  return maxCandidates;
+}
+
 function memorySourceBody(url, flags) {
   return {
     repoUrl: url,
@@ -960,6 +973,151 @@ function memoryCapsuleBody(flags) {
     constraints: flags.constraints ?? undefined,
     doNotUseFor: flags.doNotUseFor ?? undefined,
     reuseMode: optionalString(flags.reuseMode) ?? undefined,
+  };
+}
+
+const CODE_MEMORY_SCAN_EXTENSIONS = new Set([
+  ".cjs",
+  ".go",
+  ".js",
+  ".json",
+  ".jsx",
+  ".md",
+  ".mdx",
+  ".mjs",
+  ".py",
+  ".rs",
+  ".sql",
+  ".svelte",
+  ".ts",
+  ".tsx",
+  ".vue"
+]);
+const CODE_MEMORY_SCAN_SKIP_DIRS = new Set([".git", ".next", ".svelte-kit", ".turbo", ".vercel", ".wrangler", "build", "coverage", "dist", "node_modules", "target"]);
+const CODE_MEMORY_SCAN_MAX_FILES = 400;
+const CODE_MEMORY_SCAN_MAX_BYTES = 64 * 1024;
+
+function scanRoot(flags) {
+  return resolve(USER_CWD, optionalString(flags.dir) ?? ".");
+}
+
+function shouldUseLocalMemoryScan(flags) {
+  return Boolean(optionalString(flags.dir) || flags.files?.length);
+}
+
+function resolveInsideRoot(root, candidate) {
+  const target = resolve(root, normalize(candidate));
+  if (target !== root && !target.startsWith(`${root}/`)) return null;
+  return target;
+}
+
+function supportsCodeMemoryScanFile(path) {
+  return CODE_MEMORY_SCAN_EXTENSIONS.has(extname(path).toLowerCase());
+}
+
+async function addScanFile(root, target, files) {
+  if (files.length >= CODE_MEMORY_SCAN_MAX_FILES || !supportsCodeMemoryScanFile(target)) return;
+  const info = await lstat(target);
+  if (!info.isFile() || info.isSymbolicLink()) return;
+  const sourcePath = relative(root, target).replaceAll("\\", "/");
+  let content = null;
+  if (info.size <= CODE_MEMORY_SCAN_MAX_BYTES) {
+    content = await readFile(target, "utf8").catch(() => null);
+  }
+  files.push({ path: sourcePath, sizeBytes: info.size, content });
+}
+
+async function collectScanFiles(root, dir, files) {
+  if (files.length >= CODE_MEMORY_SCAN_MAX_FILES) return;
+  const entries = await readdir(dir, { withFileTypes: true });
+  entries.sort((a, b) => a.name.localeCompare(b.name));
+  for (const entry of entries) {
+    if (files.length >= CODE_MEMORY_SCAN_MAX_FILES) return;
+    if (entry.isSymbolicLink()) continue;
+    const target = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (!CODE_MEMORY_SCAN_SKIP_DIRS.has(entry.name)) await collectScanFiles(root, target, files);
+      continue;
+    }
+    if (entry.isFile()) await addScanFile(root, target, files);
+  }
+}
+
+async function localMemoryScanFiles(flags) {
+  const root = scanRoot(flags);
+  const info = await stat(root).catch((error) => ({ error }));
+  if (info.error || !info.isDirectory()) {
+    return {
+      ok: false,
+      response: failResponse(
+        "MEMORY_SCAN_DIR_INVALID",
+        `Could not read local scan directory: ${root}.`,
+        "Pass --dir with a readable repository directory.",
+        { path: root, message: info.error?.message ?? "Not a directory." }
+      )
+    };
+  }
+
+  const files = [];
+  if (flags.files?.length) {
+    for (const file of flags.files) {
+      const target = resolveInsideRoot(root, file);
+      if (target) await addScanFile(root, target, files).catch(() => undefined);
+    }
+  } else {
+    await collectScanFiles(root, root, files);
+  }
+
+  if (!files.length) {
+    return {
+      ok: false,
+      response: failResponse(
+        "MEMORY_SCAN_FILES_NOT_FOUND",
+        "No supported local files were found for Code Memory scanning.",
+        "Pass --files with source files or run from a repository with supported text source files.",
+        { path: root }
+      )
+    };
+  }
+
+  return { ok: true, files };
+}
+
+async function memorySourceScanBody(sourceId, flags) {
+  const maxCandidates = memoryMaxCandidates(flags);
+  if (maxCandidates === null) {
+    return {
+      ok: false,
+      response: failResponse(
+        "INVALID_MEMORY_MAX_CANDIDATES",
+        "--max-candidates must be an integer between 1 and 25.",
+        "Pass --max-candidates 10 or omit it.",
+        {}
+      )
+    };
+  }
+
+  const ref = optionalString(flags.ref);
+  if (!shouldUseLocalMemoryScan(flags)) return { ok: true, body: ref ? { ref } : {} };
+
+  const collected = await localMemoryScanFiles(flags);
+  if (!collected.ok) return collected;
+
+  const { suggestLogicCapsulesFromFiles } = await import("@microservices-sh/code-memory/scanner");
+  const suggestions = suggestLogicCapsulesFromFiles({
+    sourceId,
+    ref,
+    files: collected.files,
+    maxCandidates
+  });
+
+  return {
+    ok: true,
+    body: {
+      ref: ref ?? undefined,
+      scanSummary: suggestions.scanSummary,
+      candidates: suggestions.candidates
+    }
   };
 }
 
@@ -1013,9 +1171,11 @@ Scan: ${source.scanStatus ?? "not_scanned"}
       );
       return flags.json ? writeJson(response) : printHuman(response, () => "");
     }
+    const body = await memorySourceScanBody(sourceId, flags);
+    if (!body.ok) return flags.json ? writeJson(body.response) : printHuman(body.response, () => "");
     const response = await apiRequest(flags, `/memory/sources/${encodeURIComponent(sourceId)}/scan`, {
       method: "POST",
-      body: "{}",
+      body: JSON.stringify(body.body),
     });
     return flags.json ? writeJson(response) : printApiHuman(response, formatMemoryScan);
   }

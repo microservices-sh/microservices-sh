@@ -16,7 +16,10 @@
     "./permissions": "./src/permissions/index.ts",
     "./resources": "./src/resources/index.ts",
     "./service": "./src/service/index.ts",
-    "./scanner": "./src/scanner/index.ts",
+    "./scanner": {
+      "types": "./src/scanner/runtime.d.ts",
+      "default": "./src/scanner/runtime.js"
+    },
     "./ports": "./src/ports/index.ts",
     "./adapters/memory": "./src/adapters/memory.ts",
     "./adapters/d1": "./src/adapters/d1.ts"
