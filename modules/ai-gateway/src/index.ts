@@ -199,3 +199,92 @@ export async function embed(
     data: { vectors: result.vectors, usage: result.usage, provider: deps.config.provider, model: deps.config.embedModel }
   };
 }
+
+// ─── Governed AI kit (composition helper, plan 34 step 0) ────────────────────
+// One place to wire the governance deps (budget/meter/audit) + provider config
+// for a single actor, yielding the closures the dep-free caller modules already
+// expect, so every call is authorized, budget-capped, metered, and audited the
+// same way:
+//   - `complete`/`embed` — the CompleteFn that research / decision /
+//     marketing-research's gateway-* bridge adapters take.
+//   - `completionClient` — the CompletionClient document-extraction's
+//     gemma-normalizer takes.
+// The budget SOURCE and meter SINK stay pluggable (helpers below) — a site picks
+// concrete ones (e.g. a billing quota, audit-log) without changing this wiring.
+
+// Budget from a remaining-tokens thunk, evaluated per call (before provider cost).
+export function budgetFrom(remaining: () => number): Budget {
+  return { remaining };
+}
+
+// Fixed remaining-token budget — the simplest cap; production passes a dynamic source.
+export function staticBudget(remaining: number): Budget {
+  return { remaining: () => remaining };
+}
+
+// UsageMeter from a sink fn — e.g. billing-subscriptions.recordUsage or a usage table.
+export function usageMeter(sink: (usage: Parameters<UsageMeter["record"]>[0]) => unknown): UsageMeter {
+  return {
+    record: async (usage) => {
+      await sink(usage);
+    }
+  };
+}
+
+// AuditSink from a record fn — e.g. audit-log.recordEvent.
+export function auditSink(record: (entry: Parameters<AuditSink["record"]>[0]) => unknown): AuditSink {
+  return {
+    record: async (entry) => {
+      await record(entry);
+    }
+  };
+}
+
+export type GovernedAiDeps = {
+  config: AiConfig;
+  providers: ProviderRegistry;
+  actor: Actor;
+  budget?: Budget;
+  meter?: UsageMeter;
+  audit?: AuditSink;
+};
+
+// Bind ai-gateway for one actor + governance set. The returned closures are what
+// the caller modules inject — they never see config/providers/budget/etc.
+export function createGovernedAi(deps: GovernedAiDeps) {
+  const governance = {
+    config: deps.config,
+    providers: deps.providers,
+    actor: deps.actor,
+    budget: deps.budget,
+    meter: deps.meter,
+    audit: deps.audit
+  };
+
+  // Unambiguous local aliases so the object's own `complete` property below can't
+  // shadow the module-level functions in the closures.
+  const runComplete = (messages: ChatMessage[], opts?: { maxTokens?: number; temperature?: number }) =>
+    complete({ messages, maxTokens: opts?.maxTokens, temperature: opts?.temperature }, governance);
+  const runEmbed = (texts: string[]) => embed({ texts }, governance);
+
+  return {
+    // Matches CompleteFn: (messages) => Promise<{ok,...}>. Extra opts are optional,
+    // so a bridge that calls it with just (messages) works unchanged.
+    complete: runComplete,
+    embed: runEmbed,
+
+    // Matches document-extraction's CompletionClient. Throws on a governed failure
+    // (authz/budget/provider) so the caller's existing error path surfaces it.
+    completionClient: {
+      async complete(input: { messages: ChatMessage[]; maxTokens?: number; temperature?: number }) {
+        const r = await runComplete(input.messages, { maxTokens: input.maxTokens, temperature: input.temperature });
+        if (r && "data" in r) {
+          return { text: r.data.text, provider: r.data.provider, model: r.data.model };
+        }
+        const status = r && "status" in r ? r.status : 500;
+        const errorCode = r && "error" in r ? r.error.code : "AI_UNKNOWN";
+        throw new Error(`ai-gateway complete failed (${status} ${errorCode})`);
+      }
+    }
+  };
+}
