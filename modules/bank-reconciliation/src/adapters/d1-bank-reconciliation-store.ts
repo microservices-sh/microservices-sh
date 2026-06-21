@@ -544,6 +544,29 @@ export function createD1BankReconciliationStore(db: D1Database): BankReconciliat
       return row ? toReconciliation(row) : null;
     },
 
+    async listReconciliations(tenantId, bankAccountId) {
+      const result = bankAccountId
+        ? await db
+            .prepare(
+              `SELECT ${RECONCILIATION_COLS}
+               FROM bank_reconciliation_sessions
+               WHERE tenant_id = ? AND bank_account_id = ?
+               ORDER BY created_at DESC`
+            )
+            .bind(tenantId, bankAccountId)
+            .all<Record<string, unknown>>()
+        : await db
+            .prepare(
+              `SELECT ${RECONCILIATION_COLS}
+               FROM bank_reconciliation_sessions
+               WHERE tenant_id = ?
+               ORDER BY created_at DESC`
+            )
+            .bind(tenantId)
+            .all<Record<string, unknown>>();
+      return (result.results ?? []).map(toReconciliation);
+    },
+
     async updateReconciliation(session) {
       const defaults = reconciliationDefaults(session);
       await db

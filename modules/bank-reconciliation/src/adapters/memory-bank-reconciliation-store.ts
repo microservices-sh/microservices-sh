@@ -120,6 +120,13 @@ export function createMemoryBankReconciliationStore(): BankReconciliationStore {
       return session && session.tenantId === tenantId ? copyReconciliation(session) : null;
     },
 
+    async listReconciliations(tenantId, bankAccountId) {
+      return [...reconciliations.values()]
+        .filter((session) => session.tenantId === tenantId && (!bankAccountId || session.bankAccountId === bankAccountId))
+        .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+        .map(copyReconciliation);
+    },
+
     async updateReconciliation(session) {
       const existing = reconciliations.get(session.id);
       if (!existing || existing.tenantId !== session.tenantId) return;

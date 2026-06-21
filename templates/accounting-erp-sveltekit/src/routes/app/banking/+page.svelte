@@ -10,6 +10,7 @@
   const matchableTransactions = $derived(data.transactions.filter((tx) => tx.matchStatus === "unmatched" && !tx.reconciled));
   const statementDelta = $derived(data.transactions.reduce((total, tx) => total + tx.amountCents, 0));
   const latestImport = $derived(data.statementImports.at(-1));
+  const inProgressReconciliations = $derived(data.reconciliations.filter((session) => session.status === "in_progress"));
   const displayedReconciliation = $derived(form?.reconciliation ?? data.reconciliation);
   const metrics = $derived<Metric[]>([
     { label: "Bank accounts", value: data.accounts.length, tone: data.accounts.length > 0 ? "good" : "neutral", hint: "connected ledgers" },
@@ -42,6 +43,8 @@
     <Alert tone="success">Statement transaction matched.</Alert>
   {:else if form?.reconciliationStarted}
     <Alert tone="success">Reconciliation started for {form.reconciliation.statementDate}.</Alert>
+  {:else if form?.reconciliationCompleted}
+    <Alert tone="success">Reconciliation completed for {form.reconciliation.statementDate}.</Alert>
   {:else if form?.error}
     <Alert tone="error">{form.error}</Alert>
   {/if}
@@ -70,13 +73,25 @@
     <Card title="Reconciliation">
       {#if displayedReconciliation}
         <dl class="stats">
-          <div><dt>Status</dt><dd><Badge tone="warn">{displayedReconciliation.status}</Badge></dd></div>
+          <div><dt>Status</dt><dd><Badge tone={displayedReconciliation.status === "completed" ? "good" : "warn"}>{displayedReconciliation.status}</Badge></dd></div>
           <div><dt>Statement date</dt><dd>{displayedReconciliation.statementDate}</dd></div>
           <div><dt>Statement balance</dt><dd>{money(displayedReconciliation.statementBalanceCents)}</dd></div>
+          <div><dt>Difference</dt><dd>{money(displayedReconciliation.differenceCents ?? 0)}</dd></div>
           <div><dt>Module status</dt><dd>{data.status.status}</dd></div>
         </dl>
       {:else}
         <p class="empty">No reconciliation session.</p>
+      {/if}
+      {#if data.reconciliations.length > 0}
+        <div class="session-list">
+          {#each data.reconciliations.slice(0, 4) as session (session.id)}
+            <div>
+              <span>{session.statementDate}</span>
+              <strong>{money(session.statementBalanceCents)}</strong>
+              <Badge tone={session.status === "completed" ? "good" : "warn"}>{session.status}</Badge>
+            </div>
+          {/each}
+        </div>
       {/if}
     </Card>
 
@@ -202,6 +217,20 @@
           <Button type="submit" variant="primary" disabled={data.accounts.length === 0}>Start reconciliation</Button>
         </form>
       </Card>
+
+      <Card title="Complete reconciliation">
+        <form method="POST" action="?/completeReconciliation" use:enhance>
+          <Field label="Session" id="complete-reconciliation">
+            <select id="complete-reconciliation" name="reconciliationId" required disabled={inProgressReconciliations.length === 0}>
+              <option value="">Choose session</option>
+              {#each inProgressReconciliations as session (session.id)}
+                <option value={session.id}>{session.statementDate} - {money(session.statementBalanceCents)}</option>
+              {/each}
+            </select>
+          </Field>
+          <Button type="submit" variant="primary" disabled={inProgressReconciliations.length === 0}>Complete reconciliation</Button>
+        </form>
+      </Card>
     </div>
   {/if}
 </main>
@@ -234,6 +263,25 @@
   }
   .stats dd {
     margin: 0;
+  }
+  .session-list {
+    display: grid;
+    gap: 10px;
+    margin-block-start: 16px;
+    border-block-start: 1px solid var(--color-line);
+    padding-block-start: 14px;
+  }
+  .session-list div {
+    display: grid;
+    grid-template-columns: minmax(92px, 1fr) minmax(96px, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.86rem;
+  }
+  .session-list span {
+    color: var(--color-ink-faint);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
   }
   .operator-grid {
     display: grid;

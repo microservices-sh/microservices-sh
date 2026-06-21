@@ -8,16 +8,13 @@ Tenant-scoped bank accounts, statement imports, transaction matching, and reconc
 
 ```ts
 import {
-  createBankAccount,
-  importStatementCsv,
-  importStatementTransactions,
-  listStatementImports,
-  suggestMatches,
-  createMatch,
-  startReconciliation,
-  completeReconciliation,
+  createBankReconciliationService,
   createMemoryBankReconciliationStore
 } from "@microservices-sh/bank-reconciliation";
+
+const service = createBankReconciliationService({
+  store: createMemoryBankReconciliationStore()
+});
 ```
 
 ## Core Behavior
@@ -30,6 +27,7 @@ import {
 - Suggests matches from supplied ledger/payment candidates or an optional `MatchCandidateProvider`.
 - Creates manual, auto, or rule matches without importing accounting-core or payment code.
 - Starts reconciliation sessions from the account's last reconciled balance.
+- Lists persisted reconciliation sessions by tenant or bank account.
 - Completes reconciliation only when all in-period non-excluded transactions are matched and the computed cleared balance equals the statement ending balance.
 
 ## Ownership Boundary

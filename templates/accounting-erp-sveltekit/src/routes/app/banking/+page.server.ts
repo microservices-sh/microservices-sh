@@ -59,6 +59,7 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
   const accounts = await service.listBankAccounts(ctx);
   const transactions = bankAccount ? await service.listStatementTransactions(ctx, bankAccount.id) : null;
   const statementImports = bankAccount ? await service.listStatementImports(ctx, bankAccount.id) : null;
+  const reconciliations = bankAccount ? await service.listReconciliations(ctx, bankAccount.id) : null;
 
   return {
     canManage: permissions.includes("*") || permissions.includes("member.manage"),
@@ -66,8 +67,9 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
     accounts: accounts.ok ? accounts.data : [],
     transactions: transactions?.ok ? transactions.data : [],
     statementImports: statementImports?.ok ? statementImports.data : [],
+    reconciliations: reconciliations?.ok ? reconciliations.data : [],
     imported: imported?.ok ? imported.data : null,
-    reconciliation: null
+    reconciliation: reconciliations?.ok ? (reconciliations.data[0] ?? null) : null
   };
 };
 
@@ -254,5 +256,48 @@ export const actions: Actions = {
     );
 
     return { reconciliationStarted: true, reconciliation: reconciliation.data };
+  },
+
+  completeReconciliation: async ({ request, locals, cookies, platform }) => {
+    requireModule("bank-reconciliation", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const values = {
+      reconciliationId: text(form.get("reconciliationId"))
+    };
+    if (!values.reconciliationId) {
+      return fail(400, { error: "Choose a reconciliation session.", values });
+    }
+
+    const completed = await locals.bankReconciliationService.completeReconciliation(
+      { tenantId: org.id, actorId: locals.user.id },
+      values.reconciliationId
+    );
+    if (!completed.ok || !completed.data) {
+      return fail(400, { error: completed.error?.message ?? "Could not complete reconciliation.", values });
+    }
+
+    await recordEvent(
+      {
+        eventName: "bank-reconciliation.reconciliation_completed",
+        actorId: locals.user.id,
+        entityType: "bank_reconciliation",
+        entityId: completed.data.id,
+        source: "app/banking",
+        payload: {
+          bankAccountId: completed.data.bankAccountId,
+          statementDate: completed.data.statementDate,
+          statementBalanceCents: completed.data.statementBalanceCents,
+          transactionsCleared: completed.data.transactionsCleared ?? 0
+        }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { reconciliationCompleted: true, reconciliation: completed.data };
   }
 };

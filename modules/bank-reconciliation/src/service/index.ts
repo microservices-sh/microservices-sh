@@ -64,6 +64,7 @@ export interface BankReconciliationService {
     statementDate: string,
     statementBalanceCents: number
   ): Promise<ModuleResult<ReconciliationSession>>;
+  listReconciliations(ctx: TenantContext, bankAccountId?: string): Promise<ModuleResult<ReconciliationSession[]>>;
   completeReconciliation(ctx: TenantContext, reconciliationId: string): Promise<ModuleResult<ReconciliationSession>>;
 }
 
@@ -406,6 +407,10 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
       return ok(reconciliation);
     },
 
+    async listReconciliations(ctx, bankAccountId) {
+      return ok(await deps.store.listReconciliations(ctx.tenantId, bankAccountId));
+    },
+
     async completeReconciliation(ctx, reconciliationId) {
       const reconciliation = await deps.store.getReconciliation(ctx.tenantId, reconciliationId);
       if (!reconciliation) return fail("reconciliation_not_found", "Reconciliation not found.");
@@ -616,6 +621,14 @@ export function createBankReconciliationMemoryService() {
       };
       reconciliations.set(reconciliation.id, reconciliation);
       return ok(reconciliation);
+    },
+
+    listReconciliations(ctx: TenantContext, bankAccountId?: string): ModuleResult<ReconciliationSession[]> {
+      return ok(
+        [...reconciliations.values()]
+          .filter((session) => session.tenantId === ctx.tenantId && (!bankAccountId || session.bankAccountId === bankAccountId))
+          .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+      );
     },
 
     completeReconciliation(ctx: TenantContext, reconciliationId: string): ModuleResult<ReconciliationSession> {

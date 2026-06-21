@@ -23,5 +23,6 @@ export interface BankReconciliationStore {
 
   insertReconciliation(session: ReconciliationSession): Promise<void>;
   getReconciliation(tenantId: string, reconciliationId: string): Promise<ReconciliationSession | null>;
+  listReconciliations(tenantId: string, bankAccountId?: string): Promise<ReconciliationSession[]>;
   updateReconciliation(session: ReconciliationSession): Promise<void>;
 }

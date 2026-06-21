@@ -22,6 +22,7 @@ describe("bank-reconciliation", () => {
     expect(imported.data!.skippedDuplicateCount).toBe(1);
 
     const reconciliation = service.startReconciliation(ctx, account.data!.id, "2026-06-21", 1500);
+    expect(service.listReconciliations(ctx, account.data!.id).data?.map((session) => session.id)).toEqual([reconciliation.data!.id]);
     const blocked = service.completeReconciliation(ctx, reconciliation.data!.id);
     expect(blocked.ok).toBe(false);
     expect(blocked.error?.code).toBe("unmatched_transactions");
@@ -51,6 +52,9 @@ describe("bank-reconciliation", () => {
     expect(imported.data!.skippedDuplicateCount).toBe(1);
 
     const reconciliation = await service.startReconciliation(ctx, account.data!.id, "2026-06-21", 1500);
+    const listedBeforeCompletion = await service.listReconciliations(ctx, account.data!.id);
+    expect(listedBeforeCompletion.data).toMatchObject([{ id: reconciliation.data!.id, status: "in_progress" }]);
+
     const blocked = await service.completeReconciliation(ctx, reconciliation.data!.id);
     expect(blocked.ok).toBe(false);
     expect(blocked.error?.code).toBe("unmatched_transactions");
@@ -63,6 +67,9 @@ describe("bank-reconciliation", () => {
     expect(completed.data!.status).toBe("completed");
     expect(completed.data!.clearedDepositsCents).toBe(500);
     expect(completed.data!.clearedBalanceCents).toBe(1500);
+
+    const listedAfterCompletion = await service.listReconciliations(ctx);
+    expect(listedAfterCompletion.data).toMatchObject([{ id: reconciliation.data!.id, status: "completed", transactionsCleared: 1 }]);
 
     const transactions = await service.listStatementTransactions(ctx, account.data!.id);
     expect(transactions.data![0].reconciled).toBe(true);
