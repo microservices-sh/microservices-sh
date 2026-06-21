@@ -135,6 +135,26 @@ The root `@microservices-sh/cli` workspace package is for internal SDK and contr
 
 The create command and generated project CLI collect anonymous, opt-out usage events for create/install/check/start/auth funnel statistics. They do not send code, paths, project names, secrets, environment values, or personal data. Disable with `MICROSERVICES_TELEMETRY=0` or `DO_NOT_TRACK=1`.
 
+## Maintainer Notes
+
+Template distribution metadata lives in `src/template-registry.js`:
+
+- `visibility`: `public`, `private`, or `internal`
+- `distribution`: `bundled`, `registry`, `private`, or `local`
+- `category`: product grouping for guided discovery
+- `weight`: `light`, `standard`, or `heavy`
+
+Current `bundled` templates are shipped inside the public npm package. Private bundled templates are hidden from public lists but are still present in the tarball for exact-id scaffolding. Move sensitive or very large templates to a registry/private distribution path before relying on `visibility: private` for confidentiality.
+
+Use the package-size guard before publishing or after adding templates/modules:
+
+```bash
+pnpm --filter create-microservices-app build
+pnpm --filter create-microservices-app pack:size
+```
+
+Override CI thresholds with `MICROSERVICES_CREATE_PACK_MAX_BYTES` and `MICROSERVICES_CREATE_PACK_MAX_FILES`. Smoke tests are split as `smoke:bundle` for full rebuild + pack, `smoke:built` for prebuilt pack checks, and `smoke:network` for network-gated framework downloads.
+
 ## Links
 
 - Website & docs: https://microservices.sh
