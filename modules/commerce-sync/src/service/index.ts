@@ -72,6 +72,11 @@ function timingSafeEqual(left: string, right: string): boolean {
   return result === 0;
 }
 
+function normalizeWebhookSignature(signature: string): string {
+  const trimmed = signature.trim();
+  return trimmed.toLowerCase().startsWith("sha256=") ? trimmed.slice("sha256=".length).trim() : trimmed;
+}
+
 export async function verifyWooCommerceWebhookSignature(
   payload: string,
   signature: string | null | undefined,
@@ -82,7 +87,7 @@ export async function verifyWooCommerceWebhookSignature(
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
     const expected = base64Encode(await crypto.subtle.sign("HMAC", key, encoder.encode(payload)));
-    return timingSafeEqual(expected, signature);
+    return timingSafeEqual(expected, normalizeWebhookSignature(signature));
   } catch {
     return false;
   }

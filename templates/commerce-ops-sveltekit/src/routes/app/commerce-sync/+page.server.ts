@@ -1,7 +1,7 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { recordEvent } from "@microservices-sh/audit-log";
-import { getCommerceSyncModuleStatus } from "@microservices-sh/commerce-sync";
+import { getCommerceSyncModuleStatus, verifyWooCommerceWebhookSignature } from "@microservices-sh/commerce-sync";
 import type { CommerceProvider, CommerceResourceType } from "@microservices-sh/commerce-sync";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
@@ -30,6 +30,10 @@ function nonNegativeInteger(value: string): number | null {
 function parseJsonPayload(value: string): unknown {
   if (!value) return {};
   return JSON.parse(value);
+}
+
+function webhookSecret(value: FormDataEntryValue | null, platform: App.Platform | undefined): string {
+  return text(value) || platform?.env?.WOOCOMMERCE_WEBHOOK_SECRET?.trim() || "";
 }
 
 export const load: PageServerLoad = async ({ locals, cookies, parent, platform }) => {
@@ -169,6 +173,7 @@ export const actions: Actions = {
       signature: text(form.get("signature")),
       payload: text(form.get("payload"))
     };
+    const secret = webhookSecret(form.get("webhookSecret"), platform);
     let payload: unknown;
     try {
       payload = parseJsonPayload(values.payload);
@@ -178,9 +183,22 @@ export const actions: Actions = {
     if (!values.connectionId || !values.topic || !values.idempotencyKey) {
       return fail(400, { error: "Choose a connection and enter webhook topic plus idempotency key.", values });
     }
+    const ctx = { tenantId: org.id, actorId: locals.user.id };
+    const connections = await locals.commerceSyncService.listCommerceConnections(ctx);
+    const connection = connections.ok ? connections.data?.find((item) => item.id === values.connectionId) : null;
+    if (!connection) return fail(400, { error: "Commerce connection not found.", values });
+
+    let signatureVerified = false;
+    if (connection.provider === "woocommerce" && values.signature) {
+      if (!secret) {
+        return fail(400, { error: "Enter a WooCommerce webhook secret or configure WOOCOMMERCE_WEBHOOK_SECRET.", values });
+      }
+      signatureVerified = await verifyWooCommerceWebhookSignature(values.payload, values.signature, secret);
+      if (!signatureVerified) return fail(400, { error: "WooCommerce webhook signature verification failed.", values });
+    }
 
     const receipt = await locals.commerceSyncService.recordWebhookReceipt(
-      { tenantId: org.id, actorId: locals.user.id },
+      ctx,
       {
         connectionId: values.connectionId,
         topic: values.topic,
@@ -198,7 +216,7 @@ export const actions: Actions = {
         entityType: "commerce_webhook_receipt",
         entityId: receipt.data.id,
         source: "app/commerce-sync",
-        payload: { topic: receipt.data.topic, replayed: receipt.data.replayed }
+        payload: { topic: receipt.data.topic, replayed: receipt.data.replayed, signatureVerified }
       },
       { auditStore: locals.auditStore }
     );

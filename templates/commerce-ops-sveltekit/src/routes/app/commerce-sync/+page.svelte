@@ -169,7 +169,10 @@
             </Field>
           </div>
           <Field label="Signature" id="webhook-signature">
-            <input id="webhook-signature" name="signature" placeholder="sha256=..." value={form?.values?.signature ?? ""} />
+            <input id="webhook-signature" name="signature" placeholder="base64 or sha256=..." value={form?.values?.signature ?? ""} />
+          </Field>
+          <Field label="Webhook secret" id="webhook-secret">
+            <input id="webhook-secret" name="webhookSecret" type="password" placeholder="Use WOOCOMMERCE_WEBHOOK_SECRET when blank" />
           </Field>
           <Field label="Payload JSON" id="webhook-payload">
             <textarea id="webhook-payload" name="payload" rows="4">{form?.values?.payload ?? '{ "id": "demo-order-1001" }'}</textarea>

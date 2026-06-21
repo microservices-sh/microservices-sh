@@ -304,6 +304,7 @@ describe("commerce-sync", () => {
     const signature = await signWebhookPayload(payload, secret);
 
     await expect(verifyWooCommerceWebhookSignature(payload, signature, secret)).resolves.toBe(true);
+    await expect(verifyWooCommerceWebhookSignature(payload, `sha256=${signature}`, secret)).resolves.toBe(true);
     await expect(verifyWooCommerceWebhookSignature(`${payload}\n`, signature, secret)).resolves.toBe(false);
     await expect(verifyWooCommerceWebhookSignature(payload, null, secret)).resolves.toBe(false);
   });

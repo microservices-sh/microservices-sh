@@ -51,7 +51,15 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/commerce-sync/+page.server.ts",
-    ["createCommerceConnection", "startSyncRun", "completeSyncRun", "recordWebhookReceipt", "recordEvent"],
+    [
+      "createCommerceConnection",
+      "startSyncRun",
+      "completeSyncRun",
+      "recordWebhookReceipt",
+      "verifyWooCommerceWebhookSignature",
+      "WOOCOMMERCE_WEBHOOK_SECRET",
+      "recordEvent"
+    ],
     "Commerce sync route exposes operator actions through commerce-sync use cases and records audit events."
   );
   assertFileIncludesAll(
