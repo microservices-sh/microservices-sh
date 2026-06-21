@@ -3,21 +3,78 @@ import { listEvents } from "@microservices-sh/audit-log";
 import { listCustomers } from "@microservices-sh/customer";
 import { relativeTime, humanizeEvent } from "$lib/format";
 import type { Tone } from "$lib/ui/types";
+import lockfile from "../../../../microservices.lock.json";
 
-// Real, module-scoped tool surface keyed by the nav destination each module
-// exposes. Reads run freely; writes are the ones an approval gate would hold.
-// This is the actual public use-case surface of the modules — not invented.
-const CATALOG: Record<string, { reads: string[]; writes: string[] }> = {
-  "/app/customers": { reads: ["customer.list", "customer.get"], writes: ["customer.upsert"] },
-  "/app/invoices": { reads: ["invoice.list"], writes: ["invoice.issue", "invoice.recordPayment"] },
-  "/app/payments": { reads: ["payment.list"], writes: ["payment.refund"] },
-  "/app/support": { reads: ["ticket.list", "ticket.get"], writes: ["ticket.update"] },
-  "/app/notifications": { reads: ["notification.list"], writes: ["notification.send"] },
-  "/app/jobs": { reads: ["job.list"], writes: ["job.enqueue"] },
-  "/app/webhooks": { reads: ["webhook.list"], writes: ["webhook.deliver"] },
-  "/app/files": { reads: ["file.list"], writes: ["file.upload", "file.delete"] },
-  "/app/settings/team": { reads: ["member.list"], writes: ["member.invite"] }
+type RpcEntry = {
+  method?: string;
+  scope?: string | null;
+  mutation?: boolean;
 };
+
+type LockModule = {
+  id: string;
+  contract?: {
+    rpc?: Array<string | RpcEntry>;
+  };
+};
+
+const READ_PREFIXES = ["get", "list", "read", "find", "query", "fetch", "count", "view", "describe"];
+const READ_SCOPE_SUFFIX = /\.(read|list|view|observe|verify)$/;
+
+const MODULE_BY_HREF: Record<string, string> = {
+  "/app/customers": "customer",
+  "/app/products": "product-catalog",
+  "/app/inventory": "inventory",
+  "/app/sales-orders": "sales-order",
+  "/app/shipments": "shipment",
+  "/app/invoices": "invoice",
+  "/app/payments": "payment",
+  "/app/support": "support-ticket",
+  "/app/notifications": "notifications-inapp",
+  "/app/jobs": "jobs-workflows",
+  "/app/webhooks": "webhook-delivery",
+  "/app/files": "file-media",
+  "/app/settings/team": "org-team-rbac"
+};
+
+function normalizeRpc(entry: string | RpcEntry): RpcEntry | null {
+  if (typeof entry === "string") return { method: entry };
+  return typeof entry.method === "string" ? entry : null;
+}
+
+function isReadTool(entry: RpcEntry): boolean {
+  if (typeof entry.mutation === "boolean") return !entry.mutation;
+  const method = String(entry.method ?? "").toLowerCase();
+  if (READ_PREFIXES.some((prefix) => method.startsWith(prefix))) return true;
+  return typeof entry.scope === "string" && READ_SCOPE_SUFFIX.test(entry.scope);
+}
+
+function toolName(moduleId: string, methodName: string): string {
+  return `${moduleId}_${methodName}`;
+}
+
+function toolsForModule(moduleId: string): { reads: string[]; writes: string[] } {
+  const module = ((lockfile.modules ?? []) as LockModule[]).find((m) => m.id === moduleId);
+  const tools = { reads: [] as string[], writes: [] as string[] };
+
+  for (const raw of module?.contract?.rpc ?? []) {
+    const rpc = normalizeRpc(raw);
+    if (!rpc?.method) continue;
+    const bucket = isReadTool(rpc) ? tools.reads : tools.writes;
+    bucket.push(toolName(moduleId, rpc.method));
+  }
+
+  return tools;
+}
+
+// The visible Agent Center catalog mirrors the lock-generated MCP tool names.
+// Modules can still have UI routes without MCP tools; only declared lock RPCs
+// appear here as callable agent capabilities.
+const CATALOG: Record<string, { reads: string[]; writes: string[] }> = Object.fromEntries(
+  Object.entries(MODULE_BY_HREF)
+    .map(([href, moduleId]) => [href, toolsForModule(moduleId)] as const)
+    .filter(([, tools]) => tools.reads.length + tools.writes.length > 0)
+);
 
 const eventTone = (eventName: string): Tone => {
   if (eventName.includes("payment")) return "good";

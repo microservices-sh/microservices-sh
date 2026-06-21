@@ -1,6 +1,9 @@
 export default function check({ assert, assertFileIncludes, assertFileIncludesAll, exists, readText }) {
   const hooksServer = readText("src/hooks.server.ts");
   const commerceSyncMigration = readText("migrations/0027_commerce_sync.sql");
+  const mcpGenerator = readText("scripts/generate-mcp.mjs");
+  const mcpWiring = readText("src/lib/server/mcp-wiring.ts");
+  const agentCenter = readText("src/routes/app/agent/+page.server.ts");
 
   assertFileIncludesAll(
     "docs/api-boundary.md",
@@ -82,8 +85,13 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "scripts/generate-mcp.mjs",
-    ["loadConnections", "join(root, \"modules\", id, \"module.json\")", "generateToolManifest(m)", "templateId"],
-    "Commerce MCP generator reads authoritative module rpc contracts in workspace and vendored-template layouts."
+    ["m.contract?.rpc", "generateToolManifest(m)", "templateId"],
+    "Commerce MCP generator reads authoritative module rpc contracts from the template lockfile."
+  );
+  assert(
+    !mcpGenerator.includes("loadConnections") && !mcpGenerator.includes("module.json"),
+    "Commerce MCP generator does not merge unlocked module-manifest RPC connections.",
+    "policy:commerce-mcp-lock-authoritative"
   );
   assertFileIncludesAll(
     "microservices.lock.json",
@@ -108,6 +116,23 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       "actorContext"
     ],
     "Commerce MCP wiring binds generated governed tools to real module use cases and shared governance hooks."
+  );
+  assert(
+    !mcpWiring.includes("payment_createPaymentIntent") && !mcpWiring.includes("org-team-rbac_authorize"),
+    "Commerce MCP wiring does not expose handlers absent from the template lock RPC snapshot.",
+    "policy:commerce-mcp-no-unlocked-handlers"
+  );
+  assertFileIncludesAll(
+    "src/routes/app/agent/+page.server.ts",
+    ["microservices.lock.json", "MODULE_BY_HREF", "toolName(moduleId, rpc.method)"],
+    "Agent Center derives visible callable tools from lock-declared RPC methods."
+  );
+  assert(
+    !agentCenter.includes("payment.refund") &&
+      !agentCenter.includes("notification.send") &&
+      !agentCenter.includes("webhook.deliver"),
+    "Agent Center does not advertise hand-written tool names outside the lock-generated MCP surface.",
+    "policy:commerce-agent-center-lock-tools"
   );
   assertFileIncludesAll(
     "src/routes/api/commerce-sync/woocommerce/[tenantId]/[connectionId]/+server.ts",

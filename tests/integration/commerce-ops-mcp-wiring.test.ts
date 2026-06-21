@@ -3,7 +3,7 @@
 // the common auth/customer/payment/support/file tools already used by the app.
 
 import { describe, it, expect } from "vitest";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { createToolGateway } from "../../packages/sdk-internal/src/tool-gateway.js";
@@ -21,12 +21,10 @@ import {
 const lockPath = fileURLToPath(new URL("../../templates/commerce-ops-sveltekit/microservices.lock.json", import.meta.url));
 const lock = JSON.parse(readFileSync(lockPath, "utf8"));
 
-function loadConnections(id: string): any {
-  const path = fileURLToPath(new URL(`../../modules/${id}/module.json`, import.meta.url));
-  return existsSync(path) ? JSON.parse(readFileSync(path, "utf8")).connections : undefined;
-}
-
-const modules = lock.modules.map((m: any) => ({ id: m.id, connections: loadConnections(m.id) }));
+const modules = lock.modules.map((m: any) => ({
+  id: m.id,
+  rpc: (m.contract?.rpc ?? []).map((r: any) => (typeof r === "string" ? { method: r } : r))
+}));
 const manifest = modules.flatMap((m: any) => generateToolManifest(m));
 const allScopes = [...new Set(manifest.map((t: any) => t.scope).filter(Boolean))] as string[];
 
@@ -58,6 +56,9 @@ describe("commerce-ops app MCP wiring", () => {
     expect(names).toContain("shipment_createShipment");
     expect(names).toContain("support-ticket_createTicket");
     expect(names).toContain("file-media_createUploadTicket");
+    expect(names).not.toContain("payment_createPaymentIntent");
+    expect(names).not.toContain("org-team-rbac_authorize");
+    expect(names).toHaveLength(50);
     expect(names).toHaveLength(manifest.length);
     expect(Object.keys(handlers).sort()).toEqual(names);
   });

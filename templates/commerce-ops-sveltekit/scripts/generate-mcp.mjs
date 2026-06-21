@@ -6,7 +6,7 @@
 // The generated entry imports the hand-authored seam at
 // src/lib/server/mcp-wiring.ts, where module deps and handlers are bound.
 
-import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,23 +16,10 @@ import { generateMcpServerEntry } from "../../../packages/sdk-internal/src/mcp-t
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
 
-function loadConnections(id) {
-  const candidates = [
-    join(root, "node_modules", "@microservices-sh", id, "module.json"),
-    join(root, "modules", id, "module.json"),
-    join(root, "..", "..", "modules", id, "module.json"),
-  ];
-  for (const path of candidates) {
-    if (existsSync(path)) return JSON.parse(readFileSync(path, "utf8")).connections;
-  }
-  return undefined;
-}
-
 const lock = JSON.parse(readFileSync(join(root, "microservices.lock.json"), "utf8"));
 const templateId = typeof lock.template === "object" && lock.template ? lock.template.id : lock.template;
 const modules = lock.modules.map((m) => ({
   id: m.id,
-  connections: loadConnections(m.id),
   rpc: (m.contract?.rpc ?? []).map((r) => (typeof r === "string" ? { method: r } : r)),
 }));
 

@@ -1618,3 +1618,26 @@
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Commerce template build | SvelteKit/Cloudflare build compiles after the migration cleanup | `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 73 commerce MCP lock-authoritative catalog
+
+- **Status:** complete.
+- Goal: align the commerce template's generated MCP server, hand-authored wiring, and visible Agent Center catalog with the template lockfile RPC snapshot.
+- Changed `scripts/generate-mcp.mjs` to generate from `microservices.lock.json` `contract.rpc` entries only, instead of merging module `connections` from workspace or vendored package layouts.
+- Removed MCP handlers for `payment_createPaymentIntent` and `org-team-rbac_authorize` because those methods are not declared in the commerce template lock.
+- Changed Agent Center to compute visible `module_method` tool names from the lock snapshot, so UI routes without declared RPC tools no longer inflate the callable-agent surface.
+- Added template and integration-test guards for lock-authoritative generation, 50 commerce MCP tools, and absence of unlocked handlers.
+- Rebuilt the create package so the packaged commerce template copy reflects the root commerce template changes, including the earlier commerce-sync migration guard.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| MCP generation | Commerce generated MCP artifacts are lock-authoritative and report 50 tools | `pnpm --dir templates/commerce-ops-sveltekit generate:mcp` passed and reported 50 tools | Pass |
+| Commerce MCP wiring test | Generated manifest names and hand-authored handlers match exactly; unlocked payment/RBAC handlers are absent | `pnpm exec vitest run tests/integration/commerce-ops-mcp-wiring.test.ts` passed, 5/5 | Pass |
+| Focused template spec | Template policies enforce lock-derived MCP generation, wiring, and Agent Center catalog | `node packages/workspace-tools/src/index.js check template --path templates/commerce-ops-sveltekit` passed | Pass |
+| Commerce template build | SvelteKit/Cloudflare build compiles the lock-derived Agent Center route | `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Create app build | Packaged commerce template copy is rebuilt from root template sources | `pnpm --filter create-microservices-app build` passed | Pass |
+| Packaged template spec | Packaged commerce template has the same guards as the root template | `node packages/workspace-tools/src/index.js check template --path packages/create-microservices-app/templates/commerce-ops-sveltekit` passed | Pass |
+| Built smoke | Generated app smoke remains green after commerce template packaging sync | `pnpm --filter create-microservices-app smoke:built` passed | Pass |
+| Drift scan | Packaged commerce copy has no stale commerce-sync table/generator/handler matches beyond negative assertions | `rg -n "CREATE TABLE IF NOT EXISTS domain_events|loadConnections|payment_createPaymentIntent|org-team-rbac_authorize" packages/create-microservices-app/templates/commerce-ops-sveltekit/...` returned only negative guard assertions | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

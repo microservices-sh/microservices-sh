@@ -17,14 +17,8 @@ import {
   createMemorySessionStore
 } from "@microservices-sh/identity/adapters/memory";
 
-import { authorize as rbacAuthorize, createMemoryRbacStore } from "@microservices-sh/org-team-rbac";
-
 import { rpcContract as customerRpc } from "@microservices-sh/customer/rpc";
 import { createMemoryCustomerRepository } from "@microservices-sh/customer/adapters/memory";
-
-import { rpcContract as paymentRpc } from "@microservices-sh/payment/rpc";
-import { createMemoryPaymentRepository } from "@microservices-sh/payment/adapters/memory";
-import { createMemoryPaymentGateway } from "@microservices-sh/payment/adapters/memory-gateway";
 
 import {
   createUploadTicket,
@@ -114,12 +108,7 @@ const identityDeps = {
   loginCodeStore: createMemoryLoginCodeStore(),
   sessionStore: createMemorySessionStore()
 };
-const rbacStore = createMemoryRbacStore();
 const customerRepository = createMemoryCustomerRepository();
-const paymentDeps = {
-  paymentRepository: createMemoryPaymentRepository(),
-  paymentGateway: createMemoryPaymentGateway()
-};
 const fileMediaDeps = { mediaStore: createMemoryMediaStore(), storage: createMemoryObjectStorage() };
 const ticketStore = createMemoryTicketStore();
 const productCatalogStore = createMemoryProductCatalogStore();
@@ -132,15 +121,6 @@ const auditStore = createMemoryAuditEventStore();
 
 function actor(ctx?: ToolContext) {
   return { id: ctx?.actor ?? process.env.MCP_AGENT_ID ?? "agent:commerce-ops" };
-}
-
-function rbacInput(input: unknown): { orgId: string; userId: string; permission: string } {
-  const value = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
-  return {
-    orgId: String(value.orgId ?? ""),
-    userId: String(value.userId ?? ""),
-    permission: String(value.permission ?? "")
-  };
 }
 
 const productReader = {
@@ -293,16 +273,9 @@ export const handlers: Record<string, (input: unknown, ctx?: ToolContext) => Pro
   identity_readSession: (input) => readSession(input as { sessionId?: string | null }, identityDeps),
   identity_destroySession: (input) => destroySession(input as { sessionId?: string }, identityDeps),
 
-  "org-team-rbac_authorize": (input) => {
-    const parsed = rbacInput(input);
-    return rbacAuthorize(parsed.orgId, parsed.userId, parsed.permission, { store: rbacStore });
-  },
-
   customer_getCustomer: (input) => customerRpc.getCustomer.handler(input, { customerRepository }),
   customer_listCustomers: (input) => customerRpc.listCustomers.handler(input, { customerRepository }),
   customer_upsertCustomer: (input) => customerRpc.upsertCustomer.handler(input, { customerRepository }),
-
-  payment_createPaymentIntent: (input) => paymentRpc.createPaymentIntent.handler(input, paymentDeps),
 
   "file-media_createUploadTicket": (input) => createUploadTicket(input, fileMediaDeps),
   "file-media_completeUpload": (input) => completeUpload(input, fileMediaDeps),

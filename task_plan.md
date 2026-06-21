@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 72
+Phase 73
 
 ## Phases
 
@@ -564,6 +564,14 @@ Phase 72
 - [x] Remove the stale `domain_events` table declaration from `commerce-ops-sveltekit` commerce-sync migration; `0001_core.sql` owns the shared event stream.
 - [x] Add a commerce template policy assertion preventing the commerce-sync migration from redeclaring `domain_events`.
 - [x] Verify focused template check, SQLite migration load, full workspace specs, commerce template build, and whitespace checks.
+- **Status:** complete
+
+### Phase 73: Commerce MCP Lock-Authoritative Catalog
+- [x] Make `commerce-ops-sveltekit` MCP generation use the template lockfile RPC snapshot instead of merging module `connections` from workspace/package layouts.
+- [x] Remove commerce MCP handlers for tools absent from the lock snapshot (`payment_createPaymentIntent`, `org-team-rbac_authorize`).
+- [x] Derive the Agent Center visible tool list from lock-declared RPC methods so it stops advertising hand-written non-MCP tools.
+- [x] Add template and integration-test guards for lock-authoritative generation, 50 commerce tools, and absence of unlocked handlers.
+- [x] Verify focused generation, MCP wiring tests, template checks, packaged-template checks, commerce build, create-app build/smoke, workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions
