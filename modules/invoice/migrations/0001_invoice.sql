@@ -18,6 +18,10 @@ CREATE TABLE IF NOT EXISTS invoices (
   due_at TEXT,
   paid_at TEXT,
   voided_at TEXT,
+  payment_link_id TEXT,
+  payment_link_url TEXT,
+  payment_link_provider TEXT,
+  payment_link_created_at TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );

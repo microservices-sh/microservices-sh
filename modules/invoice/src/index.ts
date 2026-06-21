@@ -7,6 +7,7 @@ export { createInvoice } from "./use-cases/create-invoice";
 export { addLineItem } from "./use-cases/add-line-item";
 export { issueInvoice } from "./use-cases/issue-invoice";
 export { recordPayment } from "./use-cases/record-payment";
+export { createInvoicePaymentLink } from "./use-cases/create-invoice-payment-link";
 export { voidInvoice } from "./use-cases/void-invoice";
 export { listInvoices } from "./use-cases/list-invoices";
 export { dueForReminder } from "./use-cases/due-for-reminder";
@@ -15,6 +16,7 @@ export {
   getInvoiceScoped,
   issueInvoiceScoped,
   recordPaymentScoped,
+  createInvoicePaymentLinkScoped,
   voidInvoiceScoped,
   addLineItemScoped
 } from "./use-cases/scoped";
@@ -25,9 +27,11 @@ export type { AuthContext } from "@microservices-sh/connection-contract";
 export { computeTotals, lineAmountCents, lineTaxCents } from "./totals";
 export { createD1InvoiceStore } from "./adapters/d1-invoice-store";
 export { createD1NumberAllocator } from "./adapters/d1-number-allocator";
+export { createStripeInvoicePaymentLinkProvider } from "./adapters/stripe-payment-link-provider";
+export { createMemoryInvoicePaymentLinkProvider } from "./adapters/memory-payment-link-provider";
 export { createMemoryInvoiceStore } from "./adapters/memory-invoice-store";
 export { createMemoryNumberAllocator } from "./adapters/memory-number-allocator";
-export type { InvoiceStore, NumberAllocator } from "./ports";
+export type { InvoicePaymentLinkProvider, InvoiceStore, NumberAllocator } from "./ports";
 export type {
   Invoice,
   InvoiceWithLines,

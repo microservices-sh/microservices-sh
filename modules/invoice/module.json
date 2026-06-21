@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "status": "available",
   "class": "core",
-  "summary": "Invoices with gapless atomic numbering, per-line tax, an enforced draft->open->paid->void lifecycle, idempotent payment application, and dunning hooks.",
+  "summary": "Invoices with gapless atomic numbering, per-line tax, an enforced draft->open->paid->void lifecycle, idempotent payment application, payment-link metadata, and dunning hooks.",
   "runtime": {
     "language": "typescript",
     "platform": "cloudflare-workers",
@@ -25,7 +25,14 @@
       "calls": []
     },
     "events": {
-      "emits": ["invoice.created", "invoice.issued", "invoice.paid", "invoice.voided", "invoice.overdue"],
+      "emits": [
+        "invoice.created",
+        "invoice.issued",
+        "invoice.paid",
+        "invoice.voided",
+        "invoice.overdue",
+        "invoice.payment_link_created"
+      ],
       "consumes": []
     },
     "hookPoints": {
@@ -52,9 +59,21 @@
     },
     "agentic": {
       "applicable": true,
-      "tools": ["invoice.listInvoices", "invoice.getInvoice", "invoice.issueInvoice", "invoice.recordPayment", "invoice.voidInvoice"],
+      "tools": [
+        "invoice.listInvoices",
+        "invoice.getInvoice",
+        "invoice.issueInvoice",
+        "invoice.recordPayment",
+        "invoice.createPaymentLink",
+        "invoice.voidInvoice"
+      ],
       "skillPaths": ["skills/invoice-operator/SKILL.md"],
-      "approvalRequiredFor": ["invoice.issueInvoice", "invoice.recordPayment", "invoice.voidInvoice"]
+      "approvalRequiredFor": [
+        "invoice.issueInvoice",
+        "invoice.recordPayment",
+        "invoice.createPaymentLink",
+        "invoice.voidInvoice"
+      ]
     }
   },
   "skills": [

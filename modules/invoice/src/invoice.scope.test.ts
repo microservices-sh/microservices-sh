@@ -5,6 +5,7 @@ import {
   createInvoice,
   createMemoryInvoiceStore,
   createMemoryNumberAllocator,
+  createInvoicePaymentLinkScoped,
   listInvoicesScoped,
   getInvoiceScoped,
   issueInvoiceScoped,
@@ -12,12 +13,21 @@ import {
   voidInvoiceScoped,
   addLineItemScoped
 } from "./index";
+import type { InvoicePaymentLinkProvider } from "./index";
 
 // plans/33 — the enforced authorization boundary, proven for invoice. Two tenants
 // share one store (one deployment's D1); an actor scoped to org A must never read,
 // list, or mutate org B's invoices. This is the CI artifact we show buyers.
 const fixedNow = (ms: number) => () => ms;
 const T0 = Date.parse("2026-01-01T00:00:00.000Z");
+
+function blockedPaymentLinkProvider(): InvoicePaymentLinkProvider {
+  return {
+    async createPaymentLink() {
+      throw new Error("payment link provider should not be called for cross-tenant invoices");
+    }
+  };
+}
 
 async function seedDraft(
   invoiceStore: ReturnType<typeof createMemoryInvoiceStore>,
@@ -78,6 +88,14 @@ describe("invoice: enforced tenant boundary (cross-tenant leak test)", () => {
     const fPay = await recordPaymentScoped(ctxA, { invoiceId: b1, amountCents: 100 }, deps);
     expect(fPay.ok).toBe(false);
     expect(fPay.status).toBe(404);
+
+    const fLink = await createInvoicePaymentLinkScoped(
+      ctxA,
+      { invoiceId: b1 },
+      { ...deps, paymentLinkProvider: blockedPaymentLinkProvider() }
+    );
+    expect(fLink.ok).toBe(false);
+    expect(fLink.status).toBe(404);
 
     const fVoid = await voidInvoiceScoped(ctxA, b1, deps);
     expect(fVoid.ok).toBe(false);

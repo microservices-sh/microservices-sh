@@ -13,25 +13,29 @@ agents reliably ship:
    while draft; issued invoices are immutable (corrections via void/reissue).
 3. **Idempotent payments** — `recordPayment` dedups on an idempotency key, so a
    redelivered payment webhook is applied exactly once (no double-credit).
-4. **Per-line tax in integer cents** — tax rounds per line so a printed invoice
+4. **Provider-backed payment links** — `createInvoicePaymentLink` stores one
+   reusable link per issued, unpaid invoice and keeps Stripe behind a port.
+5. **Per-line tax in integer cents** — tax rounds per line so a printed invoice
    reconciles line-by-line.
 
 ## Flow
 
 ```ts
 import {
-  createInvoice, addLineItem, issueInvoice, recordPayment, voidInvoice, dueForReminder,
-  createD1InvoiceStore, createD1NumberAllocator
+  createInvoice, addLineItem, issueInvoice, createInvoicePaymentLink, recordPayment, voidInvoice, dueForReminder,
+  createD1InvoiceStore, createD1NumberAllocator, createStripeInvoicePaymentLinkProvider
 } from "@microservices-sh/invoice";
 
 const invoiceStore = createD1InvoiceStore(env.DB);
 const allocator = createD1NumberAllocator(env.DB);
+const paymentLinkProvider = createStripeInvoicePaymentLinkProvider(env.STRIPE_SECRET_KEY);
 
 const draft = await createInvoice(
   { tenantId, customerId, lineItems: [{ description: "Consulting", quantity: 3, unitAmountCents: 15000, taxRateBps: 875 }] },
   { invoiceStore }
 );
 await issueInvoice({ invoiceId: draft.data.id, termsDays: 14 }, { invoiceStore, allocator }); // -> INV-00001
+await createInvoicePaymentLink({ invoiceId: draft.data.id }, { invoiceStore, paymentLinkProvider });
 await recordPayment({ invoiceId: draft.data.id, amountCents: 48938, idempotencyKey: stripeEventId }, { invoiceStore });
 ```
 
@@ -43,6 +47,7 @@ a reminder job per overdue invoice (key the job on invoice id + date to send onc
 ## Resources
 
 - D1 (`DB`): `invoices`, `invoice_line_items`, `invoice_sequences`, `invoice_payments` (migration `0001`).
+- Optional Stripe payment-link adapter: `createStripeInvoicePaymentLinkProvider`.
 
 ## Verification
 

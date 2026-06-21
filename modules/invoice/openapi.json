@@ -84,6 +84,31 @@
         },
         "responses": { "200": { "description": "Payment applied (or deduplicated)" } }
       }
+    },
+    "/invoices/{id}/payment-link": {
+      "post": {
+        "summary": "Create or return an invoice payment link",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "successUrl": { "type": "string", "format": "uri" },
+                  "customerEmail": { "type": "string", "format": "email" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Payment link created" },
+          "200": { "description": "Existing payment link returned" },
+          "409": { "description": "Invoice is not payable" }
+        }
+      }
     }
   }
 }

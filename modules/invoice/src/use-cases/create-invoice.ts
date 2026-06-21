@@ -60,6 +60,10 @@ export async function createInvoice(
     dueAt: null,
     paidAt: null,
     voidedAt: null,
+    paymentLinkId: null,
+    paymentLinkUrl: null,
+    paymentLinkProvider: null,
+    paymentLinkCreatedAt: null,
     createdAt: nowIso,
     updatedAt: nowIso
   };

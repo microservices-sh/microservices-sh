@@ -29,6 +29,12 @@ export const recordPaymentInputSchema = z.object({
   idempotencyKey: z.string().min(1).optional().nullable()
 });
 
+export const createInvoicePaymentLinkInputSchema = z.object({
+  invoiceId: z.string().min(1),
+  successUrl: z.string().url().optional(),
+  customerEmail: z.string().email().optional()
+});
+
 export const listInvoicesFilterSchema = z.object({
   tenantId: z.string().min(1),
   customerId: z.string().optional(),
@@ -40,4 +46,5 @@ export type LineItemInput = z.infer<typeof lineItemInputSchema>;
 export type CreateInvoiceInput = z.infer<typeof createInvoiceInputSchema>;
 export type IssueInvoiceInput = z.infer<typeof issueInvoiceInputSchema>;
 export type RecordPaymentInput = z.infer<typeof recordPaymentInputSchema>;
+export type CreateInvoicePaymentLinkInput = z.infer<typeof createInvoicePaymentLinkInputSchema>;
 export type ListInvoicesFilter = z.infer<typeof listInvoicesFilterSchema>;

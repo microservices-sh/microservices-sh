@@ -4,6 +4,7 @@ import { invoiceMeta } from "../meta";
 import { listInvoices } from "./list-invoices";
 import { issueInvoice } from "./issue-invoice";
 import { recordPayment } from "./record-payment";
+import { createInvoicePaymentLink } from "./create-invoice-payment-link";
 import { voidInvoice } from "./void-invoice";
 import { addLineItem } from "./add-line-item";
 import type { InvoiceStore } from "../ports";
@@ -91,6 +92,21 @@ export async function recordPaymentScoped(ctx: AuthContext, input: unknown, deps
     if (bad) return bad;
   }
   return recordPayment(input, deps);
+}
+
+export async function createInvoicePaymentLinkScoped(
+  ctx: AuthContext,
+  input: unknown,
+  deps: Parameters<typeof createInvoicePaymentLink>[1]
+) {
+  const denied = requireScope(ctx, deps);
+  if (denied) return denied;
+  const id = readInvoiceId(input);
+  if (id) {
+    const bad = await ensureOwned(ctx, id, deps);
+    if (bad) return bad;
+  }
+  return createInvoicePaymentLink(input, deps);
 }
 
 export async function voidInvoiceScoped(ctx: AuthContext, invoiceId: string, deps: Parameters<typeof voidInvoice>[1]) {

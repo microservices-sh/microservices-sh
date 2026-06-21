@@ -1,6 +1,6 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { error, fail, redirect } from "@sveltejs/kit";
-import { getInvoiceScoped, recordPaymentScoped, authContext } from "@microservices-sh/invoice";
+import { createInvoicePaymentLinkScoped, getInvoiceScoped, recordPaymentScoped, authContext } from "@microservices-sh/invoice";
 import type { AuthContext } from "@microservices-sh/invoice";
 import { getCustomer } from "@microservices-sh/customer";
 import { listEvents, recordEvent } from "@microservices-sh/audit-log";
@@ -68,6 +68,8 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
       paid: money(invoice.amountPaidCents, invoice.currency),
       outstanding: money(outstandingCents, invoice.currency),
       outstandingAmount: (outstandingCents / 100).toFixed(2),
+      paymentLinkUrl: invoice.paymentLinkUrl,
+      paymentLinkProvider: invoice.paymentLinkProvider,
       issued: invoice.issuedAt ? relativeTime(invoice.issuedAt, now) : null,
       due: invoice.dueAt ? relativeTime(invoice.dueAt, now) : null,
       paidAt: invoice.paidAt ? relativeTime(invoice.paidAt, now) : null
@@ -143,5 +145,39 @@ export const actions: Actions = {
     );
 
     return { ok: true, paymentRecorded: true, paid };
+  },
+
+  paymentLink: async ({ params, locals, cookies }) => {
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    const activeOrgId = org.id;
+
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+    const ctx = authContext({ orgId: activeOrgId, actorId: locals.user.id, roles: permissions });
+    const invoiceId = params.id;
+
+    const result = await createInvoicePaymentLinkScoped(
+      ctx,
+      { invoiceId },
+      { invoiceStore: locals.invoiceStore, paymentLinkProvider: locals.invoicePaymentLinkProvider }
+    );
+    if (!result.ok || !result.data) {
+      return fail(result.status ?? 400, { error: result.error?.message ?? "Could not create the payment link." });
+    }
+
+    await recordEvent(
+      {
+        eventName: "invoice.payment_link_created",
+        actorId: locals.user.id,
+        entityType: "invoice",
+        entityId: invoiceId,
+        source: "app/invoices/detail",
+        payload: { provider: result.data.provider, idempotent: result.data.idempotent }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { ok: true, paymentLinkCreated: true, paymentLinkUrl: result.data.paymentLinkUrl };
   }
 };

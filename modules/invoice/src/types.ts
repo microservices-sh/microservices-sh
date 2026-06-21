@@ -34,6 +34,10 @@ export interface Invoice {
   dueAt: string | null;
   paidAt: string | null;
   voidedAt: string | null;
+  paymentLinkId: string | null;
+  paymentLinkUrl: string | null;
+  paymentLinkProvider: string | null;
+  paymentLinkCreatedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

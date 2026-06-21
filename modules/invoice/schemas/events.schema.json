@@ -5,7 +5,14 @@
   "properties": {
     "eventName": {
       "type": "string",
-      "enum": ["invoice.created", "invoice.issued", "invoice.paid", "invoice.voided", "invoice.overdue"]
+      "enum": [
+        "invoice.created",
+        "invoice.issued",
+        "invoice.paid",
+        "invoice.voided",
+        "invoice.overdue",
+        "invoice.payment_link_created"
+      ]
     },
     "entityType": {
       "type": "string",

@@ -21,3 +21,17 @@ export interface InvoiceStore {
 export interface NumberAllocator {
   allocate(series: string): Promise<number>;
 }
+
+export interface InvoicePaymentLinkProvider {
+  createPaymentLink(input: {
+    invoiceId: string;
+    invoiceNumber: string;
+    amountCents: number;
+    currency: string;
+    customerId: string;
+    customerEmail?: string;
+    description: string;
+    successUrl?: string;
+    idempotencyKey: string;
+  }): Promise<{ id: string; url: string; provider: string }>;
+}

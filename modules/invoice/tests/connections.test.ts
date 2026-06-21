@@ -49,6 +49,7 @@ describe("invoice connections manifest", () => {
   it("emits its lifecycle events and consumes none", () => {
     expect(manifest.connections.events.emits).toContain("invoice.issued");
     expect(manifest.connections.events.emits).toContain("invoice.paid");
+    expect(manifest.connections.events.emits).toContain("invoice.payment_link_created");
     expect(manifest.connections.events.consumes).toEqual([]);
   });
 });

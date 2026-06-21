@@ -19,6 +19,10 @@ function rowToInvoice(row: Record<string, unknown>): Invoice {
     dueAt: row.due_at ? String(row.due_at) : null,
     paidAt: row.paid_at ? String(row.paid_at) : null,
     voidedAt: row.voided_at ? String(row.voided_at) : null,
+    paymentLinkId: row.payment_link_id ? String(row.payment_link_id) : null,
+    paymentLinkUrl: row.payment_link_url ? String(row.payment_link_url) : null,
+    paymentLinkProvider: row.payment_link_provider ? String(row.payment_link_provider) : null,
+    paymentLinkCreatedAt: row.payment_link_created_at ? String(row.payment_link_created_at) : null,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at)
   };
@@ -37,13 +41,13 @@ function rowToLine(row: Record<string, unknown>): InvoiceLineItem {
 }
 
 const COLS =
-  "id, number, series, tenant_id, customer_id, status, currency, subtotal_cents, tax_cents, total_cents, amount_paid_cents, notes, issued_at, due_at, paid_at, voided_at, created_at, updated_at";
+  "id, number, series, tenant_id, customer_id, status, currency, subtotal_cents, tax_cents, total_cents, amount_paid_cents, notes, issued_at, due_at, paid_at, voided_at, payment_link_id, payment_link_url, payment_link_provider, payment_link_created_at, created_at, updated_at";
 
 export function createD1InvoiceStore(db: D1Database): InvoiceStore {
   return {
     async insert(invoice) {
       await db
-        .prepare(`INSERT INTO invoices (${COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .prepare(`INSERT INTO invoices (${COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .bind(
           invoice.id,
           invoice.number,
@@ -61,6 +65,10 @@ export function createD1InvoiceStore(db: D1Database): InvoiceStore {
           invoice.dueAt,
           invoice.paidAt,
           invoice.voidedAt,
+          invoice.paymentLinkId,
+          invoice.paymentLinkUrl,
+          invoice.paymentLinkProvider,
+          invoice.paymentLinkCreatedAt,
           invoice.createdAt,
           invoice.updatedAt
         )
@@ -76,7 +84,9 @@ export function createD1InvoiceStore(db: D1Database): InvoiceStore {
       await db
         .prepare(
           `UPDATE invoices SET number = ?, status = ?, subtotal_cents = ?, tax_cents = ?, total_cents = ?,
-             amount_paid_cents = ?, notes = ?, issued_at = ?, due_at = ?, paid_at = ?, voided_at = ?, updated_at = ?
+             amount_paid_cents = ?, notes = ?, issued_at = ?, due_at = ?, paid_at = ?, voided_at = ?,
+             payment_link_id = ?, payment_link_url = ?, payment_link_provider = ?, payment_link_created_at = ?,
+             updated_at = ?
            WHERE id = ?`
         )
         .bind(
@@ -91,6 +101,10 @@ export function createD1InvoiceStore(db: D1Database): InvoiceStore {
           invoice.dueAt,
           invoice.paidAt,
           invoice.voidedAt,
+          invoice.paymentLinkId,
+          invoice.paymentLinkUrl,
+          invoice.paymentLinkProvider,
+          invoice.paymentLinkCreatedAt,
           invoice.updatedAt,
           invoice.id
         )

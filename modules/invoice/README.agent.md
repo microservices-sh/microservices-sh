@@ -14,6 +14,9 @@ Rules:
      Allocate only at issue, after the abort hook, so aborts waste no numbers.
    - **Immutability**: editing/adding line items is allowed only while `draft`.
    - **Idempotent payments**: keep the `idempotencyKey` dedup via `recordPaymentKey`.
+   - **Payment links**: create links only through the `InvoicePaymentLinkProvider`
+     port, pass a deterministic provider idempotency key, and keep repeat calls
+     idempotent once link metadata exists.
    - **Money is integer cents**; tax rounds per line via `totals.ts`. No floats.
    - **Void, never delete**; paid invoices cannot be voided (credit note instead).
 4. Risk `high`: migrations, money mutations, and production deploy are approval-gated.

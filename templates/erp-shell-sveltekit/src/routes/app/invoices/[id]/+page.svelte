@@ -4,9 +4,14 @@
 
   let { data, form } = $props();
   const inv = $derived(data.invoice);
+  const paymentLinkHref = $derived(form?.paymentLinkUrl ?? inv.paymentLinkUrl);
 
-  let payAmount = $state(data.invoice.outstandingAmount);
+  let payAmount = $state("");
   let submitting = $state(false);
+
+  $effect(() => {
+    payAmount = inv.outstandingAmount;
+  });
 
   function payEnhance() {
     submitting = true;
@@ -37,6 +42,8 @@
 
   {#if form?.paymentRecorded}
     <Alert tone="success">{form.paid ? "Payment recorded — invoice marked paid." : "Payment recorded."}</Alert>
+  {:else if form?.paymentLinkCreated}
+    <Alert tone="success">Payment link ready.</Alert>
   {:else if form?.error}
     <Alert tone="error">{form.error}</Alert>
   {/if}
@@ -69,6 +76,22 @@
     </div>
 
     <div class="grid__side">
+      {#if inv.isOpen && data.canManage}
+        <Card title="Payment link">
+          {#if paymentLinkHref}
+            <p class="status-note">Share this secure link for online payment.</p>
+            <Button href={paymentLinkHref} variant="primary" size="sm" target="_blank" rel="noreferrer">
+              Open payment link
+            </Button>
+          {:else}
+            <p class="status-note">Create a one-time online payment link for the outstanding balance.</p>
+            <form method="POST" action="?/paymentLink" use:enhance>
+              <FormActions submitLabel="Create payment link" />
+            </form>
+          {/if}
+        </Card>
+      {/if}
+
       {#if inv.isOpen && data.canManage}
         <Card title="Record payment">
           <form method="POST" action="?/payment" use:enhance={payEnhance}>
