@@ -60,6 +60,11 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Template keeps the org-team-rbac per-(org,user) membership uniqueness index."
   );
   assertFileIncludesAll(
+    "migrations/0025_accounts_receivable.sql",
+    ["CREATE TABLE IF NOT EXISTS ar_invoice_snapshots", "unapplied_cents INTEGER NOT NULL DEFAULT 0"],
+    "Template keeps Accounts Receivable D1 schema aligned with invoice snapshots and unapplied balances."
+  );
+  assertFileIncludesAll(
     "src/hooks.server.ts",
     ["@microservices-sh/gateway/adapters/kv-rate-limit", "RATE_LIMIT_KV"],
     "Request hook uses gateway rate-limit stores with the shared RATE_LIMIT_KV binding."

@@ -285,9 +285,9 @@
         "resources": ["D1"],
         "permissions": ["accounts-receivable.read", "accounts-receivable.write", "accounts-receivable.admin", "accounts-receivable.extend", "accounts-receivable.observe"],
         "rpc": [],
-        "hooks": ["beforeCustomerPaymentRecord", "beforePaymentApplication", "beforeStatementGenerate", "afterReceivableChanged"],
-        "events": ["accounts-receivable.customer_payment_recorded", "accounts-receivable.payment_applied", "accounts-receivable.aging_generated", "accounts-receivable.statement_generated"],
-        "requires": ["invoice", "payment"]
+        "hooks": ["beforeCustomerPaymentRecord", "beforePaymentApply", "afterCustomerPaymentRecorded", "afterPaymentApplied"],
+        "events": ["accounts-receivable.customer_payment_recorded", "accounts-receivable.payment_applied"],
+        "requires": ["customer", "invoice"]
       }
     },
     {

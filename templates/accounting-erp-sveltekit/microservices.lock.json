@@ -412,19 +412,17 @@
         "rpc": [],
         "hooks": [
           "beforeCustomerPaymentRecord",
-          "beforePaymentApplication",
-          "beforeStatementGenerate",
-          "afterReceivableChanged"
+          "beforePaymentApply",
+          "afterCustomerPaymentRecorded",
+          "afterPaymentApplied"
         ],
         "events": [
           "accounts-receivable.customer_payment_recorded",
-          "accounts-receivable.payment_applied",
-          "accounts-receivable.aging_generated",
-          "accounts-receivable.statement_generated"
+          "accounts-receivable.payment_applied"
         ],
         "requires": [
-          "invoice",
-          "payment"
+          "customer",
+          "invoice"
         ]
       }
     },
