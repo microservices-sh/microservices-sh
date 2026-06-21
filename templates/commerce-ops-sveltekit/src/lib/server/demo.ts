@@ -21,10 +21,10 @@ import { createInvoice, issueInvoice, recordPayment } from "@microservices-sh/in
 import type { InvoiceStore, NumberAllocator } from "@microservices-sh/invoice/ports";
 import { createProduct } from "@microservices-sh/product-catalog";
 import type { ProductCatalogStore } from "@microservices-sh/product-catalog/ports";
-import { stockIn } from "@microservices-sh/inventory";
+import { reserveStock, stockIn } from "@microservices-sh/inventory";
 import type { InventoryStore } from "@microservices-sh/inventory/ports";
 import { confirmOrder, createDraftOrder } from "@microservices-sh/sales-order";
-import type { SalesOrderStore } from "@microservices-sh/sales-order/ports";
+import type { InventoryReservationPort, SalesOrderStore } from "@microservices-sh/sales-order/ports";
 import type { CommerceSyncService } from "@microservices-sh/commerce-sync";
 import { createUploadTicket, completeUpload } from "@microservices-sh/file-media";
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
@@ -183,6 +183,53 @@ const DEMO_TICKETS = [
 		priority: "normal" as const
 	}
 ];
+
+function productReader(productCatalogStore: ProductCatalogStore) {
+	return {
+		async getProduct(tenantId: string, productId: string) {
+			const product = await productCatalogStore.getProduct(tenantId, productId);
+			return product ? { id: product.id, tenantId: product.tenantId, trackStock: product.trackStock } : null;
+		}
+	};
+}
+
+function demoInventoryReservationPort(deps: DemoDeps): InventoryReservationPort {
+	return {
+		async reserveSalesOrder({ order }) {
+			const aggregate = new Map<string, { productId: string; quantity: number }>();
+			for (const line of order.lineItems) {
+				if (!line.productId) continue;
+				const product = await deps.productCatalogStore.getProduct(order.tenantId, line.productId);
+				if (!product?.trackStock) continue;
+				const current = aggregate.get(product.id);
+				if (current) current.quantity += line.quantity;
+				else aggregate.set(product.id, { productId: product.id, quantity: line.quantity });
+			}
+
+			for (const item of aggregate.values()) {
+				const reserved = await reserveStock(
+					{
+						tenantId: order.tenantId,
+						productId: item.productId,
+						locationId: "default",
+						quantity: item.quantity,
+						sourceType: "sales-order",
+						sourceId: order.id,
+						reason: `Sales order ${order.orderNumber ?? order.id}`
+					},
+					{
+						inventoryStore: deps.inventoryStore,
+						productReader: productReader(deps.productCatalogStore),
+						actor: { id: "system:seed" }
+					}
+				);
+				if (!reserved.ok) throw new Error(reserved.error.message);
+			}
+
+			return { reservationId: aggregate.size > 0 ? `sales-order:${order.id}` : null };
+		}
+	};
+}
 
 export async function seedDemoData(deps: DemoDeps): Promise<void> {
 	if (seeded) return;
@@ -448,6 +495,7 @@ export async function seedDemoData(deps: DemoDeps): Promise<void> {
 				{ tenantId: deps.tenantId, orderId: order.data.order.id },
 				{
 					salesOrderStore: deps.salesOrderStore,
+					inventoryReservationPort: demoInventoryReservationPort(deps),
 					actor: { id: "system:seed" }
 				}
 			);

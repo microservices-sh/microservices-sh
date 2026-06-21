@@ -70,6 +70,7 @@
                 <th scope="col">Customer</th>
                 <th scope="col">Lines</th>
                 <th scope="col">Total</th>
+                <th scope="col">Reservation</th>
                 <th scope="col">Status</th>
                 <th scope="col">Created</th>
                 {#if data.canManage}<th scope="col">Action</th>{/if}
@@ -82,6 +83,7 @@
                   <td>{order.customerSnapshot?.displayName ?? "Walk-in customer"}</td>
                   <td>{order.lineItems.length}</td>
                   <td>{money(order.totalCents, order.currency)}</td>
+                  <td>{#if order.inventoryReservationId}<code>{order.inventoryReservationId}</code>{:else}<span class="muted">none</span>{/if}</td>
                   <td><Badge tone={orderTone(order.status)}>{order.status}</Badge></td>
                   <td>{relativeTime(order.createdAt)}</td>
                   {#if data.canManage}

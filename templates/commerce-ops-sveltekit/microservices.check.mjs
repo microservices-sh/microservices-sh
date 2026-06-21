@@ -63,6 +63,21 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Commerce sync route exposes operator actions through commerce-sync use cases and records audit events."
   );
   assertFileIncludesAll(
+    "src/routes/app/sales-orders/+page.server.ts",
+    ["inventoryReservationPort", "reserveStock", "getStockBalance", "confirmOrder"],
+    "Sales order confirmation reserves stock through the inventory module before moving orders to confirmed."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/shipments/+page.server.ts",
+    ["deductStock", "consumeReserved", "completeShipment"],
+    "Shipment completion consumes reserved inventory for sales-order-backed fulfillment."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/demo.ts",
+    ["demoInventoryReservationPort", "reserveStock", "inventoryReservationPort"],
+    "Commerce demo seeding confirms orders through the same inventory reservation bridge as the route adapter."
+  );
+  assertFileIncludesAll(
     "src/lib/server/stores.ts",
     ["createD1RecurringInvoiceStore", "createMemoryRecurringInvoiceStore", "recurringInvoiceStore"],
     "Template wires the invoice recurring template store through the server store resolver."

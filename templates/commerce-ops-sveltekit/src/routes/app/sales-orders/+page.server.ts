@@ -3,12 +3,14 @@ import { fail, redirect } from "@sveltejs/kit";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { getCustomer, listCustomers, upsertCustomer } from "@microservices-sh/customer";
 import { authContext, createInvoice, issueInvoiceScoped } from "@microservices-sh/invoice";
+import { getStockBalance, reserveStock } from "@microservices-sh/inventory";
 import { listProducts } from "@microservices-sh/product-catalog";
 import {
   confirmOrder,
   createDraftOrder,
   listOrders,
   markOrderInvoiced,
+  type InventoryReservationPort,
   type InvoiceDraftPort
 } from "@microservices-sh/sales-order";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
@@ -52,6 +54,80 @@ function orderLineToInvoiceLine(line: {
     quantity: 1,
     unitAmountCents: line.totalCents,
     taxRateBps: 0
+  };
+}
+
+function productReader(productCatalogStore: App.Locals["productCatalogStore"]) {
+  return {
+    async getProduct(tenantId: string, productId: string) {
+      const product = await productCatalogStore.getProduct(tenantId, productId);
+      return product ? { id: product.id, tenantId: product.tenantId, trackStock: product.trackStock } : null;
+    }
+  };
+}
+
+function inventoryReservationPort(locals: App.Locals, actorId: string, permissions: string[]): InventoryReservationPort {
+  return {
+    async reserveSalesOrder({ order }) {
+      const aggregate = new Map<string, { productId: string; sku: string; quantity: number }>();
+      for (const line of order.lineItems) {
+        if (!line.productId) continue;
+        const product = await locals.productCatalogStore.getProduct(order.tenantId, line.productId);
+        if (!product) throw new Error(`Product ${line.productId} was not found for this company.`);
+        if (!product.trackStock) continue;
+        const current = aggregate.get(product.id);
+        if (current) current.quantity += line.quantity;
+        else aggregate.set(product.id, { productId: product.id, sku: product.sku, quantity: line.quantity });
+      }
+
+      const pending: Array<{ productId: string; sku: string; quantity: number }> = [];
+      for (const item of aggregate.values()) {
+        const existing = await locals.inventoryStore.findMovementBySourceRef(
+          order.tenantId,
+          item.productId,
+          "default",
+          "reservation",
+          "sales-order",
+          order.id
+        );
+        if (!existing) pending.push(item);
+      }
+
+      for (const item of pending) {
+        const balance = await getStockBalance(
+          { tenantId: order.tenantId, productId: item.productId, locationId: "default" },
+          { inventoryStore: locals.inventoryStore }
+        );
+        if (!balance.ok || !balance.data) throw new Error(balance.ok ? "Could not inspect stock balance." : balance.error.message);
+        if (balance.data.balance.available < item.quantity) {
+          throw new Error(`Insufficient available stock for ${item.sku}: ${balance.data.balance.available} available, ${item.quantity} needed.`);
+        }
+      }
+
+      const movementIds: string[] = [];
+      for (const item of pending) {
+        const reserved = await reserveStock(
+          {
+            tenantId: order.tenantId,
+            productId: item.productId,
+            locationId: "default",
+            quantity: item.quantity,
+            sourceType: "sales-order",
+            sourceId: order.id,
+            reason: `Sales order ${order.orderNumber ?? order.id}`
+          },
+          {
+            inventoryStore: locals.inventoryStore,
+            productReader: productReader(locals.productCatalogStore),
+            actor: { id: actorId, permissions }
+          }
+        );
+        if (!reserved.ok) throw new Error(reserved.error.message);
+        movementIds.push(reserved.data.movement.id);
+      }
+
+      return { reservationId: movementIds.length > 0 || aggregate.size > 0 ? `sales-order:${order.id}` : null };
+    }
   };
 }
 
@@ -245,6 +321,8 @@ export const actions: Actions = {
 
   confirm: async ({ request, locals, cookies, platform }) => {
     requireModule("sales-order", platform);
+    requireModule("inventory", platform);
+    requireModule("product-catalog", platform);
     if (!locals.user) return fail(403, { error: "Not signed in to a company." });
     const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
     if (!org) return fail(403, { error: "Not signed in to a company." });
@@ -254,13 +332,19 @@ export const actions: Actions = {
     const orderId = text(form.get("orderId"));
     if (!orderId) return fail(400, { error: "Missing sales order id." });
 
-    const result = await confirmOrder(
-      { tenantId: org.id, orderId },
-      {
-        salesOrderStore: locals.salesOrderStore,
-        actor: { id: locals.user.id, email: locals.user.email, permissions }
-      }
-    );
+    let result;
+    try {
+      result = await confirmOrder(
+        { tenantId: org.id, orderId },
+        {
+          salesOrderStore: locals.salesOrderStore,
+          inventoryReservationPort: inventoryReservationPort(locals, locals.user.id, permissions),
+          actor: { id: locals.user.id, email: locals.user.email, permissions }
+        }
+      );
+    } catch (error) {
+      return fail(400, { error: error instanceof Error ? error.message : "Could not reserve stock for this sales order." });
+    }
     if (!result.ok || !result.data) return fail(result.status, { error: result.error.message });
 
     await recordEvent(
@@ -272,6 +356,7 @@ export const actions: Actions = {
         source: "app/sales-orders",
         payload: {
           idempotent: result.data.idempotent,
+          reservationId: result.data.order.inventoryReservationId,
           totalCents: result.data.order.totalCents,
           status: result.data.order.status
         }

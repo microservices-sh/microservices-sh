@@ -19,14 +19,22 @@ function isReadyOrderStatus(status: string): boolean {
 function inventoryPort(locals: App.Locals, actorId: string): ShipmentInventoryPort {
   return {
     async deductShipment(input) {
-      const aggregate = new Map<string, { productId: string; quantity: number }>();
+      const aggregate = new Map<string, { productId: string; quantity: number; consumeReserved: boolean }>();
       for (const item of input.items) {
         const current = aggregate.get(item.productId);
-        if (current) current.quantity += item.quantity;
-        else aggregate.set(item.productId, { productId: item.productId, quantity: item.quantity });
+        const order = item.sourceType === "sales-order"
+          ? await locals.salesOrderStore.getOrder(input.tenantId, item.sourceId)
+          : null;
+        const consumeReserved = Boolean(order?.inventoryReservationId);
+        if (current) {
+          current.quantity += item.quantity;
+          current.consumeReserved = current.consumeReserved || consumeReserved;
+        } else {
+          aggregate.set(item.productId, { productId: item.productId, quantity: item.quantity, consumeReserved });
+        }
       }
 
-      const pending: Array<{ productId: string; sku: string; quantity: number }> = [];
+      const pending: Array<{ productId: string; sku: string; quantity: number; consumeReserved: boolean }> = [];
       for (const item of aggregate.values()) {
         const product = await locals.productCatalogStore.getProduct(input.tenantId, item.productId);
         if (!product) throw new Error(`Product ${item.productId} was not found for this company.`);
@@ -49,9 +57,11 @@ function inventoryPort(locals: App.Locals, actorId: string): ShipmentInventoryPo
           { inventoryStore: locals.inventoryStore }
         );
         if (!balance.ok || !balance.data) throw new Error(balance.ok ? "Could not inspect stock balance." : balance.error.message);
-        if (balance.data.balance.available < item.quantity) {
+        const availableQuantity = item.consumeReserved ? balance.data.balance.reserved : balance.data.balance.available;
+        if (availableQuantity < item.quantity) {
+          const quantityLabel = item.consumeReserved ? "reserved" : "available";
           throw new Error(
-            `Insufficient available stock for ${item.sku}: ${balance.data.balance.available} available, ${item.quantity} needed.`
+            `Insufficient ${quantityLabel} stock for ${item.sku}: ${availableQuantity} ${quantityLabel}, ${item.quantity} needed.`
           );
         }
       }
@@ -63,6 +73,7 @@ function inventoryPort(locals: App.Locals, actorId: string): ShipmentInventoryPo
             productId: item.productId,
             locationId: "default",
             quantity: item.quantity,
+            consumeReserved: item.consumeReserved,
             sourceType: "shipment",
             sourceId: input.shipmentId,
             reason: `Shipment ${input.shipmentId}`
