@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Recurring Documents Hooks",
+  "type": "object",
+  "properties": {
+    "beforeRecurringDocumentTemplateCreate": {
+      "type": "string"
+    },
+    "beforeRecurringDocumentTemplateUpdate": {
+      "type": "string"
+    },
+    "afterRecurringDocumentTemplateUpdated": {
+      "type": "string"
+    },
+    "afterRecurringDocumentGenerated": {
+      "type": "string"
+    }
+  }
+}

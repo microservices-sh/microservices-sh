@@ -1,0 +1,58 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Recurring Documents Module",
+    "version": "0.1.0",
+    "description": "Recurring invoice and bill templates with due generation and pause/resume/cancel lifecycle."
+  },
+  "paths": {
+    "/recurring-documents/templates": {
+      "get": {
+        "summary": "List recurring document templates",
+        "responses": {
+          "200": {
+            "description": "Recurring document template list"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a recurring invoice or bill template",
+        "responses": {
+          "201": {
+            "description": "Recurring document template created"
+          }
+        }
+      }
+    },
+    "/recurring-documents/templates/{templateId}/pause": {
+      "post": {
+        "summary": "Pause an active recurring document template",
+        "responses": {
+          "200": {
+            "description": "Template paused"
+          }
+        }
+      }
+    },
+    "/recurring-documents/templates/{templateId}/resume": {
+      "post": {
+        "summary": "Resume a paused recurring document template",
+        "responses": {
+          "200": {
+            "description": "Template resumed"
+          }
+        }
+      }
+    },
+    "/recurring-documents/generate-due": {
+      "post": {
+        "summary": "Generate due invoice and bill draft payloads",
+        "responses": {
+          "200": {
+            "description": "Due recurring documents generated"
+          }
+        }
+      }
+    }
+  }
+}

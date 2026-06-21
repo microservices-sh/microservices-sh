@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Recurring Documents Events",
+  "type": "string",
+  "enum": [
+    "recurring-documents.created",
+    "recurring-documents.updated",
+    "recurring-documents.paused",
+    "recurring-documents.resumed",
+    "recurring-documents.cancelled",
+    "recurring-documents.completed",
+    "recurring-documents.generated"
+  ]
+}

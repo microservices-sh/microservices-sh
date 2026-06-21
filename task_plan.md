@@ -430,6 +430,14 @@ Phase 54
 - [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
 - **Status:** complete
 
+### Phase 56: StackSuite Recurring Documents Module
+- [x] Inspect accounting-system recurring invoice and recurring bill schemas, routes, and generation workflows.
+- [x] Scaffold `modules/recurring-documents` from the standard module layout.
+- [x] Implement recurring invoice/bill templates, schedule state, active/paused/completed/cancelled lifecycle, due generation, and draft payload handoff.
+- [x] Add memory and D1 stores, migration, schemas, docs, module metadata, permissions, events, resources, exports, and tests.
+- [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

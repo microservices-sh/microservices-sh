@@ -1344,3 +1344,18 @@
 | Estimate Quote spec | Module contract check passes | `pnpm --filter @microservices-sh/estimate-quote check:spec` passed | Pass |
 | D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/estimate-quote/migrations/0001_initial.sql"` passed | Pass |
 | JSON docs | OpenAPI and JSON schema stubs parse | Node JSON parse check passed | Pass |
+
+### Phase 56 StackSuite Recurring Documents module
+
+- **Status:** complete.
+- Goal: port accounting-system recurring invoice and recurring bill workflows into a reusable module without writing into the dirty `invoice` module or AP route code.
+- Added `modules/recurring-documents` for recurring invoice/bill templates, line-item totals in integer cents, next-run tracking, max occurrences, end dates, pause/resume/cancel lifecycle, and due-cycle generation.
+- Generation returns draft invoice/bill payloads and updates recurrence tracking; final persistence, sending, approval, posting, and voiding remain integration boundaries.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Recurring Documents build | TypeScript typecheck passes | `pnpm --filter @microservices-sh/recurring-documents build` passed | Pass |
+| Recurring Documents tests | Template totals, generation, completion, pause, and resume pass | `pnpm --filter @microservices-sh/recurring-documents test` passed, 3/3 | Pass |
+| Recurring Documents spec | Module contract check passes | `pnpm --filter @microservices-sh/recurring-documents check:spec` passed | Pass |
+| D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/recurring-documents/migrations/0001_initial.sql"` passed | Pass |
+| JSON docs | OpenAPI and JSON schema stubs parse | Node JSON parse check passed | Pass |

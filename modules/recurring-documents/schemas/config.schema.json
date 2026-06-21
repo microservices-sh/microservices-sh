@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Recurring Documents Config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "defaultCurrency": {
+      "type": "string",
+      "default": "USD",
+      "minLength": 3,
+      "maxLength": 3
+    },
+    "defaultPaymentTermsDays": {
+      "type": "integer",
+      "default": 30,
+      "minimum": 1
+    }
+  }
+}
