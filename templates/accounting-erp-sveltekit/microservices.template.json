@@ -25,6 +25,7 @@
       "admin-shell",
       "audit-log",
       "customer",
+      "support-ticket",
       "invoice",
       "payment",
       "file-media",
@@ -38,8 +39,7 @@
     "optional": [
       "identity",
       "email",
-      "notifications-inapp",
-      "support-ticket"
+      "notifications-inapp"
     ]
   },
   "slots": {

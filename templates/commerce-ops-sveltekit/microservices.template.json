@@ -25,6 +25,7 @@
       "admin-shell",
       "audit-log",
       "customer",
+      "support-ticket",
       "invoice",
       "payment",
       "file-media",
@@ -39,8 +40,7 @@
       "identity",
       "email",
       "notifications-inapp",
-      "webhook-delivery",
-      "support-ticket"
+      "webhook-delivery"
     ]
   },
   "slots": {

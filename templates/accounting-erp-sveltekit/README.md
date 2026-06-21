@@ -22,6 +22,7 @@ Focused modules:
 - `invoice`
 - `payment`
 - `customer`
+- `support-ticket`
 - `file-media`
 - `webhook-delivery`
 - `jobs-workflows`
@@ -42,6 +43,7 @@ import, and reconciliation.
 | `/signup` | One-time company setup |
 | `/app` | Operations dashboard |
 | `/app/customers` | Customer book |
+| `/app/support` | Support queue |
 | `/app/ledger` | Chart of accounts and account creation |
 | `/app/payables` | Vendor, bill, and AP aging review |
 | `/app/receivables` | Open receivables and AR aging buckets |

@@ -21,6 +21,7 @@ Focused modules:
 - `shipment`
 - `commerce-sync`
 - `customer`
+- `support-ticket`
 - `invoice`
 - `payment`
 - `file-media`
@@ -42,6 +43,7 @@ and sync review.
 | `/signup` | One-time company setup |
 | `/app` | Operations dashboard |
 | `/app/customers` | Customer book |
+| `/app/support` | Support queue |
 | `/app/products` | Product catalog and stock policy setup |
 | `/app/inventory` | Stock balances, recent movements, and manual receiving |
 | `/app/sales-orders` | Draft sales order intake and order ledger |

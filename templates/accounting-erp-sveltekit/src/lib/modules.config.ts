@@ -2,6 +2,7 @@
 // microservices.lock.json; ENABLED_MODULES can still override this per deploy.
 export const enabledModules: string[] | null = [
   "customer",
+  "support-ticket",
   "invoice",
   "payment",
   "file-media",
