@@ -53,6 +53,21 @@ function parseArgs(argv) {
     deploymentId: null,
     pageUrl: null,
     url: null,
+    visibility: null,
+    ref: null,
+    defaultBranch: null,
+    path: null,
+    slug: null,
+    purpose: null,
+    files: null,
+    dependencies: null,
+    requiredEnv: null,
+    inputs: null,
+    outputs: null,
+    tests: null,
+    constraints: null,
+    doNotUseFor: null,
+    reuseMode: null,
     hostname: null,
     app: process.env.HERMES_FLY_APP ?? null,
     org: process.env.HERMES_FLY_ORG ?? process.env.FLY_ORG ?? null,
@@ -151,6 +166,51 @@ function parseArgs(argv) {
       index += 1;
     } else if (value === "--url") {
       flags.url = argv[index + 1];
+      index += 1;
+    } else if (value === "--visibility" || value === "--repo-visibility") {
+      flags.visibility = argv[index + 1];
+      index += 1;
+    } else if (value === "--ref") {
+      flags.ref = argv[index + 1];
+      index += 1;
+    } else if (value === "--default-branch") {
+      flags.defaultBranch = argv[index + 1];
+      index += 1;
+    } else if (value === "--path" || value === "--source-path") {
+      flags.path = argv[index + 1];
+      index += 1;
+    } else if (value === "--slug") {
+      flags.slug = argv[index + 1];
+      index += 1;
+    } else if (value === "--purpose") {
+      flags.purpose = argv[index + 1];
+      index += 1;
+    } else if (value === "--files") {
+      flags.files = argv[index + 1]?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
+      index += 1;
+    } else if (value === "--dependencies" || value === "--deps") {
+      flags.dependencies = argv[index + 1]?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
+      index += 1;
+    } else if (value === "--required-env") {
+      flags.requiredEnv = argv[index + 1]?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
+      index += 1;
+    } else if (value === "--inputs") {
+      flags.inputs = argv[index + 1]?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
+      index += 1;
+    } else if (value === "--outputs") {
+      flags.outputs = argv[index + 1]?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
+      index += 1;
+    } else if (value === "--tests") {
+      flags.tests = argv[index + 1]?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
+      index += 1;
+    } else if (value === "--constraints") {
+      flags.constraints = argv[index + 1]?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
+      index += 1;
+    } else if (value === "--do-not-use-for") {
+      flags.doNotUseFor = argv[index + 1]?.split(",").map((item) => item.trim()).filter(Boolean) ?? [];
+      index += 1;
+    } else if (value === "--reuse-mode") {
+      flags.reuseMode = argv[index + 1];
       index += 1;
     } else if (value === "--hostname") {
       flags.hostname = argv[index + 1];
@@ -376,6 +436,9 @@ Common commands:
   microservices auth status
   microservices account billing status [--api-key <key>]
   microservices usage [--api-key <key>]
+  microservices memory source add https://github.com/me/repo [--path src/auth]
+  microservices memory search "stripe webhook"
+  microservices memory approve <capsule-id-or-slug>
   microservices generate [template-id] --out <dir>
   microservices check [template-id]
 
@@ -432,6 +495,14 @@ Usage:
   microservices billing status [--api-url https://api.microservices.sh] [--api-key <key>] [--json]  # alias for account billing
   microservices billing usage [--api-url https://api.microservices.sh] [--api-key <key>] [--json]  # alias for account billing
   microservices usage [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices memory source add <github-url> [--visibility public|private|unknown] [--path src/auth] [--ref main] [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices memory source scan <source-id> [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices memory source list [--limit 50] [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices memory capsule create --source <source-id> --name "Stripe webhook verifier" --purpose "Verify signatures..." [--slug stripe-webhook-verifier] [--path src/billing/webhooks.ts] [--files src/billing/webhooks.ts,test/billing/webhooks.test.ts] [--tests test/billing/webhooks.test.ts] [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices memory approve <capsule-id-or-slug> [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices memory reject <capsule-id-or-slug> [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices memory search <query> [--limit 25] [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices memory get <capsule-id-or-slug> [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices agents hermes plan [--mode hosted|byo-fly] [--name "Test Hermes"] [--json]
   microservices agents hermes setup --mode byo-fly [--app <fly-app>] [--org <fly-org>] [--region iad] [--json]
   microservices agents hermes create --mode hosted [--name "Test Hermes"] [--dashboard-user admin] [--json]
@@ -773,6 +844,239 @@ ${items
   })
   .join("\n")}
 `;
+}
+
+function formatMemorySource(source) {
+  const paths = Array.isArray(source.allowedPaths) && source.allowedPaths.length
+    ? ` paths=${source.allowedPaths.join(",")}`
+    : "";
+  return `${source.id} ${source.provider}:${source.repoOwner}/${source.repoName} ${source.repoVisibility ?? "unknown"} ${source.scanStatus ?? "not_scanned"}${paths}`;
+}
+
+function formatMemorySources(result) {
+  const sources = Array.isArray(result.sources) ? result.sources : [];
+  if (!sources.length) return "No Trusted Sources found.\n";
+  return `${sources.map(formatMemorySource).join("\n")}\n`;
+}
+
+function formatMemoryCapsule(capsule) {
+  const provenance = capsule.provenance ?? {};
+  const repo = provenance.repoUrl ?? [provenance.repoOwner, provenance.repoName].filter(Boolean).join("/");
+  return `${capsule.slug ?? capsule.id}: ${capsule.name}
+  ${capsule.purpose}
+  Source: ${repo || "unknown"}${provenance.path ? `/${provenance.path}` : ""}${provenance.ref ? `@${provenance.ref}` : ""}
+  Mode: ${capsule.reuseMode ?? "adapt"}  Status: ${capsule.approvalStatus ?? "approved"}  Visibility: ${capsule.visibility ?? "workspace_private"}`;
+}
+
+function formatMemoryCapsules(result) {
+  const capsules = Array.isArray(result.capsules) ? result.capsules : [];
+  if (!capsules.length) return "No Logic Capsules found.\n";
+  return `${capsules.map(formatMemoryCapsule).join("\n\n")}\n`;
+}
+
+function formatLogicCapsule(result) {
+  const capsule = result.capsule ?? result;
+  const lines = [
+    formatMemoryCapsule(capsule),
+    capsule.files?.length ? `Files:\n${capsule.files.map((item) => `- ${item}`).join("\n")}` : null,
+    capsule.dependencies?.length ? `Dependencies: ${capsule.dependencies.join(", ")}` : null,
+    capsule.requiredEnv?.length ? `Required env: ${capsule.requiredEnv.join(", ")}` : null,
+    capsule.tests?.length ? `Tests:\n${capsule.tests.map((item) => `- ${item}`).join("\n")}` : null,
+    capsule.constraints?.length ? `Constraints:\n${capsule.constraints.map((item) => `- ${item}`).join("\n")}` : null,
+    capsule.doNotUseFor?.length ? `Do not use for:\n${capsule.doNotUseFor.map((item) => `- ${item}`).join("\n")}` : null,
+    capsule.usageNotes ? `Usage notes:\n${capsule.usageNotes}` : null,
+  ].filter(Boolean);
+  return `${lines.join("\n")}\n`;
+}
+
+function formatMemoryScan(result) {
+  const scanned = result.scanned ?? {};
+  const candidates = Array.isArray(result.candidates) ? result.candidates : [];
+  return `Trusted Source scan: ${result.source?.repoOwner}/${result.source?.repoName}
+Ref: ${scanned.ref ?? result.sourceVersion?.ref ?? "unknown"}
+Files inspected: ${scanned.fileCount ?? 0}
+Candidates created: ${scanned.candidateCount ?? candidates.length}
+${candidates.length ? `\nCandidates:\n${candidates.map((candidate) => `- ${candidate.slug}: ${candidate.name}`).join("\n")}\n` : ""}
+Next:
+${formatBulletList(result.nextSteps)}
+`;
+}
+
+function formatMemoryApproval(result) {
+  const capsule = result.capsule ?? result;
+  return `Logic Capsule ${capsule.slug ?? capsule.id} is ${capsule.approvalStatus ?? "updated"}.
+`;
+}
+
+function memoryLimit(flags, fallback = 25) {
+  if (flags.limit === null || flags.limit === undefined) return fallback;
+  const limit = Number(flags.limit);
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+    return null;
+  }
+  return limit;
+}
+
+function memorySourceBody(url, flags) {
+  return {
+    repoUrl: url,
+    repoVisibility: optionalString(flags.visibility) ?? undefined,
+    path: optionalString(flags.path) ?? undefined,
+    ref: optionalString(flags.ref) ?? undefined,
+    defaultBranch: optionalString(flags.defaultBranch) ?? undefined,
+  };
+}
+
+function memoryCapsuleBody(flags) {
+  return {
+    sourceId: optionalString(flags.source),
+    slug: optionalString(flags.slug) ?? undefined,
+    name: optionalString(flags.name) ?? undefined,
+    purpose: optionalString(flags.purpose) ?? undefined,
+    sourcePath: optionalString(flags.path) ?? undefined,
+    files: flags.files ?? undefined,
+    dependencies: flags.dependencies ?? undefined,
+    requiredEnv: flags.requiredEnv ?? undefined,
+    inputs: flags.inputs ?? undefined,
+    outputs: flags.outputs ?? undefined,
+    tests: flags.tests ?? undefined,
+    constraints: flags.constraints ?? undefined,
+    doNotUseFor: flags.doNotUseFor ?? undefined,
+    reuseMode: optionalString(flags.reuseMode) ?? undefined,
+  };
+}
+
+async function handleMemoryCommand(args, flags) {
+  const [, action = "source", value, extra] = args;
+  const limit = memoryLimit(flags, action === "source" || action === "sources" ? 50 : 25);
+  if (limit === null) {
+    const response = failResponse(
+      "INVALID_MEMORY_LIMIT",
+      "--limit must be an integer between 1 and 100.",
+      "Pass --limit 25 or omit it.",
+      {}
+    );
+    return flags.json ? writeJson(response) : printHuman(response, () => "");
+  }
+
+  if ((action === "add" || action === "connect") || ((action === "source" || action === "sources") && (value === "add" || value === "create"))) {
+    const url = action === "add" || action === "connect" ? value ?? flags.url : extra ?? flags.url;
+    if (!url) {
+      const response = failResponse(
+        "MEMORY_SOURCE_URL_REQUIRED",
+        "Missing GitHub repo URL.",
+        "Run `microservices memory source add https://github.com/owner/repo`.",
+        {}
+      );
+      return flags.json ? writeJson(response) : printHuman(response, () => "");
+    }
+    const response = await apiRequest(flags, "/memory/sources", {
+      method: "POST",
+      body: JSON.stringify(memorySourceBody(url, flags)),
+    });
+    return flags.json ? writeJson(response) : printApiHuman(response, (result) => {
+      const source = result.source ?? result;
+      return `Trusted Source: ${source.id}
+Repo: ${source.repoUrl}
+Visibility: ${source.repoVisibility ?? "unknown"}
+Paths: ${(source.allowedPaths ?? []).join(", ") || "all"}
+Scan: ${source.scanStatus ?? "not_scanned"}
+`;
+    });
+  }
+
+  if (action === "scan" || ((action === "source" || action === "sources") && value === "scan")) {
+    const sourceId = action === "scan" ? value : extra;
+    if (!sourceId) {
+      const response = failResponse(
+        "MEMORY_SOURCE_ID_REQUIRED",
+        "Missing Trusted Source id.",
+        "Run `microservices memory source list`, then `microservices memory source scan <source-id>`.",
+        {}
+      );
+      return flags.json ? writeJson(response) : printHuman(response, () => "");
+    }
+    const response = await apiRequest(flags, `/memory/sources/${encodeURIComponent(sourceId)}/scan`, {
+      method: "POST",
+      body: "{}",
+    });
+    return flags.json ? writeJson(response) : printApiHuman(response, formatMemoryScan);
+  }
+
+  if (action === "source" || action === "sources" || action === "trusted-sources") {
+    const response = await apiRequest(flags, pathWithQuery("/memory/sources", { limit }));
+    return flags.json ? writeJson(response) : printApiHuman(response, formatMemorySources);
+  }
+
+  if (action === "capsule" && (value === "create" || value === "add")) {
+    const body = memoryCapsuleBody(flags);
+    if (!body.sourceId || !body.name || !body.purpose) {
+      const response = failResponse(
+        "MEMORY_CAPSULE_INPUT_REQUIRED",
+        "Logic Capsule source, name, and purpose are required.",
+        "Run `microservices memory capsule create --source <source-id> --name \"...\" --purpose \"...\"`.",
+        { missing: ["--source", "--name", "--purpose"].filter((field) => {
+          if (field === "--source") return !body.sourceId;
+          if (field === "--name") return !body.name;
+          return !body.purpose;
+        }) }
+      );
+      return flags.json ? writeJson(response) : printHuman(response, () => "");
+    }
+    const response = await apiRequest(flags, "/memory/capsules", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    return flags.json ? writeJson(response) : printApiHuman(response, formatLogicCapsule);
+  }
+
+  if (action === "approve" || action === "reject" || (action === "capsule" && (value === "approve" || value === "reject"))) {
+    const approvalAction = action === "capsule" ? value : action;
+    const id = action === "capsule" ? extra : value;
+    if (!id) {
+      const response = failResponse(
+        "MEMORY_CAPSULE_ID_REQUIRED",
+        "Missing Logic Capsule id or slug.",
+        `Run \`microservices memory ${approvalAction} <capsule-id-or-slug>\`.`,
+        {}
+      );
+      return flags.json ? writeJson(response) : printHuman(response, () => "");
+    }
+    const response = await apiRequest(flags, `/memory/capsules/${encodeURIComponent(id)}/${approvalAction}`, {
+      method: "POST",
+      body: "{}",
+    });
+    return flags.json ? writeJson(response) : printApiHuman(response, formatMemoryApproval);
+  }
+
+  if (action === "get" || (action === "capsule" && value === "get")) {
+    const id = action === "get" ? value : extra;
+    if (!id) {
+      const response = failResponse(
+        "MEMORY_CAPSULE_ID_REQUIRED",
+        "Missing Logic Capsule id or slug.",
+        "Run `microservices memory get <capsule-id-or-slug>`.",
+        {}
+      );
+      return flags.json ? writeJson(response) : printHuman(response, () => "");
+    }
+    const response = await apiRequest(flags, `/memory/capsules/${encodeURIComponent(id)}`);
+    return flags.json ? writeJson(response) : printApiHuman(response, formatLogicCapsule);
+  }
+
+  if (action === "search" || action === "capsules") {
+    const query = action === "search" ? value ?? flags.search : flags.search ?? value;
+    const response = await apiRequest(flags, pathWithQuery("/memory/capsules", { q: query, limit }));
+    return flags.json ? writeJson(response) : printApiHuman(response, formatMemoryCapsules);
+  }
+
+  const response = failResponse(
+    "UNKNOWN_MEMORY_COMMAND",
+    `Unknown memory command: ${action}.`,
+    "Use `memory source add`, `memory source list`, `memory capsule create`, `memory approve`, `memory reject`, `memory search`, or `memory get`.",
+    { command: action }
+  );
+  return flags.json ? writeJson(response) : printHuman(response, () => "");
 }
 
 function unknownAccountBillingCommand(action, legacyAlias = false) {
@@ -3624,6 +3928,10 @@ API:       ${result.apiUrl}
   if (resource === "usage") {
     response = await apiRequest(flags, "/usage");
     return flags.json ? writeJson(response) : printApiHuman(response, formatUsageStatus);
+  }
+
+  if (resource === "memory" || resource === "code-memory") {
+    return handleMemoryCommand(args, flags);
   }
 
   if (resource === "agents" && action === "hermes") {
