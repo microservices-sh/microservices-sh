@@ -74,6 +74,10 @@ Pass with `--template <id>`. Default is `booking-sveltekit`.
 | Flag | Description |
 |------|-------------|
 | `--template <id>` | Template id (default `booking-sveltekit`) |
+| `--list-templates` | List available template ids and metadata |
+| `--category <name>` | Filter template list by category |
+| `--search <text>` | Filter template list by id, name, category, or summary |
+| `--include-private` | Include exact-id private templates in template listing |
 | `--modules <ids>` | Comma-separated extra module ids to enable |
 | `--config '<json>'` | Template config override |
 | `--git-repo <url>` | Run `git init` and add an `origin` remote |
@@ -85,6 +89,8 @@ Pass with `--template <id>`. Default is `booking-sveltekit`.
 | `--json` | Machine-readable output |
 
 ```bash
+npm create microservices-app@latest -- --list-templates
+npm create microservices-app@latest -- --category saas
 npm create microservices-app@latest shop -- --template booking-business --modules audit-log
 npm create microservices-app@latest shop -- --git-repo git@github.com:acme/shop.git
 ```

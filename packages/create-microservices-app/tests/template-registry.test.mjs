@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { availableTemplateList, isPrivateTemplate, orderedTemplateList, REPO_TEMPLATES } from "../src/template-registry.js";
+import { availableTemplateList, filterTemplateList, isPrivateTemplate, orderedTemplateList, REPO_TEMPLATES } from "../src/template-registry.js";
 
 const VISIBILITIES = new Set(["public", "private", "internal"]);
 const DISTRIBUTIONS = new Set(["bundled", "registry", "private", "local"]);
@@ -38,4 +38,15 @@ test("repo templates declare distribution metadata for scale planning", () => {
     assert.ok(template.category.length > 0, `${template.id} has non-empty category`);
     assert.ok(WEIGHTS.has(template.weight), `${template.id} has valid weight`);
   }
+});
+
+test("template filters support category and free-text discovery", () => {
+  const templates = availableTemplateList();
+  const saasIds = filterTemplateList(templates, { category: "saas" }).map((template) => template.id);
+  const portalIds = filterTemplateList(templates, { search: "portal" }).map((template) => template.id);
+  const frameworkIds = filterTemplateList(templates, { category: "framework" }).map((template) => template.id);
+
+  assert.deepEqual(saasIds, ["saas-starter-sveltekit"]);
+  assert.ok(portalIds.includes("client-portal-sveltekit"));
+  assert.ok(frameworkIds.includes("nextjs"));
 });

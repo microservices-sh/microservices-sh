@@ -7,7 +7,7 @@ import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { generateProject, listModuleDocs, listModules, listTemplates } from "@microservices-sh/sdk-internal";
 import { resolveFramework, buildC3Command, applyFrameworkHook, frameworkNextSteps } from "./framework-starter.js";
-import { REPO_TEMPLATES, availableTemplateList, isPrivateTemplate, orderedTemplateList } from "./template-registry.js";
+import { REPO_TEMPLATES, availableTemplateList, filterTemplateList, isPrivateTemplate, orderedTemplateList } from "./template-registry.js";
 import { BUNDLED_MODULES, BUNDLED_PACKAGES } from "./bundled-deps.js";
 import { track, telemetryNotice } from "./telemetry.js";
 
@@ -28,10 +28,10 @@ function readOwnPackageVersion(packageRoot) {
 
 function cliTemplateList(options = {}) {
   const sdk = listTemplates();
-  return availableTemplateList({
+  return filterTemplateList(availableTemplateList({
     ...options,
     proceduralTemplates: sdk.ok ? sdk.data : [],
-  });
+  }), options);
 }
 
 function cliOrderedTemplateList(defaultTemplateId, options = {}) {
@@ -193,6 +193,10 @@ function parseArgs(argv) {
     gitRepo: null,
     git: true,
     interactive: false,
+    listTemplates: false,
+    includePrivate: false,
+    category: null,
+    search: null,
     explicit: {
       template: false,
       packageManager: false,
@@ -231,6 +235,18 @@ function parseArgs(argv) {
       flags.explicit.git = true;
     } else if (value === "--interactive") {
       flags.interactive = true;
+    } else if (value === "--list-templates" || value === "--templates") {
+      flags.listTemplates = true;
+    } else if (value === "--include-private") {
+      flags.includePrivate = true;
+    } else if (value === "--category") {
+      flags.category = argv[index + 1] || null;
+      flags.listTemplates = true;
+      index += 1;
+    } else if (value === "--search" || value === "--q") {
+      flags.search = argv[index + 1] || null;
+      flags.listTemplates = true;
+      index += 1;
     } else if (value === "--no-install") {
       flags.install = false;
     } else if (value === "--install") {
@@ -276,6 +292,10 @@ Options:
                                (booking-sveltekit = full Cloudflare SvelteKit app;
                                 wordpress-emdash-blog-astro = content-only WordPress migration;
                                 booking-business = Cloudflare Worker / Hono)
+  --list-templates             List available template ids and metadata
+  --category <name>            Filter template list by category
+  --search <text>              Filter template list by id, name, category, or summary
+  --include-private            Include exact-id private templates in template listing
   --modules <ids>              Comma-separated extra module ids or id@version pins to enable
   --config '<json>'            Template config override
   --git-repo <url>             Initialize git and add origin remote
@@ -342,8 +362,10 @@ function moduleSelectorText(selector) {
 
 function choiceText(choice) {
   const status = choice.status && choice.status !== "available" ? ` (${choice.status})` : "";
+  const meta = [choice.category, choice.distribution, choice.weight].filter(Boolean).join("/");
+  const metaText = meta ? ` [${meta}]` : "";
   const summary = choice.summary ? ` - ${choice.summary}` : "";
-  return `${choice.id}${status}${summary}`;
+  return `${choice.id}${status}${metaText}${summary}`;
 }
 
 function printChoices(title, choices) {
@@ -352,6 +374,44 @@ function printChoices(title, choices) {
   choices.forEach((choice, index) => {
     process.stdout.write(`  ${index + 1}. ${choiceText(choice)}\n`);
   });
+}
+
+function listedTemplates(flags) {
+  return cliTemplateList({
+    includePrivate: flags.includePrivate,
+    category: flags.category,
+    search: flags.search,
+  });
+}
+
+function emitTemplateList(flags) {
+  const templates = listedTemplates(flags);
+  const response = {
+    ok: true,
+    data: {
+      filters: {
+        category: flags.category,
+        search: flags.search,
+        includePrivate: flags.includePrivate,
+      },
+      templates,
+    },
+  };
+
+  if (flags.json) {
+    writeJson(response);
+    return;
+  }
+
+  if (!templates.length) {
+    process.stdout.write("No templates matched.\n");
+    return;
+  }
+
+  process.stdout.write("Templates:\n");
+  for (const template of templates) {
+    process.stdout.write(`  - ${choiceText(template)}\n`);
+  }
 }
 
 function resolveChoice(answer, choices, fallback, label) {
@@ -669,6 +729,11 @@ async function main() {
 
   if (parsed.targetName === "help") {
     process.stdout.write(usage());
+    return;
+  }
+
+  if (parsed.flags.listTemplates) {
+    emitTemplateList(parsed.flags);
     return;
   }
 

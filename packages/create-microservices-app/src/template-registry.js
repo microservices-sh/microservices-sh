@@ -81,23 +81,67 @@ export const PRIVATE_REPO_TEMPLATE_IDS = new Set(
     .map((template) => template.id)
 );
 
+function normalizeTemplate(template, defaults) {
+  return {
+    visibility: "public",
+    distribution: "registry",
+    category: "general",
+    weight: "light",
+    ...defaults,
+    ...template,
+  };
+}
+
+function isPrivateCatalogTemplate(template) {
+  return template.visibility === "private" || template.status === "private-pilot" || template.distribution === "private";
+}
+
 export function availableTemplateList({ includePrivate = false, proceduralTemplates = [] } = {}) {
-  const procedural = Array.isArray(proceduralTemplates) ? proceduralTemplates : [];
-  const repo = Object.values(REPO_TEMPLATES).filter((template) => includePrivate || !PRIVATE_REPO_TEMPLATE_IDS.has(template.id));
+  const procedural = (Array.isArray(proceduralTemplates) ? proceduralTemplates : []).map((template) =>
+    normalizeTemplate(template, { distribution: "registry", category: "procedural", weight: "light" })
+  );
+  const repo = Object.values(REPO_TEMPLATES).map((template) => normalizeTemplate(template, { distribution: "bundled" }));
   const seen = new Set(procedural.map((template) => template.id));
-  const base = [...procedural, ...repo.filter((template) => !seen.has(template.id))];
+  const base = [...procedural, ...repo.filter((template) => !seen.has(template.id))].filter(
+    (template) => includePrivate || !isPrivateCatalogTemplate(template)
+  );
   const frameworks = loadFrameworks().map((row) => ({
     id: row.id,
     name: `${row.label} (Cloudflare starter)`,
     status: row.status,
+    visibility: "public",
+    distribution: "registry",
+    category: "framework",
+    weight: "light",
     summary: `${row.label} on Cloudflare Workers - empty starter, add modules via microservices.sh.`,
   }));
   const baseIds = new Set(base.map((template) => template.id));
   return [...base, ...frameworks.filter((framework) => !baseIds.has(framework.id))];
 }
 
+export function filterTemplateList(templates, { category = null, search = null } = {}) {
+  const normalizedCategory = String(category ?? "").trim().toLowerCase();
+  const normalizedSearch = String(search ?? "").trim().toLowerCase();
+
+  return templates.filter((template) => {
+    if (normalizedCategory && String(template.category ?? "").toLowerCase() !== normalizedCategory) return false;
+    if (!normalizedSearch) return true;
+    const haystack = [
+      template.id,
+      template.name,
+      template.status,
+      template.visibility,
+      template.distribution,
+      template.category,
+      template.weight,
+      template.summary,
+    ].filter(Boolean).join(" ").toLowerCase();
+    return haystack.includes(normalizedSearch);
+  });
+}
+
 export function orderedTemplateList(defaultTemplateId, options) {
-  const templates = availableTemplateList(options);
+  const templates = filterTemplateList(availableTemplateList(options), options);
   const defaultIndex = templates.findIndex((template) => template.id === defaultTemplateId);
   if (defaultIndex <= 0) return templates;
   return [templates[defaultIndex], ...templates.slice(0, defaultIndex), ...templates.slice(defaultIndex + 1)];
