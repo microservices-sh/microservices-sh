@@ -71,7 +71,7 @@
     }
   ],
   "approval": {
-    "risk": "medium",
+    "risk": "high",
     "requiresApprovalFor": ["migrations", "production-deploy", "external-side-effects", "paid-service"]
   }
 }

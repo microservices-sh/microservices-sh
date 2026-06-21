@@ -10,27 +10,6 @@ const IGNORED_DIRS = new Set([".git", ".svelte-kit", ".wrangler", "dist", "node_
 const FORBIDDEN_FRAMEWORK_IMPORTS = ["@sveltejs/kit", "from \"hono\"", "from 'hono'", "OpenAPIHono"];
 const MODULE_SOURCE_REPO = "microservices-sh/microservices-sh";
 const MODULE_SOURCE_URL = `https://github.com/${MODULE_SOURCE_REPO}.git`;
-const LOCKED_MODULE_CATALOG_GUARD_IDS = new Set([
-  "org-team-rbac",
-  "admin-shell",
-  "file-media",
-  "jobs-workflows",
-  "notifications-inapp",
-  "support-ticket",
-  "product-catalog",
-  "inventory",
-  "sales-order",
-  "shipment",
-  "commerce-sync",
-  "accounting-core",
-  "accounts-payable",
-  "accounts-receivable",
-  "bank-reconciliation",
-  "estimate-quote",
-  "recurring-documents",
-  "email"
-]);
-
 // plans/33 L5 guard: tenant-scoped use-cases that have an enforced `*Scoped`
 // variant. A template ROUTE must call the scoped wrapper (which sources the
 // tenant from the AuthContext) — importing the raw, input-trusting use-case in a
@@ -931,13 +910,13 @@ async function assertEnforcedTenantBoundary(checks, targetPath) {
 
 function assertLockedModuleCatalogCoverage(checks, rootPath, lock) {
   const lockModules = Array.isArray(lock.modules) ? lock.modules : [];
-  const guardedModules = lockModules
-    .filter((module) => LOCKED_MODULE_CATALOG_GUARD_IDS.has(module.id))
-    .map((module) => ({ id: module.id, version: module.version || "0.1.0" }));
+  const guardedModules = lockModules.map((module) => ({ id: module.id, version: module.version || "0.1.0" }));
   const guardedIds = guardedModules.map((module) => module.id);
 
   const docsCatalog = readJsonOptional(join(rootPath, "docs/modules/catalog.json"), { modules: [] });
-  const docsCatalogIds = new Set(Array.isArray(docsCatalog.modules) ? docsCatalog.modules.map((module) => module.id) : []);
+  const docsCatalogModules = Array.isArray(docsCatalog.modules) ? docsCatalog.modules : [];
+  const docsCatalogById = new Map(docsCatalogModules.map((module) => [module.id, module]));
+  const docsCatalogIds = new Set(docsCatalogById.keys());
   const missingDocs = guardedIds.filter((id) => !docsCatalogIds.has(id));
   assertCheck(
     checks,
@@ -946,6 +925,24 @@ function assertLockedModuleCatalogCoverage(checks, rootPath, lock) {
     missingDocs.length === 0
       ? "Template guarded locked modules are represented in docs/modules/catalog.json."
       : `Template guarded locked modules missing from docs/modules/catalog.json: ${missingDocs.join(", ")}.`
+  );
+
+  const missingDocFiles = [];
+  for (const id of guardedIds) {
+    const catalogModule = docsCatalogById.get(id);
+    if (!catalogModule) continue;
+    const docPath = typeof catalogModule.docPath === "string" ? catalogModule.docPath : "";
+    if (!docPath || !existsSync(join(rootPath, docPath))) {
+      missingDocFiles.push(docPath ? `${id}: ${docPath}` : `${id}: <missing docPath>`);
+    }
+  }
+  assertCheck(
+    checks,
+    "template:locked-module-docs-file-coverage",
+    missingDocFiles.length === 0,
+    missingDocFiles.length === 0
+      ? "Template guarded locked module docs point to existing Markdown files."
+      : `Template guarded locked module docs point to missing files: ${missingDocFiles.join(", ")}.`
   );
 
   const missingInternal = [];

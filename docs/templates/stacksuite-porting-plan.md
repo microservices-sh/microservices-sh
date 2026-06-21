@@ -370,7 +370,7 @@ Still pending:
 Make the modules and templates first-class CLI products:
 
 - mark stable modules/templates as `available` only after generated-project smoke passes.
-- keep locked foundation modules (`org-team-rbac`, `admin-shell`, `file-media`, `jobs-workflows`, `notifications-inapp`, `support-ticket`) represented in both the public docs catalog and internal module-contract catalog.
+- keep every template-locked module represented in both the public docs catalog and internal module-contract catalog.
 - update `templates/README.md`, module catalog docs, registry build outputs, and LLM docs.
 - add migration/upgrade notes for generated projects already using older focused templates.
 

@@ -18,6 +18,23 @@ Use these files before installing or modifying modules:
 - `docs/modules/identity.md` - Identity/session module reference
 - `docs/modules/gateway.md` - Gateway module reference
 - `docs/modules/customer.md` - Customer module reference
+- `docs/modules/org-team-rbac.md` - organization, team, membership, and RBAC module reference
+- `docs/modules/admin-shell.md` - schema-driven admin CRUD shell module reference
+- `docs/modules/file-media.md` - file/media upload and R2 storage module reference
+- `docs/modules/jobs-workflows.md` - durable jobs and workflows module reference
+- `docs/modules/notifications-inapp.md` - in-app notification feed module reference
+- `docs/modules/support-ticket.md` - support ticket and public follow-up module reference
+- `docs/modules/ads-manager.md` - ads monitoring and insight module reference
+- `docs/modules/billing-subscriptions.md` - subscription billing module reference
+- `docs/modules/forms-intake.md` - dynamic forms and intake module reference
+- `docs/modules/image-generation.md` - image generation and R2 gallery module reference
+- `docs/modules/invoice.md` - invoicing and payment-link module reference
+- `docs/modules/membership-credits.md` - membership tier and credit ledger module reference
+- `docs/modules/operator-work.md` - operator task, focus plan, and review module reference
+- `docs/modules/project-progress.md` - project timeline and public snapshot module reference
+- `docs/modules/sms-campaigns.md` - opted-in SMS campaign module reference
+- `docs/modules/storage-entitlements.md` - storage quota and share-link module reference
+- `docs/modules/support-inbox.md` - support widget/inbox module reference
 - `docs/modules/product-catalog.md` - Product catalog module reference
 - `docs/modules/inventory.md` - Inventory module reference
 - `docs/modules/sales-order.md` - Sales order module reference

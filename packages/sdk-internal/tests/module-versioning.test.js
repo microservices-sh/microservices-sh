@@ -17,6 +17,48 @@ const FOUNDATION_CATALOG_IDS = [
   "support-ticket",
 ];
 
+const LOCKED_TEMPLATE_CATALOG_IDS = [
+  "accounting-core",
+  "accounts-payable",
+  "accounts-receivable",
+  "admin-shell",
+  "ads-manager",
+  "audit-log",
+  "auth",
+  "bank-reconciliation",
+  "billing-subscriptions",
+  "booking",
+  "commerce-sync",
+  "customer",
+  "email",
+  "estimate-quote",
+  "file-media",
+  "forms-intake",
+  "gateway",
+  "identity",
+  "image-generation",
+  "inventory",
+  "invoice",
+  "jobs-workflows",
+  "knowledge-base-rag",
+  "marketing-research",
+  "membership-credits",
+  "notifications-inapp",
+  "operator-work",
+  "org-team-rbac",
+  "payment",
+  "product-catalog",
+  "project-progress",
+  "recurring-documents",
+  "sales-order",
+  "shipment",
+  "sms-campaigns",
+  "storage-entitlements",
+  "support-inbox",
+  "support-ticket",
+  "webhook-delivery",
+];
+
 function lockWith(module) {
   return {
     schemaVersion: "2026-06-13",
@@ -135,6 +177,7 @@ describe("SDK module version planning", () => {
     const response = getModuleDoc("operator-work@0.1.0");
     expect(response.ok).toBe(true);
     expect(response.data.module.id).toBe("operator-work");
+    expect(response.data.module.requires).toEqual(["org-team-rbac"]);
     expect(response.data.module.surfaces.agentic.tools).toEqual(
       expect.arrayContaining([
         "operator-work.getOperatorWorkbench",
@@ -288,5 +331,47 @@ describe("SDK module version planning", () => {
       ]),
     });
     expect(supportTicket.data.markdown).toContain("support-ticket.resolveTicketShareToken");
+  });
+
+  it("includes every template-locked module in generated docs", () => {
+    const docs = listModuleDocs();
+    expect(docs.ok).toBe(true);
+    expect(docs.data.map((module) => module.id)).toEqual(expect.arrayContaining(LOCKED_TEMPLATE_CATALOG_IDS));
+
+    const adsManager = getModuleDoc("ads-manager@0.1.0");
+    expect(adsManager.ok).toBe(true);
+    expect(adsManager.data.module).toMatchObject({
+      id: "ads-manager",
+      mount: "/ads",
+      approvalRisk: "high",
+      secrets: ["ADS_SERVICE_KEY"],
+    });
+    expect(adsManager.data.markdown).toContain("ads-manager.syncInsights");
+
+    const imageGeneration = getModuleDoc("image-generation@0.1.0");
+    expect(imageGeneration.ok).toBe(true);
+    expect(imageGeneration.data.module).toMatchObject({
+      id: "image-generation",
+      mount: "/images",
+      resources: expect.arrayContaining(["D1", "R2"]),
+      secrets: expect.arrayContaining(["OPENAI_API_KEY"]),
+    });
+    expect(imageGeneration.data.markdown).toContain("image-generation.generateImage");
+
+    const storageEntitlements = getModuleDoc("storage-entitlements@0.1.0");
+    expect(storageEntitlements.ok).toBe(true);
+    expect(storageEntitlements.data.module).toMatchObject({
+      id: "storage-entitlements",
+      mount: "/storage-entitlements",
+    });
+    expect(storageEntitlements.data.markdown).toContain("storage-entitlements.resolveShareLink");
+
+    const supportInbox = getModuleDoc("support-inbox@0.1.0");
+    expect(supportInbox.ok).toBe(true);
+    expect(supportInbox.data.module).toMatchObject({
+      id: "support-inbox",
+      mount: "/support-inbox",
+    });
+    expect(supportInbox.data.markdown).toContain("support-inbox.startConversation");
   });
 });

@@ -134,7 +134,7 @@
     }
   ],
   "approval": {
-    "risk": "medium",
+    "risk": "high",
     "requiresApprovalFor": [
       "migrations",
       "pii-fields",

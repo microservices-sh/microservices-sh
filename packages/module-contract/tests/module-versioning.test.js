@@ -40,6 +40,48 @@ const FOUNDATION_CATALOG_IDS = [
   "support-ticket",
 ];
 
+const LOCKED_TEMPLATE_CATALOG_IDS = [
+  "accounting-core",
+  "accounts-payable",
+  "accounts-receivable",
+  "admin-shell",
+  "ads-manager",
+  "audit-log",
+  "auth",
+  "bank-reconciliation",
+  "billing-subscriptions",
+  "booking",
+  "commerce-sync",
+  "customer",
+  "email",
+  "estimate-quote",
+  "file-media",
+  "forms-intake",
+  "gateway",
+  "identity",
+  "image-generation",
+  "inventory",
+  "invoice",
+  "jobs-workflows",
+  "knowledge-base-rag",
+  "marketing-research",
+  "membership-credits",
+  "notifications-inapp",
+  "operator-work",
+  "org-team-rbac",
+  "payment",
+  "product-catalog",
+  "project-progress",
+  "recurring-documents",
+  "sales-order",
+  "shipment",
+  "sms-campaigns",
+  "storage-entitlements",
+  "support-inbox",
+  "support-ticket",
+  "webhook-delivery",
+];
+
 describe("module version selectors", () => {
   it("parses inline module versions", () => {
     expect(parseModuleRef("auth@0.1.0")).toEqual({
@@ -132,6 +174,8 @@ describe("module version selectors", () => {
     expect(module).toMatchObject({
       id: "operator-work",
       status: "draft",
+      approvalRisk: "medium",
+      requires: ["org-team-rbac"],
       runtime: { mount: "/operator-work" },
       permissions: expect.arrayContaining(["operator-work.read", "operator-work.write"]),
       rpc: expect.arrayContaining([
@@ -366,6 +410,93 @@ describe("module version selectors", () => {
       eventsEmitted: expect.arrayContaining([
         "support-ticket.status_changed",
         "support-ticket.share-token.created",
+      ]),
+    });
+  });
+
+  it("exposes every template-locked module in the static contract catalog", () => {
+    const catalogIds = listModules().map((module) => module.id);
+    expect(catalogIds).toEqual(expect.arrayContaining(LOCKED_TEMPLATE_CATALOG_IDS));
+
+    for (const id of LOCKED_TEMPLATE_CATALOG_IDS) {
+      expect(() => inspectModule(`${id}@0.1.0`)).not.toThrow();
+    }
+  });
+
+  it("exposes remaining locked module metadata in the static contract catalog", () => {
+    expect(inspectModule("ads-manager@0.1.0")).toMatchObject({
+      id: "ads-manager",
+      status: "available",
+      category: "provider",
+      approvalRisk: "high",
+      runtime: { mount: "/ads" },
+      secrets: ["ADS_SERVICE_KEY"],
+      rpc: expect.arrayContaining([
+        { method: "syncInsights", scope: "ads.manage", public: false },
+      ]),
+      eventsEmitted: expect.arrayContaining(["ad.alert_raised"]),
+    });
+
+    expect(inspectModule("forms-intake@0.1.0")).toMatchObject({
+      id: "forms-intake",
+      status: "available",
+      runtime: { mount: "/forms" },
+      secrets: ["TURNSTILE_SECRET"],
+      rpc: expect.arrayContaining([
+        { method: "submitForm", scope: null, public: true },
+      ]),
+    });
+
+    expect(inspectModule("image-generation@0.1.0")).toMatchObject({
+      id: "image-generation",
+      status: "available",
+      category: "provider",
+      approvalRisk: "high",
+      storage: expect.arrayContaining(["d1", "r2"]),
+      runtime: { mount: "/images", bindings: expect.arrayContaining(["IMAGE_BUCKET"]) },
+      secrets: expect.arrayContaining(["OPENAI_API_KEY"]),
+      rpc: expect.arrayContaining([
+        { method: "generateImage", scope: "image.generate", public: false },
+      ]),
+    });
+
+    expect(inspectModule("knowledge-base-rag@0.1.0")).toMatchObject({
+      id: "knowledge-base-rag",
+      status: "draft",
+      runtime: { mount: "/knowledge" },
+      rpc: expect.arrayContaining([
+        { method: "answerQuestion", scope: "knowledge-base-rag.read", public: false },
+        { method: "draftSupportReply", scope: "knowledge-base-rag.write", public: false },
+      ]),
+    });
+
+    expect(inspectModule("marketing-research@0.1.0")).toMatchObject({
+      id: "marketing-research",
+      status: "available",
+      requires: ["org-team-rbac"],
+      approvalRisk: "low",
+      runtime: { mount: "/marketing-research" },
+      rpc: expect.arrayContaining([
+        { method: "runResearch", scope: "marketing.run", public: false },
+      ]),
+    });
+
+    expect(inspectModule("storage-entitlements@0.1.0")).toMatchObject({
+      id: "storage-entitlements",
+      status: "draft",
+      runtime: { mount: "/storage-entitlements" },
+      rpc: expect.arrayContaining([
+        { method: "resolveShareLink", scope: null, public: true },
+      ]),
+    });
+
+    expect(inspectModule("support-inbox@0.1.0")).toMatchObject({
+      id: "support-inbox",
+      status: "draft",
+      runtime: { mount: "/support-inbox" },
+      permissions: expect.arrayContaining(["support-inbox.agent"]),
+      rpc: expect.arrayContaining([
+        { method: "startConversation", scope: null, public: true },
       ]),
     });
   });

@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 83
+Phase 85
 
 ## Phases
 
@@ -654,6 +654,15 @@ Phase 83
 - [x] Broaden the template catalog drift guard from StackSuite-only rows to guarded locked modules used by SaaS, portal, commerce, accounting, and ERP templates.
 - [x] Add module-contract and SDK tests for foundation module visibility, mounts, approval risk, RPC, events, generated docs, and source doc paths.
 - [x] Verify package builds, focused template JSON checks, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 85: Full Locked Module Catalog Closure
+- [x] Add public docs catalog rows and reference pages for every remaining module locked by current templates.
+- [x] Add internal module-contract rows for locked modules missing from `inspectModule("<id>@0.1.0")`.
+- [x] Broaden the locked-module guard so every template lock entry must exist in the public docs catalog, point to an existing Markdown file, and exist in the internal module-contract catalog.
+- [x] Sync remaining module docs, manifests, and internal catalog metadata for risk, secrets, dependencies, hooks, public RPCs, and mounts.
+- [x] Add module-contract and SDK tests for the complete 39-module locked set and representative generated-doc metadata.
+- [x] Verify catalog JSON, duplicate-free catalogs, focused tests, package builds, representative template checks, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

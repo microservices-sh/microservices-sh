@@ -681,6 +681,742 @@
       ]
     },
     {
+      "id": "ads-manager",
+      "name": "Ads Manager",
+      "version": "0.1.0",
+      "status": "available",
+      "class": "provider",
+      "mount": "/ads",
+      "docPath": "docs/modules/ads-manager.md",
+      "summary": "Cross-platform ad monitoring over an upstream ads service with D1 insight snapshots, anomaly alerts, normalized campaign views, and entitlement-gated connector access.",
+      "requires": [],
+      "permissions": [
+        "ads.connect",
+        "ads.read",
+        "ads.manage",
+        "ads.admin",
+        "ads.observe"
+      ],
+      "rpc": [
+        {
+          "method": "connectAccount",
+          "scope": "ads.connect",
+          "public": false
+        },
+        {
+          "method": "listConnections",
+          "scope": "ads.read",
+          "public": false
+        },
+        {
+          "method": "disconnectAccount",
+          "scope": "ads.manage",
+          "public": false
+        },
+        {
+          "method": "listCampaigns",
+          "scope": "ads.read",
+          "public": false
+        },
+        {
+          "method": "getInsights",
+          "scope": "ads.read",
+          "public": false
+        },
+        {
+          "method": "syncInsights",
+          "scope": "ads.manage",
+          "public": false
+        },
+        {
+          "method": "detectAnomalies",
+          "scope": "ads.manage",
+          "public": false
+        },
+        {
+          "method": "listAlerts",
+          "scope": "ads.read",
+          "public": false
+        }
+      ],
+      "approvalRisk": "high",
+      "secrets": [
+        "ADS_SERVICE_KEY"
+      ],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeSync",
+        "onAlertRaised"
+      ],
+      "events": [
+        "ad.account_connected",
+        "ad.account_disconnected",
+        "ad.insights_synced",
+        "ad.alert_raised"
+      ]
+    },
+    {
+      "id": "billing-subscriptions",
+      "name": "Billing & Subscriptions",
+      "version": "0.1.0",
+      "status": "available",
+      "class": "provider",
+      "mount": "/billing",
+      "docPath": "docs/modules/billing-subscriptions.md",
+      "summary": "Recurring plans and subscription state on top of Stripe with a status state machine, idempotent webhook application, plan changes, metered usage, and dunning hooks.",
+      "requires": [],
+      "permissions": [
+        "billing.read",
+        "billing.write",
+        "billing.admin",
+        "billing-subscriptions.extend",
+        "billing-subscriptions.observe"
+      ],
+      "rpc": [
+        {
+          "method": "startSubscription",
+          "scope": "billing.write",
+          "public": false
+        },
+        {
+          "method": "applyStripeEvent",
+          "scope": "billing.write",
+          "public": false
+        }
+      ],
+      "approvalRisk": "high",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeSubscriptionChange",
+        "onSubscriptionActivated",
+        "onSubscriptionPastDue"
+      ],
+      "events": [
+        "subscription.started",
+        "subscription.activated",
+        "subscription.past_due",
+        "subscription.canceled",
+        "subscription.plan_changed"
+      ]
+    },
+    {
+      "id": "forms-intake",
+      "name": "Forms & Intake",
+      "version": "0.1.0",
+      "status": "available",
+      "class": "vertical",
+      "mount": "/forms",
+      "docPath": "docs/modules/forms-intake.md",
+      "summary": "Dynamic form builder and intake with serializable field schemas, validation rules, conditional visibility, idempotent submissions, Turnstile support, and attachment references.",
+      "requires": [],
+      "permissions": [
+        "forms-intake.read",
+        "forms-intake.write",
+        "forms-intake.admin",
+        "forms-intake.extend",
+        "forms-intake.observe"
+      ],
+      "rpc": [
+        {
+          "method": "createForm",
+          "scope": "forms-intake.write",
+          "public": false
+        },
+        {
+          "method": "getForm",
+          "scope": "forms-intake.read",
+          "public": false
+        },
+        {
+          "method": "updateForm",
+          "scope": "forms-intake.write",
+          "public": false
+        },
+        {
+          "method": "listForms",
+          "scope": "forms-intake.read",
+          "public": false
+        },
+        {
+          "method": "submitForm",
+          "scope": null,
+          "public": true
+        },
+        {
+          "method": "listSubmissions",
+          "scope": "forms-intake.read",
+          "public": false
+        },
+        {
+          "method": "reviewSubmission",
+          "scope": "forms-intake.write",
+          "public": false
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [
+        "TURNSTILE_SECRET"
+      ],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeFormPublish",
+        "onSubmissionReceived"
+      ],
+      "events": [
+        "forms-intake.form_created",
+        "forms-intake.form_updated",
+        "forms-intake.submission_received",
+        "forms-intake.submission_reviewed"
+      ]
+    },
+    {
+      "id": "image-generation",
+      "name": "Image Generation",
+      "version": "0.1.0",
+      "status": "available",
+      "class": "provider",
+      "mount": "/images",
+      "docPath": "docs/modules/image-generation.md",
+      "summary": "Text-to-image generation and editing across pluggable providers with R2-backed image bytes, tenant-scoped keys, D1 gallery metadata, and provider fallback.",
+      "requires": [],
+      "permissions": [
+        "image.generate",
+        "image.read",
+        "image.admin",
+        "image.extend",
+        "image.observe"
+      ],
+      "rpc": [
+        {
+          "method": "generateImage",
+          "scope": "image.generate",
+          "public": false
+        },
+        {
+          "method": "editImage",
+          "scope": "image.generate",
+          "public": false
+        },
+        {
+          "method": "listImages",
+          "scope": "image.read",
+          "public": false
+        },
+        {
+          "method": "getImage",
+          "scope": "image.read",
+          "public": false
+        },
+        {
+          "method": "deleteImage",
+          "scope": "image.admin",
+          "public": false
+        }
+      ],
+      "approvalRisk": "high",
+      "secrets": [
+        "KIEAI_API_KEY",
+        "GEMINI_AUTH_TOKEN",
+        "OPENAI_API_KEY"
+      ],
+      "resources": [
+        "D1",
+        "R2"
+      ],
+      "hooks": [
+        "beforeGenerate",
+        "onImageGenerated"
+      ],
+      "events": [
+        "image.generated",
+        "image.edited",
+        "image.deleted"
+      ]
+    },
+    {
+      "id": "invoice",
+      "name": "Invoice",
+      "version": "0.1.0",
+      "status": "available",
+      "class": "core",
+      "mount": "/invoices",
+      "docPath": "docs/modules/invoice.md",
+      "summary": "Invoices with gapless atomic numbering, per-line tax, recurring invoice templates, draft-open-paid-void lifecycle, idempotent payments, payment links, and dunning hooks.",
+      "requires": [
+        "customer"
+      ],
+      "permissions": [
+        "invoice.read",
+        "invoice.write",
+        "invoice.admin",
+        "invoice.extend",
+        "invoice.observe"
+      ],
+      "rpc": [],
+      "approvalRisk": "high",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeInvoiceIssue",
+        "onInvoiceIssued",
+        "onInvoicePaid"
+      ],
+      "events": [
+        "invoice.created",
+        "invoice.issued",
+        "invoice.paid",
+        "invoice.voided",
+        "invoice.overdue",
+        "invoice.payment_link_created",
+        "invoice.recurring_template_created",
+        "invoice.recurring_template_status_updated",
+        "invoice.recurring_invoice_generated"
+      ]
+    },
+    {
+      "id": "membership-credits",
+      "name": "Membership Credits",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/membership-credits",
+      "docPath": "docs/modules/membership-credits.md",
+      "summary": "Tenant-scoped membership tiers, active customer memberships, customer credit balances, credit ledger transactions, and membership history.",
+      "requires": [],
+      "permissions": [
+        "membership-credits.read",
+        "membership-credits.write",
+        "membership-credits.credit-admin",
+        "membership-credits.membership-admin",
+        "membership-credits.admin",
+        "membership-credits.extend",
+        "membership-credits.observe"
+      ],
+      "rpc": [
+        {
+          "method": "createMembershipTier",
+          "scope": "membership-credits.membership-admin",
+          "public": false
+        },
+        {
+          "method": "listMembershipTiers",
+          "scope": "membership-credits.read",
+          "public": false
+        },
+        {
+          "method": "assignMembership",
+          "scope": "membership-credits.membership-admin",
+          "public": false
+        },
+        {
+          "method": "grantCustomerCredit",
+          "scope": "membership-credits.credit-admin",
+          "public": false
+        },
+        {
+          "method": "debitCustomerCredit",
+          "scope": "membership-credits.credit-admin",
+          "public": false
+        },
+        {
+          "method": "getCustomerMembershipSnapshot",
+          "scope": "membership-credits.read",
+          "public": false
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeMembershipCreditsCreate",
+        "afterMembershipCreditsUpdated"
+      ],
+      "events": [
+        "membership-credits.tier_created",
+        "membership-credits.membership_assigned",
+        "membership-credits.membership_changed",
+        "membership-credits.membership_cancelled",
+        "membership-credits.membership_expired",
+        "membership-credits.credit_recorded"
+      ]
+    },
+    {
+      "id": "operator-work",
+      "name": "Operator Work",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/operator-work",
+      "docPath": "docs/modules/operator-work.md",
+      "summary": "Agent-readable task board, focus plan, daily review, and auditable operator work state for DOT AI OS.",
+      "requires": [
+        "org-team-rbac"
+      ],
+      "permissions": [
+        "operator-work.read",
+        "operator-work.write",
+        "operator-work.admin",
+        "operator-work.extend",
+        "operator-work.observe"
+      ],
+      "rpc": [
+        {
+          "method": "getOperatorWorkbench",
+          "scope": "operator-work.read",
+          "public": false
+        },
+        {
+          "method": "listOperatorTasks",
+          "scope": "operator-work.read",
+          "public": false
+        },
+        {
+          "method": "upsertOperatorTask",
+          "scope": "operator-work.write",
+          "public": false
+        },
+        {
+          "method": "updateOperatorTaskStatus",
+          "scope": "operator-work.write",
+          "public": false
+        },
+        {
+          "method": "listFocusBlocks",
+          "scope": "operator-work.read",
+          "public": false
+        },
+        {
+          "method": "upsertFocusBlock",
+          "scope": "operator-work.write",
+          "public": false
+        },
+        {
+          "method": "listDailyReviews",
+          "scope": "operator-work.read",
+          "public": false
+        },
+        {
+          "method": "saveDailyReview",
+          "scope": "operator-work.write",
+          "public": false
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeOperatorTaskUpsert",
+        "afterOperatorTaskUpdated",
+        "beforeFocusBlockUpsert",
+        "beforeDailyReviewSave"
+      ],
+      "events": [
+        "operator-work.task.upserted",
+        "operator-work.task.status_changed",
+        "operator-work.focus_block.upserted",
+        "operator-work.daily_review.saved"
+      ]
+    },
+    {
+      "id": "project-progress",
+      "name": "Project Progress",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/project-progress",
+      "docPath": "docs/modules/project-progress.md",
+      "summary": "Project progress timeline, worker access grants, media metadata, comments, and public customer snapshots.",
+      "requires": [],
+      "permissions": [
+        "project-progress.read",
+        "project-progress.write",
+        "project-progress.admin",
+        "project-progress.extend",
+        "project-progress.observe"
+      ],
+      "rpc": [
+        {
+          "method": "createProject",
+          "scope": "project-progress.write",
+          "public": false
+        },
+        {
+          "method": "updateProjectStatus",
+          "scope": "project-progress.write",
+          "public": false
+        },
+        {
+          "method": "createProgressLog",
+          "scope": "project-progress.write",
+          "public": false
+        },
+        {
+          "method": "grantProjectAccess",
+          "scope": "project-progress.admin",
+          "public": false
+        },
+        {
+          "method": "getProjectSnapshot",
+          "scope": "project-progress.read",
+          "public": false
+        },
+        {
+          "method": "resolvePublicProject",
+          "scope": null,
+          "public": true
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeProjectCreate",
+        "beforeProgressLogCreate",
+        "afterProgressLogCreated",
+        "afterCommentCreated"
+      ],
+      "events": [
+        "project-progress.created",
+        "project-progress.updated",
+        "project-progress.project.created",
+        "project-progress.project.status-changed",
+        "project-progress.access.granted",
+        "project-progress.access.revoked",
+        "project-progress.log.created",
+        "project-progress.media.attached",
+        "project-progress.comment.created"
+      ]
+    },
+    {
+      "id": "sms-campaigns",
+      "name": "SMS Campaigns",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/sms-campaigns",
+      "docPath": "docs/modules/sms-campaigns.md",
+      "summary": "Tenant-scoped SMS campaigns for opted-in contacts, groups, reusable templates, provider configuration, scheduled sends, dispatch, and delivery callbacks.",
+      "requires": [],
+      "permissions": [
+        "sms-campaigns.read",
+        "sms-campaigns.write",
+        "sms-campaigns.dispatch",
+        "sms-campaigns.admin",
+        "sms-campaigns.extend",
+        "sms-campaigns.observe"
+      ],
+      "rpc": [
+        {
+          "method": "upsertSmsContact",
+          "scope": "sms-campaigns.write",
+          "public": false
+        },
+        {
+          "method": "createSmsCampaign",
+          "scope": "sms-campaigns.write",
+          "public": false
+        },
+        {
+          "method": "scheduleSmsCampaign",
+          "scope": "sms-campaigns.write",
+          "public": false
+        },
+        {
+          "method": "dispatchSmsCampaign",
+          "scope": "sms-campaigns.dispatch",
+          "public": false
+        },
+        {
+          "method": "recordSmsDelivery",
+          "scope": "sms-campaigns.write",
+          "public": false
+        }
+      ],
+      "approvalRisk": "high",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeSmsCampaignsCreate",
+        "afterSmsCampaignsUpdated"
+      ],
+      "events": [
+        "sms-campaigns.contact_upserted",
+        "sms-campaigns.group_created",
+        "sms-campaigns.template_created",
+        "sms-campaigns.provider_configured",
+        "sms-campaigns.campaign_created",
+        "sms-campaigns.campaign_scheduled",
+        "sms-campaigns.campaign_dispatched",
+        "sms-campaigns.delivery_recorded"
+      ]
+    },
+    {
+      "id": "storage-entitlements",
+      "name": "Storage Entitlements",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/storage-entitlements",
+      "docPath": "docs/modules/storage-entitlements.md",
+      "summary": "Storage quota, packages, purchases, owner usage accounting, and share-link entitlement controls for portal-style applications.",
+      "requires": [],
+      "permissions": [
+        "storage-entitlements.read",
+        "storage-entitlements.write",
+        "storage-entitlements.admin",
+        "storage-entitlements.extend",
+        "storage-entitlements.observe"
+      ],
+      "rpc": [
+        {
+          "method": "getStorageInfo",
+          "scope": "storage-entitlements.read",
+          "public": false
+        },
+        {
+          "method": "reserveStorageBytes",
+          "scope": "storage-entitlements.write",
+          "public": false
+        },
+        {
+          "method": "releaseStorageBytes",
+          "scope": "storage-entitlements.write",
+          "public": false
+        },
+        {
+          "method": "createStoragePackage",
+          "scope": "storage-entitlements.admin",
+          "public": false
+        },
+        {
+          "method": "completeStoragePurchase",
+          "scope": "storage-entitlements.write",
+          "public": false
+        },
+        {
+          "method": "createShareLink",
+          "scope": "storage-entitlements.write",
+          "public": false
+        },
+        {
+          "method": "resolveShareLink",
+          "scope": null,
+          "public": true
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeStorageEntitlementsCreate",
+        "afterStorageEntitlementsUpdated"
+      ],
+      "events": [
+        "storage-entitlements.created",
+        "storage-entitlements.updated",
+        "storage-entitlements.quota.updated",
+        "storage-entitlements.purchase.completed",
+        "storage-entitlements.share.created",
+        "storage-entitlements.share.downloaded",
+        "storage-entitlements.share.revoked"
+      ]
+    },
+    {
+      "id": "support-inbox",
+      "name": "Support Inbox",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/support-inbox",
+      "docPath": "docs/modules/support-inbox.md",
+      "summary": "Tenant-scoped support widget and inbox for widget settings, quick actions, conversations, messages, channel metadata, and agent takeover.",
+      "requires": [],
+      "permissions": [
+        "support-inbox.read",
+        "support-inbox.write",
+        "support-inbox.agent",
+        "support-inbox.channel-admin",
+        "support-inbox.admin",
+        "support-inbox.extend",
+        "support-inbox.observe"
+      ],
+      "rpc": [
+        {
+          "method": "upsertWidgetSettings",
+          "scope": "support-inbox.admin",
+          "public": false
+        },
+        {
+          "method": "getWidgetConfig",
+          "scope": null,
+          "public": true
+        },
+        {
+          "method": "startConversation",
+          "scope": null,
+          "public": true
+        },
+        {
+          "method": "addMessage",
+          "scope": "support-inbox.write",
+          "public": false
+        },
+        {
+          "method": "listConversations",
+          "scope": "support-inbox.read",
+          "public": false
+        },
+        {
+          "method": "setAgentTakeover",
+          "scope": "support-inbox.agent",
+          "public": false
+        },
+        {
+          "method": "configureChannelConnection",
+          "scope": "support-inbox.channel-admin",
+          "public": false
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeSupportInboxCreate",
+        "afterSupportInboxUpdated"
+      ],
+      "events": [
+        "support-inbox.widget_settings_updated",
+        "support-inbox.quick_action_created",
+        "support-inbox.quick_action_deleted",
+        "support-inbox.conversation_started",
+        "support-inbox.message_added",
+        "support-inbox.conversation_status_updated",
+        "support-inbox.agent_takeover_updated",
+        "support-inbox.channel_connection_configured"
+      ]
+    },
+    {
       "id": "product-catalog",
       "name": "Product Catalog",
       "version": "0.1.0",

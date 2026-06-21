@@ -64,6 +64,17 @@ Future MCP/CLI tools should expose the same content through:
 | [`jobs-workflows`](./jobs-workflows.md) | Available | Durable jobs, schedules, deterministic workflows, retry backoff, artifacts, and dead-letter handling. |
 | [`notifications-inapp`](./notifications-inapp.md) | Available | Per-user notification feed with read/unread state, reconnect catch-up, and idempotent delivery. |
 | [`support-ticket`](./support-ticket.md) | Available | Tenant-scoped support tickets, comments, attachments, assignment, and public follow-up links. |
+| [`ads-manager`](./ads-manager.md) | Available | Cross-platform ad monitoring over entitlement-gated upstream connector access. |
+| [`billing-subscriptions`](./billing-subscriptions.md) | Available | Recurring plans, subscriptions, Stripe lifecycle, plan changes, and dunning hooks. |
+| [`forms-intake`](./forms-intake.md) | Available | Dynamic forms, submissions, validation, Turnstile, and attachment references. |
+| [`image-generation`](./image-generation.md) | Available | Pluggable image generation and editing with D1 gallery metadata and R2 image bytes. |
+| [`invoice`](./invoice.md) | Available | Gapless invoicing, recurring templates, lifecycle state, payment links, and invoice events. |
+| [`membership-credits`](./membership-credits.md) | Draft | Membership tiers, active memberships, credit balances, and credit ledger transactions. |
+| [`operator-work`](./operator-work.md) | Draft | Agent-readable task board, focus plan, and daily review state for operator work. |
+| [`project-progress`](./project-progress.md) | Draft | Project timelines, logs, access grants, media/comments, and public snapshots. |
+| [`sms-campaigns`](./sms-campaigns.md) | Draft | Opted-in SMS contacts, groups, templates, campaign scheduling, dispatch, and delivery callbacks. |
+| [`storage-entitlements`](./storage-entitlements.md) | Draft | Storage quotas, packages, purchases, owner usage accounting, and share-link controls. |
+| [`support-inbox`](./support-inbox.md) | Draft | Support widget and inbox conversations, messages, channel metadata, and agent takeover. |
 | [`product-catalog`](./product-catalog.md) | Draft | Product/category catalog, SKU uniqueness, external mappings, and combo products. |
 | [`inventory`](./inventory.md) | Draft | Tenant-scoped stock movements, reservations, deductions, reconciliation, and balances. |
 | [`sales-order`](./sales-order.md) | Draft | Sales orders, line items, status transitions, reservation handoff, and invoice draft handoff. |

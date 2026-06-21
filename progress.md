@@ -1839,3 +1839,27 @@
 | Create app package | Packaged CLI rebuilds and tests remain green with refreshed catalog metadata | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed | Pass |
 | Workspace specs | All module/template specs remain green with the broader guard | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 85 full locked module catalog closure
+
+- **Status:** complete.
+- Goal: make the public docs catalog, Markdown docs, internal module-contract catalog, generated SDK docs, and shared template guard cover every module currently locked by repo and packaged templates.
+- Added public catalog rows and module docs for `ads-manager`, `billing-subscriptions`, `forms-intake`, `image-generation`, `invoice`, `membership-credits`, `operator-work`, `project-progress`, `sms-campaigns`, `storage-entitlements`, and `support-inbox`.
+- Added internal module-contract catalog rows for the remaining locked modules that were not inspectable: `ads-manager`, `forms-intake`, `image-generation`, `knowledge-base-rag`, `marketing-research`, `membership-credits`, `project-progress`, `sms-campaigns`, `storage-entitlements`, and `support-inbox`.
+- Broadened the template guard so every lockfile module must exist in `docs/modules/catalog.json`, must point to an existing Markdown doc, and must be inspectable through `module-contract`.
+- Synced new docs/catalog/internal metadata for mounts, risks, secrets, dependencies, hooks, and public RPCs; corrected stale invoice secret wording and operator-work dependency/hook drift.
+- Added complete locked-module coverage assertions to module-contract and SDK tests.
+- Notes: an inline Node regex check initially failed because shell command substitution interpreted Markdown backticks; reran it with a shell-safe parser. A broad JSON patch briefly changed `auth` catalog requirements; a spot check caught it immediately and the row was corrected before validation.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Catalog JSON | Public docs catalog remains valid and duplicate-free | `jq -e '.modules | length' docs/modules/catalog.json` returned 40; duplicate check returned 40 | Pass |
+| Internal catalog sanity | Internal module catalog remains duplicate-free and every locked template module is inspectable | Node sanity script returned 42 internal modules and all 39 locked ids inspected | Pass |
+| Docs consistency | New Markdown docs match catalog status, mount, risk, and docPath files exist | Targeted Node consistency check passed | Pass |
+| Manifest/internal consistency | New locked module manifests and internal catalog agree on requires, optional dependencies, and approval risk | Targeted Node consistency check passed | Pass |
+| Focused catalog tests | Module-contract and SDK tests cover complete locked-module visibility and representative generated-doc metadata | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js packages/sdk-internal/tests/module-versioning.test.js` passed, 29/29 | Pass |
+| Package builds | Touched package entrypoints remain syntactically valid | `pnpm --filter @microservices-sh/module-contract build`, `pnpm --filter @microservices-sh/sdk-internal build`, and `pnpm --filter @microservices-sh/workspace-tools build` passed | Pass |
+| Representative template guards | Expanded locked-module docs/internal/file guard passes for ERP, DOT AI OS, and client portal templates | `node packages/workspace-tools/src/index.js check template --path ... --json` passed for all three | Pass |
+| Create app package | Packaged CLI rebuilds and tests remain green after catalog/docs changes | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green with the full locked-module guard | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
