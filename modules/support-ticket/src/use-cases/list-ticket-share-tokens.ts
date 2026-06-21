@@ -1,5 +1,5 @@
 import { ok, err } from "@microservices-sh/connection-contract";
-import { listTicketThreadInputSchema } from "../schemas";
+import { listTicketShareTokensInputSchema } from "../schemas";
 import { supportTicketMeta } from "../meta";
 import type { TicketStore } from "../ports";
 
@@ -8,7 +8,7 @@ export async function listTicketShareTokens(
   deps: { store: TicketStore; correlationId?: string; now?: () => number }
 ) {
   const meta = supportTicketMeta(deps);
-  const parsed = listTicketThreadInputSchema.pick({ ticketId: true }).safeParse(input);
+  const parsed = listTicketShareTokensInputSchema.safeParse(input);
   if (!parsed.success) {
     return err(
       400,

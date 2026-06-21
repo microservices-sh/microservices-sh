@@ -4,6 +4,7 @@ import {
   addTicketCommentInputSchema,
   attachTicketFileInputSchema,
   createTicketShareTokenInputSchema,
+  listTicketShareTokensInputSchema,
   listTicketThreadInputSchema,
   revokeTicketShareTokenInputSchema,
   ticketIdSchema
@@ -48,6 +49,27 @@ function requireScope(ctx: AuthContext | undefined, deps: ScopedDeps) {
   return null;
 }
 
+function inputRecord(input: unknown): Record<string, unknown> {
+  if (input && typeof input === "object") return input as Record<string, unknown>;
+  return {};
+}
+
+function ticketNotFound(deps: ScopedDeps) {
+  return err(
+    404,
+    { code: "support-ticket.TICKET_NOT_FOUND", message: "Ticket not found." },
+    supportTicketMeta(deps)
+  );
+}
+
+function shareTokenNotFound(deps: ScopedDeps) {
+  return err(
+    404,
+    { code: "support-ticket.SHARE_TOKEN_NOT_FOUND", message: "Ticket link not found." },
+    supportTicketMeta(deps)
+  );
+}
+
 async function requireTicketInScope(
   ctx: AuthContext,
   ticketId: string,
@@ -55,11 +77,7 @@ async function requireTicketInScope(
 ) {
   const ticket = await deps.store.getTicket(ticketId);
   if (!ticket || !enforceScope(ctx, ticket.tenantId, { assert: false })) {
-    return err(
-      404,
-      { code: "support-ticket.TICKET_NOT_FOUND", message: "Ticket not found." },
-      supportTicketMeta(deps)
-    );
+    return ticketNotFound(deps);
   }
   return null;
 }
@@ -69,8 +87,7 @@ async function requireTicketInScope(
 export async function createTicketScoped(ctx: AuthContext, input: unknown, deps: ScopedDeps) {
   const denied = requireScope(ctx, deps);
   if (denied) return denied;
-  const base = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
-  return createTicket({ ...base, tenantId: ctx.orgId }, deps);
+  return createTicket({ ...inputRecord(input), tenantId: ctx.orgId }, deps);
 }
 
 // List the active org's tickets. Any tenantId on `input` is overridden with the
@@ -78,8 +95,7 @@ export async function createTicketScoped(ctx: AuthContext, input: unknown, deps:
 export async function listTicketsScoped(ctx: AuthContext, input: unknown, deps: ScopedDeps) {
   const denied = requireScope(ctx, deps);
   if (denied) return denied;
-  const base = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
-  return listTickets({ ...base, tenantId: ctx.orgId }, deps);
+  return listTickets({ ...inputRecord(input), tenantId: ctx.orgId }, deps);
 }
 
 // Fetch one ticket, but only if it belongs to the active org. A foreign id is
@@ -90,11 +106,7 @@ export async function getTicketScoped(ctx: AuthContext, input: unknown, deps: Sc
   const result = await getTicket(input, deps);
   if (!result.ok) return result;
   if (!enforceScope(ctx, result.data.ticket.tenantId, { assert: false })) {
-    return err(
-      404,
-      { code: "support-ticket.TICKET_NOT_FOUND", message: "Ticket not found." },
-      supportTicketMeta(deps)
-    );
+    return ticketNotFound(deps);
   }
   return result;
 }
@@ -108,14 +120,8 @@ export async function updateTicketScoped(ctx: AuthContext, input: unknown, deps:
   if (denied) return denied;
   const idParse = ticketIdSchema.safeParse(input);
   if (idParse.success) {
-    const existing = await deps.store.getTicket(idParse.data.id);
-    if (!existing || !enforceScope(ctx, existing.tenantId, { assert: false })) {
-      return err(
-        404,
-        { code: "support-ticket.TICKET_NOT_FOUND", message: "Ticket not found." },
-        supportTicketMeta(deps)
-      );
-    }
+    const outOfScope = await requireTicketInScope(ctx, idParse.data.id, deps);
+    if (outOfScope) return outOfScope;
   }
   return updateTicket(input, deps);
 }
@@ -125,8 +131,8 @@ export async function addTicketCommentScoped(ctx: AuthContext, input: unknown, d
   if (denied) return denied;
   const parsed = addTicketCommentInputSchema.safeParse(input);
   if (parsed.success) {
-    const foreign = await requireTicketInScope(ctx, parsed.data.ticketId, deps);
-    if (foreign) return foreign;
+    const outOfScope = await requireTicketInScope(ctx, parsed.data.ticketId, deps);
+    if (outOfScope) return outOfScope;
   }
   return addTicketComment(input, deps);
 }
@@ -136,8 +142,8 @@ export async function listTicketThreadScoped(ctx: AuthContext, input: unknown, d
   if (denied) return denied;
   const parsed = listTicketThreadInputSchema.safeParse(input);
   if (parsed.success) {
-    const foreign = await requireTicketInScope(ctx, parsed.data.ticketId, deps);
-    if (foreign) return foreign;
+    const outOfScope = await requireTicketInScope(ctx, parsed.data.ticketId, deps);
+    if (outOfScope) return outOfScope;
   }
   return listTicketThread(input, deps);
 }
@@ -147,8 +153,8 @@ export async function attachTicketFileScoped(ctx: AuthContext, input: unknown, d
   if (denied) return denied;
   const parsed = attachTicketFileInputSchema.safeParse(input);
   if (parsed.success) {
-    const foreign = await requireTicketInScope(ctx, parsed.data.ticketId, deps);
-    if (foreign) return foreign;
+    const outOfScope = await requireTicketInScope(ctx, parsed.data.ticketId, deps);
+    if (outOfScope) return outOfScope;
   }
   return attachTicketFile(input, deps);
 }
@@ -158,8 +164,8 @@ export async function createTicketShareTokenScoped(ctx: AuthContext, input: unkn
   if (denied) return denied;
   const parsed = createTicketShareTokenInputSchema.safeParse(input);
   if (parsed.success) {
-    const foreign = await requireTicketInScope(ctx, parsed.data.ticketId, deps);
-    if (foreign) return foreign;
+    const outOfScope = await requireTicketInScope(ctx, parsed.data.ticketId, deps);
+    if (outOfScope) return outOfScope;
   }
   return createTicketShareToken(input, deps);
 }
@@ -167,10 +173,10 @@ export async function createTicketShareTokenScoped(ctx: AuthContext, input: unkn
 export async function listTicketShareTokensScoped(ctx: AuthContext, input: unknown, deps: ScopedDeps) {
   const denied = requireScope(ctx, deps);
   if (denied) return denied;
-  const parsed = listTicketThreadInputSchema.pick({ ticketId: true }).safeParse(input);
+  const parsed = listTicketShareTokensInputSchema.safeParse(input);
   if (parsed.success) {
-    const foreign = await requireTicketInScope(ctx, parsed.data.ticketId, deps);
-    if (foreign) return foreign;
+    const outOfScope = await requireTicketInScope(ctx, parsed.data.ticketId, deps);
+    if (outOfScope) return outOfScope;
   }
   return listTicketShareTokens(input, deps);
 }
@@ -182,11 +188,7 @@ export async function revokeTicketShareTokenScoped(ctx: AuthContext, input: unkn
   if (parsed.success) {
     const shareToken = await deps.store.getTicketShareToken(parsed.data.id);
     if (!shareToken || !enforceScope(ctx, shareToken.tenantId, { assert: false })) {
-      return err(
-        404,
-        { code: "support-ticket.SHARE_TOKEN_NOT_FOUND", message: "Ticket link not found." },
-        supportTicketMeta(deps)
-      );
+      return shareTokenNotFound(deps);
     }
   }
   return revokeTicketShareToken(input, deps);

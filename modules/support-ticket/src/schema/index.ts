@@ -8,6 +8,7 @@ export {
   createTicketInputSchema,
   ticketIdSchema,
   listTicketsFilterSchema,
+  listTicketShareTokensInputSchema,
   listTicketThreadInputSchema,
   resolveTicketShareTokenInputSchema,
   revokeTicketShareTokenInputSchema,

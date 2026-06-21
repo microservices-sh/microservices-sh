@@ -53,6 +53,10 @@ export const listTicketThreadInputSchema = z.object({
   includeInternal: z.boolean().default(false)
 });
 
+export const listTicketShareTokensInputSchema = z.object({
+  ticketId: z.string().min(1)
+});
+
 export const attachTicketFileInputSchema = z.object({
   ticketId: z.string().min(1),
   filename: z.string().min(1).max(255),
@@ -87,4 +91,5 @@ export type UpdateTicketInput = z.infer<typeof updateTicketInputSchema>;
 export type AddTicketCommentInput = z.infer<typeof addTicketCommentInputSchema>;
 export type AttachTicketFileInput = z.infer<typeof attachTicketFileInputSchema>;
 export type CreateTicketShareTokenInput = z.infer<typeof createTicketShareTokenInputSchema>;
+export type ListTicketShareTokensInput = z.infer<typeof listTicketShareTokensInputSchema>;
 export type SupportTicketConfig = z.infer<typeof supportTicketConfigSchema>;

@@ -12,6 +12,7 @@ import type {
   ProgressMediaFile,
   ProjectAccessGrant,
   ProjectComment,
+  ProjectCommentAuthorType,
   ProjectProgressIdFactory,
   ProjectProgressIdPrefix,
   ProjectProgressProject,
@@ -26,7 +27,7 @@ import type {
 const PROJECT_STATUSES = new Set<ProjectStatus>(["planning", "in_progress", "completed", "on_hold"]);
 const PROGRESS_CATEGORIES = new Set<ProgressCategory>(["painting", "plumbing", "masonry", "electrical", "carpentry", "general"]);
 const PROGRESS_MEDIA_TYPES = new Set(["image", "video"]);
-const COMMENT_AUTHOR_TYPES = new Set(["customer", "worker", "admin"]);
+const COMMENT_AUTHOR_TYPES = new Set<ProjectCommentAuthorType>(["customer", "worker", "admin"]);
 
 export interface ProjectProgressServiceDeps {
   store: ProjectProgressStore;
@@ -87,6 +88,15 @@ function defaultToken(): string {
 function cleanText(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+function isNonNegativeInteger(value: unknown): value is number {
+  return Number.isInteger(value) && Number(value) >= 0;
+}
+
+function resolveActualEndDate(input: UpdateProjectStatusInput, project: ProjectProgressProject, timestamp: string): string | null {
+  if (input.status !== "completed") return project.actualEndDate;
+  return cleanText(input.actualEndDate) ?? timestamp;
 }
 
 async function buildSnapshot(store: ProjectProgressStore, tenantId: string, project: ProjectProgressProject): Promise<ProjectProgressSnapshot> {
@@ -151,7 +161,7 @@ export function createProjectProgressService(deps: ProjectProgressServiceDeps): 
       const updated: ProjectProgressProject = {
         ...project,
         status: input.status,
-        actualEndDate: input.status === "completed" ? cleanText(input.actualEndDate) ?? timestamp : project.actualEndDate,
+        actualEndDate: resolveActualEndDate(input, project, timestamp),
         updatedAt: timestamp
       };
       await deps.store.upsertProject(updated);
@@ -214,10 +224,10 @@ export function createProjectProgressService(deps: ProjectProgressServiceDeps): 
       if (!storageKey || storageKey.includes("..")) return fail("storage_key_invalid", "Storage key is required and cannot contain parent traversal.");
       if (!mimeType) return fail("mime_type_required", "MIME type is required.");
       if (!PROGRESS_MEDIA_TYPES.has(input.fileType)) return fail("file_type_invalid", "Progress media type is not supported.");
-      if (!Number.isInteger(input.fileSizeBytes) || input.fileSizeBytes < 0) return fail("file_size_invalid", "File size must be a non-negative integer.");
-      if (input.durationSeconds != null && (!Number.isInteger(input.durationSeconds) || input.durationSeconds < 0)) return fail("duration_invalid", "Duration must be a non-negative integer.");
-      if (input.width != null && (!Number.isInteger(input.width) || input.width < 0)) return fail("width_invalid", "Width must be a non-negative integer.");
-      if (input.height != null && (!Number.isInteger(input.height) || input.height < 0)) return fail("height_invalid", "Height must be a non-negative integer.");
+      if (!isNonNegativeInteger(input.fileSizeBytes)) return fail("file_size_invalid", "File size must be a non-negative integer.");
+      if (input.durationSeconds != null && !isNonNegativeInteger(input.durationSeconds)) return fail("duration_invalid", "Duration must be a non-negative integer.");
+      if (input.width != null && !isNonNegativeInteger(input.width)) return fail("width_invalid", "Width must be a non-negative integer.");
+      if (input.height != null && !isNonNegativeInteger(input.height)) return fail("height_invalid", "Height must be a non-negative integer.");
       const media: ProgressMediaFile = {
         id: createId("pmed"),
         tenantId: ctx.tenantId,
