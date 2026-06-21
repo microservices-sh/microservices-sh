@@ -48,7 +48,7 @@ and sync review.
 | `/app/products` | Product catalog and stock policy setup |
 | `/app/inventory` | Stock balances, recent movements, and manual receiving |
 | `/app/sales-orders` | Draft sales order intake and order ledger |
-| `/app/shipments` | Fulfillment batches and shipment line review |
+| `/app/shipments` | Fulfillment batches, shipment line review, packing slip print, and pick-list print |
 | `/app/commerce-sync` | Provider connection, sync-run, mapping, and webhook contract review |
 | `/api/commerce-sync/woocommerce/[tenantId]/[connectionId]` | Raw WooCommerce webhook endpoint; verifies `WOOCOMMERCE_WEBHOOK_SECRET`, records receipts, and imports order webhooks as draft sales orders |
 | `/app/invoices` | Invoice ledger |

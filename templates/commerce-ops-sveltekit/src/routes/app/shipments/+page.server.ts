@@ -16,6 +16,15 @@ function isReadyOrderStatus(status: string): boolean {
   return status === "confirmed" || status === "invoiced";
 }
 
+function salesOrderIdsForShipment(shipment: { externalSource: string | null; externalId: string | null; items: Array<{ sourceType: string; sourceId: string }> }): string[] {
+  const ids = new Set<string>();
+  if (shipment.externalSource === "sales-order" && shipment.externalId) ids.add(shipment.externalId);
+  for (const item of shipment.items) {
+    if (item.sourceType === "sales-order") ids.add(item.sourceId);
+  }
+  return [...ids];
+}
+
 function inventoryPort(locals: App.Locals, actorId: string): ShipmentInventoryPort {
   return {
     async deductShipment(input) {
@@ -105,7 +114,25 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
     ),
     listOrders({ tenantId: activeOrgId, limit: 100 }, { salesOrderStore: locals.salesOrderStore })
   ]);
+  const orders = ordersResult.ok ? ordersResult.data.orders : [];
   const shipments = shipmentsResult.ok ? shipmentsResult.data.shipments : [];
+  const ordersById = new Map(orders.map((order) => [order.id, order]));
+  const shipmentDocuments = shipments.map((shipment) => {
+    const order = salesOrderIdsForShipment(shipment)
+      .map((id) => ordersById.get(id))
+      .find(Boolean);
+    const snapshot = order?.customerSnapshot ?? null;
+    return {
+      shipmentId: shipment.id,
+      orderNumber: order?.orderNumber ?? (shipment.externalSource === "sales-order" ? shipment.externalId : null),
+      orderStatus: order?.status ?? null,
+      customerName: snapshot?.displayName ?? null,
+      customerEmail: snapshot?.email ?? null,
+      customerPhone: snapshot?.phone ?? null,
+      shippingAddress: snapshot?.shippingAddress ?? snapshot?.billingAddress ?? null,
+      orderNotes: order?.notes ?? null
+    };
+  });
   const shippedOrderIds = new Set(
     shipments
       .filter((shipment) => shipment.status !== "cancelled")
@@ -116,7 +143,7 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
       )
   );
   const readyOrders = ordersResult.ok
-    ? ordersResult.data.orders
+    ? orders
         .filter((order) => isReadyOrderStatus(order.status) && !shippedOrderIds.has(order.id))
         .map((order) => ({
           id: order.id,
@@ -132,6 +159,7 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
   return {
     canManage: permissions.includes("*") || permissions.includes("member.manage"),
     shipments,
+    shipmentDocuments,
     readyOrders
   };
 };

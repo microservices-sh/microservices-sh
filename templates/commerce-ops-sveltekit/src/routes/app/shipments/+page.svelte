@@ -1,11 +1,13 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
   import { relativeTime } from "$lib/format";
+  import { printShipmentPackingSlip, printShipmentPickList, type ShipmentPrintData } from "$lib/packing-slip";
   import { Alert, Badge, Button, Card, Field, MetricStrip, PageHeader } from "$lib/ui";
   import type { Metric } from "$lib/ui/types";
 
   let { data, form } = $props();
 
+  const shipmentDocuments = $derived(new Map(data.shipmentDocuments.map((doc) => [doc.shipmentId, doc])));
   const openShipments = $derived(data.shipments.filter((shipment) => shipment.status !== "completed" && shipment.status !== "cancelled"));
   const itemCount = $derived(data.shipments.reduce((total, shipment) => total + shipment.items.length, 0));
   const metrics = $derived<Metric[]>([
@@ -19,6 +21,31 @@
     if (status === "processing") return "warn";
     if (status === "cancelled") return "bad";
     return "neutral";
+  }
+
+  function printData(shipment: (typeof data.shipments)[number]): ShipmentPrintData {
+    const doc = shipmentDocuments.get(shipment.id);
+    return {
+      shipmentId: shipment.id,
+      shipmentNumber: shipment.shipmentNumber,
+      status: shipment.status,
+      carrier: shipment.carrier,
+      trackingNumber: shipment.trackingNumber,
+      notes: shipment.notes,
+      createdAt: shipment.createdAt,
+      orderNumber: doc?.orderNumber ?? null,
+      orderStatus: doc?.orderStatus ?? null,
+      customerName: doc?.customerName ?? null,
+      customerEmail: doc?.customerEmail ?? null,
+      customerPhone: doc?.customerPhone ?? null,
+      shippingAddress: doc?.shippingAddress ?? null,
+      orderNotes: doc?.orderNotes ?? null,
+      items: shipment.items.map((item) => ({
+        sku: item.sku,
+        description: item.description,
+        quantity: item.quantity
+      }))
+    };
   }
 </script>
 
@@ -67,6 +94,8 @@
                 </div>
                 <div class="shipment-actions">
                   <Badge tone={shipmentTone(shipment.status)}>{shipment.status}</Badge>
+                  <Button type="button" variant="ghost" size="sm" onclick={() => printShipmentPackingSlip(printData(shipment))}>Packing slip</Button>
+                  <Button type="button" variant="ghost" size="sm" onclick={() => printShipmentPickList(printData(shipment))}>Pick list</Button>
                   {#if data.canManage && shipment.status !== "completed" && shipment.status !== "cancelled"}
                     <form method="POST" action="?/complete" use:enhance>
                       <input type="hidden" name="shipmentId" value={shipment.id} />
@@ -138,6 +167,8 @@
   }
   .shipment-actions {
     align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
   .card-headline {
     align-items: center;
