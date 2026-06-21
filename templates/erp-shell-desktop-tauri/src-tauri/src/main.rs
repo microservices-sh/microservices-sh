@@ -387,11 +387,26 @@ async fn test_gemma_model(model: String) -> Result<ModelProbeResult, String> {
 }
 
 #[tauri::command]
-fn extract_document(app: tauri::AppHandle, job_id: String) -> Result<ExtractionResult, String> {
-    let queue = open_queue(&app)?;
+async fn extract_document(
+    app: tauri::AppHandle,
+    job_id: String,
+) -> Result<ExtractionResult, String> {
+    // The Gemma vision call blocks for tens of seconds. Run it (and the SQLite
+    // work) on a blocking thread so the webview stays responsive — the status
+    // bar can repaint and the app never appears to hang during a run.
+    tauri::async_runtime::spawn_blocking(move || extract_document_blocking(&app, &job_id))
+        .await
+        .map_err(|error| format!("Failed to join extraction task: {error}"))?
+}
+
+fn extract_document_blocking(
+    app: &tauri::AppHandle,
+    job_id: &str,
+) -> Result<ExtractionResult, String> {
+    let queue = open_queue(app)?;
     let settings = queue.runtime_settings()?;
     let job = queue
-        .get_job(&job_id)?
+        .get_job(job_id)?
         .ok_or_else(|| format!("Draft job not found: {job_id}"))?;
 
     queue.update_status(&job.id, "extracting", job.confidence)?;
