@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 47
+Phase 48
 
 ## Phases
 
@@ -365,6 +365,14 @@ Phase 47
 - [ ] Add accounts receivable D1 after an invoice snapshot table contract is added or verified.
 - [ ] Add commerce sync D1 after a normalized envelope table contract is added or verified.
 - **Status:** durable service ports complete; bank D1 ready; AR/commerce D1 pending table contracts
+
+### Phase 48: Focused Template Durable Service Wiring
+- [x] Wire `accounting-erp-sveltekit` receivables to the store-backed accounts receivable service.
+- [x] Wire `accounting-erp-sveltekit` banking to the store-backed bank reconciliation service, using D1 when the template DB binding exists.
+- [x] Wire `commerce-ops-sveltekit` commerce sync to the store-backed commerce sync service.
+- [x] Preserve memory-backed fallbacks where D1 adapters are intentionally pending.
+- [x] Verify both focused template specs, both focused template builds, create-app bundle build, bundle closure, full workspace spec, and whitespace checks.
+- **Status:** complete
 
 ## Key Questions
 1. Is the current plan good enough to start an MVP?

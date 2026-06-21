@@ -1,6 +1,6 @@
 import type { PageServerLoad } from "./$types";
 import { redirect } from "@sveltejs/kit";
-import { createAccountsReceivableMemoryService, getAccountsReceivableModuleStatus } from "@microservices-sh/accounts-receivable";
+import { getAccountsReceivableModuleStatus } from "@microservices-sh/accounts-receivable";
 import { requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 
@@ -10,9 +10,9 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
   if (!activeOrgId || !locals.user) throw redirect(303, "/app");
   await requireOrgPermission(cookies, locals.user.id, activeOrgId, "org.read", locals.rbacStore);
 
-  const service = createAccountsReceivableMemoryService();
+  const service = locals.accountsReceivableService;
   const ctx = { tenantId: activeOrgId, now: "2026-06-21T00:00:00.000Z" };
-  service.upsertInvoiceSnapshot(ctx, {
+  await service.upsertInvoiceSnapshot(ctx, {
     id: "ar-demo-1001",
     customerId: "cust-demo-1",
     invoiceNumber: "INV-1001",
@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
     amountDueCents: 130000,
     status: "open"
   });
-  service.upsertInvoiceSnapshot(ctx, {
+  await service.upsertInvoiceSnapshot(ctx, {
     id: "ar-demo-1002",
     customerId: "cust-demo-2",
     invoiceNumber: "INV-1002",
@@ -34,8 +34,8 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
     amountDueCents: 72500,
     status: "open"
   });
-  const receivables = service.listOpenReceivables(ctx);
-  const aging = service.getReceivableAging(ctx, "2026-06-21T00:00:00.000Z");
+  const receivables = await service.listOpenReceivables(ctx);
+  const aging = await service.getReceivableAging(ctx, "2026-06-21T00:00:00.000Z");
 
   return {
     status: getAccountsReceivableModuleStatus(),

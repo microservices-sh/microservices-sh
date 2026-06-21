@@ -57,6 +57,7 @@ import { createD1ProductCatalogStore, createMemoryProductCatalogStore } from "@m
 import { createD1InventoryStore, createMemoryInventoryStore } from "@microservices-sh/inventory";
 import { createD1SalesOrderStore, createMemorySalesOrderStore } from "@microservices-sh/sales-order";
 import { createD1ShipmentStore, createMemoryShipmentStore } from "@microservices-sh/shipment";
+import { createCommerceSyncService, createMemoryCommerceSyncStore } from "@microservices-sh/commerce-sync";
 
 import type { RbacStore } from "@microservices-sh/org-team-rbac/ports";
 import type { TableGateway } from "@microservices-sh/admin-shell/ports";
@@ -73,6 +74,7 @@ import type { ProductCatalogStore } from "@microservices-sh/product-catalog/port
 import type { InventoryStore } from "@microservices-sh/inventory/ports";
 import type { SalesOrderStore } from "@microservices-sh/sales-order/ports";
 import type { ShipmentStore } from "@microservices-sh/shipment/ports";
+import type { CommerceSyncService } from "@microservices-sh/commerce-sync";
 
 // Memory singletons for local dev without D1/R2. State persists across requests in
 // a single dev session so the seeded company → employees → customers/invoices/files
@@ -105,6 +107,8 @@ const memoryProductCatalogStore = createMemoryProductCatalogStore();
 const memoryInventoryStore = createMemoryInventoryStore();
 const memorySalesOrderStore = createMemorySalesOrderStore();
 const memoryShipmentStore = createMemoryShipmentStore();
+const memoryCommerceSyncStore = createMemoryCommerceSyncStore();
+const memoryCommerceSyncService = createCommerceSyncService({ store: memoryCommerceSyncStore });
 
 export interface ServerStores {
   rbacStore: RbacStore;
@@ -135,6 +139,7 @@ export interface ServerStores {
   inventoryStore: InventoryStore;
   salesOrderStore: SalesOrderStore;
   shipmentStore: ShipmentStore;
+  commerceSyncService: CommerceSyncService;
 }
 
 // The platform bindings as declared on App.Platform — referenced via the platform
@@ -174,7 +179,8 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     productCatalogStore: db ? createD1ProductCatalogStore(db) : memoryProductCatalogStore,
     inventoryStore: db ? createD1InventoryStore(db) : memoryInventoryStore,
     salesOrderStore: db ? createD1SalesOrderStore(db) : memorySalesOrderStore,
-    shipmentStore: db ? createD1ShipmentStore(db) : memoryShipmentStore
+    shipmentStore: db ? createD1ShipmentStore(db) : memoryShipmentStore,
+    commerceSyncService: memoryCommerceSyncService
   };
 }
 

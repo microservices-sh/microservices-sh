@@ -22,6 +22,7 @@ import type { ProductCatalogStore } from "@microservices-sh/product-catalog/port
 import type { InventoryStore } from "@microservices-sh/inventory/ports";
 import type { SalesOrderStore } from "@microservices-sh/sales-order/ports";
 import type { ShipmentStore } from "@microservices-sh/shipment/ports";
+import type { CommerceSyncService } from "@microservices-sh/commerce-sync";
 
 declare global {
   namespace App {
@@ -93,6 +94,7 @@ declare global {
       inventoryStore: InventoryStore;
       salesOrderStore: SalesOrderStore;
       shipmentStore: ShipmentStore;
+      commerceSyncService: CommerceSyncService;
       // The signed-in principal, resolved from the session store each request.
       // isSuperAdmin is derived from the account's isAdmin flag, never the cookie.
       user: { id: string; email: string; isSuperAdmin: boolean } | null;

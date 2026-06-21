@@ -1207,3 +1207,23 @@
 | Commerce sync build/spec | Typecheck and module contract pass | `pnpm --dir modules/commerce-sync build`; `pnpm --dir modules/commerce-sync check:spec` | Pass |
 | Full spec | Workspace module/template checks pass | `pnpm spec:check:all` passed, 51 targets | Pass |
 | Whitespace | No diff whitespace errors | `git diff --check` passed | Pass |
+
+### Phase 48 Focused template durable service wiring
+
+- **Status:** complete.
+- Goal: make the focused StackSuite template pages consume the durable service factories from request locals instead of creating fresh memory services inside each page load.
+- Wired `accounting-erp-sveltekit` request locals for `accountsReceivableService` and `bankReconciliationService`.
+- `accounting-erp-sveltekit` uses the memory-backed accounts receivable service until a D1 invoice snapshot table contract exists, and uses the D1 bank reconciliation store when a DB binding is present.
+- Wired `commerce-ops-sveltekit` request locals for `commerceSyncService` using the persistent memory store-backed service until a commerce sync D1 envelope table contract exists.
+- Updated the receivables, banking, and commerce sync page server loaders to await the async service APIs and reuse existing demo account/connection records where possible.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounting template spec | Shared template check passes | `pnpm --dir templates/accounting-erp-sveltekit check:spec` passed | Pass |
+| Commerce template spec | Shared template check passes | `pnpm --dir templates/commerce-ops-sveltekit check:spec` passed | Pass |
+| Accounting template build | SvelteKit/Cloudflare production build passes | `pnpm --dir templates/accounting-erp-sveltekit build` passed; existing invoice detail Svelte warning remains non-blocking | Pass |
+| Commerce template build | SvelteKit/Cloudflare production build passes | `pnpm --dir templates/commerce-ops-sveltekit build` passed; existing invoice detail Svelte warning remains non-blocking | Pass |
+| Create-app build | Bundled repo templates rebuild | `pnpm --filter create-microservices-app build` passed | Pass |
+| Bundle closure | Generated template module graph remains closed | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 22/22 | Pass |
+| Full spec | Workspace module/template checks pass | `pnpm spec:check:all` passed, 51 targets | Pass |
+| Whitespace | No diff whitespace errors | `git diff --check` passed | Pass |

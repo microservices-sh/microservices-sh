@@ -235,3 +235,5 @@
 - Bank reconciliation has memory and D1 store adapters against its existing migration tables for accounts, statement transactions, matches, and reconciliation sessions.
 - Accounts receivable has a memory store adapter, but a complete D1 adapter needs a module-owned or verified invoice snapshot table for open receivables, aging, and statements.
 - Commerce sync has a memory store adapter, but a complete D1 adapter needs a normalized envelope table for the payload persistence contract.
+- The focused accounting template now resolves receivables and bank reconciliation services through request locals instead of constructing fresh per-request memory services. Bank reconciliation uses D1 when the template DB binding exists; receivables remains memory-backed until the invoice snapshot table contract is added.
+- The focused commerce template now resolves commerce sync through request locals and a persistent memory store-backed service; D1 remains intentionally pending until the normalized envelope table contract exists.

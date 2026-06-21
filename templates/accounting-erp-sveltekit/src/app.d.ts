@@ -20,6 +20,8 @@ import type { FormStore } from "@microservices-sh/forms-intake/ports";
 import type { BookingRepository } from "@microservices-sh/booking/ports";
 import type { AccountingCoreStore } from "@microservices-sh/accounting-core";
 import type { AccountsPayableStore } from "@microservices-sh/accounts-payable";
+import type { AccountsReceivableService } from "@microservices-sh/accounts-receivable";
+import type { BankReconciliationService } from "@microservices-sh/bank-reconciliation";
 
 declare global {
   namespace App {
@@ -89,6 +91,8 @@ declare global {
       bookingRepository: BookingRepository;
       accountingCoreStore: AccountingCoreStore;
       accountsPayableStore: AccountsPayableStore;
+      accountsReceivableService: AccountsReceivableService;
+      bankReconciliationService: BankReconciliationService;
       // The signed-in principal, resolved from the session store each request.
       // isSuperAdmin is derived from the account's isAdmin flag, never the cookie.
       user: { id: string; email: string; isSuperAdmin: boolean } | null;

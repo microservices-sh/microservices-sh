@@ -63,6 +63,17 @@ import {
   createMemoryAccountsPayableStore,
   type AccountsPayableStore
 } from "@microservices-sh/accounts-payable";
+import {
+  createAccountsReceivableMemoryStore,
+  createAccountsReceivableService,
+  type AccountsReceivableService
+} from "@microservices-sh/accounts-receivable";
+import {
+  createBankReconciliationService,
+  createD1BankReconciliationStore,
+  createMemoryBankReconciliationStore,
+  type BankReconciliationService
+} from "@microservices-sh/bank-reconciliation";
 
 import type { RbacStore } from "@microservices-sh/org-team-rbac/ports";
 import type { TableGateway } from "@microservices-sh/admin-shell/ports";
@@ -105,6 +116,10 @@ const memoryFormStore = createMemoryFormStore();
 const memoryBookingRepository = createMemoryBookingRepository();
 const memoryAccountingCoreStore = createMemoryAccountingCoreStore();
 const memoryAccountsPayableStore = createMemoryAccountsPayableStore();
+const memoryAccountsReceivableStore = createAccountsReceivableMemoryStore();
+const memoryAccountsReceivableService = createAccountsReceivableService({ store: memoryAccountsReceivableStore });
+const memoryBankReconciliationStore = createMemoryBankReconciliationStore();
+const memoryBankReconciliationService = createBankReconciliationService({ store: memoryBankReconciliationStore });
 
 export interface ServerStores {
   rbacStore: RbacStore;
@@ -133,6 +148,8 @@ export interface ServerStores {
   bookingRepository: BookingRepository;
   accountingCoreStore: AccountingCoreStore;
   accountsPayableStore: AccountsPayableStore;
+  accountsReceivableService: AccountsReceivableService;
+  bankReconciliationService: BankReconciliationService;
 }
 
 // The platform bindings as declared on App.Platform — referenced via the platform
@@ -170,7 +187,11 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     formStore: db ? createD1FormStore(db) : memoryFormStore,
     bookingRepository: db ? createD1BookingRepository(db) : memoryBookingRepository,
     accountingCoreStore: db ? createD1AccountingCoreStore(db) : memoryAccountingCoreStore,
-    accountsPayableStore: db ? createD1AccountsPayableStore(db) : memoryAccountsPayableStore
+    accountsPayableStore: db ? createD1AccountsPayableStore(db) : memoryAccountsPayableStore,
+    accountsReceivableService: memoryAccountsReceivableService,
+    bankReconciliationService: db
+      ? createBankReconciliationService({ store: createD1BankReconciliationStore(db) })
+      : memoryBankReconciliationService
   };
 }
 
@@ -183,6 +204,8 @@ export const memoryStores = {
   numberAllocator: memoryNumberAllocator,
   accountingCoreStore: memoryAccountingCoreStore,
   accountsPayableStore: memoryAccountsPayableStore,
+  accountsReceivableService: memoryAccountsReceivableService,
+  bankReconciliationService: memoryBankReconciliationService,
   mediaStore: memoryMediaStore,
   objectStorage: memoryObjectStorage,
   auditStore: memoryAuditStore

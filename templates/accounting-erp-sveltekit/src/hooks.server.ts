@@ -80,6 +80,8 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.bookingRepository = stores.bookingRepository;
   event.locals.accountingCoreStore = stores.accountingCoreStore;
   event.locals.accountsPayableStore = stores.accountsPayableStore;
+  event.locals.accountsReceivableService = stores.accountsReceivableService;
+  event.locals.bankReconciliationService = stores.bankReconciliationService;
   event.locals.user = await getCurrentUser(event.cookies, {
     accountStore: stores.accountStore,
     sessionStore: stores.sessionStore
