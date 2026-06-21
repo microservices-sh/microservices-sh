@@ -19,6 +19,11 @@
     "profileFields": ["name", "email", "phone", "notes"],
     "consentFields": ["emailMarketingConsent"]
   },
+  "membershipCredits": {
+    "enabled": true,
+    "defaultCurrency": "USD",
+    "adminRoutes": ["/admin/membership-credits", "/admin/customers/[id]"]
+  },
   "theme": {
     "primaryColor": "#39ff88",
     "surface": "#0b0f12",

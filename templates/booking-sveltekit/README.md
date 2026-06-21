@@ -5,7 +5,7 @@ Template ID: `booking-sveltekit`
 
 This is the official full-app booking template shell. It is intentionally separate from the current Hono API generator and should evolve into the default visual proof template.
 
-Booking behavior comes from `@microservices-sh/booking`. Customer behavior comes from `@microservices-sh/customer`. The template owns only SvelteKit routes, UI, composition glue, and Cloudflare binding wiring.
+Booking behavior comes from `@microservices-sh/booking`. Customer behavior comes from `@microservices-sh/customer`. Membership tiers and customer credit ledgers come from `@microservices-sh/membership-credits`. The template owns only SvelteKit routes, UI, composition glue, and Cloudflare binding wiring.
 
 ## Styling
 
@@ -32,10 +32,11 @@ system — colors, fonts, radius, shadows — lives in one `@theme` block in
 6. Public booking flow.
 7. Simple admin overview.
 8. Admin booking/customer list and detail routes.
-9. Local `pnpm microservices upgrade booking --json` support.
-10. Shared workspace spec checks through `packages/workspace-tools`.
-11. Local D1 migration and HTTP smoke checks.
-12. Managed preview CLI commands that proxy deployment intent to the microservices.sh control-plane API.
+9. Admin membership credits overview, tier creation, customer membership assignment, and credit grant/debit actions.
+10. Local `pnpm microservices upgrade booking --json` support.
+11. Shared workspace spec checks through `packages/workspace-tools`.
+12. Local D1 migration and HTTP smoke checks.
+13. Managed preview CLI commands that proxy deployment intent to the microservices.sh control-plane API.
 
 ## Verification
 
@@ -43,6 +44,7 @@ system — colors, fonts, radius, shadows — lives in one `@theme` block in
 pnpm check:spec
 pnpm --filter @microservices-sh/customer check:spec
 pnpm --filter @microservices-sh/booking check:spec
+pnpm --filter @microservices-sh/membership-credits check:spec
 pnpm build:app
 pnpm microservices local setup
 pnpm dev

@@ -24,6 +24,9 @@ modules/booking/src/use-cases/create-booking.ts
 modules/customer/src/use-cases/upsert-customer.ts
   -> customer create/update behavior used by booking
 
+modules/membership-credits/src/service/index.ts
+  -> customer membership tiers, credit balances, and ledger operations
+
 modules/booking/src/adapters/d1-booking-repository.ts
   -> Cloudflare D1 booking persistence
 

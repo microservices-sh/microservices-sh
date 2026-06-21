@@ -32,6 +32,7 @@ export const BUNDLED_MODULES = [
   "jobs-workflows",
   "knowledge-base-rag",
   "marketing-research",
+  "membership-credits",
   "notifications-inapp",
   "operator-work",
   "org-team-rbac",
@@ -82,7 +83,7 @@ const COMMERCE_OPS_MODULES = ["auth", "identity", "email", "gateway", "org-team-
 const ACCOUNTING_ERP_MODULES = ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "accounting-core", "accounts-payable", "accounts-receivable", "bank-reconciliation", "estimate-quote", "invoice", "payment", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket", "webhook-delivery"];
 
 export const REPO_TEMPLATE_MODULES = {
-  "booking-sveltekit": ["gateway", "auth", "customer", "booking", "audit-log", "email", "payment", "identity", "research"],
+  "booking-sveltekit": ["gateway", "auth", "customer", "booking", "audit-log", "email", "payment", "identity", "membership-credits", "research"],
   "company-landing-astro": [],
   "wordpress-emdash-blog-astro": [],
   "saas-starter-sveltekit": ["auth", "identity", "email", "gateway", "org-team-rbac", "billing-subscriptions", "admin-shell", "audit-log", "payment"],

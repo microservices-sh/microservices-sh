@@ -1361,6 +1361,9 @@ importers:
       '@microservices-sh/identity':
         specifier: workspace:*
         version: link:../../modules/identity
+      '@microservices-sh/membership-credits':
+        specifier: workspace:*
+        version: link:../../modules/membership-credits
       '@microservices-sh/payment':
         specifier: workspace:*
         version: link:../../modules/payment

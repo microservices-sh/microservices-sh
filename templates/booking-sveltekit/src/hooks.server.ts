@@ -11,6 +11,7 @@ import { createD1BookingRepository } from "@microservices-sh/booking/adapters/d1
 import { createMemoryBookingRepository } from "@microservices-sh/booking/adapters/memory";
 import { createD1CustomerRepository } from "@microservices-sh/customer/adapters/d1";
 import { createMemoryCustomerRepository } from "@microservices-sh/customer/adapters/memory";
+import { createD1MembershipCreditsStore, createMembershipCreditsMemoryStore } from "@microservices-sh/membership-credits";
 import { verifyToken } from "@microservices-sh/auth";
 import { createD1SigningKeyStore } from "@microservices-sh/auth/adapters/d1";
 import { createMemorySigningKeyStore } from "@microservices-sh/auth/adapters/memory";
@@ -25,6 +26,7 @@ import { reportRuntimeError } from "$lib/server/observability";
 // across requests in a dev session.
 const memoryBookingRepository = createMemoryBookingRepository();
 const memoryCustomerRepository = createMemoryCustomerRepository();
+const memoryMembershipCreditsStore = createMembershipCreditsMemoryStore();
 const memorySigningKeyStore = createMemorySigningKeyStore();
 const memoryApiKeyStore = createMemoryApiKeyStore();
 const memoryRateLimitStore = createMemoryRateLimitStore();
@@ -54,6 +56,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   event.locals.bookingRepository = db ? createD1BookingRepository(db) : memoryBookingRepository;
   event.locals.customerRepository = db ? createD1CustomerRepository(db) : memoryCustomerRepository;
+  event.locals.membershipCreditsStore = db ? createD1MembershipCreditsStore(db) : memoryMembershipCreditsStore;
 
   const signingKeyStore = db ? createD1SigningKeyStore(db) : memorySigningKeyStore;
   event.locals.signingKeyStore = signingKeyStore;

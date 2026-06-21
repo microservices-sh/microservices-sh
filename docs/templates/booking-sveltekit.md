@@ -86,6 +86,7 @@ The template must access Cloudflare bindings through SvelteKit server code, not 
 - simple admin dashboard
 - admin booking list/detail
 - admin customer list/detail
+- admin membership tiers and customer credit ledgers
 - basic settings config
 - audit and domain event recording
 - generated module docs
@@ -113,6 +114,7 @@ The template must access Cloudflare bindings through SvelteKit server code, not 
 | `identity` | `auth` | Sessions, roles, admin/member separation |
 | `profile` | `customer` | Customer records, contact fields, consent |
 | `scheduling` | `booking` | Services, availability, bookings, cancellation rules |
+| `membershipCredits` | `membership-credits` | Customer memberships, tiers, credit balances, and credit ledger |
 | `audit` | `audit-log` | Mutation trail and domain events |
 
 ### Optional

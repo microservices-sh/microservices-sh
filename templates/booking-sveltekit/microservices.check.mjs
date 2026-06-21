@@ -14,6 +14,61 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     ["@microservices-sh/customer", "listCustomers", "customerRepository"],
     "Customer admin route uses @microservices-sh/customer."
   );
+  assertFileIncludesAll(
+    "package.json",
+    ["@microservices-sh/membership-credits"],
+    "Booking template depends on the membership-credits module for customer credit operations."
+  );
+  assertFileIncludesAll(
+    "src/hooks.server.ts",
+    ["createD1MembershipCreditsStore", "createMembershipCreditsMemoryStore", "event.locals.membershipCreditsStore"],
+    "Booking template injects the membership-credits store through SvelteKit locals."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/membership-credits.ts",
+    ["createMembershipCreditsService", "getCompanySettings", "MEMBERSHIP_CREDITS_TENANT_ID"],
+    "Membership credits service setup is centralized and derives currency from booking settings."
+  );
+  assertFileIncludesAll(
+    "src/routes/admin/customers/[id]/+page.server.ts",
+    [
+      "@microservices-sh/membership-credits",
+      "membershipCreditsService",
+      "getCustomerMembershipSnapshot",
+      "grantCustomerCredit",
+      "debitCustomerCredit",
+      "assignMembership",
+      "changeMembershipTier",
+      "cancelMembership"
+    ],
+    "Customer detail route stays a thin adapter over the membership-credits service."
+  );
+  assertFileIncludesAll(
+    "src/routes/admin/membership-credits/+page.server.ts",
+    [
+      "@microservices-sh/membership-credits",
+      "listMembershipTiers",
+      "getCustomerMembershipSnapshot",
+      "createMembershipTier",
+      "expireMemberships"
+    ],
+    "Membership credits admin route uses module service APIs for tiers, snapshots, and expiry."
+  );
+  assertFileIncludesAll(
+    "src/routes/+layout.svelte",
+    ["/admin/membership-credits", "Credits"],
+    "Primary admin navigation exposes the membership credits surface."
+  );
+  assertFileIncludesAll(
+    "microservices.config.json",
+    ["membershipCredits", "defaultCurrency", "/admin/membership-credits"],
+    "Template config declares the membership credits surface and defaults."
+  );
+  assertFileIncludesAll(
+    "migrations/0012_membership_credits.sql",
+    ["membership_credit_tiers", "customer_credit_balances", "credit_transactions", "idx_credit_transactions_reference"],
+    "Booking template includes the membership-credits persistence tables."
+  );
   assertFileIncludes(
     "migrations/0003_booking_slot_constraints.sql",
     "idx_bookings_confirmed_slot",

@@ -311,6 +311,46 @@
       }
     },
     {
+      "id": "membership-credits",
+      "version": "0.1.0",
+      "source": "registry:membership-credits@0.1.0",
+      "checksum": "sha256:preview-membership-credits-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/membership-credits",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "membership-credits.read",
+          "membership-credits.write",
+          "membership-credits.credit-admin",
+          "membership-credits.membership-admin",
+          "membership-credits.admin",
+          "membership-credits.extend",
+          "membership-credits.observe"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeMembershipCreditsCreate",
+          "afterMembershipCreditsUpdated"
+        ],
+        "events": [
+          "membership-credits.tier_created",
+          "membership-credits.membership_assigned",
+          "membership-credits.membership_changed",
+          "membership-credits.membership_cancelled",
+          "membership-credits.membership_expired",
+          "membership-credits.credit_recorded"
+        ],
+        "requires": []
+      }
+    },
+    {
       "id": "email",
       "version": "0.1.0",
       "source": "registry:email@0.1.0",
@@ -357,7 +397,9 @@
       "afterBookingConfirmed",
       "beforeBookingCancel",
       "beforeCreatePaymentIntent",
-      "afterPaymentSucceeded"
+      "afterPaymentSucceeded",
+      "beforeMembershipCreditsCreate",
+      "afterMembershipCreditsUpdated"
     ],
     "overlays": [],
     "forks": []

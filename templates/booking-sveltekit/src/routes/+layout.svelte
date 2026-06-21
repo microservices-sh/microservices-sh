@@ -11,6 +11,7 @@
     { href: "/admin", label: "Admin" },
     { href: "/admin/calendar", label: "Calendar" },
     { href: "/admin/bookings", label: "Bookings" },
+    { href: "/admin/membership-credits", label: "Credits" },
     { href: "/admin/customers", label: "Customers" }
   ];
 

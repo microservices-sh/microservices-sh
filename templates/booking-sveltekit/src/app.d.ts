@@ -1,5 +1,6 @@
 import type { BookingRepository } from "@microservices-sh/booking/ports";
 import type { CustomerRepository } from "@microservices-sh/customer/ports";
+import type { MembershipCreditsStore } from "@microservices-sh/membership-credits";
 import type { SigningKeyStore } from "@microservices-sh/auth/ports";
 import type { TokenClaims } from "@microservices-sh/auth/types";
 import type { ApiKeyStore, RateLimitStore, TokenMinter } from "@microservices-sh/gateway/ports";
@@ -39,6 +40,7 @@ declare global {
     interface Locals {
       bookingRepository: BookingRepository;
       customerRepository: CustomerRepository;
+      membershipCreditsStore: MembershipCreditsStore;
       signingKeyStore: SigningKeyStore;
       apiKeyStore: ApiKeyStore;
       rateLimitStore: RateLimitStore;
