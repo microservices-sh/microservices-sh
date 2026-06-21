@@ -43,7 +43,38 @@
       "invoice"
     ],
     "rpc": {
-      "exposes": [],
+      "exposes": [
+        {
+          "method": "listOrders",
+          "scope": "sales-order.read",
+          "public": false
+        },
+        {
+          "method": "getOrder",
+          "scope": "sales-order.read",
+          "public": false
+        },
+        {
+          "method": "createDraftOrder",
+          "scope": "sales-order.write",
+          "public": false
+        },
+        {
+          "method": "confirmOrder",
+          "scope": "sales-order.write",
+          "public": false
+        },
+        {
+          "method": "cancelOrder",
+          "scope": "sales-order.write",
+          "public": false
+        },
+        {
+          "method": "markOrderInvoiced",
+          "scope": "sales-order.write",
+          "public": false
+        }
+      ],
       "calls": [
         "inventory.reserveSalesOrder",
         "invoice.createDraftFromSalesOrder"

@@ -42,7 +42,43 @@
       "audit-log"
     ],
     "rpc": {
-      "exposes": [],
+      "exposes": [
+        {
+          "method": "getStockBalance",
+          "scope": "inventory.read",
+          "public": false
+        },
+        {
+          "method": "listStockMovements",
+          "scope": "inventory.read",
+          "public": false
+        },
+        {
+          "method": "stockIn",
+          "scope": "inventory.write",
+          "public": false
+        },
+        {
+          "method": "reserveStock",
+          "scope": "inventory.write",
+          "public": false
+        },
+        {
+          "method": "releaseReservation",
+          "scope": "inventory.write",
+          "public": false
+        },
+        {
+          "method": "deductStock",
+          "scope": "inventory.write",
+          "public": false
+        },
+        {
+          "method": "reconcileStock",
+          "scope": "inventory.write",
+          "public": false
+        }
+      ],
       "calls": [
         "product-catalog.getProduct"
       ]

@@ -68,6 +68,40 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Commerce sync route exposes operator actions through commerce-sync use cases, can run WooCommerce page syncs, and records audit events."
   );
   assertFileIncludesAll(
+    "package.json",
+    ["generate:mcp", "mcp", "@microservices-sh/sdk-internal", "@modelcontextprotocol/sdk", "tsx"],
+    "Commerce template can generate and run a governed MCP server for installed module tools."
+  );
+  assertFileIncludesAll(
+    "scripts/generate-mcp.mjs",
+    ["loadConnections", "join(root, \"modules\", id, \"module.json\")", "generateToolManifest(m)", "templateId"],
+    "Commerce MCP generator reads authoritative module rpc contracts in workspace and vendored-template layouts."
+  );
+  assertFileIncludesAll(
+    "microservices.lock.json",
+    [
+      "\"method\": \"createProduct\"",
+      "\"method\": \"stockIn\"",
+      "\"method\": \"createDraftOrder\"",
+      "\"method\": \"createShipment\""
+    ],
+    "Commerce lock snapshot carries RPC methods for catalog, inventory, sales-order, and shipment agent tools."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/mcp-wiring.ts",
+    [
+      "product-catalog_createProduct",
+      "inventory_stockIn",
+      "sales-order_createDraftOrder",
+      "shipment_createShipment",
+      "support-ticket_createTicket",
+      "file-media_createUploadTicket",
+      "authorize",
+      "actorContext"
+    ],
+    "Commerce MCP wiring binds generated governed tools to real module use cases and shared governance hooks."
+  );
+  assertFileIncludesAll(
     "src/routes/api/commerce-sync/woocommerce/[tenantId]/[connectionId]/+server.ts",
     [
       "request.text()",

@@ -41,7 +41,33 @@
       "audit-log"
     ],
     "rpc": {
-      "exposes": [],
+      "exposes": [
+        {
+          "method": "listShipments",
+          "scope": "shipment.read",
+          "public": false
+        },
+        {
+          "method": "getShipment",
+          "scope": "shipment.read",
+          "public": false
+        },
+        {
+          "method": "createShipment",
+          "scope": "shipment.write",
+          "public": false
+        },
+        {
+          "method": "completeShipment",
+          "scope": "shipment.write",
+          "public": false
+        },
+        {
+          "method": "cancelShipment",
+          "scope": "shipment.write",
+          "public": false
+        }
+      ],
       "calls": []
     },
     "events": {

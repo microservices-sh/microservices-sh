@@ -43,7 +43,43 @@
       "audit-log"
     ],
     "rpc": {
-      "exposes": [],
+      "exposes": [
+        {
+          "method": "listProducts",
+          "scope": "product-catalog.read",
+          "public": false
+        },
+        {
+          "method": "getProduct",
+          "scope": "product-catalog.read",
+          "public": false
+        },
+        {
+          "method": "createProduct",
+          "scope": "product-catalog.write",
+          "public": false
+        },
+        {
+          "method": "updateProduct",
+          "scope": "product-catalog.write",
+          "public": false
+        },
+        {
+          "method": "listCategories",
+          "scope": "product-catalog.read",
+          "public": false
+        },
+        {
+          "method": "createCategory",
+          "scope": "product-catalog.write",
+          "public": false
+        },
+        {
+          "method": "expandProductComponents",
+          "scope": "product-catalog.read",
+          "public": false
+        }
+      ],
       "calls": []
     },
     "events": {

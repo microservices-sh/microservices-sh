@@ -23,7 +23,9 @@
     "deploy:preview:plan": "node scripts/microservices.js deploy preview --plan",
     "deploy:preview:dry-run": "node scripts/microservices.js deploy preview --plan",
     "deploy:preview": "node scripts/microservices.js deploy preview --confirm deploy",
-    "microservices": "node scripts/microservices.js"
+    "microservices": "node scripts/microservices.js",
+    "generate:mcp": "node scripts/generate-mcp.mjs",
+    "mcp": "node scripts/generate-mcp.mjs && tsx generated/mcp-server.mjs"
   },
   "dependencies": {
     "@microservices-sh/admin-shell": "workspace:*",
@@ -43,9 +45,11 @@
     "@microservices-sh/payment": "workspace:*",
     "@microservices-sh/product-catalog": "workspace:*",
     "@microservices-sh/sales-order": "workspace:*",
+    "@microservices-sh/sdk-internal": "workspace:*",
     "@microservices-sh/shipment": "workspace:*",
     "@microservices-sh/support-ticket": "workspace:*",
     "@microservices-sh/webhook-delivery": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.0.0",
     "@sveltejs/adapter-cloudflare": "^7.2.4",
     "@sveltejs/kit": "^2.9.0",
     "svelte": "^5.0.0",
@@ -57,6 +61,7 @@
     "@sveltejs/vite-plugin-svelte": "^4.0.4",
     "@tailwindcss/vite": "^4.1.13",
     "tailwindcss": "^4.1.13",
+    "tsx": "^4.22.4",
     "typescript": "^5.9.3",
     "wrangler": "^4.58.0"
   }

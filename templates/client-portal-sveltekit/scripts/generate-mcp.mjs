@@ -26,6 +26,7 @@ const root = join(here, "..");
 function loadConnections(id) {
   const candidates = [
     join(root, "node_modules", "@microservices-sh", id, "module.json"),
+    join(root, "modules", id, "module.json"),
     join(root, "..", "..", "modules", id, "module.json"),
   ];
   for (const path of candidates) {

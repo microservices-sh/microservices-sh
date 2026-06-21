@@ -3,12 +3,8 @@
 //   generated/tool-manifest.ts  — one governed tool per module rpc method
 //   generated/mcp-server.mjs    — the stdio MCP server bootstrap
 //
-// Run before `tsx generated/mcp-server.mjs` (the `mcp` npm script chains them).
-// The handler/dep binding + actor context are NOT generated — they live in the
-// hand-authored seam src/lib/server/mcp-wiring.ts, which the entry imports.
-//
-// Monorepo-resident: reaches the codegen via ../../packages, exactly like the
-// check:spec script reaches workspace-tools. An ejected app uses the vendored shim.
+// The generated entry imports the hand-authored seam at
+// src/lib/server/mcp-wiring.ts, where module deps and handlers are bound.
 
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -20,9 +16,6 @@ import { generateMcpServerEntry } from "../../../packages/sdk-internal/src/mcp-t
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
 
-// Each module's own module.json carries the authoritative rpc contract
-// (connections.rpc.exposes). Prefer the installed package's copy, fall back to
-// the monorepo source, then to the lock's snapshot (which can lag the contract).
 function loadConnections(id) {
   const candidates = [
     join(root, "node_modules", "@microservices-sh", id, "module.json"),

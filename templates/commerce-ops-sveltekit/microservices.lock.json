@@ -438,7 +438,43 @@
           "inventory.extend",
           "inventory.observe"
         ],
-        "rpc": [],
+        "rpc": [
+          {
+            "method": "getStockBalance",
+            "scope": "inventory.read",
+            "public": false
+          },
+          {
+            "method": "listStockMovements",
+            "scope": "inventory.read",
+            "public": false
+          },
+          {
+            "method": "stockIn",
+            "scope": "inventory.write",
+            "public": false
+          },
+          {
+            "method": "reserveStock",
+            "scope": "inventory.write",
+            "public": false
+          },
+          {
+            "method": "releaseReservation",
+            "scope": "inventory.write",
+            "public": false
+          },
+          {
+            "method": "deductStock",
+            "scope": "inventory.write",
+            "public": false
+          },
+          {
+            "method": "reconcileStock",
+            "scope": "inventory.write",
+            "public": false
+          }
+        ],
         "hooks": [
           "beforeStockIn",
           "beforeReservationCreate",
@@ -481,7 +517,38 @@
           "sales-order.extend",
           "sales-order.observe"
         ],
-        "rpc": [],
+        "rpc": [
+          {
+            "method": "listOrders",
+            "scope": "sales-order.read",
+            "public": false
+          },
+          {
+            "method": "getOrder",
+            "scope": "sales-order.read",
+            "public": false
+          },
+          {
+            "method": "createDraftOrder",
+            "scope": "sales-order.write",
+            "public": false
+          },
+          {
+            "method": "confirmOrder",
+            "scope": "sales-order.write",
+            "public": false
+          },
+          {
+            "method": "cancelOrder",
+            "scope": "sales-order.write",
+            "public": false
+          },
+          {
+            "method": "markOrderInvoiced",
+            "scope": "sales-order.write",
+            "public": false
+          }
+        ],
         "hooks": [
           "beforeSalesOrderCreate",
           "beforeSalesOrderConfirm",
@@ -520,7 +587,33 @@
           "shipment.extend",
           "shipment.observe"
         ],
-        "rpc": [],
+        "rpc": [
+          {
+            "method": "listShipments",
+            "scope": "shipment.read",
+            "public": false
+          },
+          {
+            "method": "getShipment",
+            "scope": "shipment.read",
+            "public": false
+          },
+          {
+            "method": "createShipment",
+            "scope": "shipment.write",
+            "public": false
+          },
+          {
+            "method": "completeShipment",
+            "scope": "shipment.write",
+            "public": false
+          },
+          {
+            "method": "cancelShipment",
+            "scope": "shipment.write",
+            "public": false
+          }
+        ],
         "hooks": [
           "beforeShipmentCreate",
           "beforeShipmentComplete",
