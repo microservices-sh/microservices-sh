@@ -14,4 +14,14 @@ export default function check({ assertFileIncludes }) {
     "searchLogicCapsules",
     "Code Memory service exposes retrieval for approved capsules."
   );
+  assertFileIncludes(
+    "src/scanner/index.ts",
+    "suggestLogicCapsulesFromFiles",
+    "Code Memory exposes metadata-only scanner suggestions."
+  );
+  assertFileIncludes(
+    "README.agent.md",
+    "Do not execute source repository code during scan.",
+    "Code Memory agent guide preserves scan safety boundary."
+  );
 }

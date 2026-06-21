@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createCodeMemoryMemoryStore } from "./adapters/memory";
+import { suggestLogicCapsulesFromFiles } from "./scanner";
 import { createCodeMemoryService, createSequentialCodeMemoryIdFactory } from "./service";
 import type { ModuleResult, TenantContext } from "./types";
 
@@ -110,5 +111,59 @@ describe("code-memory service", () => {
     expect(unwrap(await memory.searchLogicCapsules(ctx, { query: "invoice" })).capsules).toHaveLength(1);
     unwrap(await memory.rejectLogicCapsule(ctx, capsule.slug));
     expect(unwrap(await memory.searchLogicCapsules(ctx, { query: "invoice" })).capsules).toEqual([]);
+  });
+
+  it("suggests scanner candidates from static file hints without executing repo code", async () => {
+    const memory = service();
+    const { source } = unwrap(await memory.addTrustedSource(ctx, { repoUrl: "https://github.com/acme/ops-kit" }));
+    const suggestions = suggestLogicCapsulesFromFiles({
+      sourceId: source.id,
+      ref: "main",
+      commitSha: "def456",
+      files: [
+        {
+          path: "src/billing/stripe-webhooks.ts",
+          content: "stripe.webhooks.constructEvent(rawBody, signature, STRIPE_WEBHOOK_SECRET)"
+        },
+        {
+          path: "src/billing/invoice-numbering.ts",
+          content: "async function nextInvoiceNumber(tenantId) { return reserveInvoiceSequence(tenantId); }"
+        },
+        {
+          path: "src/booking/availability.ts",
+          content: "export function hasBookingOverlap(slot, bookings) { return bookings.some((booking) => conflicts(slot, booking)); }"
+        },
+        {
+          path: "test/billing/stripe-webhooks.test.ts",
+          content: "rejects webhook payloads when the stripe signature is invalid"
+        },
+        {
+          path: "test/booking/availability.test.ts",
+          content: "allows adjacent slots and rejects overlapping bookings"
+        }
+      ],
+      maxCandidates: 5
+    });
+
+    expect(suggestions.scanSummary).toMatchObject({
+      fileCount: 5,
+      candidateCount: 3,
+      truncated: false,
+      heuristics: ["stripe-webhook-verifier", "invoice-numbering", "booking-overlap-checker"]
+    });
+
+    const scan = unwrap(
+      await memory.recordSourceScan(ctx, {
+        sourceId: source.id,
+        ref: "main",
+        commitSha: "def456",
+        scanSummary: suggestions.scanSummary,
+        candidates: suggestions.candidates
+      })
+    );
+
+    expect(scan.candidates.map((candidate) => candidate.slug)).toEqual(["stripe-webhook-verifier", "invoice-numbering", "booking-overlap-checker"]);
+    expect(scan.candidates[0]?.tests).toEqual(["test/billing/stripe-webhooks.test.ts"]);
+    expect(scan.candidates[2]?.tests).toEqual(["test/booking/availability.test.ts"]);
   });
 });

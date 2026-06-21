@@ -129,6 +129,36 @@ export interface RecordSourceScanResult {
   nextSteps: string[];
 }
 
+export interface SourceFileHint {
+  path: string;
+  sizeBytes?: number | null;
+  content?: string | null;
+  exportedSymbols?: string[];
+}
+
+export interface SuggestLogicCapsulesInput {
+  sourceId: string;
+  ref?: string | null;
+  commitSha?: string | null;
+  treeChecksum?: string | null;
+  files: SourceFileHint[];
+  maxCandidates?: number;
+}
+
+export type SuggestedLogicCapsuleScanSummary = Record<string, unknown> & {
+  fileCount: number;
+  candidateCount: number;
+  truncated: boolean;
+  skippedFileCount: number;
+  maxCandidates: number;
+  heuristics: string[];
+};
+
+export interface SuggestLogicCapsulesResult {
+  candidates: CreateLogicCapsuleInput[];
+  scanSummary: SuggestedLogicCapsuleScanSummary;
+}
+
 export interface CreateLogicCapsuleInput {
   sourceId: string;
   sourceVersionId?: string | null;
