@@ -4,11 +4,26 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
+import { inspectModule } from "../../module-contract/src/index.js";
 
 const IGNORED_DIRS = new Set([".git", ".svelte-kit", ".wrangler", "dist", "node_modules"]);
 const FORBIDDEN_FRAMEWORK_IMPORTS = ["@sveltejs/kit", "from \"hono\"", "from 'hono'", "OpenAPIHono"];
 const MODULE_SOURCE_REPO = "microservices-sh/microservices-sh";
 const MODULE_SOURCE_URL = `https://github.com/${MODULE_SOURCE_REPO}.git`;
+const STACKSUITE_CATALOG_GUARD_MODULE_IDS = new Set([
+  "product-catalog",
+  "inventory",
+  "sales-order",
+  "shipment",
+  "commerce-sync",
+  "accounting-core",
+  "accounts-payable",
+  "accounts-receivable",
+  "bank-reconciliation",
+  "estimate-quote",
+  "recurring-documents",
+  "email"
+]);
 
 // plans/33 L5 guard: tenant-scoped use-cases that have an enforced `*Scoped`
 // variant. A template ROUTE must call the scoped wrapper (which sources the
@@ -908,6 +923,43 @@ async function assertEnforcedTenantBoundary(checks, targetPath) {
   assertCheck(checks, "template:enforced-tenant-boundary", offenders.length === 0, message);
 }
 
+function assertStackSuiteCatalogCoverage(checks, rootPath, lock) {
+  const lockModules = Array.isArray(lock.modules) ? lock.modules : [];
+  const guardedModules = lockModules
+    .filter((module) => STACKSUITE_CATALOG_GUARD_MODULE_IDS.has(module.id))
+    .map((module) => ({ id: module.id, version: module.version || "0.1.0" }));
+  const guardedIds = guardedModules.map((module) => module.id);
+
+  const docsCatalog = readJsonOptional(join(rootPath, "docs/modules/catalog.json"), { modules: [] });
+  const docsCatalogIds = new Set(Array.isArray(docsCatalog.modules) ? docsCatalog.modules.map((module) => module.id) : []);
+  const missingDocs = guardedIds.filter((id) => !docsCatalogIds.has(id));
+  assertCheck(
+    checks,
+    "template:stacksuite-docs-catalog-coverage",
+    missingDocs.length === 0,
+    missingDocs.length === 0
+      ? "Template StackSuite modules are represented in docs/modules/catalog.json."
+      : `Template StackSuite modules missing from docs/modules/catalog.json: ${missingDocs.join(", ")}.`
+  );
+
+  const missingInternal = [];
+  for (const module of guardedModules) {
+    try {
+      inspectModule(`${module.id}@${module.version}`);
+    } catch {
+      missingInternal.push(module.id);
+    }
+  }
+  assertCheck(
+    checks,
+    "template:stacksuite-internal-catalog-coverage",
+    missingInternal.length === 0,
+    missingInternal.length === 0
+      ? "Template StackSuite modules are represented in the internal module-contract catalog."
+      : `Template StackSuite modules missing from the internal module-contract catalog: ${missingInternal.join(", ")}.`
+  );
+}
+
 async function checkTemplate(targetPath, rootPath) {
   const checks = [];
   assertRequiredFiles(checks, targetPath, TEMPLATE_REQUIRED_FILES, "template");
@@ -926,6 +978,7 @@ async function checkTemplate(targetPath, rootPath) {
   }
 
   const lockModuleIds = Array.isArray(lock.modules) ? lock.modules.map((module) => module.id) : [];
+  assertStackSuiteCatalogCoverage(checks, rootPath, lock);
   for (const moduleId of moduleIdsFromTemplate(manifest)) {
     assertCheck(
       checks,

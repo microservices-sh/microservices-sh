@@ -1759,3 +1759,18 @@
 | Workspace specs | All module/template specs remain green after package catalog updates | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Create app package | Create package still builds and tests against the refreshed internal catalog | `pnpm --filter create-microservices-app build` and serial `pnpm --filter create-microservices-app test` passed | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 80 Focused StackSuite catalog drift guard
+
+- **Status:** complete.
+- Goal: prevent the StackSuite docs/internal catalog drift from recurring while avoiding a broad fail-fast requirement for older non-StackSuite modules that still need public docs.
+- Added shared template checks for locked StackSuite modules against `docs/modules/catalog.json`.
+- Added shared template checks for locked StackSuite modules against the internal `module-contract` catalog.
+- Scoped the guard to StackSuite commerce/accounting modules, `estimate-quote`, `recurring-documents`, and `email`.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Workspace-tools build | Shared checker syntax remains valid after importing module-contract metadata | `pnpm --filter @microservices-sh/workspace-tools build` passed | Pass |
+| Focused template JSON checks | Accounting and commerce templates expose passing StackSuite catalog coverage checks | `node packages/workspace-tools/src/index.js check template --path templates/accounting-erp-sveltekit --json` and commerce equivalent passed | Pass |
+| Workspace specs | All module/template specs pass with the new guard enabled | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

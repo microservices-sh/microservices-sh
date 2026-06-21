@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 79
+Phase 80
 
 ## Phases
 
@@ -616,6 +616,13 @@ Phase 79
 - [x] Remove stale planned email docs from the SDK fallback path so generated app docs derive email from the current contract metadata.
 - [x] Add module-contract and SDK tests for StackSuite visibility, dependency resolution, duplicate-free email docs, and current email secrets.
 - [x] Verify package builds, focused catalog tests, internal catalog sanity, workspace specs, create-app build/test, and whitespace checks.
+- **Status:** complete
+
+### Phase 80: Focused StackSuite Catalog Drift Guard
+- [x] Add template checks that fail when locked StackSuite modules are missing from `docs/modules/catalog.json`.
+- [x] Add template checks that fail when locked StackSuite modules are missing from the internal `module-contract` catalog.
+- [x] Scope the first guard to StackSuite commerce/accounting, quote/recurring, and email rows while broader historical module docs are completed separately.
+- [x] Verify workspace-tools build, focused accounting/commerce template checks, full workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions
