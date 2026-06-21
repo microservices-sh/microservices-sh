@@ -9,3 +9,4 @@ Build: pnpm build
 Primary use cases: createCommerceConnection, recordProviderMapping, startSyncRun, completeSyncRun, recordWebhookReceipt, normalizeCommercePayload, normalizeCommerceProviderPayload, verifyWooCommerceWebhookSignature.
 WooCommerce normalization: customers use billing contact fallback, products use WC-ID SKU fallback and cent prices, orders map WC statuses and preserve billing/shipping, line, shipping, coupon, tax, discount, and total cents.
 WooCommerce webhook signatures are base64 HMAC-SHA256 over the raw payload body.
+WooCommerceClient fetches customers, products, orders, and categories through the REST API with Basic Auth and pagination headers; it never writes local module tables directly.

@@ -8,5 +8,7 @@
 - `normalizeCommercePayload`
 - `normalizeCommerceProviderPayload`
 - `verifyWooCommerceWebhookSignature`
+- `WooCommerceClient`
+- `parseWooCommerceCredentials`
 
-Do not import SvelteKit, Hono, provider clients, or secret values directly in use cases.
+Do not import SvelteKit, Hono, or secret values directly in use cases. Provider clients must receive resolved credentials explicitly.

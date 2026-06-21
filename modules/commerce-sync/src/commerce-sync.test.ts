@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createMemoryCommerceSyncStore } from "./adapters/memory-commerce-sync-store";
+import { parseWooCommerceCredentials, WooCommerceClient } from "./providers/woocommerce";
 import { createCommerceSyncMemoryService, createCommerceSyncService, verifyWooCommerceWebhookSignature } from "./service";
 
 const ctx = { tenantId: "tenant_1", now: "2026-06-21T00:00:00.000Z" };
@@ -304,5 +305,41 @@ describe("commerce-sync", () => {
     await expect(verifyWooCommerceWebhookSignature(payload, signature, secret)).resolves.toBe(true);
     await expect(verifyWooCommerceWebhookSignature(`${payload}\n`, signature, secret)).resolves.toBe(false);
     await expect(verifyWooCommerceWebhookSignature(payload, null, secret)).resolves.toBe(false);
+  });
+
+  it("fetches WooCommerce pages with auth, pagination headers, and order filters", async () => {
+    const requests: Array<{ url: string; authorization?: string }> = [];
+    const fetcher: typeof fetch = async (input, init) => {
+      const headers = init?.headers as Record<string, string>;
+      requests.push({ url: String(input), authorization: headers.Authorization });
+      return new Response(JSON.stringify([{ id: 1001 }]), {
+        status: 200,
+        headers: { "x-wp-totalpages": "3", "x-wp-total": "7" }
+      });
+    };
+    const client = new WooCommerceClient({
+      storeUrl: "https://store.example.test/",
+      consumerKey: "ck_test",
+      consumerSecret: "cs_test",
+      fetcher
+    });
+
+    const orders = await client.getOrders(2, 25, "2026-06-01T00:00:00", "2026-06-01", "2026-06-30");
+    const requestUrl = new URL(requests[0].url);
+
+    expect(orders).toMatchObject({ totalPages: 3, totalItems: 7, data: [{ id: 1001 }] });
+    expect(requestUrl.pathname).toBe("/wp-json/wc/v3/orders");
+    expect(requestUrl.searchParams.get("page")).toBe("2");
+    expect(requestUrl.searchParams.get("per_page")).toBe("25");
+    expect(requestUrl.searchParams.get("status")).toBe("any");
+    expect(requestUrl.searchParams.get("after")).toBe("2026-06-01T00:00:00");
+    expect(requestUrl.searchParams.get("before")).toBe("2026-06-30T23:59:59");
+    expect(requests[0].authorization).toBe(`Basic ${btoa("ck_test:cs_test")}`);
+
+    expect(parseWooCommerceCredentials(JSON.stringify({ consumerKey: "ck", consumerSecret: "cs" }))).toEqual({
+      consumerKey: "ck",
+      consumerSecret: "cs"
+    });
+    expect(parseWooCommerceCredentials("{}")).toBeNull();
   });
 });

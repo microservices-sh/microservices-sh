@@ -14,7 +14,9 @@ import {
   createCommerceSyncMemoryService,
   createMemoryCommerceSyncStore,
   normalizeCommerceProviderPayload,
-  verifyWooCommerceWebhookSignature
+  parseWooCommerceCredentials,
+  verifyWooCommerceWebhookSignature,
+  WooCommerceClient
 } from "@microservices-sh/commerce-sync";
 ```
 
@@ -37,6 +39,11 @@ order status mapping, and cent-based totals.
 
 WooCommerce webhook signatures can be verified with `verifyWooCommerceWebhookSignature()`
 before recording webhook receipts or normalizing payloads.
+
+`WooCommerceClient` is a framework-neutral REST client for fetching customers,
+products, orders, and categories. It handles Basic Auth, WooCommerce pagination
+headers, and order date filters, but it does not write local customers, products,
+or orders by itself.
 
 ## Ownership Boundary
 

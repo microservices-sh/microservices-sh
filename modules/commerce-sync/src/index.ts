@@ -6,6 +6,7 @@ export { commerceSyncPermissions } from "./permissions";
 export { commerceSyncResources } from "./resources";
 export { createD1CommerceSyncStore } from "./adapters/d1-commerce-sync-store";
 export { createMemoryCommerceSyncStore } from "./adapters/memory-commerce-sync-store";
+export { parseWooCommerceCredentials, WooCommerceClient } from "./providers/woocommerce";
 export {
   createCommerceSyncMemoryService,
   createCommerceSyncService,
@@ -14,6 +15,14 @@ export {
   verifyWooCommerceWebhookSignature
 } from "./service";
 export type { CreateCommerceSyncServiceOptions } from "./service";
+export type {
+  WooCommerceCategory,
+  WooCommerceConfig,
+  WooCommerceCustomer,
+  WooCommerceOrder,
+  WooCommercePaginatedResponse,
+  WooCommerceProduct
+} from "./providers/woocommerce";
 export type { CommerceSyncStore } from "./ports";
 export type {
   CommerceConnection,
