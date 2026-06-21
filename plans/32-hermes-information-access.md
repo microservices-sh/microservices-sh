@@ -143,6 +143,37 @@ Blended is the high-value case — it's what "assist operations" means: combine 
 - **Residency**: graph + live reads stay inside the client's tenant boundary; external egress only via ai-gateway BYOK + connector OAuth. Token **budget meters live-tool calls too** (each retrieval is a metered, audited event — 429 before overspend).
 - The agent gets exactly the scopes the *client's* operator granted — not the platform's. Per-tenant credential, least-privilege tool set.
 
+## 6b. Provisioning security — gates + Fly-token hardening
+
+**Init is gated end-to-end (built + tested).** A tenant cannot cause a billable Fly machine to exist without passing every layer:
+
+| Layer | Reservation | Provision |
+|---|---|---|
+| Auth (`requireControlPlaneAuth`) | ✅ | ✅ |
+| Tenant isolation (workspace-scoped) | ✅ | ✅ (`RUNTIME_NOT_FOUND` cross-workspace) |
+| Billing/entitlement | ✅ `enforceHostedHermesGate` | ✅ `enforceHostedHermesBilling` (re-check; entitlement-only, since the reserved slot would otherwise self-block) |
+| Quota slot | ✅ counted | held; **reaper** frees abandoned reservations (>1h, status→`deleted`) |
+| State (`reserved` only) | — | ✅ `RUNTIME_NOT_PROVISIONABLE` |
+| Platform Fly-token present | — | ✅ `FLY_NOT_CONFIGURED` if `FLY_API_TOKEN` unset |
+| Internal bypass | ✅ `INTERNAL_WORKSPACE_ID` | ✅ |
+
+**On the `FLY_API_TOKEN` (org-wide) — and why per-tenant token scoping is NOT the right control:**
+
+- The token lives **only in the control plane** (a CF Worker secret); tenants never see it. **Cross-tenant isolation is enforced in the control plane** (workspace-scoped queries + the gates above), *not* at the Fly token.
+- **Creating a new app/volume requires org-level privilege** on Fly — app-scoped/deploy tokens manage existing apps but can't create them. So provisioning a new client machine inherently needs an org token; per-tenant tokens cannot avoid that.
+- The control plane is the single orchestrator, so one org token vs N per-tenant tokens has the **same blast radius** under a control-plane compromise — per-tenant tokens add management surface without adding isolation.
+- **Per-tenant isolation already exists where it matters: the `byo-fly` mode** — the client provisions in *their own* Fly org with *their own* token, which the platform never holds.
+
+**Higher-value hardening for the org token (do these instead of per-tenant scoping):**
+
+1. **Rotation + short TTL** on `FLY_API_TOKEN` (and `OPS_TOKEN`/`OPS_VERIFY_SECRET`, ~30d).
+2. **Least-privilege org token** — Fly supports restricted org tokens; scope it to provisioning only (no billing/org-admin).
+3. **App-pattern restriction** — limit the token to `*-research-agent` apps so it can't touch arbitrary org resources.
+4. **Audit + alerting** on Fly API usage from the control plane (every `provisionHostedHermesRuntime` is already an auditable control-plane action).
+5. *(marginal)* app-scoped tokens for post-create lifecycle ops (restart/destroy/secrets), which don't need org privilege.
+
+Most of (1)–(4) is Fly-side credential config, not code. **Decision: do not build per-tenant Fly-token scoping for the hosted tier** (no isolation gain, more surface); harden the single org token via rotation + least-privilege + audit, and rely on `byo-fly` for true infra-level per-tenant isolation.
+
 ## 7. Phasing
 
 | Phase | Scope | State |
@@ -161,7 +192,7 @@ P1 is the unlock — without it the agent literally cannot answer an operational
 2. **Scope granularity** — per-tool (`ops.invoice.read`) vs coarse (`ops.read`)? Lean per-tool for least-privilege + clean audit.
 3. **Caching live reads** — staleness window vs operate-plane load. Probably no cache in v1 (correctness > load); revisit.
 4. **Graph-vs-live boundary** — some operational data *is* stable knowledge (closed-won deals, resolved tickets as case studies). Decide per entity what graduates into the graph vs stays live.
-5. **Credential issuance** — how the per-tenant scoped service token is minted at provisioning (`agent-runtimes.ts` is lifecycle-only today) and rotated.
+5. **Credential issuance** — ✅ built: the per-tenant ops token is issued at reservation (`issueRuntimeOpsAccess`) and minted at provisioning. Open: **rotation** (~30d TTL re-mint of `OPS_TOKEN`/`OPS_VERIFY_SECRET`/`FLY_API_TOKEN`). On the org-wide `FLY_API_TOKEN`, see §6b — **per-tenant Fly-token scoping is explicitly NOT pursued** (no isolation gain; harden via rotation + least-privilege + audit; `byo-fly` already gives infra-level per-tenant isolation).
 6. **Write safety** (P3) — every mutation behind explicit human approval; idempotency module already exists for safe retries.
 
 ## 9. Maps to code
