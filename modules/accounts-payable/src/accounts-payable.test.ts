@@ -4,6 +4,7 @@ import {
   createRecurringBillTemplate,
   createMemoryAccountsPayableStore,
   createVendor,
+  generateDueRecurringBills,
   getAgingReport,
   listRecurringBillTemplates,
   listVendors,
@@ -375,5 +376,66 @@ describe("accounts-payable: recurring bill templates", () => {
       status: 409,
       error: { code: "accounts-payable.INVALID_RECURRING_BILL_TEMPLATE_STATUS_TRANSITION" }
     });
+  });
+
+  it("generates due recurring bills and advances templates", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const vendor = await seedVendor(store, "tenant-1");
+    const created = await createRecurringBillTemplate(
+      {
+        tenantId: "tenant-1",
+        vendorId: vendor.id,
+        name: "Monthly hosting",
+        frequency: "monthly",
+        startDate: "2026-01-01T00:00:00.000Z",
+        paymentTermsDays: 10,
+        maxOccurrences: 1,
+        autoMarkPayable: true,
+        lineItems: [{ description: "Hosting", quantity: 2, unitAmountCents: 8_000, taxCents: 500 }]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0) }
+    );
+    if (!created.ok) throw new Error(created.error.message);
+
+    const generated = await generateDueRecurringBills(
+      { tenantId: "tenant-1", asOfDate: "2026-02-01T00:00:00.000Z" },
+      { accountsPayableStore: store, now: fixedNow(T0 + 1) }
+    );
+
+    expect(generated.ok).toBe(true);
+    if (!generated.ok) throw new Error(generated.error.message);
+    expect(generated.data.count).toBe(1);
+    expect(generated.data.bills[0]).toMatchObject({
+      tenantId: "tenant-1",
+      vendorId: vendor.id,
+      billNumber: expect.stringMatching(/^RB-/),
+      status: "payable",
+      billDate: "2026-02-01T00:00:00.000Z",
+      dueDate: "2026-02-11T00:00:00.000Z",
+      recurringTemplateId: created.data.template.id,
+      totalCents: 16_500
+    });
+    expect(generated.data.bills[0].lineItems[0]).toMatchObject({ description: "Hosting", totalCents: 16_500 });
+
+    const templates = await listRecurringBillTemplates(
+      { tenantId: "tenant-1", statuses: ["completed"] },
+      { accountsPayableStore: store }
+    );
+    expect(templates.ok).toBe(true);
+    if (!templates.ok) throw new Error(templates.error.message);
+    expect(templates.data.templates[0]).toMatchObject({
+      id: created.data.template.id,
+      status: "completed",
+      lastBillDate: "2026-02-01T00:00:00.000Z",
+      nextBillDate: "2026-03-01T00:00:00.000Z",
+      billsGenerated: 1
+    });
+
+    const replay = await generateDueRecurringBills(
+      { tenantId: "tenant-1", asOfDate: "2026-02-01T00:00:00.000Z" },
+      { accountsPayableStore: store, now: fixedNow(T0 + 2) }
+    );
+    expect(replay.ok).toBe(true);
+    if (replay.ok) expect(replay.data.count).toBe(0);
   });
 });

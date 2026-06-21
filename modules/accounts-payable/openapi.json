@@ -59,6 +59,12 @@
         "summary": "Pause, resume, cancel, or complete a recurring bill template",
         "responses": { "200": { "description": "Recurring bill template status updated" }, "409": { "description": "Invalid status transition" } }
       }
+    },
+    "/recurring-bill-templates/generate-due": {
+      "post": {
+        "summary": "Generate bills for active due recurring bill templates",
+        "responses": { "201": { "description": "Due recurring bills generated" }, "400": { "description": "Invalid generation input" } }
+      }
     }
   }
 }

@@ -141,6 +141,13 @@ export const updateRecurringBillTemplateStatusInputSchema = z.object({
   status: recurringBillStatusSchema
 });
 
+export const generateDueRecurringBillsInputSchema = z.object({
+  tenantId: z.string().min(1),
+  asOfDate: z.string().datetime().optional(),
+  limit: z.number().int().min(1).max(100).default(25),
+  postToAccounting: z.boolean().default(true)
+});
+
 export type CreateVendorInput = z.infer<typeof createVendorInputSchema>;
 export type ListVendorsInput = z.infer<typeof listVendorsInputSchema>;
 export type BillLineItemInput = z.infer<typeof billLineItemInputSchema>;
@@ -152,3 +159,4 @@ export type AgingReportInput = z.infer<typeof agingReportInputSchema>;
 export type CreateRecurringBillTemplateInput = z.infer<typeof createRecurringBillTemplateInputSchema>;
 export type ListRecurringBillTemplatesInput = z.infer<typeof listRecurringBillTemplatesInputSchema>;
 export type UpdateRecurringBillTemplateStatusInput = z.infer<typeof updateRecurringBillTemplateStatusInputSchema>;
+export type GenerateDueRecurringBillsInput = z.infer<typeof generateDueRecurringBillsInputSchema>;
