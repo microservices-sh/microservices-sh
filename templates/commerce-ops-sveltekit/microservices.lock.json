@@ -907,6 +907,40 @@
       }
     },
     {
+      "id": "email",
+      "version": "0.1.0",
+      "source": "registry:email@0.1.0",
+      "checksum": "sha256:preview-email-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/email",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "email.read",
+          "email.write",
+          "email.admin"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeEmailSend",
+          "afterEmailQueued",
+          "afterEmailFailed"
+        ],
+        "events": [
+          "email.queued",
+          "email.sent",
+          "email.failed"
+        ],
+        "requires": []
+      }
+    },
+    {
       "id": "notifications-inapp",
       "version": "0.1.0",
       "source": "registry:notifications-inapp@0.1.0",

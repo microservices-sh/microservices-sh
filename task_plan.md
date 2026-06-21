@@ -554,6 +554,12 @@ Phase 67
 - [x] Verify create-app build/test/smoke, shim sync, full spec checks, generated commerce install, generated commerce check, and whitespace checks.
 - **Status:** complete
 
+### Phase 71: Focused Template Email Lock Alignment
+- [x] Add the `email` module contract to `commerce-ops-sveltekit` and `accounting-erp-sveltekit` lockfiles.
+- [x] Add template assertions that email-backed login/invoice-send workflows remain represented in the locks.
+- [x] Verify focused template checks, create-app build/smoke, full workspace specs, and whitespace checks.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

@@ -249,6 +249,11 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Request locals wire Stripe/memory invoice payment links and transactional email providers for invoice collection workflows."
   );
   assertFileIncludesAll(
+    "microservices.lock.json",
+    ["\"id\": \"email\"", "\"email.write\"", "\"beforeEmailSend\""],
+    "Accounting template lock includes the email module used by login and invoice collection workflows."
+  );
+  assertFileIncludesAll(
     "src/routes/api/payments/stripe-webhook/+server.ts",
     ["request.text()", "verifyWebhookSignature", "parseStripeInvoiceSettlementEvent", "recordCustomerPayment", "applyCustomerPayment", "recordPaymentScoped", "syncInvoiceToReceivables", "stripe-signature"],
     "Stripe webhook route verifies raw signed payloads before applying AR settlement, recording invoice payments, and refreshing receivables snapshots."

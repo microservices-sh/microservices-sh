@@ -1585,3 +1585,19 @@
 | Generated install | Fresh commerce generated app installs without root/support-package `workspace:*` runtime deps | `pnpm --dir /tmp/stackstatus-p0-commerce-fix install --lockfile-only --ignore-scripts` passed | Pass |
 | Generated check | Fresh commerce generated app contract check passes with `readText` policy | `node scripts/microservices.js check --json` passed in `/tmp/stackstatus-p0-commerce-fix` | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 71 focused template email lock alignment
+
+- **Status:** complete.
+- Goal: reconcile the focused template manifests/packages with their lockfiles for the `email` module used by login and invoice-send workflows.
+- Added the canonical `email` module lock entry to both `commerce-ops-sveltekit` and `accounting-erp-sveltekit`.
+- Added template policy assertions requiring `email.write` and `beforeEmailSend` to stay represented in both lockfiles.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Lock JSON | Both focused locks include `email.write` in the email contract | `jq -e '.modules[] | select(.id=="email") | .contract.permissions | index("email.write")' ...` passed for both templates | Pass |
+| Focused template specs | Email lock assertions pass | `node packages/workspace-tools/src/index.js check template --path templates/commerce-ops-sveltekit` and accounting equivalent passed | Pass |
+| Create app build | Bundled focused templates include updated locks | `pnpm --filter create-microservices-app build` passed | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Built smoke | Generated app smoke remains green with updated focused locks | `pnpm --filter create-microservices-app smoke:built` passed | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
