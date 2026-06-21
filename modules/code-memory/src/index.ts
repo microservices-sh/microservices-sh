@@ -2,4 +2,5 @@ export { createCodeMemoryService, createSequentialCodeMemoryIdFactory } from "./
 export { createCodeMemoryMemoryStore } from "./adapters/memory";
 export { createD1CodeMemoryStore } from "./adapters/d1";
 export { suggestLogicCapsulesFromFiles } from "./scanner";
+export { createCodeMemoryToolHandlers } from "./tools";
 export * from "./types";

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createCodeMemoryMemoryStore } from "./adapters/memory";
 import { suggestLogicCapsulesFromFiles } from "./scanner";
 import { createCodeMemoryService, createSequentialCodeMemoryIdFactory } from "./service";
+import { createCodeMemoryToolHandlers } from "./tools";
 import type { ModuleResult, TenantContext } from "./types";
 
 function service() {
@@ -165,5 +166,37 @@ describe("code-memory service", () => {
     expect(scan.candidates.map((candidate) => candidate.slug)).toEqual(["stripe-webhook-verifier", "invoice-numbering", "booking-overlap-checker"]);
     expect(scan.candidates[0]?.tests).toEqual(["test/billing/stripe-webhooks.test.ts"]);
     expect(scan.candidates[2]?.tests).toEqual(["test/booking/availability.test.ts"]);
+  });
+
+  it("adapts service methods to governed tool handler names", async () => {
+    const memory = service();
+    const handlers = createCodeMemoryToolHandlers({ service: memory });
+    const toolCtx = { tenantId: "tenant_1", actor: "agent:builder", now: "2026-01-01T00:00:00.000Z" };
+
+    const added = await handlers["code-memory_addTrustedSource"]({ repoUrl: "https://github.com/acme/auth-kit" }, toolCtx) as { source: { id: string } };
+    await handlers["code-memory_recordSourceScan"](
+      {
+        sourceId: added.source.id,
+        candidates: [
+          {
+            sourceId: added.source.id,
+            name: "Stripe webhook verifier",
+            purpose: "Verify Stripe webhook signatures before parsing request JSON.",
+            sourcePath: "src/billing/webhooks.ts",
+            files: ["src/billing/webhooks.ts"]
+          }
+        ]
+      },
+      toolCtx
+    );
+
+    const beforeApproval = await handlers["code-memory_searchLogicCapsules"]({ query: "stripe" }, toolCtx) as { capsules: unknown[] };
+    expect(beforeApproval.capsules).toEqual([]);
+
+    const approved = await handlers["code-memory_approveLogicCapsule"]({ idOrSlug: "stripe-webhook-verifier" }, toolCtx) as { capsule: { approvalStatus: string } };
+    expect(approved.capsule.approvalStatus).toBe("approved");
+
+    const found = await handlers["code-memory_searchLogicCapsules"]({ query: "stripe" }, toolCtx) as { capsules: Array<{ slug: string }> };
+    expect(found.capsules.map((capsule) => capsule.slug)).toEqual(["stripe-webhook-verifier"]);
   });
 });

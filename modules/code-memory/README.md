@@ -21,6 +21,10 @@ import {
 
 The scanner currently recognizes reusable patterns for Stripe webhook verification, invoice numbering, booking overlap checks, D1 pagination helpers, and auth/session token helpers. Feed its `candidates` and `scanSummary` into `recordSourceScan` to preserve source version provenance before review and approval.
 
+## Tool Gateway Adapter
+
+`createCodeMemoryToolHandlers` maps governed tool names such as `code-memory_searchLogicCapsules` and `code-memory_approveLogicCapsule` to the service methods. Generated MCP/gateway wiring can inject these handlers while the gateway owns scope checks, confirmation gates, and audit.
+
 ## Ownership Boundary
 
 This module owns metadata and trust state only. It does not execute untrusted repository code, mint GitHub installation tokens, apply patches to local projects, or copy source files without an explicit caller-owned workflow.

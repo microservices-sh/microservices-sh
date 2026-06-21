@@ -9,6 +9,7 @@
     "./types": "./src/types.ts",
     "./schemas": "./src/schemas.ts",
     "./hooks": "./src/hooks.ts",
+    "./tools": "./src/tools.ts",
     "./manifest": "./src/manifest/index.ts",
     "./config": "./src/config/index.ts",
     "./schema": "./src/schema/index.ts",

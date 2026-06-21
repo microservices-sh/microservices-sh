@@ -20,6 +20,11 @@ export default function check({ assertFileIncludes }) {
     "Code Memory exposes metadata-only scanner suggestions."
   );
   assertFileIncludes(
+    "src/tools.ts",
+    "createCodeMemoryToolHandlers",
+    "Code Memory exposes governed tool handler adapters."
+  );
+  assertFileIncludes(
     "README.agent.md",
     "Do not execute source repository code during scan.",
     "Code Memory agent guide preserves scan safety boundary."

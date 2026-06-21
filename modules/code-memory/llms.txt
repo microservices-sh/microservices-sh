@@ -12,12 +12,14 @@ Key files:
 - migrations/0001_initial.sql owns code_memory_sources, code_memory_source_versions, code_memory_capsules, and code_memory_events.
 - src/service/index.ts validates source and capsule mutations.
 - src/scanner/index.ts suggests candidate Logic Capsules from static file hints only.
+- src/tools.ts maps Code Memory service methods to governed tool handler names.
 - src/adapters/d1.ts stores JSON fields as text for D1.
 - src/adapters/memory.ts supports fast unit tests and local development.
 
 Rules:
 - Do not execute untrusted repo code.
 - Treat scanner output as candidates that require review and approval.
+- Let the gateway own scope checks and confirmation gates when using tool handlers.
 - Do not expose private repo credentials through this module.
 - Approved capsule search is the default retrieval path.
 - Keep source provenance and constraints with every capsule.
