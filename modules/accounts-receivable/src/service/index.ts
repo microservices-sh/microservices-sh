@@ -1,5 +1,6 @@
-import type { AccountsReceivableStore } from "../ports";
+import type { AccountsReceivableAccountingPoster, AccountsReceivableStore } from "../ports";
 import type {
+  ApplyPaymentResult,
   ApplyPaymentInput,
   CustomerPayment,
   CustomerStatement,
@@ -16,13 +17,15 @@ export type AccountsReceivableIdFactory = (prefix: AccountsReceivableIdPrefix) =
 
 export interface AccountsReceivableServiceDeps {
   store: AccountsReceivableStore;
+  accountingPoster?: AccountsReceivableAccountingPoster;
   createId?: AccountsReceivableIdFactory;
+  correlationId?: string;
 }
 
 export interface AccountsReceivableService {
   upsertInvoiceSnapshot(ctx: TenantContext, invoice: Omit<InvoiceSnapshot, "tenantId">): Promise<ModuleResult<InvoiceSnapshot>>;
   recordCustomerPayment(ctx: TenantContext, input: RecordCustomerPaymentInput): Promise<ModuleResult<CustomerPayment>>;
-  applyCustomerPayment(ctx: TenantContext, input: ApplyPaymentInput): Promise<ModuleResult<PaymentApplication[]>>;
+  applyCustomerPayment(ctx: TenantContext, input: ApplyPaymentInput): Promise<ModuleResult<ApplyPaymentResult>>;
   listOpenReceivables(ctx: TenantContext): Promise<ModuleResult<InvoiceSnapshot[]>>;
   getReceivableAging(ctx: TenantContext, reportDate: string, customerId?: string): Promise<ModuleResult<ReceivableAging>>;
   generateCustomerStatement(ctx: TenantContext, customerId: string, statementDate: string): Promise<ModuleResult<CustomerStatement>>;
@@ -88,7 +91,7 @@ function validatePaymentApplications(
   payment: CustomerPayment,
   applications: ApplyPaymentInput["applications"],
   invoicesById: Map<string, InvoiceSnapshot>
-): ModuleResult<PaymentApplication[]> | null {
+): ModuleResult<ApplyPaymentResult> | null {
   const amountByInvoiceId = new Map<string, number>();
   for (const app of applications) {
     const invoice = invoicesById.get(app.invoiceId);
@@ -102,6 +105,16 @@ function validatePaymentApplications(
     }
   }
   return null;
+}
+
+function normalizeCurrency(value: string | undefined): string {
+  const normalized = (value ?? "USD").trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(normalized) ? normalized : "USD";
+}
+
+function optionalText(value: string | null | undefined): string | null {
+  const normalized = value?.trim();
+  return normalized ? normalized : null;
 }
 
 async function withStoreTransaction<T>(store: AccountsReceivableStore, operation: (transactionStore: AccountsReceivableStore) => Promise<T>) {
@@ -131,8 +144,15 @@ export function createAccountsReceivableService(deps: AccountsReceivableServiceD
           customerId: input.customerId,
           amountCents: input.amountCents,
           unappliedCents: input.amountCents,
+          currency: normalizeCurrency(input.currency),
+          paymentMethod: optionalText(input.paymentMethod) ?? "manual",
+          referenceNumber: optionalText(input.referenceNumber),
+          providerPaymentId: optionalText(input.providerPaymentId),
+          depositAccountId: optionalText(input.depositAccountId),
           paymentDate: input.paymentDate,
           idempotencyKey: input.idempotencyKey,
+          journalEntryId: null,
+          postedAt: null,
           createdAt
         };
         await store.insertPayment(payment);
@@ -181,10 +201,27 @@ export function createAccountsReceivableService(deps: AccountsReceivableServiceD
           created.push(application);
         }
 
+        let updatedPayment: CustomerPayment = { ...payment, unappliedCents: payment.unappliedCents - totalApplied };
+        if (deps.accountingPoster) {
+          const postedAt = now(ctx);
+          const posted = await deps.accountingPoster.postAccountsReceivablePayment({
+            tenantId: ctx.tenantId,
+            payment: updatedPayment,
+            applications: created,
+            invoices: [...invoicesById.values()],
+            correlationId: deps.correlationId ?? null
+          });
+          updatedPayment = {
+            ...updatedPayment,
+            journalEntryId: posted.journalEntryId ?? null,
+            postedAt
+          };
+        }
+
         for (const invoice of updatedInvoices.values()) await store.upsertInvoiceSnapshot(invoice);
         await store.insertApplications(created);
-        await store.updatePayment({ ...payment, unappliedCents: payment.unappliedCents - totalApplied });
-        return ok(created);
+        await store.updatePayment(updatedPayment);
+        return ok({ payment: updatedPayment, applications: created, invoices: [...updatedInvoices.values()] });
       });
     },
 
@@ -250,8 +287,15 @@ export function createAccountsReceivableMemoryService() {
         customerId: input.customerId,
         amountCents: input.amountCents,
         unappliedCents: input.amountCents,
+        currency: normalizeCurrency(input.currency),
+        paymentMethod: optionalText(input.paymentMethod) ?? "manual",
+        referenceNumber: optionalText(input.referenceNumber),
+        providerPaymentId: optionalText(input.providerPaymentId),
+        depositAccountId: optionalText(input.depositAccountId),
         paymentDate: input.paymentDate,
         idempotencyKey: input.idempotencyKey,
+        journalEntryId: null,
+        postedAt: null,
         createdAt
       };
       payments.set(payment.id, payment);
@@ -259,7 +303,7 @@ export function createAccountsReceivableMemoryService() {
       return ok(payment);
     },
 
-    applyCustomerPayment(ctx: TenantContext, input: ApplyPaymentInput): ModuleResult<PaymentApplication[]> {
+    applyCustomerPayment(ctx: TenantContext, input: ApplyPaymentInput): ModuleResult<ApplyPaymentResult> {
       const payment = payments.get(input.paymentId);
       if (!payment || payment.tenantId !== ctx.tenantId) return fail("payment_not_found", "Customer payment not found.");
       const totalApplied = input.applications.reduce((sum, app) => sum + app.amountCents, 0);
@@ -273,8 +317,9 @@ export function createAccountsReceivableMemoryService() {
       if (validationError) return validationError;
       const appliedAt = now(ctx);
       const created: PaymentApplication[] = [];
+      const updatedInvoices = new Map<string, InvoiceSnapshot>();
       for (const app of input.applications) {
-        const invoice = invoices.get(app.invoiceId)!;
+        const invoice = updatedInvoices.get(app.invoiceId) ?? invoices.get(app.invoiceId)!;
         const application: PaymentApplication = {
           id: id("arapp", ++applicationSequence),
           tenantId: ctx.tenantId,
@@ -285,17 +330,20 @@ export function createAccountsReceivableMemoryService() {
         };
         const amountPaidCents = invoice.amountPaidCents + app.amountCents;
         const amountDueCents = invoice.totalCents - amountPaidCents;
-        invoices.set(invoice.id, {
+        const updatedInvoice = {
           ...invoice,
           amountPaidCents,
           amountDueCents,
           status: amountDueCents === 0 ? "paid" : invoice.status
-        });
+        };
+        invoices.set(invoice.id, updatedInvoice);
+        updatedInvoices.set(invoice.id, updatedInvoice);
         applications.set(application.id, application);
         created.push(application);
       }
-      payments.set(payment.id, { ...payment, unappliedCents: payment.unappliedCents - totalApplied });
-      return ok(created);
+      const updatedPayment = { ...payment, unappliedCents: payment.unappliedCents - totalApplied };
+      payments.set(payment.id, updatedPayment);
+      return ok({ payment: updatedPayment, applications: created, invoices: [...updatedInvoices.values()] });
     },
 
     listOpenReceivables(ctx: TenantContext): ModuleResult<InvoiceSnapshot[]> {

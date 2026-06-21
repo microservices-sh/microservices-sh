@@ -1,4 +1,10 @@
-import type { CustomerPayment, InvoiceSnapshot, PaymentApplication } from "../types";
+import type {
+  AccountsReceivablePaymentPostRequest,
+  AccountingPostResult,
+  CustomerPayment,
+  InvoiceSnapshot,
+  PaymentApplication
+} from "../types";
 
 export interface AccountsReceivableListFilter {
   customerId?: string;
@@ -20,4 +26,8 @@ export interface AccountsReceivableStore {
   insertApplications(applications: PaymentApplication[]): Promise<void>;
 
   withTransaction?<T>(operation: (store: AccountsReceivableStore) => Promise<T>): Promise<T>;
+}
+
+export interface AccountsReceivableAccountingPoster {
+  postAccountsReceivablePayment(request: AccountsReceivablePaymentPostRequest): Promise<AccountingPostResult>;
 }

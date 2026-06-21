@@ -104,7 +104,7 @@ describe("accounts-receivable", () => {
       applications: [{ invoiceId: "inv_store_1", amountCents: 4000 }]
     });
     expect(applied.ok).toBe(true);
-    expect(applied.data![0].id).toBe("arapp_000001");
+    expect(applied.data!.applications[0].id).toBe("arapp_000001");
 
     const open = await service.listOpenReceivables(ctx);
     expect(open.data).toEqual([
@@ -119,6 +119,62 @@ describe("accounts-receivable", () => {
     expect(statement.data!.payments).toHaveLength(1);
     expect(statement.data!.applications).toHaveLength(1);
     expect(statement.data!.aging.totalOpenCents).toBe(3000);
+  });
+
+  it("posts applied customer payments through the accounting poster", async () => {
+    const store = createAccountsReceivableMemoryStore();
+    const postedRequests: unknown[] = [];
+    const service = createAccountsReceivableService({
+      store,
+      createId: createSequentialAccountsReceivableIdFactory(),
+      accountingPoster: {
+        async postAccountsReceivablePayment(request) {
+          postedRequests.push(request);
+          return { journalEntryId: "je_ar_payment_1" };
+        }
+      }
+    });
+
+    await service.upsertInvoiceSnapshot(ctx, {
+      id: "inv_posted_1",
+      customerId: "cus_posted_1",
+      invoiceNumber: "INV-POSTED-1",
+      issuedAt: "2026-05-01",
+      dueDate: "2026-05-15",
+      totalCents: 4000,
+      amountPaidCents: 0,
+      amountDueCents: 4000,
+      status: "open"
+    });
+    const payment = await service.recordCustomerPayment(ctx, {
+      customerId: "cus_posted_1",
+      amountCents: 4000,
+      currency: "usd",
+      paymentMethod: "ach",
+      referenceNumber: "ACH-1",
+      depositAccountId: "acct_cash",
+      paymentDate: "2026-06-21",
+      idempotencyKey: "ar:posted:1"
+    });
+
+    const applied = await service.applyCustomerPayment(ctx, {
+      paymentId: payment.data!.id,
+      applications: [{ invoiceId: "inv_posted_1", amountCents: 4000 }]
+    });
+
+    expect(applied.ok).toBe(true);
+    expect(postedRequests).toHaveLength(1);
+    expect(applied.data!.payment).toMatchObject({
+      currency: "USD",
+      paymentMethod: "ach",
+      referenceNumber: "ACH-1",
+      depositAccountId: "acct_cash",
+      journalEntryId: "je_ar_payment_1",
+      postedAt: ctx.now
+    });
+
+    const statement = await service.generateCustomerStatement(ctx, "cus_posted_1", "2026-06-21");
+    expect(statement.data!.payments[0].journalEntryId).toBe("je_ar_payment_1");
   });
 
   it("rejects batch applications that over-apply one invoice", () => {

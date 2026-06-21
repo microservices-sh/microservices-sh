@@ -3,6 +3,7 @@ import { error, fail, redirect } from "@sveltejs/kit";
 import { createInvoicePaymentLinkScoped, getInvoiceScoped, recordPaymentScoped, voidInvoiceScoped, authContext } from "@microservices-sh/invoice";
 import type { AuthContext } from "@microservices-sh/invoice";
 import { sendEmail } from "@microservices-sh/email";
+import { createAccountsReceivableService } from "@microservices-sh/accounts-receivable";
 import { getCustomer } from "@microservices-sh/customer";
 import { listEvents, recordEvent } from "@microservices-sh/audit-log";
 import { notify } from "@microservices-sh/notifications-inapp";
@@ -10,6 +11,7 @@ import { requireOrgPermission, loadCompanyContext } from "$lib/server/org-contex
 import { requireModule } from "$lib/server/modules";
 import { money, relativeTime, humanizeEvent } from "$lib/format";
 import { buildInvoiceEmail } from "$lib/server/invoice-email";
+import { createAccountsReceivableAccountingPoster } from "$lib/server/accounts-receivable-accounting";
 import { syncInvoiceToReceivables } from "$lib/server/accounts-receivable-sync";
 import type { Tone } from "$lib/ui/types";
 
@@ -29,6 +31,11 @@ const eventTone = (e: string): Tone => {
 async function findInvoice(ctx: AuthContext, id: string, store: App.Locals["invoiceStore"]) {
   const res = await getInvoiceScoped(ctx, id, { invoiceStore: store });
   return res.ok && res.data ? res.data.invoice : undefined;
+}
+
+function createPaymentKey(invoiceId: string): string {
+  const randomId = globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+  return `ar-payment:${invoiceId}:${randomId}`;
 }
 
 export const load: PageServerLoad = async ({ params, locals, cookies, parent, platform }) => {
@@ -72,6 +79,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
       paid: money(invoice.amountPaidCents, invoice.currency),
       outstanding: money(outstandingCents, invoice.currency),
       outstandingAmount: (outstandingCents / 100).toFixed(2),
+      paymentKey: createPaymentKey(invoice.id),
       isVoidable: invoice.status === "open",
       totalCents: invoice.totalCents,
       paymentLinkUrl: invoice.paymentLinkUrl,
@@ -104,6 +112,7 @@ export const actions: Actions = {
   // on the dashboard unread panel + notifications inbox).
   payment: async ({ request, params, locals, cookies, platform }) => {
     requireModule("accounts-receivable", platform);
+    requireModule("accounting-core", platform);
     if (!locals.user) return fail(403, { error: "Not signed in to a company." });
     const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
     if (!org) return fail(403, { error: "Not signed in to a company." });
@@ -116,6 +125,7 @@ export const actions: Actions = {
     const form = await request.formData();
     const amount = Number(form.get("amount"));
     const amountCents = Number.isFinite(amount) ? Math.round(amount * 100) : 0;
+    const paymentKey = String(form.get("paymentKey") ?? "").trim() || createPaymentKey(invoiceId);
     if (amountCents <= 0) return fail(400, { error: "Enter a payment amount greater than zero." });
     const currentInvoice = await findInvoice(ctx, invoiceId, locals.invoiceStore);
     if (!currentInvoice || currentInvoice.status !== "open") {
@@ -125,10 +135,47 @@ export const actions: Actions = {
     if (amountCents > currentOutstandingCents) {
       return fail(400, { error: "Payment exceeds the invoice open balance." });
     }
+    const paymentDate = new Date().toISOString();
+    const idempotencyKey = `${paymentKey}:${amountCents}`;
+
+    const arService = createAccountsReceivableService({
+      store: locals.accountsReceivableStore,
+      accountingPoster: createAccountsReceivableAccountingPoster({
+        accountingCoreStore: locals.accountingCoreStore,
+        actor: { id: locals.user.id, email: locals.user.email, permissions }
+      })
+    });
+    const customerPayment = await arService.recordCustomerPayment(
+      { tenantId: activeOrgId, actorId: locals.user.id, now: paymentDate },
+      {
+        customerId: currentInvoice.customerId,
+        amountCents,
+        currency: currentInvoice.currency,
+        paymentMethod: "manual",
+        paymentDate,
+        idempotencyKey
+      }
+    );
+    if (!customerPayment.ok || !customerPayment.data) {
+      return fail(400, { error: customerPayment.error?.message ?? "Could not record the customer payment." });
+    }
+
+    const application = customerPayment.data.unappliedCents > 0
+      ? await arService.applyCustomerPayment(
+          { tenantId: activeOrgId, actorId: locals.user.id, now: paymentDate },
+          {
+            paymentId: customerPayment.data.id,
+            applications: [{ invoiceId, amountCents }]
+          }
+        )
+      : null;
+    if (application && (!application.ok || !application.data)) {
+      return fail(400, { error: application.error?.message ?? "Could not apply the customer payment." });
+    }
 
     // Enforced boundary (plan 33): recordPaymentScoped checks ownership against
     // the session org before applying the payment — a cross-tenant write is 404.
-    const result = await recordPaymentScoped(ctx, { invoiceId, amountCents }, { invoiceStore: locals.invoiceStore });
+    const result = await recordPaymentScoped(ctx, { invoiceId, amountCents, idempotencyKey }, { invoiceStore: locals.invoiceStore });
     if (!result.ok || !result.data) {
       return fail(result.status ?? 400, { error: result.error?.message ?? "Could not record the payment." });
     }
@@ -138,7 +185,7 @@ export const actions: Actions = {
     let syncWarning: string | null = null;
     if (invoice) {
       const synced = await syncInvoiceToReceivables({
-        accountsReceivableService: locals.accountsReceivableService,
+        accountsReceivableService: arService,
         tenantId: activeOrgId,
         actorId: locals.user.id,
         invoice
@@ -156,6 +203,9 @@ export const actions: Actions = {
         payload: {
           amountCents,
           status: result.data.status,
+          customerPaymentId: customerPayment.data.id,
+          paymentApplicationIds: application?.ok ? application.data.applications.map((item) => item.id) : [],
+          journalEntryId: application?.ok ? application.data.payment.journalEntryId : customerPayment.data.journalEntryId,
           receivablesSynced: syncWarning === null,
           receivablesSyncError: syncWarning
         }

@@ -192,8 +192,23 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "migrations/0025_accounts_receivable.sql",
-    ["CREATE TABLE IF NOT EXISTS ar_invoice_snapshots", "unapplied_cents INTEGER NOT NULL DEFAULT 0"],
-    "Template keeps Accounts Receivable D1 schema aligned with invoice snapshots and unapplied balances."
+    ["CREATE TABLE IF NOT EXISTS ar_invoice_snapshots", "unapplied_cents INTEGER NOT NULL DEFAULT 0", "journal_entry_id TEXT"],
+    "Template keeps Accounts Receivable D1 schema aligned with invoice snapshots, unapplied balances, and accounting journal references."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/stores.ts",
+    ["accountsReceivableStore", "createD1AccountsReceivableStore", "createAccountsReceivableMemoryStore"],
+    "Template exposes the Accounts Receivable store so request-scoped services can attach accounting posters."
+  );
+  assertFileIncludes(
+    "src/hooks.server.ts",
+    "event.locals.accountsReceivableStore = stores.accountsReceivableStore",
+    "Request locals expose the Accounts Receivable store for actor-aware settlement workflows."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/accounts-receivable-accounting.ts",
+    ["postIssuedInvoiceToAccounting", "createAccountsReceivableAccountingPoster", "\"1200\"", "\"4100\"", "\"1120\"", "postAccountsReceivablePayment"],
+    "Accounting template posts issued invoices and applied customer payments into accounting-core journals."
   );
   assertFileIncludesAll(
     "src/lib/server/accounts-receivable-sync.ts",
@@ -202,8 +217,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/invoices/[id]/+page.server.ts",
-    ["syncInvoiceToReceivables", "recordPaymentScoped", "voidInvoiceScoped"],
-    "Invoice detail payments and voids refresh the Accounts Receivable invoice snapshot."
+    ["syncInvoiceToReceivables", "recordPaymentScoped", "voidInvoiceScoped", "recordCustomerPayment", "applyCustomerPayment", "createAccountsReceivableAccountingPoster"],
+    "Invoice detail payments post through Accounts Receivable settlement before refreshing invoice snapshots; voids still refresh the snapshot."
   );
   assertFileIncludesAll(
     "src/routes/app/invoices/[id]/+page.server.ts",
@@ -212,8 +227,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/invoices/[id]/+page.svelte",
-    ["Payment link", "Send invoice", "Create link + send", "Open payment link"],
-    "Invoice detail page exposes payment-link and send-invoice operator controls."
+    ["Payment link", "Send invoice", "Create link + send", "Open payment link", "paymentKey"],
+    "Invoice detail page exposes payment-link, send-invoice, and idempotent payment controls."
   );
   assertFileIncludesAll(
     "src/hooks.server.ts",
@@ -222,8 +237,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/api/payments/stripe-webhook/+server.ts",
-    ["request.text()", "verifyWebhookSignature", "parseStripeInvoiceSettlementEvent", "recordPaymentScoped", "syncInvoiceToReceivables", "stripe-signature"],
-    "Stripe webhook route verifies raw signed payloads before recording invoice payments and refreshing receivables snapshots."
+    ["request.text()", "verifyWebhookSignature", "parseStripeInvoiceSettlementEvent", "recordCustomerPayment", "applyCustomerPayment", "recordPaymentScoped", "syncInvoiceToReceivables", "stripe-signature"],
+    "Stripe webhook route verifies raw signed payloads before applying AR settlement, recording invoice payments, and refreshing receivables snapshots."
   );
   assertFileIncludesAll(
     "src/lib/server/stripe-invoice-settlement.ts",
@@ -237,13 +252,13 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/invoices/new/+page.server.ts",
-    ["syncInvoiceToReceivables", "getInvoiceScoped", "issueInvoiceScoped"],
-    "New invoice issuance creates an Accounts Receivable invoice snapshot from the canonical invoice record."
+    ["syncInvoiceToReceivables", "getInvoiceScoped", "issueInvoiceScoped", "postIssuedInvoiceToAccounting", "journalEntryId"],
+    "New invoice issuance posts the AR invoice journal and creates an Accounts Receivable invoice snapshot from the canonical invoice record."
   );
   assertFileIncludesAll(
     "src/routes/app/receivables/+page.server.ts",
-    ["recordPaymentScoped", "getInvoiceScoped", "syncInvoiceToReceivables"],
-    "Receivables payment actions use the invoice module as lifecycle authority before refreshing AR snapshots."
+    ["recordCustomerPayment", "applyCustomerPayment", "recordPaymentScoped", "getInvoiceScoped", "syncInvoiceToReceivables", "journalEntryId"],
+    "Receivables payment actions apply AR settlement, update the invoice module lifecycle, and refresh AR snapshots."
   );
   assertFileIncludesAll(
     "src/routes/app/reports/+page.server.ts",

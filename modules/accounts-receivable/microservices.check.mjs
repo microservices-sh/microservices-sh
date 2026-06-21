@@ -16,6 +16,11 @@ export default function check({ assertFileIncludes }) {
   );
   assertFileIncludes(
     "migrations/0001_initial.sql",
+    "journal_entry_id TEXT",
+    "Accounts Receivable customer payments retain accounting journal references."
+  );
+  assertFileIncludes(
+    "migrations/0001_initial.sql",
     "CREATE TABLE IF NOT EXISTS ar_payment_applications",
     "Accounts Receivable module migration owns payment applications."
   );
@@ -38,5 +43,10 @@ export default function check({ assertFileIncludes }) {
     "src/service/index.ts",
     "invoice_overapplied",
     "Payment applications guard against invoice over-application."
+  );
+  assertFileIncludes(
+    "src/ports/index.ts",
+    "postAccountsReceivablePayment",
+    "Accounts Receivable exposes an accounting poster port for payment settlement."
   );
 }

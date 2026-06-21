@@ -1,6 +1,6 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
-import { getAccountsReceivableModuleStatus } from "@microservices-sh/accounts-receivable";
+import { createAccountsReceivableService, getAccountsReceivableModuleStatus } from "@microservices-sh/accounts-receivable";
 import type { AccountsReceivableService, InvoiceSnapshot, TenantContext } from "@microservices-sh/accounts-receivable";
 import { authContext, getInvoiceScoped, recordPaymentScoped } from "@microservices-sh/invoice";
 import { recordEvent } from "@microservices-sh/audit-log";
@@ -8,6 +8,7 @@ import { listCustomers } from "@microservices-sh/customer";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 import { syncInvoiceToReceivables } from "$lib/server/accounts-receivable-sync";
+import { createAccountsReceivableAccountingPoster } from "$lib/server/accounts-receivable-accounting";
 
 const REPORT_DATE = "2026-06-21T00:00:00.000Z";
 const REPORT_DAY = REPORT_DATE.slice(0, 10);
@@ -101,6 +102,7 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
 export const actions: Actions = {
   recordPayment: async ({ request, locals, cookies, platform }) => {
     requireModule("accounts-receivable", platform);
+    requireModule("accounting-core", platform);
     requireModule("invoice", platform);
     if (!locals.user) return fail(403, { error: "Not signed in to a company." });
     const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
@@ -146,6 +148,35 @@ export const actions: Actions = {
       return fail(400, { error: "Payment exceeds the canonical invoice open balance.", values });
     }
 
+    const arService = createAccountsReceivableService({
+      store: locals.accountsReceivableStore,
+      accountingPoster: createAccountsReceivableAccountingPoster({
+        accountingCoreStore: locals.accountingCoreStore,
+        actor: { id: locals.user.id, email: locals.user.email, permissions }
+      })
+    });
+    const customerPayment = await arService.recordCustomerPayment(ctx, {
+      customerId: invoice.customerId,
+      amountCents,
+      currency: currentInvoice.data.invoice.currency,
+      paymentMethod: "manual",
+      paymentDate,
+      idempotencyKey
+    });
+    if (!customerPayment.ok || !customerPayment.data) {
+      return fail(400, { error: customerPayment.error?.message ?? "Could not record the customer payment.", values });
+    }
+
+    const application = customerPayment.data.unappliedCents > 0
+      ? await arService.applyCustomerPayment(ctx, {
+          paymentId: customerPayment.data.id,
+          applications: [{ invoiceId: invoice.id, amountCents }]
+        })
+      : null;
+    if (application && (!application.ok || !application.data)) {
+      return fail(400, { error: application.error?.message ?? "Could not apply the customer payment.", values });
+    }
+
     const payment = await recordPaymentScoped(
       invoiceCtx,
       {
@@ -163,7 +194,7 @@ export const actions: Actions = {
     let syncWarning: string | null = canonicalInvoice.ok && canonicalInvoice.data ? null : "Could not load the paid invoice for AR sync.";
     if (canonicalInvoice.ok && canonicalInvoice.data) {
       const synced = await syncInvoiceToReceivables({
-        accountsReceivableService: service,
+        accountsReceivableService: arService,
         tenantId: org.id,
         actorId: locals.user.id,
         invoice: canonicalInvoice.data.invoice
@@ -183,6 +214,9 @@ export const actions: Actions = {
           customerId: invoice.customerId,
           paymentDate,
           idempotencyKey,
+          customerPaymentId: customerPayment.data.id,
+          paymentApplicationIds: application?.ok ? application.data.applications.map((item) => item.id) : [],
+          journalEntryId: application?.ok ? application.data.payment.journalEntryId : customerPayment.data.journalEntryId,
           invoiceStatus: payment.data.status,
           receivablesSynced: syncWarning === null,
           receivablesSyncError: syncWarning

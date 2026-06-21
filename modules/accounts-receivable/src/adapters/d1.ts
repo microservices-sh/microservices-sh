@@ -3,7 +3,8 @@ import type { CustomerPayment, InvoiceSnapshot, PaymentApplication } from "../ty
 
 const INVOICE_COLS =
   "id, tenant_id, customer_id, invoice_number, issued_at, due_date, total_cents, amount_paid_cents, amount_due_cents, status";
-const PAYMENT_COLS = "id, tenant_id, customer_id, amount_cents, unapplied_cents, received_at, idempotency_key, created_at";
+const PAYMENT_COLS =
+  "id, tenant_id, customer_id, amount_cents, unapplied_cents, currency, payment_method, reference_number, provider_payment_id, deposit_account_id, received_at, idempotency_key, journal_entry_id, posted_at, created_at";
 const APPLICATION_COLS = "id, tenant_id, payment_id, invoice_id, amount_cents, applied_at";
 
 function toInvoice(row: Record<string, unknown>): InvoiceSnapshot {
@@ -28,8 +29,15 @@ function toPayment(row: Record<string, unknown>): CustomerPayment {
     customerId: String(row.customer_id),
     amountCents: Number(row.amount_cents ?? 0),
     unappliedCents: Number(row.unapplied_cents ?? row.amount_cents ?? 0),
+    currency: String(row.currency ?? "USD"),
+    paymentMethod: row.payment_method ? String(row.payment_method) : null,
+    referenceNumber: row.reference_number ? String(row.reference_number) : null,
+    providerPaymentId: row.provider_payment_id ? String(row.provider_payment_id) : null,
+    depositAccountId: row.deposit_account_id ? String(row.deposit_account_id) : null,
     paymentDate: String(row.received_at),
     idempotencyKey: String(row.idempotency_key),
+    journalEntryId: row.journal_entry_id ? String(row.journal_entry_id) : null,
+    postedAt: row.posted_at ? String(row.posted_at) : null,
     createdAt: String(row.created_at)
   };
 }
@@ -172,12 +180,17 @@ export function createD1AccountsReceivableStore(db: D1Database): AccountsReceiva
             unapplied_cents,
             currency,
             payment_method,
+            reference_number,
+            provider_payment_id,
+            deposit_account_id,
             idempotency_key,
+            journal_entry_id,
+            posted_at,
             status,
             received_at,
             created_at,
             updated_at
-          ) VALUES (?, ?, ?, ?, ?, 'USD', 'manual', ?, 'recorded', ?, ?, ?)`
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'recorded', ?, ?, ?)`
         )
         .bind(
           payment.id,
@@ -185,7 +198,14 @@ export function createD1AccountsReceivableStore(db: D1Database): AccountsReceiva
           payment.customerId,
           payment.amountCents,
           payment.unappliedCents,
+          payment.currency,
+          payment.paymentMethod ?? "manual",
+          payment.referenceNumber,
+          payment.providerPaymentId,
+          payment.depositAccountId,
           payment.idempotencyKey,
+          payment.journalEntryId,
+          payment.postedAt,
           payment.paymentDate,
           payment.createdAt,
           payment.createdAt
@@ -199,7 +219,14 @@ export function createD1AccountsReceivableStore(db: D1Database): AccountsReceiva
           `UPDATE ar_customer_payments
            SET amount_cents = ?,
                unapplied_cents = ?,
+               currency = ?,
+               payment_method = ?,
+               reference_number = ?,
+               provider_payment_id = ?,
+               deposit_account_id = ?,
                received_at = ?,
+               journal_entry_id = ?,
+               posted_at = ?,
                status = ?,
                updated_at = CURRENT_TIMESTAMP
            WHERE tenant_id = ? AND id = ?`
@@ -207,7 +234,14 @@ export function createD1AccountsReceivableStore(db: D1Database): AccountsReceiva
         .bind(
           payment.amountCents,
           payment.unappliedCents,
+          payment.currency,
+          payment.paymentMethod ?? "manual",
+          payment.referenceNumber,
+          payment.providerPaymentId,
+          payment.depositAccountId,
           payment.paymentDate,
+          payment.journalEntryId,
+          payment.postedAt,
           payment.unappliedCents === 0 ? "applied" : "recorded",
           payment.tenantId,
           payment.id

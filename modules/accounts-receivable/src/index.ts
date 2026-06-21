@@ -13,7 +13,7 @@ export {
 export { createD1AccountsReceivableStore } from "./adapters/d1";
 export { createAccountsReceivableMemoryStore } from "./adapters/memory";
 export type { AccountsReceivableHooks } from "./hooks";
-export type { AccountsReceivableListFilter, AccountsReceivableStore } from "./ports";
+export type { AccountsReceivableAccountingPoster, AccountsReceivableListFilter, AccountsReceivableStore } from "./ports";
 export type {
   AccountsReceivableIdFactory,
   AccountsReceivableIdPrefix,
@@ -22,8 +22,11 @@ export type {
 } from "./service";
 export type { AccountsReceivableMemoryStoreState } from "./adapters/memory";
 export type {
+  AccountingPostResult,
+  AccountsReceivablePaymentPostRequest,
   AccountsReceivableConfig,
   AccountsReceivableRecord,
+  ApplyPaymentResult,
   ApplyPaymentInput,
   CustomerPayment,
   CustomerStatement,

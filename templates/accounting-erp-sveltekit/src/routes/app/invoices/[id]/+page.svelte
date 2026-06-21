@@ -110,6 +110,7 @@
 
         <Card title="Record payment">
           <form method="POST" action="?/payment" use:enhance={payEnhance}>
+            <input type="hidden" name="paymentKey" value={inv.paymentKey} />
             <Field label="Amount" id="amount" hint={`Outstanding ${inv.outstanding}`}>
               <input id="amount" name="amount" type="number" min="0.01" step="0.01" bind:value={payAmount} />
             </Field>

@@ -15,7 +15,7 @@ import type { RateLimitStore } from "@microservices-sh/gateway/ports";
 import type { PaymentRepository, PaymentGateway } from "@microservices-sh/payment/ports";
 import type { AccountingCoreStore } from "@microservices-sh/accounting-core";
 import type { AccountsPayableStore } from "@microservices-sh/accounts-payable";
-import type { AccountsReceivableService } from "@microservices-sh/accounts-receivable";
+import type { AccountsReceivableService, AccountsReceivableStore } from "@microservices-sh/accounts-receivable";
 import type { BankReconciliationService } from "@microservices-sh/bank-reconciliation";
 import type { EstimateQuoteStore } from "@microservices-sh/estimate-quote";
 import type { RecurringDocumentsStore } from "@microservices-sh/recurring-documents";
@@ -82,6 +82,7 @@ declare global {
       paymentGateway: PaymentGateway;
       accountingCoreStore: AccountingCoreStore;
       accountsPayableStore: AccountsPayableStore;
+      accountsReceivableStore: AccountsReceivableStore;
       accountsReceivableService: AccountsReceivableService;
       bankReconciliationService: BankReconciliationService;
       estimateQuoteStore: EstimateQuoteStore;

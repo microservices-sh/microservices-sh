@@ -1,10 +1,12 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { authContext, getInvoiceScoped, recordPaymentScoped } from "@microservices-sh/invoice";
+import { createAccountsReceivableService } from "@microservices-sh/accounts-receivable";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { verifyWebhookSignature } from "@microservices-sh/payment";
 import { parseStripeInvoiceSettlementEvent } from "$lib/server/stripe-invoice-settlement";
 import { syncInvoiceToReceivables } from "$lib/server/accounts-receivable-sync";
+import { createAccountsReceivableAccountingPoster } from "$lib/server/accounts-receivable-accounting";
 
 export const POST: RequestHandler = async ({ request, platform, locals }) => {
   const secret = platform?.env?.STRIPE_WEBHOOK_SECRET;
@@ -33,6 +35,49 @@ export const POST: RequestHandler = async ({ request, platform, locals }) => {
   }
 
   const ctx = authContext({ orgId: invoice.tenantId, actorId: "stripe:webhook", roles: ["*"] });
+  const paymentDate = new Date().toISOString();
+  const arService = createAccountsReceivableService({
+    store: locals.accountsReceivableStore,
+    accountingPoster: createAccountsReceivableAccountingPoster({
+      accountingCoreStore: locals.accountingCoreStore,
+      actor: { id: "stripe:webhook", permissions: ["*"] }
+    })
+  });
+  const customerPayment = await arService.recordCustomerPayment(
+    { tenantId: invoice.tenantId, actorId: "stripe:webhook", now: paymentDate },
+    {
+      customerId: invoice.customerId,
+      amountCents: parsed.amountCents,
+      currency: invoice.currency,
+      paymentMethod: "stripe",
+      providerPaymentId: parsed.providerPaymentId,
+      paymentDate,
+      idempotencyKey: parsed.eventId
+    }
+  );
+  if (!customerPayment.ok || !customerPayment.data) {
+    return json(
+      { ok: false, error: { code: customerPayment.error?.code ?? "AR_PAYMENT_FAILED", message: customerPayment.error?.message ?? "Could not record customer payment." } },
+      { status: 400 }
+    );
+  }
+
+  const application = customerPayment.data.unappliedCents > 0
+    ? await arService.applyCustomerPayment(
+        { tenantId: invoice.tenantId, actorId: "stripe:webhook", now: paymentDate },
+        {
+          paymentId: customerPayment.data.id,
+          applications: [{ invoiceId: invoice.id, amountCents: parsed.amountCents }]
+        }
+      )
+    : null;
+  if (application && (!application.ok || !application.data)) {
+    return json(
+      { ok: false, error: { code: application.error?.code ?? "AR_APPLICATION_FAILED", message: application.error?.message ?? "Could not apply customer payment." } },
+      { status: 400 }
+    );
+  }
+
   const result = await recordPaymentScoped(
     ctx,
     { invoiceId: invoice.id, amountCents: parsed.amountCents, idempotencyKey: parsed.eventId },
@@ -48,7 +93,7 @@ export const POST: RequestHandler = async ({ request, platform, locals }) => {
   const invoiceSnapshot = await getInvoiceScoped(ctx, invoice.id, { invoiceStore: locals.invoiceStore });
   const receivablesSync = invoiceSnapshot.ok && invoiceSnapshot.data
     ? await syncInvoiceToReceivables({
-        accountsReceivableService: locals.accountsReceivableService,
+        accountsReceivableService: arService,
         tenantId: invoice.tenantId,
         actorId: "stripe:webhook",
         invoice: invoiceSnapshot.data.invoice
@@ -69,6 +114,9 @@ export const POST: RequestHandler = async ({ request, platform, locals }) => {
         amountCents: parsed.amountCents,
         status: result.data.status,
         deduped: result.data.deduped,
+        customerPaymentId: customerPayment.data.id,
+        paymentApplicationIds: application?.ok ? application.data.applications.map((item) => item.id) : [],
+        journalEntryId: application?.ok ? application.data.payment.journalEntryId : customerPayment.data.journalEntryId,
         receivablesSynced: receivablesSync.ok,
         receivablesSyncError: receivablesSync.ok ? null : receivablesSync.message
       }

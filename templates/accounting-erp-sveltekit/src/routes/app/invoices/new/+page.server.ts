@@ -6,6 +6,7 @@ import { recordEvent } from "@microservices-sh/audit-log";
 import { requireOrgPermission, loadCompanyContext } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 import { syncInvoiceToReceivables } from "$lib/server/accounts-receivable-sync";
+import { postIssuedInvoiceToAccounting } from "$lib/server/accounts-receivable-accounting";
 
 interface LineRow {
   description: string;
@@ -62,6 +63,7 @@ export const actions: Actions = {
   // success we redirect back to the ledger with the new number for a flash.
   default: async ({ request, locals, cookies, platform }) => {
     requireModule("accounts-receivable", platform);
+    requireModule("accounting-core", platform);
     if (!locals.user) return fail(403, { error: "Not signed in to a company." });
     const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
     if (!org) return fail(403, { error: "Not signed in to a company." });
@@ -103,6 +105,17 @@ export const actions: Actions = {
     if (!invoiceSnapshot.ok || !invoiceSnapshot.data) {
       return fail(invoiceSnapshot.status ?? 400, { error: invoiceSnapshot.error?.message ?? "Could not load the issued invoice." });
     }
+    let journalEntryId: string | null = null;
+    try {
+      const posted = await postIssuedInvoiceToAccounting({
+        accountingCoreStore: locals.accountingCoreStore,
+        actor: { id: locals.user.id, email: locals.user.email, permissions },
+        invoice: invoiceSnapshot.data.invoice
+      });
+      journalEntryId = posted.journalEntryId ?? null;
+    } catch (error) {
+      return fail(409, { error: error instanceof Error ? error.message : "Could not post invoice to accounting." });
+    }
     const synced = await syncInvoiceToReceivables({
       accountsReceivableService: locals.accountsReceivableService,
       tenantId: activeOrgId,
@@ -120,6 +133,7 @@ export const actions: Actions = {
         payload: {
           number: issued.data.number,
           customerId,
+          journalEntryId,
           receivablesSynced: synced.ok,
           receivablesSyncError: synced.ok ? null : synced.message
         }

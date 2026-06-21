@@ -13,6 +13,11 @@ export interface RecordCustomerPaymentInput {
   amountCents: number;
   paymentDate: string;
   idempotencyKey: string;
+  currency?: string;
+  paymentMethod?: string | null;
+  referenceNumber?: string | null;
+  providerPaymentId?: string | null;
+  depositAccountId?: string | null;
 }
 
 export interface ApplyPaymentInput {
@@ -39,8 +44,15 @@ export interface CustomerPayment {
   customerId: string;
   amountCents: number;
   unappliedCents: number;
+  currency: string;
+  paymentMethod: string | null;
+  referenceNumber: string | null;
+  providerPaymentId: string | null;
+  depositAccountId: string | null;
   paymentDate: string;
   idempotencyKey: string;
+  journalEntryId: string | null;
+  postedAt: string | null;
   createdAt: string;
 }
 
@@ -70,6 +82,24 @@ export interface CustomerStatement {
   payments: CustomerPayment[];
   applications: PaymentApplication[];
   aging: ReceivableAging;
+}
+
+export interface ApplyPaymentResult {
+  payment: CustomerPayment;
+  applications: PaymentApplication[];
+  invoices: InvoiceSnapshot[];
+}
+
+export interface AccountsReceivablePaymentPostRequest {
+  tenantId: string;
+  payment: CustomerPayment;
+  applications: PaymentApplication[];
+  invoices: InvoiceSnapshot[];
+  correlationId?: string | null;
+}
+
+export interface AccountingPostResult {
+  journalEntryId?: string | null;
 }
 
 export interface ModuleResult<T> {

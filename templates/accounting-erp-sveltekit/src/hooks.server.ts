@@ -80,6 +80,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     : memoryPaymentGateway;
   event.locals.accountingCoreStore = stores.accountingCoreStore;
   event.locals.accountsPayableStore = stores.accountsPayableStore;
+  event.locals.accountsReceivableStore = stores.accountsReceivableStore;
   event.locals.accountsReceivableService = stores.accountsReceivableService;
   event.locals.bankReconciliationService = stores.bankReconciliationService;
   event.locals.estimateQuoteStore = stores.estimateQuoteStore;
