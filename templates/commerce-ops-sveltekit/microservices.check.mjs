@@ -228,6 +228,31 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     ["runDueJobs", "createRecurringInvoiceJobHandlers", "jobRunStore"],
     "Jobs route can run due jobs through the registered recurring invoice handler."
   );
+  assertFileIncludesAll(
+    "src/lib/server/scheduled.ts",
+    ["dueScheduledJobs", "runDueJobs", "createRecurringInvoiceJobHandlers", "createCfQueueProducer", "jobs-workflows.cron_run"],
+    "Scheduled runtime catches up recurring schedules and executes due jobs through the same module handlers as the operator UI."
+  );
+  assertFileIncludesAll(
+    "src/hooks.server.ts",
+    ["export async function scheduled", "runCommerceScheduled", "ctx.waitUntil"],
+    "Cloudflare native cron events are exported from the SvelteKit Worker hook."
+  );
+  assertFileIncludesAll(
+    "src/routes/api/cron/run/+server.ts",
+    ["CRON_TOKEN", "authorization", "runCommerceScheduled", "enqueued", "ran"],
+    "HTTP cron fallback is bearer-token gated and uses the same scheduled runner."
+  );
+  assertFileIncludesAll(
+    "scripts/inject-scheduled.mjs",
+    ["_worker.js", "__combined_worker", "scheduled", "as default"],
+    "Post-build script merges the scheduled handler into the Cloudflare Worker default export."
+  );
+  assertFileIncludesAll(
+    "package.json",
+    ["postbuild", "scripts/inject-scheduled.mjs", "postbuild:app"],
+    "Template build runs the scheduled-handler injector after Cloudflare output is generated."
+  );
   assertFileIncludes(
     "src/lib/server/recurring-invoice-jobs.ts",
     "invoice.recurring.generate_due",
@@ -291,7 +316,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "wrangler.jsonc",
-    ["DB", "MEDIA_BUCKET", "RATE_LIMIT_KV", "JOB_QUEUE", "DESKTOP_IMPORT_ALLOWED_ORIGIN"],
+    ["DB", "MEDIA_BUCKET", "RATE_LIMIT_KV", "JOB_QUEUE", "\"triggers\"", "\"crons\"", "DESKTOP_IMPORT_ALLOWED_ORIGIN"],
     "Cloudflare deployment config declares canonical D1 plus R2/KV/Queue bindings used by the ERP Worker."
   );
   assert(

@@ -32,6 +32,7 @@ declare global {
         STRIPE_WEBHOOK_SECRET?: string;
         RESEND_API_KEY?: string;
         EMAIL_FROM?: string;
+        CRON_TOKEN?: string;
         WOOCOMMERCE_CREDENTIALS_JSON?: string;
         WOOCOMMERCE_WEBHOOK_SECRET?: string;
         DESKTOP_IMPORT_TOKEN?: string;
