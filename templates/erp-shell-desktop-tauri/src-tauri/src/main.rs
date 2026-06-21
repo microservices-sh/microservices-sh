@@ -463,10 +463,7 @@ fn document_draft(
 }
 
 #[tauri::command]
-async fn document_preview(
-    app: tauri::AppHandle,
-    job_id: String,
-) -> Result<Option<String>, String> {
+async fn document_preview(app: tauri::AppHandle, job_id: String) -> Result<Option<String>, String> {
     // PDF rasterization + image encode are blocking; keep them off the UI thread.
     tauri::async_runtime::spawn_blocking(move || document_preview_blocking(&app, &job_id))
         .await
@@ -1086,12 +1083,16 @@ fn normalize_with_gemma_images(
 
     let response = ollama_generate_with_images(model, job, &encoded_pages)?;
     let parsed = parse_json_object(&response)?;
-    let extraction = extraction_from_object(parsed);
+    let extraction = extraction_from_object(parsed)?;
     let mut draft = build_validated_draft(job, model, None, extraction);
     llm_log(format!(
         "extracted {} field(s), {} line item(s)",
         draft.fields.len(),
-        draft.tables.iter().map(|table| table.rows.len()).sum::<usize>()
+        draft
+            .tables
+            .iter()
+            .map(|table| table.rows.len())
+            .sum::<usize>()
     ));
     if image_pages.len() > encoded_pages.len() {
         draft.warnings.push(format!(
@@ -1109,8 +1110,9 @@ fn encode_image_pages(image_pages: &[PathBuf]) -> Result<Vec<String>, String> {
         .iter()
         .take(MAX_GEMMA_IMAGE_PAGES)
         .map(|page| {
-            let bytes = fs::read(page)
-                .map_err(|error| format!("Failed to read image page {}: {error}", page.display()))?;
+            let bytes = fs::read(page).map_err(|error| {
+                format!("Failed to read image page {}: {error}", page.display())
+            })?;
             let scaled = downscale_for_vision(&bytes);
             llm_log(format!(
                 "page {}: {} -> {} bytes",
@@ -1168,18 +1170,20 @@ fn preview_jpeg(bytes: &[u8]) -> Option<Vec<u8>> {
 // via Ollama's `format`, so it fills a real named template instead of a free
 // {name,value} bag. It does NOT return confidence — we compute that from
 // deterministic validators, so the review signal is verifiable.
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct GemmaExtraction {
     fields: Vec<GemmaField>,
     line_items: Vec<GemmaLineItem>,
     summary: Option<String>,
 }
 
+#[derive(Debug)]
 struct GemmaField {
     name: String,
     value: Value,
 }
 
+#[derive(Debug)]
 struct GemmaLineItem {
     description: Value,
     quantity: Value,
@@ -1212,7 +1216,9 @@ fn document_schema_def(kind: &str) -> DocumentSchema {
             line_items: true,
         },
         "intake" => DocumentSchema {
-            fields: &["fullName", "email", "phone", "company", "address", "date", "notes"],
+            fields: &[
+                "fullName", "email", "phone", "company", "address", "date", "notes",
+            ],
             required: &["fullName"],
             line_items: false,
         },
@@ -1269,9 +1275,9 @@ fn extraction_schema(kind: &str) -> Value {
 /// Convert the model's named-field object into our generic extraction shape:
 /// every scalar property becomes a field, `lineItems` becomes the table, and
 /// `summary` is pulled out separately.
-fn extraction_from_object(value: Value) -> GemmaExtraction {
+fn extraction_from_object(value: Value) -> Result<GemmaExtraction, String> {
     let Value::Object(map) = value else {
-        return GemmaExtraction::default();
+        return Err("Gemma structured response must be a JSON object.".to_string());
     };
 
     let mut fields = Vec::new();
@@ -1280,24 +1286,9 @@ fn extraction_from_object(value: Value) -> GemmaExtraction {
 
     for (key, val) in map {
         match key.as_str() {
-            "lineItems" | "line_items" => {
-                if let Value::Array(items) = val {
-                    for item in items {
-                        if let Value::Object(row) = item {
-                            line_items.push(GemmaLineItem {
-                                description: row.get("description").cloned().unwrap_or(Value::Null),
-                                quantity: row.get("quantity").cloned().unwrap_or(Value::Null),
-                                amount: row
-                                    .get("amount")
-                                    .or_else(|| row.get("unitPrice"))
-                                    .cloned()
-                                    .unwrap_or(Value::Null),
-                            });
-                        }
-                    }
-                }
-            }
-            "summary" => summary = val.as_str().map(str::to_string),
+            "fields" => append_legacy_fields(val, &mut fields)?,
+            "lineItems" | "line_items" => append_line_items(val, &mut line_items)?,
+            "summary" => summary = Some(value_to_plain_string(&val)),
             _ => fields.push(GemmaField {
                 name: key,
                 value: Value::String(value_to_plain_string(&val)),
@@ -1305,11 +1296,76 @@ fn extraction_from_object(value: Value) -> GemmaExtraction {
         }
     }
 
-    GemmaExtraction {
+    Ok(GemmaExtraction {
         fields,
         line_items,
         summary,
+    })
+}
+
+fn append_legacy_fields(value: Value, fields: &mut Vec<GemmaField>) -> Result<(), String> {
+    let Value::Array(items) = value else {
+        if value.is_null() {
+            return Ok(());
+        }
+        return Err("Gemma legacy fields response must be an array.".to_string());
+    };
+
+    for item in items {
+        let Value::Object(row) = item else {
+            return Err("Gemma legacy field entries must be objects.".to_string());
+        };
+        let name = row.get("name").and_then(Value::as_str).unwrap_or("").trim();
+        if name.is_empty() {
+            return Err("Gemma legacy field entries must include a non-empty name.".to_string());
+        }
+        fields.push(GemmaField {
+            name: name.to_string(),
+            value: row.get("value").cloned().unwrap_or(Value::Null),
+        });
     }
+
+    Ok(())
+}
+
+fn append_line_items(value: Value, line_items: &mut Vec<GemmaLineItem>) -> Result<(), String> {
+    let Value::Array(items) = value else {
+        if value.is_null() {
+            return Ok(());
+        }
+        return Err("Gemma lineItems response must be an array.".to_string());
+    };
+
+    for item in items {
+        let Value::Object(row) = item else {
+            return Err("Gemma lineItems entries must be objects.".to_string());
+        };
+        line_items.push(GemmaLineItem {
+            description: row.get("description").cloned().unwrap_or(Value::Null),
+            quantity: row.get("quantity").cloned().unwrap_or(Value::Null),
+            amount: row
+                .get("amount")
+                .or_else(|| row.get("unitPrice"))
+                .cloned()
+                .unwrap_or(Value::Null),
+        });
+    }
+
+    Ok(())
+}
+
+fn fill_missing_schema_fields(kind: &str, fields: &mut Vec<GemmaField>) -> Vec<String> {
+    let mut added = Vec::new();
+    for name in document_schema_def(kind).fields {
+        if !fields.iter().any(|field| field.name == *name) {
+            fields.push(GemmaField {
+                name: (*name).to_string(),
+                value: Value::String(String::new()),
+            });
+            added.push((*name).to_string());
+        }
+    }
+    added
 }
 
 struct FieldOutcome {
@@ -1338,9 +1394,17 @@ fn validate_field(name: &str, value: &str, line_total: Option<f64>) -> FieldOutc
         // failed parse is NOT proof the value is wrong — flag it for a glance,
         // don't claim it is invalid.
         return if looks_like_date(trimmed) {
-            FieldOutcome { confidence: 0.9, needs_review: false, warning: None }
+            FieldOutcome {
+                confidence: 0.9,
+                needs_review: false,
+                warning: None,
+            }
         } else {
-            FieldOutcome { confidence: 0.6, needs_review: true, warning: None }
+            FieldOutcome {
+                confidence: 0.6,
+                needs_review: true,
+                warning: None,
+            }
         };
     }
 
@@ -1365,7 +1429,11 @@ fn validate_field(name: &str, value: &str, line_total: Option<f64>) -> FieldOutc
                 if key.contains("total") {
                     if let Some(sum) = line_total {
                         return if (amount - sum).abs() <= 0.01 {
-                            FieldOutcome { confidence: 0.99, needs_review: false, warning: None }
+                            FieldOutcome {
+                                confidence: 0.99,
+                                needs_review: false,
+                                warning: None,
+                            }
                         } else {
                             FieldOutcome {
                                 confidence: 0.5,
@@ -1377,18 +1445,28 @@ fn validate_field(name: &str, value: &str, line_total: Option<f64>) -> FieldOutc
                         };
                     }
                 }
-                FieldOutcome { confidence: 0.9, needs_review: false, warning: None }
+                FieldOutcome {
+                    confidence: 0.9,
+                    needs_review: false,
+                    warning: None,
+                }
             }
             None => FieldOutcome {
                 confidence: 0.35,
                 needs_review: true,
-                warning: Some(format!("Field '{name}' value '{trimmed}' is not a valid amount.")),
+                warning: Some(format!(
+                    "Field '{name}' value '{trimmed}' is not a valid amount."
+                )),
             },
         };
     }
 
     // Present, non-empty free text: usable, but still worth a human glance.
-    FieldOutcome { confidence: 0.75, needs_review: false, warning: None }
+    FieldOutcome {
+        confidence: 0.75,
+        needs_review: false,
+        warning: None,
+    }
 }
 
 /// Parse a printed money value (`$1,240.00`, `1 240,00`-free) into a number.
@@ -1460,8 +1538,11 @@ fn build_validated_draft(
     job: &QueueJob,
     model: &str,
     raw_text: Option<String>,
-    extraction: GemmaExtraction,
+    mut extraction: GemmaExtraction,
 ) -> ExtractionDraft {
+    let returned_no_fields = extraction.fields.is_empty();
+    let schema_placeholder_fields = fill_missing_schema_fields(&job.kind, &mut extraction.fields);
+
     let line_total = line_items_total(&extraction.line_items);
     let mut warnings = Vec::new();
     let mut fields = Vec::new();
@@ -1470,7 +1551,12 @@ fn build_validated_draft(
         let value = value_to_plain_string(&raw.value);
         let outcome = validate_field(&raw.name, &value, line_total);
         if let Some(warning) = outcome.warning {
-            warnings.push(warning);
+            if !schema_placeholder_fields
+                .iter()
+                .any(|name| name == &raw.name)
+            {
+                warnings.push(warning);
+            }
         }
         fields.push(ExtractedField {
             name: raw.name.clone(),
@@ -1481,7 +1567,7 @@ fn build_validated_draft(
         });
     }
 
-    if fields.is_empty() {
+    if returned_no_fields {
         warnings
             .push("The model returned no fields; this document needs manual review.".to_string());
     }
@@ -1843,7 +1929,10 @@ fn ollama_http(
         "{method} {path} HTTP/1.1\r\nHost: {OLLAMA_HOST}\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
         body.len()
     );
-    llm_log(format!("{method} {path} (request body {} bytes)", body.len()));
+    llm_log(format!(
+        "{method} {path} (request body {} bytes)",
+        body.len()
+    ));
     stream
         .write_all(request.as_bytes())
         .map_err(|error| format!("Failed to write Ollama request: {error}"))?;
@@ -1878,7 +1967,10 @@ fn ollama_http(
     ));
 
     if !status_line.contains(" 200 ") {
-        let preview: String = String::from_utf8_lossy(body_bytes).chars().take(300).collect();
+        let preview: String = String::from_utf8_lossy(body_bytes)
+            .chars()
+            .take(300)
+            .collect();
         return Err(format!("Ollama request failed: {status_line} — {preview}"));
     }
 
@@ -3029,8 +3121,11 @@ mod tests {
 
     #[test]
     fn build_validated_draft_reconciles_total_and_builds_table() {
-        let job = build_job(Path::new("vendor-invoice.png"), "abc1234567890def".to_string())
-            .expect("job");
+        let job = build_job(
+            Path::new("vendor-invoice.png"),
+            "abc1234567890def".to_string(),
+        )
+        .expect("job");
         let extraction = GemmaExtraction {
             fields: vec![
                 GemmaField {
@@ -3064,7 +3159,10 @@ mod tests {
             .iter()
             .find(|field| field.name == "total")
             .expect("total field");
-        assert!(total.confidence > 0.95, "reconciled total should be high confidence");
+        assert!(
+            total.confidence > 0.95,
+            "reconciled total should be high confidence"
+        );
         assert_eq!(total.needs_review, Some(false));
         assert_eq!(draft.tables.len(), 1);
         assert_eq!(draft.tables[0].rows.len(), 2);
@@ -3087,10 +3185,68 @@ mod tests {
             "summary": "Invoice"
         });
 
-        let extraction = extraction_from_object(value);
-        assert_eq!(extraction.fields.len(), 2, "summary + lineItems are not fields");
+        let extraction = extraction_from_object(value).expect("named response parses");
+        assert_eq!(
+            extraction.fields.len(),
+            2,
+            "summary + lineItems are not fields"
+        );
         assert_eq!(extraction.line_items.len(), 2);
         assert_eq!(extraction.summary.as_deref(), Some("Invoice"));
+    }
+
+    #[test]
+    fn extraction_from_object_rejects_invalid_shape() {
+        let error = extraction_from_object(json!(["not", "an", "object"]))
+            .expect_err("non-object response rejected");
+
+        assert!(error.contains("must be a JSON object"));
+    }
+
+    #[test]
+    fn extraction_from_object_supports_legacy_field_array() {
+        let value = json!({
+            "fields": [
+                { "name": "documentNumber", "value": "INV-42" },
+                { "name": "total", "value": "$30.00" }
+            ],
+            "lineItems": [
+                { "description": "A", "quantity": "1", "amount": "$30.00" }
+            ],
+            "summary": "Invoice"
+        });
+
+        let extraction = extraction_from_object(value).expect("legacy response parses");
+
+        assert_eq!(extraction.fields.len(), 2);
+        assert_eq!(extraction.fields[0].name, "documentNumber");
+        assert_eq!(value_to_plain_string(&extraction.fields[1].value), "$30.00");
+        assert_eq!(extraction.line_items.len(), 1);
+    }
+
+    #[test]
+    fn build_validated_draft_fills_missing_schema_fields_for_review() {
+        let job = build_job(
+            Path::new("vendor-invoice.png"),
+            "abc1234567890def".to_string(),
+        )
+        .expect("job");
+        let extraction = extraction_from_object(json!({
+            "documentNumber": "INV-42",
+            "total": "$30.00",
+            "summary": "Invoice"
+        }))
+        .expect("named response parses");
+
+        let draft = build_validated_draft(&job, "gemma4:e4b-it-qat", None, extraction);
+        let due_date = draft
+            .fields
+            .iter()
+            .find(|field| field.name == "dueDate")
+            .expect("missing schema field is present");
+
+        assert_eq!(due_date.value, Value::String(String::new()));
+        assert_eq!(due_date.needs_review, Some(true));
     }
 
     #[test]
