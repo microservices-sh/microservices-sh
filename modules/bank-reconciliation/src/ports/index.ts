@@ -1,9 +1,13 @@
-import type { BankAccount, BankTransaction, ReconciliationSession } from "../types";
+import type { BankAccount, BankStatementImport, BankTransaction, ReconciliationSession } from "../types";
 
 export interface BankReconciliationStore {
   insertBankAccount(account: BankAccount): Promise<void>;
   getBankAccount(tenantId: string, bankAccountId: string): Promise<BankAccount | null>;
   listBankAccounts(tenantId: string): Promise<BankAccount[]>;
+
+  insertStatementImport(statementImport: BankStatementImport): Promise<void>;
+  updateStatementImport(statementImport: BankStatementImport): Promise<void>;
+  listStatementImports(tenantId: string, bankAccountId?: string): Promise<BankStatementImport[]>;
 
   /**
    * Inserts a statement transaction and returns false when the tenant/account/hash

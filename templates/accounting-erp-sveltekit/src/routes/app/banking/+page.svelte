@@ -7,9 +7,15 @@
 
   const unmatched = $derived(data.transactions.filter((tx) => tx.matchStatus === "unmatched").length);
   const statementDelta = $derived(data.transactions.reduce((total, tx) => total + tx.amountCents, 0));
+  const latestImport = $derived(data.statementImports.at(-1));
   const metrics = $derived<Metric[]>([
     { label: "Bank accounts", value: data.accounts.length, tone: data.accounts.length > 0 ? "good" : "neutral", hint: "connected ledgers" },
-    { label: "Imported", value: data.imported?.importedCount ?? 0, tone: "info", hint: `${data.imported?.skippedDuplicateCount ?? 0} duplicates` },
+    {
+      label: "Imports",
+      value: data.statementImports.length,
+      tone: "info",
+      hint: latestImport ? `${latestImport.importedRows} rows / ${latestImport.duplicateRows} duplicates` : "history"
+    },
     { label: "Unmatched", value: unmatched, tone: unmatched > 0 ? "warn" : "good", hint: money(statementDelta) }
   ]);
 </script>
@@ -56,6 +62,26 @@
         </dl>
       {:else}
         <p class="empty">No reconciliation session.</p>
+      {/if}
+    </Card>
+
+    <Card title="Import history">
+      {#if data.statementImports.length > 0}
+        <ul class="list">
+          {#each data.statementImports as statementImport (statementImport.id)}
+            <li class="list-item row-item">
+              <div>
+                <strong>{statementImport.fileName ?? statementImport.source}</strong>
+                <p>{statementImport.importedAt ?? statementImport.createdAt} · {statementImport.totalRows} rows</p>
+              </div>
+              <Badge tone={statementImport.status === "completed" ? "good" : "warn"}>
+                {statementImport.importedRows}/{statementImport.duplicateRows}
+              </Badge>
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <p class="empty">No statement import history.</p>
       {/if}
     </Card>
   </div>

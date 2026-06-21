@@ -9,7 +9,9 @@ Tenant-scoped bank accounts, statement imports, transaction matching, and reconc
 ```ts
 import {
   createBankAccount,
+  importStatementCsv,
   importStatementTransactions,
+  listStatementImports,
   suggestMatches,
   createMatch,
   startReconciliation,
@@ -21,7 +23,9 @@ import {
 ## Core Behavior
 
 - Creates and lists tenant/org-scoped bank accounts.
-- Imports signed statement transactions in integer cents.
+- Imports mapped CSV statements into persisted import sessions.
+- Imports prepared signed statement transactions in integer cents.
+- Lists statement import history with row, duplicate, skipped, date-range, and uploader metadata.
 - Guards duplicate statement transactions by stable transaction hash per tenant and bank account.
 - Suggests matches from supplied ledger/payment candidates or an optional `MatchCandidateProvider`.
 - Creates manual, auto, or rule matches without importing accounting-core or payment code.

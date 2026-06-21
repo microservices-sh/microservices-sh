@@ -17,8 +17,18 @@
       }
     },
     "/statement-imports": {
+      "get": {
+        "summary": "List statement imports",
+        "operationId": "listStatementImports"
+      },
       "post": {
-        "summary": "Import statement transactions",
+        "summary": "Import a mapped CSV statement",
+        "operationId": "importStatementCsv"
+      }
+    },
+    "/statement-transactions/import": {
+      "post": {
+        "summary": "Import prepared statement transactions",
         "operationId": "importStatementTransactions"
       }
     },

@@ -2,6 +2,8 @@
 
 - `createBankAccount`
 - `listBankAccounts`
+- `importStatementCsv`
+- `listStatementImports`
 - `importStatementTransactions`
 - `listStatementTransactions`
 - `suggestMatches`

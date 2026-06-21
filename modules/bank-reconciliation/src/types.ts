@@ -26,6 +26,7 @@ export interface BankTransaction {
   id: string;
   tenantId: string;
   bankAccountId: string;
+  statementImportId?: string;
   transactionDate: string;
   description: string;
   amountCents: number;
@@ -42,6 +43,38 @@ export interface StatementImportResult {
   imported: BankTransaction[];
   importedCount: number;
   skippedDuplicateCount: number;
+  statementImport?: BankStatementImport;
+}
+
+export type BankStatementImportSource = "csv" | "ofx" | "qfx" | "qif" | "api";
+export type BankStatementImportStatus = "pending" | "processing" | "completed" | "failed";
+
+export interface BankStatementImportFieldMapping {
+  date: string;
+  description: string;
+  amount?: string;
+  debit?: string;
+  credit?: string;
+}
+
+export interface BankStatementImport {
+  id: string;
+  tenantId: string;
+  bankAccountId: string;
+  source: BankStatementImportSource;
+  fileName?: string;
+  totalRows: number;
+  importedRows: number;
+  skippedRows: number;
+  duplicateRows: number;
+  startDate?: string;
+  endDate?: string;
+  fieldMapping?: BankStatementImportFieldMapping;
+  status: BankStatementImportStatus;
+  errorMessage?: string;
+  importedById?: string;
+  importedAt?: string;
+  createdAt: string;
 }
 
 export type ReconciliationStatus = "in_progress" | "completed" | "abandoned";
@@ -73,4 +106,4 @@ export interface ModuleResult<T> {
   error?: { code: string; message: string };
 }
 
-export type BankReconciliationRecord = BankAccount | BankTransaction | ReconciliationSession;
+export type BankReconciliationRecord = BankAccount | BankStatementImport | BankTransaction | ReconciliationSession;

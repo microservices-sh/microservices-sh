@@ -1,5 +1,5 @@
 import type { BankReconciliationStore } from "../ports";
-import type { BankAccount, BankTransaction, ReconciliationSession } from "../types";
+import type { BankAccount, BankStatementImport, BankTransaction, ReconciliationSession } from "../types";
 
 function transactionHashKey(transaction: Pick<BankTransaction, "tenantId" | "bankAccountId" | "transactionHash">): string {
   return `${transaction.tenantId}:${transaction.bankAccountId}:${transaction.transactionHash}`;
@@ -13,12 +13,17 @@ function copyTransaction(transaction: BankTransaction): BankTransaction {
   return { ...transaction };
 }
 
+function copyStatementImport(statementImport: BankStatementImport): BankStatementImport {
+  return { ...statementImport, fieldMapping: statementImport.fieldMapping ? { ...statementImport.fieldMapping } : undefined };
+}
+
 function copyReconciliation(session: ReconciliationSession): ReconciliationSession {
   return { ...session };
 }
 
 export function createMemoryBankReconciliationStore(): BankReconciliationStore {
   const accounts = new Map<string, BankAccount>();
+  const statementImports = new Map<string, BankStatementImport>();
   const transactions = new Map<string, BankTransaction>();
   const transactionHashes = new Map<string, string>();
   const reconciliations = new Map<string, ReconciliationSession>();
@@ -35,6 +40,26 @@ export function createMemoryBankReconciliationStore(): BankReconciliationStore {
 
     async listBankAccounts(tenantId) {
       return [...accounts.values()].filter((account) => account.tenantId === tenantId).map(copyAccount);
+    },
+
+    async insertStatementImport(statementImport) {
+      statementImports.set(statementImport.id, copyStatementImport(statementImport));
+    },
+
+    async updateStatementImport(statementImport) {
+      const existing = statementImports.get(statementImport.id);
+      if (!existing || existing.tenantId !== statementImport.tenantId) return;
+      statementImports.set(statementImport.id, copyStatementImport(statementImport));
+    },
+
+    async listStatementImports(tenantId, bankAccountId) {
+      return [...statementImports.values()]
+        .filter(
+          (statementImport) =>
+            statementImport.tenantId === tenantId && (!bankAccountId || statementImport.bankAccountId === bankAccountId)
+        )
+        .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+        .map(copyStatementImport);
     },
 
     async insertTransaction(transaction) {

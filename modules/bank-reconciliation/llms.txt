@@ -8,5 +8,5 @@ Check: pnpm check:spec
 Build: pnpm build
 Test: pnpm test
 Owned tables: bank_reconciliation_accounts, bank_reconciliation_imports, bank_reconciliation_transactions, bank_reconciliation_matches, bank_reconciliation_sessions, domain_events
-Primary use cases: createBankAccount, listBankAccounts, importStatementTransactions, listStatementTransactions, suggestMatches, createMatch, startReconciliation, completeReconciliation, listReconciliations
+Primary use cases: createBankAccount, listBankAccounts, importStatementCsv, listStatementImports, importStatementTransactions, listStatementTransactions, suggestMatches, createMatch, startReconciliation, completeReconciliation, listReconciliations
 Invariants: tenant/org scoped records, integer cents, statement transaction hash idempotency, no accounting-core imports, no reconciliation completion with unmatched in-period transactions, closing balance must equal opening balance plus matched deposits minus matched withdrawals.

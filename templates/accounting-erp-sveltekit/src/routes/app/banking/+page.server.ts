@@ -18,7 +18,7 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
     ? (existingAccounts.data ?? []).find((candidate) => candidate.name === "Operating checking")
     : undefined;
   let bankAccount = existingAccount ?? (existingAccounts.ok ? (existingAccounts.data ?? [])[0] : null) ?? null;
-  let imported: Awaited<ReturnType<typeof service.importStatementTransactions>> | null = null;
+  let imported: Awaited<ReturnType<typeof service.importStatementCsv>> | null = null;
   let reconciliation: Awaited<ReturnType<typeof service.startReconciliation>> | null = null;
 
   if (seedDemoData) {
@@ -30,33 +30,30 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
       });
       bankAccount = account.ok && account.data ? account.data : null;
     }
-    imported = bankAccount
-      ? await service.importStatementTransactions(ctx, bankAccount.id, [
-          {
-            transactionDate: "2026-06-18",
-            description: "Stripe payout",
-            amountCents: 84000,
-            transactionHash: "stripe-payout-2026-06-18"
-          },
-          {
-            transactionDate: "2026-06-19",
-            description: "Cloud hosting",
-            amountCents: -12500,
-            transactionHash: "hosting-2026-06-19"
-          }
-        ])
-      : null;
+    const existingTransactions = bankAccount ? await service.listStatementTransactions(ctx, bankAccount.id) : null;
+    imported =
+      bankAccount && existingTransactions?.ok && existingTransactions.data.length === 0
+        ? await service.importStatementCsv(ctx, bankAccount.id, {
+            fileName: "operating-demo.csv",
+            fieldMapping: { date: "Date", description: "Description", amount: "Amount" },
+            csvContent: ["Date,Description,Amount", "2026-06-18,Stripe payout,840.00", "2026-06-19,Cloud hosting,-125.00"].join(
+              "\n"
+            )
+          })
+        : null;
     reconciliation = bankAccount
       ? await service.startReconciliation(ctx, bankAccount.id, "2026-06-30", 321500)
       : null;
   }
   const accounts = await service.listBankAccounts(ctx);
   const transactions = bankAccount ? await service.listStatementTransactions(ctx, bankAccount.id) : null;
+  const statementImports = bankAccount ? await service.listStatementImports(ctx, bankAccount.id) : null;
 
   return {
     status: getBankReconciliationModuleStatus(),
     accounts: accounts.ok ? accounts.data : [],
     transactions: transactions?.ok ? transactions.data : [],
+    statementImports: statementImports?.ok ? statementImports.data : [],
     imported: imported?.ok ? imported.data : null,
     reconciliation: reconciliation?.ok ? reconciliation.data : null
   };

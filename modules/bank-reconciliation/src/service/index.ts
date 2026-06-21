@@ -1,5 +1,8 @@
 import type {
   BankAccount,
+  BankStatementImport,
+  BankStatementImportFieldMapping,
+  BankStatementImportSource,
   BankTransaction,
   ModuleResult,
   ReconciliationSession,
@@ -20,9 +23,18 @@ export interface StatementTransactionInput {
   description: string;
   amountCents: number;
   transactionHash: string;
+  statementImportId?: string;
 }
 
-export type BankReconciliationIdPrefix = "bank" | "btx" | "recon";
+export interface ImportStatementCsvInput {
+  fileName?: string;
+  source?: BankStatementImportSource;
+  fieldMapping: BankStatementImportFieldMapping;
+  csvContent: string;
+  importedById?: string;
+}
+
+export type BankReconciliationIdPrefix = "bank" | "bimp" | "btx" | "recon";
 export type BankReconciliationIdFactory = (prefix: BankReconciliationIdPrefix) => string;
 
 export interface BankReconciliationServiceDeps {
@@ -38,6 +50,12 @@ export interface BankReconciliationService {
     bankAccountId: string,
     rows: StatementTransactionInput[]
   ): Promise<ModuleResult<StatementImportResult>>;
+  importStatementCsv(
+    ctx: TenantContext,
+    bankAccountId: string,
+    input: ImportStatementCsvInput
+  ): Promise<ModuleResult<StatementImportResult>>;
+  listStatementImports(ctx: TenantContext, bankAccountId?: string): Promise<ModuleResult<BankStatementImport[]>>;
   listStatementTransactions(ctx: TenantContext, bankAccountId: string): Promise<ModuleResult<BankTransaction[]>>;
   matchTransaction(ctx: TenantContext, transactionId: string, ledgerReferenceId: string): Promise<ModuleResult<BankTransaction>>;
   startReconciliation(
@@ -66,7 +84,7 @@ function id(prefix: string, sequence: number): string {
 }
 
 export function createSequentialBankReconciliationIdFactory(): BankReconciliationIdFactory {
-  const sequences: Record<BankReconciliationIdPrefix, number> = { bank: 0, btx: 0, recon: 0 };
+  const sequences: Record<BankReconciliationIdPrefix, number> = { bank: 0, bimp: 0, btx: 0, recon: 0 };
   return (prefix) => id(prefix, ++sequences[prefix]);
 }
 
@@ -91,8 +109,177 @@ function calculateClearedTotals(account: BankAccount, transactions: BankTransact
   };
 }
 
+interface ParsedCsvImportRows {
+  rows: StatementTransactionInput[];
+  skippedRows: number;
+  totalRows: number;
+  startDate?: string;
+  endDate?: string;
+}
+
+function stableHash(input: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < input.length; index += 1) {
+    hash ^= input.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function normalizeHeader(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function parseCsv(content: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let quoted = false;
+
+  for (let index = 0; index < content.length; index += 1) {
+    const char = content[index];
+    if (quoted) {
+      if (char === "\"" && content[index + 1] === "\"") {
+        field += "\"";
+        index += 1;
+      } else if (char === "\"") {
+        quoted = false;
+      } else {
+        field += char;
+      }
+      continue;
+    }
+
+    if (char === "\"") {
+      quoted = true;
+    } else if (char === ",") {
+      row.push(field);
+      field = "";
+    } else if (char === "\n") {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+    } else if (char !== "\r") {
+      field += char;
+    }
+  }
+
+  row.push(field);
+  rows.push(row);
+  return rows.filter((csvRow) => csvRow.some((value) => value.trim().length > 0));
+}
+
+function parseDate(value: string): string | null {
+  const trimmed = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+  const slashDate = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!slashDate) return null;
+  const [, month, day, year] = slashDate;
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+}
+
+function parseMoneyCents(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return 0;
+  const compact = trimmed.replace(/[$,\s]/g, "");
+  const negative = compact.startsWith("-") || (compact.startsWith("(") && compact.endsWith(")"));
+  const unsigned = compact.replace(/[()]/g, "").replace(/^[+-]/, "");
+  const amount = Number(unsigned);
+  if (!Number.isFinite(amount)) return null;
+  const cents = Math.round(amount * 100);
+  return negative ? -cents : cents;
+}
+
+function fieldValue(valuesByHeader: Map<string, string>, header: string | undefined): string {
+  if (!header) return "";
+  return valuesByHeader.get(normalizeHeader(header)) ?? "";
+}
+
+function mapCsvRows(csvContent: string, mapping: BankStatementImportFieldMapping): ModuleResult<ParsedCsvImportRows> {
+  if (!mapping.amount && (!mapping.debit || !mapping.credit)) {
+    return fail("field_mapping_amount_required", "CSV mapping must include amount or both debit and credit fields.");
+  }
+
+  const csvRows = parseCsv(csvContent);
+  if (csvRows.length < 2) return fail("csv_empty", "CSV content must include a header row and at least one transaction row.");
+
+  const headers = csvRows[0].map((header) => header.trim());
+  const headerSet = new Set(headers.map(normalizeHeader));
+  const requiredHeaders = [mapping.date, mapping.description, mapping.amount, mapping.debit, mapping.credit].filter(
+    (header): header is string => Boolean(header)
+  );
+  const missingHeader = requiredHeaders.find((header) => !headerSet.has(normalizeHeader(header)));
+  if (missingHeader) return fail("field_mapping_missing_header", `CSV header is missing mapped field: ${missingHeader}.`);
+
+  const rows: StatementTransactionInput[] = [];
+  let skippedRows = 0;
+  let startDate: string | undefined;
+  let endDate: string | undefined;
+
+  for (const csvRow of csvRows.slice(1)) {
+    const valuesByHeader = new Map<string, string>();
+    headers.forEach((header, index) => valuesByHeader.set(normalizeHeader(header), csvRow[index]?.trim() ?? ""));
+
+    const transactionDate = parseDate(fieldValue(valuesByHeader, mapping.date));
+    const description = fieldValue(valuesByHeader, mapping.description).trim();
+    let amountCents: number | null;
+    if (mapping.amount) {
+      amountCents = parseMoneyCents(fieldValue(valuesByHeader, mapping.amount));
+    } else {
+      const creditCents = parseMoneyCents(fieldValue(valuesByHeader, mapping.credit));
+      const debitCents = parseMoneyCents(fieldValue(valuesByHeader, mapping.debit));
+      amountCents = creditCents == null || debitCents == null ? null : creditCents - debitCents;
+    }
+
+    if (!transactionDate || !description || amountCents == null || amountCents === 0) {
+      skippedRows += 1;
+      continue;
+    }
+
+    startDate = startDate && startDate < transactionDate ? startDate : transactionDate;
+    endDate = endDate && endDate > transactionDate ? endDate : transactionDate;
+    rows.push({
+      transactionDate,
+      description,
+      amountCents,
+      transactionHash: stableHash(`${transactionDate}|${description.toLowerCase()}|${amountCents}`)
+    });
+  }
+
+  return ok({ rows, skippedRows, totalRows: csvRows.length - 1, startDate, endDate });
+}
+
 export function createBankReconciliationService(deps: BankReconciliationServiceDeps): BankReconciliationService {
   const createId = deps.createId ?? defaultId;
+
+  async function insertStatementRows(ctx: TenantContext, bankAccountId: string, rows: StatementTransactionInput[]): Promise<StatementImportResult> {
+    const imported: BankTransaction[] = [];
+    let skippedDuplicateCount = 0;
+    for (const row of rows) {
+      const transaction: BankTransaction = {
+        id: createId("btx"),
+        tenantId: ctx.tenantId,
+        bankAccountId,
+        statementImportId: row.statementImportId,
+        transactionDate: row.transactionDate,
+        description: row.description,
+        amountCents: row.amountCents,
+        transactionHash: row.transactionHash,
+        matchStatus: "unmatched",
+        reconciled: false,
+        createdAt: now(ctx)
+      };
+      const inserted = await deps.store.insertTransaction(transaction);
+      if (!inserted) {
+        skippedDuplicateCount += 1;
+        continue;
+      }
+      imported.push(transaction);
+    }
+
+    return { imported, importedCount: imported.length, skippedDuplicateCount };
+  }
 
   return {
     async createBankAccount(ctx, input) {
@@ -121,30 +308,62 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
       const account = await deps.store.getBankAccount(ctx.tenantId, bankAccountId);
       if (!account) return fail("bank_account_not_found", "Bank account not found.");
 
-      const imported: BankTransaction[] = [];
-      let skippedDuplicateCount = 0;
-      for (const row of rows) {
-        const transaction: BankTransaction = {
-          id: createId("btx"),
-          tenantId: ctx.tenantId,
-          bankAccountId,
-          transactionDate: row.transactionDate,
-          description: row.description,
-          amountCents: row.amountCents,
-          transactionHash: row.transactionHash,
-          matchStatus: "unmatched",
-          reconciled: false,
-          createdAt: now(ctx)
+      return ok(await insertStatementRows(ctx, bankAccountId, rows));
+    },
+
+    async importStatementCsv(ctx, bankAccountId, input) {
+      const account = await deps.store.getBankAccount(ctx.tenantId, bankAccountId);
+      if (!account) return fail("bank_account_not_found", "Bank account not found.");
+
+      const createdAt = now(ctx);
+      const statementImport: BankStatementImport = {
+        id: createId("bimp"),
+        tenantId: ctx.tenantId,
+        bankAccountId,
+        source: input.source ?? "csv",
+        fileName: input.fileName,
+        totalRows: 0,
+        importedRows: 0,
+        skippedRows: 0,
+        duplicateRows: 0,
+        fieldMapping: input.fieldMapping,
+        status: "processing",
+        importedById: input.importedById ?? ctx.actorId,
+        createdAt
+      };
+      await deps.store.insertStatementImport(statementImport);
+
+      const parsed = mapCsvRows(input.csvContent, input.fieldMapping);
+      if (!parsed.ok || !parsed.data) {
+        const failedImport: BankStatementImport = {
+          ...statementImport,
+          status: "failed",
+          errorMessage: parsed.error?.message ?? "CSV import failed.",
+          importedAt: now(ctx)
         };
-        const inserted = await deps.store.insertTransaction(transaction);
-        if (!inserted) {
-          skippedDuplicateCount += 1;
-          continue;
-        }
-        imported.push(transaction);
+        await deps.store.updateStatementImport(failedImport);
+        return fail(parsed.error?.code ?? "csv_import_failed", parsed.error?.message ?? "CSV import failed.");
       }
 
-      return ok({ imported, importedCount: imported.length, skippedDuplicateCount });
+      const rows = parsed.data.rows.map((row) => ({ ...row, statementImportId: statementImport.id }));
+      const result = await insertStatementRows(ctx, bankAccountId, rows);
+      const completedImport: BankStatementImport = {
+        ...statementImport,
+        totalRows: parsed.data.totalRows,
+        importedRows: result.importedCount,
+        skippedRows: parsed.data.skippedRows,
+        duplicateRows: result.skippedDuplicateCount,
+        startDate: parsed.data.startDate,
+        endDate: parsed.data.endDate,
+        status: "completed",
+        importedAt: now(ctx)
+      };
+      await deps.store.updateStatementImport(completedImport);
+      return ok({ ...result, statementImport: completedImport });
+    },
+
+    async listStatementImports(ctx, bankAccountId) {
+      return ok(await deps.store.listStatementImports(ctx.tenantId, bankAccountId));
     },
 
     async listStatementTransactions(ctx, bankAccountId) {
@@ -233,12 +452,49 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
 
 export function createBankReconciliationMemoryService() {
   const accounts = new Map<string, BankAccount>();
+  const statementImports = new Map<string, BankStatementImport>();
   const transactions = new Map<string, BankTransaction>();
   const transactionHashes = new Set<string>();
   const reconciliations = new Map<string, ReconciliationSession>();
   let accountSequence = 0;
+  let statementImportSequence = 0;
   let transactionSequence = 0;
   let reconciliationSequence = 0;
+
+  function importMemoryStatementRows(
+    ctx: TenantContext,
+    bankAccountId: string,
+    rows: StatementTransactionInput[]
+  ): ModuleResult<StatementImportResult> {
+    const account = accounts.get(bankAccountId);
+    if (!account || account.tenantId !== ctx.tenantId) return fail("bank_account_not_found", "Bank account not found.");
+    const imported: BankTransaction[] = [];
+    let skippedDuplicateCount = 0;
+    for (const row of rows) {
+      const hashKey = `${ctx.tenantId}:${bankAccountId}:${row.transactionHash}`;
+      if (transactionHashes.has(hashKey)) {
+        skippedDuplicateCount += 1;
+        continue;
+      }
+      const transaction: BankTransaction = {
+        id: id("btx", ++transactionSequence),
+        tenantId: ctx.tenantId,
+        bankAccountId,
+        statementImportId: row.statementImportId,
+        transactionDate: row.transactionDate,
+        description: row.description,
+        amountCents: row.amountCents,
+        transactionHash: row.transactionHash,
+        matchStatus: "unmatched",
+        reconciled: false,
+        createdAt: now(ctx)
+      };
+      transactionHashes.add(hashKey);
+      transactions.set(transaction.id, transaction);
+      imported.push(transaction);
+    }
+    return ok({ imported, importedCount: imported.length, skippedDuplicateCount });
+  }
 
   return {
     createBankAccount(ctx: TenantContext, input: CreateBankAccountInput): ModuleResult<BankAccount> {
@@ -264,33 +520,72 @@ export function createBankReconciliationMemoryService() {
     },
 
     importStatementTransactions(ctx: TenantContext, bankAccountId: string, rows: StatementTransactionInput[]): ModuleResult<StatementImportResult> {
+      return importMemoryStatementRows(ctx, bankAccountId, rows);
+    },
+
+    importStatementCsv(ctx: TenantContext, bankAccountId: string, input: ImportStatementCsvInput): ModuleResult<StatementImportResult> {
       const account = accounts.get(bankAccountId);
       if (!account || account.tenantId !== ctx.tenantId) return fail("bank_account_not_found", "Bank account not found.");
-      const imported: BankTransaction[] = [];
-      let skippedDuplicateCount = 0;
-      for (const row of rows) {
-        const hashKey = `${ctx.tenantId}:${bankAccountId}:${row.transactionHash}`;
-        if (transactionHashes.has(hashKey)) {
-          skippedDuplicateCount += 1;
-          continue;
-        }
-        const transaction: BankTransaction = {
-          id: id("btx", ++transactionSequence),
-          tenantId: ctx.tenantId,
-          bankAccountId,
-          transactionDate: row.transactionDate,
-          description: row.description,
-          amountCents: row.amountCents,
-          transactionHash: row.transactionHash,
-          matchStatus: "unmatched",
-          reconciled: false,
-          createdAt: now(ctx)
+
+      const createdAt = now(ctx);
+      const statementImport: BankStatementImport = {
+        id: id("bimp", ++statementImportSequence),
+        tenantId: ctx.tenantId,
+        bankAccountId,
+        source: input.source ?? "csv",
+        fileName: input.fileName,
+        totalRows: 0,
+        importedRows: 0,
+        skippedRows: 0,
+        duplicateRows: 0,
+        fieldMapping: input.fieldMapping,
+        status: "processing",
+        importedById: input.importedById ?? ctx.actorId,
+        createdAt
+      };
+      statementImports.set(statementImport.id, statementImport);
+
+      const parsed = mapCsvRows(input.csvContent, input.fieldMapping);
+      if (!parsed.ok || !parsed.data) {
+        const failedImport: BankStatementImport = {
+          ...statementImport,
+          status: "failed",
+          errorMessage: parsed.error?.message ?? "CSV import failed.",
+          importedAt: now(ctx)
         };
-        transactionHashes.add(hashKey);
-        transactions.set(transaction.id, transaction);
-        imported.push(transaction);
+        statementImports.set(failedImport.id, failedImport);
+        return fail(parsed.error?.code ?? "csv_import_failed", parsed.error?.message ?? "CSV import failed.");
       }
-      return ok({ imported, importedCount: imported.length, skippedDuplicateCount });
+
+      const imported = importMemoryStatementRows(
+        ctx,
+        bankAccountId,
+        parsed.data.rows.map((row) => ({ ...row, statementImportId: statementImport.id }))
+      );
+      const completedImport: BankStatementImport = {
+        ...statementImport,
+        totalRows: parsed.data.totalRows,
+        importedRows: imported.data?.importedCount ?? 0,
+        skippedRows: parsed.data.skippedRows,
+        duplicateRows: imported.data?.skippedDuplicateCount ?? 0,
+        startDate: parsed.data.startDate,
+        endDate: parsed.data.endDate,
+        status: "completed",
+        importedAt: now(ctx)
+      };
+      statementImports.set(completedImport.id, completedImport);
+      return ok({ ...(imported.data ?? { imported: [], importedCount: 0, skippedDuplicateCount: 0 }), statementImport: completedImport });
+    },
+
+    listStatementImports(ctx: TenantContext, bankAccountId?: string): ModuleResult<BankStatementImport[]> {
+      return ok(
+        [...statementImports.values()]
+          .filter(
+            (statementImport) =>
+              statementImport.tenantId === ctx.tenantId && (!bankAccountId || statementImport.bankAccountId === bankAccountId)
+          )
+          .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+      );
     },
 
     listStatementTransactions(ctx: TenantContext, bankAccountId: string): ModuleResult<BankTransaction[]> {

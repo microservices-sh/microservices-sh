@@ -61,8 +61,21 @@ export const statementTransactionInputSchema = z.object({
   checkNumber: nullableText,
   referenceNumber: nullableText,
   amountCents: z.number().int().refine((value) => value !== 0, "amountCents must be non-zero"),
+  transactionHash: z.string().min(1).optional(),
   transactionType: statementTransactionTypeSchema.optional()
 });
+
+export const statementImportFieldMappingSchema = z
+  .object({
+    date: z.string().min(1),
+    description: z.string().min(1),
+    amount: z.string().min(1).optional(),
+    debit: z.string().min(1).optional(),
+    credit: z.string().min(1).optional()
+  })
+  .refine((mapping) => Boolean(mapping.amount || (mapping.debit && mapping.credit)), {
+    message: "CSV mapping must include amount or both debit and credit fields."
+  });
 
 export const importStatementTransactionsSchema = z.object({
   tenantId: z.string().min(1),
@@ -76,6 +89,17 @@ export const importStatementTransactionsSchema = z.object({
   fieldMapping: z.record(z.string(), z.string()).nullable().optional(),
   importedById: nullableText,
   transactions: z.array(statementTransactionInputSchema).min(1)
+});
+
+export const importStatementCsvSchema = z.object({
+  tenantId: z.string().min(1),
+  orgId: z.string().nullable().optional(),
+  bankAccountId: z.string().min(1),
+  source: statementImportSourceSchema.default("csv"),
+  fileName: nullableText,
+  importedById: nullableText,
+  fieldMapping: statementImportFieldMappingSchema,
+  csvContent: z.string().min(1)
 });
 
 export const statementTransactionFilterSchema = z.object({

@@ -1,6 +1,10 @@
 import type { BankReconciliationStore } from "../ports";
 import type {
   BankAccount,
+  BankStatementImport,
+  BankStatementImportFieldMapping,
+  BankStatementImportSource,
+  BankStatementImportStatus,
   BankTransaction,
   BankTransactionMatchStatus,
   ReconciliationSession,
@@ -8,10 +12,30 @@ import type {
 } from "../types";
 
 const ACCOUNT_COLS = "id, tenant_id, name, bank_name, currency, opening_balance_cents, active, created_at, updated_at";
+const IMPORT_COLS = `
+  id,
+  tenant_id,
+  bank_account_id,
+  source,
+  file_name,
+  total_rows,
+  imported_rows,
+  skipped_rows,
+  duplicate_rows,
+  start_date,
+  end_date,
+  field_mapping,
+  status,
+  error_message,
+  imported_by_id,
+  imported_at,
+  created_at
+`;
 const TX_SELECT = `
   tx.id,
   tx.tenant_id,
   tx.bank_account_id,
+  tx.statement_import_id,
   tx.transaction_date,
   tx.description,
   tx.amount_cents,
@@ -74,11 +98,51 @@ function toBankAccount(row: Record<string, unknown>): BankAccount {
   };
 }
 
+function parseFieldMapping(value: unknown): BankStatementImportFieldMapping | undefined {
+  if (value == null) return undefined;
+  try {
+    const parsed = JSON.parse(String(value)) as Partial<BankStatementImportFieldMapping>;
+    if (!parsed.date || !parsed.description) return undefined;
+    return {
+      date: String(parsed.date),
+      description: String(parsed.description),
+      amount: optionalString(parsed.amount),
+      debit: optionalString(parsed.debit),
+      credit: optionalString(parsed.credit)
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+function toStatementImport(row: Record<string, unknown>): BankStatementImport {
+  return {
+    id: String(row.id),
+    tenantId: String(row.tenant_id),
+    bankAccountId: String(row.bank_account_id),
+    source: String(row.source) as BankStatementImportSource,
+    fileName: optionalString(row.file_name),
+    totalRows: Number(row.total_rows ?? 0),
+    importedRows: Number(row.imported_rows ?? 0),
+    skippedRows: Number(row.skipped_rows ?? 0),
+    duplicateRows: Number(row.duplicate_rows ?? 0),
+    startDate: optionalString(row.start_date),
+    endDate: optionalString(row.end_date),
+    fieldMapping: parseFieldMapping(row.field_mapping),
+    status: String(row.status) as BankStatementImportStatus,
+    errorMessage: optionalString(row.error_message),
+    importedById: optionalString(row.imported_by_id),
+    importedAt: optionalString(row.imported_at),
+    createdAt: String(row.created_at)
+  };
+}
+
 function toBankTransaction(row: Record<string, unknown>): BankTransaction {
   return {
     id: String(row.id),
     tenantId: String(row.tenant_id),
     bankAccountId: String(row.bank_account_id),
+    statementImportId: optionalString(row.statement_import_id),
     transactionDate: String(row.transaction_date),
     description: String(row.description),
     amountCents: Number(row.amount_cents),
@@ -189,6 +253,92 @@ export function createD1BankReconciliationStore(db: D1Database): BankReconciliat
       return (result.results ?? []).map(toBankAccount);
     },
 
+    async insertStatementImport(statementImport) {
+      await db
+        .prepare(
+          `INSERT INTO bank_reconciliation_imports (${IMPORT_COLS})
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(
+          statementImport.id,
+          statementImport.tenantId,
+          statementImport.bankAccountId,
+          statementImport.source,
+          statementImport.fileName ?? null,
+          statementImport.totalRows,
+          statementImport.importedRows,
+          statementImport.skippedRows,
+          statementImport.duplicateRows,
+          statementImport.startDate ?? null,
+          statementImport.endDate ?? null,
+          statementImport.fieldMapping ? JSON.stringify(statementImport.fieldMapping) : null,
+          statementImport.status,
+          statementImport.errorMessage ?? null,
+          statementImport.importedById ?? null,
+          statementImport.importedAt ?? null,
+          statementImport.createdAt
+        )
+        .run();
+    },
+
+    async updateStatementImport(statementImport) {
+      await db
+        .prepare(
+          `UPDATE bank_reconciliation_imports
+           SET total_rows = ?,
+               imported_rows = ?,
+               skipped_rows = ?,
+               duplicate_rows = ?,
+               start_date = ?,
+               end_date = ?,
+               field_mapping = ?,
+               status = ?,
+               error_message = ?,
+               imported_by_id = ?,
+               imported_at = ?
+           WHERE tenant_id = ? AND id = ?`
+        )
+        .bind(
+          statementImport.totalRows,
+          statementImport.importedRows,
+          statementImport.skippedRows,
+          statementImport.duplicateRows,
+          statementImport.startDate ?? null,
+          statementImport.endDate ?? null,
+          statementImport.fieldMapping ? JSON.stringify(statementImport.fieldMapping) : null,
+          statementImport.status,
+          statementImport.errorMessage ?? null,
+          statementImport.importedById ?? null,
+          statementImport.importedAt ?? null,
+          statementImport.tenantId,
+          statementImport.id
+        )
+        .run();
+    },
+
+    async listStatementImports(tenantId, bankAccountId) {
+      const result = bankAccountId
+        ? await db
+            .prepare(
+              `SELECT ${IMPORT_COLS}
+               FROM bank_reconciliation_imports
+               WHERE tenant_id = ? AND bank_account_id = ?
+               ORDER BY created_at ASC`
+            )
+            .bind(tenantId, bankAccountId)
+            .all<Record<string, unknown>>()
+        : await db
+            .prepare(
+              `SELECT ${IMPORT_COLS}
+               FROM bank_reconciliation_imports
+               WHERE tenant_id = ?
+               ORDER BY created_at ASC`
+            )
+            .bind(tenantId)
+            .all<Record<string, unknown>>();
+      return (result.results ?? []).map(toStatementImport);
+    },
+
     async insertTransaction(transaction) {
       try {
         await db
@@ -197,6 +347,7 @@ export function createD1BankReconciliationStore(db: D1Database): BankReconciliat
               id,
               tenant_id,
               bank_account_id,
+              statement_import_id,
               transaction_date,
               description,
               amount_cents,
@@ -207,12 +358,13 @@ export function createD1BankReconciliationStore(db: D1Database): BankReconciliat
               reconciliation_id,
               created_at,
               updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
           .bind(
             transaction.id,
             transaction.tenantId,
             transaction.bankAccountId,
+            transaction.statementImportId ?? null,
             transaction.transactionDate,
             transaction.description,
             transaction.amountCents,

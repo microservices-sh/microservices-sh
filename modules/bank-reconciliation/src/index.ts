@@ -19,12 +19,17 @@ export type {
   BankReconciliationService,
   BankReconciliationServiceDeps,
   CreateBankAccountInput,
+  ImportStatementCsvInput,
   StatementTransactionInput
 } from "./service";
 export type {
   BankAccount,
   BankReconciliationConfig,
   BankReconciliationRecord,
+  BankStatementImport,
+  BankStatementImportFieldMapping,
+  BankStatementImportSource,
+  BankStatementImportStatus,
   BankTransaction,
   BankTransactionMatchStatus,
   ModuleResult,
