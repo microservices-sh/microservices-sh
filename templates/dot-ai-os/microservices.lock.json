@@ -131,10 +131,17 @@
           { "method": "createTicket", "scope": "support.manage", "public": false },
           { "method": "getTicket", "scope": "support.read", "public": false },
           { "method": "listTickets", "scope": "support.read", "public": false },
-          { "method": "updateTicket", "scope": "support.manage", "public": false }
+          { "method": "updateTicket", "scope": "support.manage", "public": false },
+          { "method": "addTicketComment", "scope": "support.manage", "public": false },
+          { "method": "listTicketThread", "scope": "support.read", "public": false },
+          { "method": "attachTicketFile", "scope": "support.manage", "public": false },
+          { "method": "createTicketShareToken", "scope": "support.manage", "public": false },
+          { "method": "listTicketShareTokens", "scope": "support.read", "public": false },
+          { "method": "revokeTicketShareToken", "scope": "support.manage", "public": false },
+          { "method": "resolveTicketShareToken", "scope": "public-token", "public": true }
         ],
         "hooks": ["beforeTicketCreate", "afterTicketUpdated"],
-        "events": ["support-ticket.created", "support-ticket.updated", "support-ticket.status_changed"],
+        "events": ["support-ticket.created", "support-ticket.updated", "support-ticket.status_changed", "support-ticket.comment.created", "support-ticket.attachment.attached", "support-ticket.share-token.created", "support-ticket.share-token.revoked"],
         "requires": []
       }
     },
