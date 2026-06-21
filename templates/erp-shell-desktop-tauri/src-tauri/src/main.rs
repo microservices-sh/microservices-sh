@@ -1249,6 +1249,13 @@ fn ollama_generate_with_images(
         );
     }
 
+    let total_b64: usize = images.iter().map(String::len).sum();
+    llm_log(format!(
+        "vision extract: model={model} pages={} image_b64={total_b64}B doc={}",
+        images.len(),
+        job.name
+    ));
+
     let prompt = gemma_image_prompt(job);
     let body = json!({
         "model": model,
@@ -1258,14 +1265,23 @@ fn ollama_generate_with_images(
         "format": "json",
         "options": { "temperature": 0 }
     });
+    let started = Instant::now();
     let response = ollama_http(
         "POST",
         "/api/generate",
         Some(&body.to_string()),
         Duration::from_secs(120),
     )?;
-    let json = serde_json::from_str::<Value>(&response)
-        .map_err(|error| format!("Ollama returned invalid JSON: {error}"))?;
+    llm_log(format!(
+        "vision extract: {} response bytes in {} ms",
+        response.len(),
+        started.elapsed().as_millis()
+    ));
+
+    let json = serde_json::from_str::<Value>(&response).map_err(|error| {
+        let preview: String = response.chars().take(200).collect();
+        format!("Ollama returned invalid JSON: {error} (body starts: {preview:?})")
+    })?;
 
     json.get("response")
         .and_then(Value::as_str)
@@ -1318,6 +1334,13 @@ fn base64_encode(bytes: &[u8]) -> String {
     output
 }
 
+/// Lightweight stderr logging for the local LLM path. Visible in `cargo run`,
+/// the headless `extract` subcommand, and `tauri dev` consoles; a no-op cost in
+/// a bundled release (stderr is just not surfaced).
+fn llm_log(message: impl AsRef<str>) {
+    eprintln!("[llm] {}", message.as_ref());
+}
+
 fn ollama_http(
     method: &str,
     path: &str,
@@ -1343,23 +1366,82 @@ fn ollama_http(
         "{method} {path} HTTP/1.1\r\nHost: {OLLAMA_HOST}\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
         body.len()
     );
+    llm_log(format!("{method} {path} (request body {} bytes)", body.len()));
     stream
         .write_all(request.as_bytes())
         .map_err(|error| format!("Failed to write Ollama request: {error}"))?;
 
-    let mut response = String::new();
+    // Read raw bytes (not a UTF-8 String) so a chunked body's framing is decoded
+    // byte-exactly before we ever try to treat it as text/JSON.
+    let mut raw = Vec::new();
     stream
-        .read_to_string(&mut response)
+        .read_to_end(&mut raw)
         .map_err(|error| format!("Failed to read Ollama response: {error}"))?;
-    let (headers, payload) = response
-        .split_once("\r\n\r\n")
-        .ok_or_else(|| "Ollama response was malformed.".to_string())?;
-    let status = headers.lines().next().unwrap_or_default();
-    if !status.contains(" 200 ") {
-        return Err(format!("Ollama request failed: {status}"));
+
+    let separator = b"\r\n\r\n";
+    let split_at = raw
+        .windows(separator.len())
+        .position(|window| window == separator)
+        .ok_or_else(|| "Ollama response was malformed (no header terminator).".to_string())?;
+    let header_text = String::from_utf8_lossy(&raw[..split_at]);
+    let body_bytes = &raw[split_at + separator.len()..];
+
+    let status_line = header_text.lines().next().unwrap_or_default();
+    // Ollama's /api/generate streams its body with Transfer-Encoding: chunked
+    // even when stream=false, so the body is `<hex-size>\r\n<bytes>\r\n...0\r\n\r\n`.
+    // Feeding that straight to serde_json fails at column 1 on the size prefix.
+    let chunked = header_text.lines().any(|line| {
+        let lower = line.to_ascii_lowercase();
+        lower.starts_with("transfer-encoding:") && lower.contains("chunked")
+    });
+    llm_log(format!(
+        "{path} -> {status_line} | {} | {} raw body bytes",
+        if chunked { "chunked" } else { "content-length" },
+        body_bytes.len()
+    ));
+
+    if !status_line.contains(" 200 ") {
+        let preview: String = String::from_utf8_lossy(body_bytes).chars().take(300).collect();
+        return Err(format!("Ollama request failed: {status_line} — {preview}"));
     }
 
-    Ok(payload.to_string())
+    let payload = if chunked {
+        decode_chunked(body_bytes)?
+    } else {
+        body_bytes.to_vec()
+    };
+    Ok(String::from_utf8_lossy(&payload).into_owned())
+}
+
+/// Minimal HTTP/1.1 chunked transfer-encoding decoder: concatenate each
+/// `<hex-size>\r\n<size bytes>\r\n` chunk until the terminating zero-size chunk.
+fn decode_chunked(mut data: &[u8]) -> Result<Vec<u8>, String> {
+    let mut out = Vec::new();
+    loop {
+        let line_end = data
+            .windows(2)
+            .position(|window| window == b"\r\n")
+            .ok_or_else(|| "Chunked response ended before a size line.".to_string())?;
+        let size_field = String::from_utf8_lossy(&data[..line_end]);
+        // A chunk size line may carry `;extensions`; only the hex size matters.
+        let size_hex = size_field.split(';').next().unwrap_or("").trim();
+        let size = usize::from_str_radix(size_hex, 16).map_err(|error| {
+            format!("Chunked response had an invalid size '{size_hex}': {error}")
+        })?;
+        data = &data[line_end + 2..];
+        if size == 0 {
+            break;
+        }
+        if data.len() < size {
+            return Err("Chunked response was truncated before a chunk completed.".to_string());
+        }
+        out.extend_from_slice(&data[..size]);
+        data = &data[size..];
+        if data.starts_with(b"\r\n") {
+            data = &data[2..];
+        }
+    }
+    Ok(out)
 }
 
 fn parse_json_object(text: &str) -> Result<Value, String> {
@@ -2002,8 +2084,20 @@ fn sample_draft(
 fn extract_path_headless(path: &Path, model: &str) -> Result<ExtractionDraft, String> {
     let hash = hash_file(path)?;
     let job = build_job(path, hash)?;
+    llm_log(format!(
+        "headless extract: {} (kind={}, model={model})",
+        path.display(),
+        job.kind
+    ));
     match normalize_with_gemma_images(&job, path, model)? {
-        Some(draft) => Ok(draft),
+        Some(draft) => {
+            llm_log(format!(
+                "headless extract: produced {} field(s), confidence {:.2}",
+                draft.fields.len(),
+                draft.confidence
+            ));
+            Ok(draft)
+        }
         None => Err(format!(
             "Gemma model '{model}' is not available. Start Ollama and run `ollama pull {model}` before extracting."
         )),
@@ -2377,6 +2471,28 @@ mod tests {
 
         let error = document_image_pages(&path).expect_err("unsupported type rejected");
         assert!(error.contains("not a supported document type"));
+    }
+
+    #[test]
+    fn decode_chunked_reassembles_streamed_body() {
+        // Ollama's /api/generate returns its JSON body chunked even with
+        // stream=false; the decoder must drop the size lines and concatenate
+        // the data across multiple chunks.
+        let raw = b"f\r\n{\"response\":\"he\r\nb\r\nllo world\"}\r\n0\r\n\r\n";
+        let decoded = decode_chunked(raw).expect("decode chunked body");
+        assert_eq!(
+            String::from_utf8(decoded).expect("utf8"),
+            "{\"response\":\"hello world\"}"
+        );
+    }
+
+    #[test]
+    fn decode_chunked_handles_single_chunk() {
+        let raw = b"5\r\nhello\r\n0\r\n\r\n";
+        assert_eq!(
+            String::from_utf8(decode_chunked(raw).expect("decode")).expect("utf8"),
+            "hello"
+        );
     }
 
     // Live end-to-end check against a real local Gemma vision model. Skipped by

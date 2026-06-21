@@ -97,6 +97,8 @@
   let settingsMessage = "Runtime settings are local to this desktop app.";
   let modelTest: ModelProbeResult | null = null;
   let modelTestMessage = "Run a model test after changing the selected Gemma tag.";
+  // Live local-LLM telemetry shown in the bottom status bar (last LLM event).
+  let llmActivity: string | null = null;
   let importMessage = "Select a folder to create local draft jobs.";
   let erpSubmitMessage = "Approved drafts submit to the remote ERP database. Local storage remains draft-only.";
   let metrics: Metric[] = [];
@@ -416,6 +418,8 @@
     extractingJobId = job.id;
     selectedJobId = job.id;
     importMessage = `Extracting ${job.name}`;
+    llmActivity = `⏳ Reading ${job.name} with ${settingsDraftModel}…`;
+    const startedAt = Date.now();
 
     try {
       const result = await extractDocument(job.id);
@@ -423,10 +427,12 @@
       selectedDraft = result.draft;
       erpImport = { ...erpImport, pendingDrafts: approvedImportCount(), importedDrafts: importedDraftCount };
       importMessage = `${result.job.name} converted to a review draft`;
+      llmActivity = `✓ ${result.job.name} → ${result.draft.fields.length} fields · ${confidenceLabel(result.draft.confidence)} · ${Date.now() - startedAt} ms`;
       runtime = await getRuntimeStatus();
       navigateToPage("#review");
     } catch (error) {
       importMessage = error instanceof Error ? error.message : "Extraction failed";
+      llmActivity = `✕ ${job.name}: ${error instanceof Error ? error.message : "extraction failed"}`;
     } finally {
       extractingJobId = null;
     }
@@ -590,14 +596,17 @@
   async function installSelectedModel() {
     installingModel = true;
     settingsMessage = `Installing ${settingsDraftModel}`;
+    llmActivity = `⏳ Pulling ${settingsDraftModel} via Ollama…`;
 
     try {
       const result = await installGemmaModel(settingsDraftModel);
       applyRuntimeSettings(result.settings);
       runtime = await getRuntimeStatus();
       settingsMessage = `${result.model} installed`;
+      llmActivity = `✓ ${result.model} installed`;
     } catch (error) {
       settingsMessage = error instanceof Error ? error.message : "Model install failed";
+      llmActivity = `✕ install failed: ${error instanceof Error ? error.message : "model install failed"}`;
     } finally {
       installingModel = false;
     }
@@ -609,6 +618,7 @@
     testingModel = true;
     modelTest = null;
     modelTestMessage = `Testing ${settingsDraftModel} with local Ollama`;
+    llmActivity = `⏳ Probing ${settingsDraftModel}…`;
 
     try {
       const result = await testGemmaModel(settingsDraftModel);
@@ -617,8 +627,12 @@
       modelTestMessage = result.ready
         ? `${result.model} responded in ${result.latencyMs} ms`
         : `${result.model} did not complete the readiness probe`;
+      llmActivity = result.ready
+        ? `✓ ${result.model} responded · ${result.latencyMs} ms`
+        : `✕ ${result.model} did not respond`;
     } catch (error) {
       modelTestMessage = error instanceof Error ? error.message : "Model test failed";
+      llmActivity = `✕ probe failed: ${error instanceof Error ? error.message : "model test failed"}`;
     } finally {
       testingModel = false;
     }
@@ -693,8 +707,8 @@
   footer={{ title: "ERP Shell Desktop", subtitle: runtime.mode === "tauri" ? "Desktop companion" : "Browser preview" }}
   status={{
     role: runtime.mode === "tauri" ? "desktop" : "preview",
-    center: erpImport.pendingDrafts ? `${erpImport.pendingDrafts} approved drafts` : statusLabel[erpImport.state],
-    right: "microservices.sh · erp"
+    center: llmActivity ?? (erpImport.pendingDrafts ? `${erpImport.pendingDrafts} approved drafts` : statusLabel[erpImport.state]),
+    right: extractingJobId || testingModel || installingModel ? `${settingsDraftModel} · working` : "microservices.sh · erp"
   }}
 >
   {#snippet crumbs()}
