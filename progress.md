@@ -1405,3 +1405,19 @@
 | URL Shortener spec | Module contract check passes | `pnpm --filter @microservices-sh/url-shortener check:spec` passed | Pass |
 | D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/url-shortener/migrations/0001_initial.sql"` passed | Pass |
 | JSON docs | OpenAPI and JSON schema stubs parse | Node JSON parse check passed | Pass |
+
+### Phase 60 StackSuite HTML Renderer module
+
+- **Status:** complete.
+- Goal: port the HTML Renderer app's slug/TTL/mockup storage workflow into a reusable utility module.
+- Added `modules/html-renderer` for HTML render document creation, slug validation, TTL expiry, asset metadata validation, resolve, soft delete, and listing.
+- Kept public route auth, KV/R2 object storage, and large binary asset upload outside the module boundary.
+- Confirmed QR Generator is browser-only in the donor app, so it should stay a reference UI/free-tool candidate unless a template needs durable QR asset records.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| HTML Renderer build | TypeScript typecheck passes | `pnpm --filter @microservices-sh/html-renderer build` passed | Pass |
+| HTML Renderer tests | Slug, TTL, asset, expiry, resolve, and delete flows pass | `pnpm --filter @microservices-sh/html-renderer test` passed, 3/3 | Pass |
+| HTML Renderer spec | Module contract check passes | `pnpm --filter @microservices-sh/html-renderer check:spec` passed | Pass |
+| D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/html-renderer/migrations/0001_initial.sql"` passed | Pass |
+| JSON docs | OpenAPI and JSON schema stubs parse | Node JSON parse check passed | Pass |

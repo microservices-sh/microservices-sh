@@ -1,0 +1,18 @@
+# HTML Renderer Module
+
+Use `src/index.ts` as the public entrypoint.
+
+Key exports:
+- `createHtmlRendererService`
+- `createHtmlRendererMemoryStore`
+- `createD1HtmlRendererStore`
+- `createSequentialHtmlRendererIdFactory`
+- `createSequentialHtmlRendererSlugFactory`
+
+Core workflows:
+- create HTML render document
+- resolve active HTML by slug
+- soft-delete HTML by slug
+- list render documents
+
+The module stores D1 document records and inline HTML content. Route adapters may layer password auth, KV/R2 storage, and public serving.

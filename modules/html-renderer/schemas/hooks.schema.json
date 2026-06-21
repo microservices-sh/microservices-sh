@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HTML Renderer Hooks",
+  "type": "object",
+  "properties": {
+    "beforeHtmlRendererCreate": {
+      "type": "string"
+    },
+    "afterHtmlRendererUpdated": {
+      "type": "string"
+    }
+  }
+}

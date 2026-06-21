@@ -1,0 +1,46 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "HTML Renderer Module",
+    "version": "0.1.0",
+    "description": "HTML mockup publishing metadata with slug validation, TTL, assets, resolve, delete, and D1-backed records."
+  },
+  "paths": {
+    "/html-renders": {
+      "post": {
+        "summary": "Create an HTML render document",
+        "responses": {
+          "201": {
+            "description": "HTML render document created"
+          }
+        }
+      },
+      "get": {
+        "summary": "List HTML render documents",
+        "responses": {
+          "200": {
+            "description": "HTML render list"
+          }
+        }
+      }
+    },
+    "/html-renders/{slug}": {
+      "get": {
+        "summary": "Resolve an active HTML render document",
+        "responses": {
+          "200": {
+            "description": "HTML render document"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Soft-delete an HTML render document",
+        "responses": {
+          "200": {
+            "description": "HTML render document deleted"
+          }
+        }
+      }
+    }
+  }
+}

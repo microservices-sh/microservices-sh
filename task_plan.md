@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 59
+Phase 60
 
 ## Phases
 
@@ -461,6 +461,16 @@ Phase 59
 - [x] Implement short-link creation, URL validation, reserved/custom aliases, expiry, deactivation, redirect resolution, click analytics, stats, and recent-link listing.
 - [x] Add memory and D1 stores, migration, schemas, docs, module metadata, permissions, events, resources, exports, and tests.
 - [x] Keep KV redirect caching as an app-adapter concern rather than module-owned state.
+- [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
+- **Status:** complete
+
+### Phase 60: StackSuite HTML Renderer Module
+- [x] Inspect HTML Renderer upload, slug validation, TTL, asset, serve, and delete workflow.
+- [x] Treat QR Generator as a browser-only reference/free-tool candidate rather than a durable module.
+- [x] Scaffold `modules/html-renderer` from the standard module layout.
+- [x] Implement HTML render document creation, slug validation, TTL expiry, asset metadata validation, resolve, soft delete, and listing.
+- [x] Add memory and D1 stores, migration, schemas, docs, module metadata, permissions, events, resources, exports, and tests.
+- [x] Keep public route auth, KV/R2 object storage, and large binary upload as app-adapter concerns.
 - [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
 - **Status:** complete
 

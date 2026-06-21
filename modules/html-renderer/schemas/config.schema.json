@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HTML Renderer Config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "defaultTtlSeconds": {
+      "type": "integer",
+      "default": 2592000,
+      "minimum": 0
+    },
+    "minTtlSeconds": {
+      "type": "integer",
+      "default": 60,
+      "minimum": 1
+    },
+    "maxTtlSeconds": {
+      "type": "integer",
+      "default": 2592000,
+      "minimum": 1
+    },
+    "maxHtmlBytes": {
+      "type": "integer",
+      "default": 26214400,
+      "minimum": 1
+    }
+  }
+}
