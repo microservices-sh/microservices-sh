@@ -106,6 +106,51 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/lib/server/stores.ts",
+    ["createD1ProjectProgressStore", "createProjectProgressMemoryStore", "projectProgressStore"],
+    "Template wires project-progress storage through the server store resolver."
+  );
+  assertFileIncludes(
+    "src/hooks.server.ts",
+    "event.locals.projectProgressStore = stores.projectProgressStore",
+    "Request locals expose the project-progress store to route adapters."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/project-progress/+page.server.ts",
+    ["@microservices-sh/project-progress", "createProjectProgressService", "listProjects", "requireModule(\"project-progress\", platform)"],
+    "Project progress list route stays a thin adapter over the project-progress service."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/project-progress/new/+page.server.ts",
+    ["createProjectProgressService", "createProject", "listCustomers", "recordEvent"],
+    "Project creation route validates customers and calls project-progress createProject."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/project-progress/[id]/+page.server.ts",
+    ["getProjectSnapshot", "updateProjectStatus", "createProgressLog", "addProjectComment", "grantProjectAccess", "revokeProjectAccess", "recordEvent"],
+    "Project detail route exposes status, timeline, comment, and access actions through project-progress."
+  );
+  assertFileIncludesAll(
+    "src/routes/project/[accessToken]/+page.server.ts",
+    ["resolvePublicProject", "rateLimitStore.hit", "firstOrganization", "fileSizeBytes"],
+    "Public project route rate-limits token lookups and strips raw storage keys from the response mapping."
+  );
+  assertFileIncludesAll(
+    "migrations/0031_project_progress.sql",
+    ["CREATE TABLE IF NOT EXISTS project_progress_projects", "CREATE TABLE IF NOT EXISTS project_progress_logs", "idx_project_progress_projects_access_token"],
+    "Template keeps project-progress D1 schema aligned with the module migration."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/erp-nav.ts",
+    ["project-progress", "/app/project-progress"],
+    "Project progress module appears in the lock-driven sidebar nav."
+  );
+  assertFileIncludes(
+    "src/lib/ui/AppShell.svelte",
+    "clipboard-list",
+    "Sidebar icon set includes the project progress nav icon."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/stores.ts",
     ["createD1SmsCampaignsStore", "createSmsCampaignsMemoryStore", "smsCampaignsStore"],
     "Template wires SMS campaign storage through the server store resolver."
   );

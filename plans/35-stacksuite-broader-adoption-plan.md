@@ -46,7 +46,7 @@ Remaining gaps are mostly add-on business workflows, not more full-app cloning.
 | P1 | Estimates/quotes and recurring invoice templates | Accounting Chiangs estimates, accepted/converted lifecycle, recurring invoices, recurring items, send/post/void schemas | `estimate-quote` and `recurring-documents` implemented; route proof now extends `accounting-erp-sveltekit`. |
 | P1 | Storage entitlements and expiring share links | DashDrive files, short IDs, expiry, download count, storage packages, purchases | `storage-entitlements` implemented; integrate with `file-media` or client portal routes later. |
 | P1 | HR people ops | HR employees, departments, positions, leave balances/requests, attendance | `hr-people-ops` implemented; template later, not before focused route proof demand. |
-| P1 | Project/field progress | EPMIS projects, worker access, progress logs, media files, comments, public access tokens | `project-progress` implemented; route proof later only if a project/customer portal demo needs it. |
+| P1 | Project/field progress | EPMIS projects, worker access, progress logs, media files, comments, public access tokens | `project-progress` implemented; route proof now extends `erp-shell-sveltekit`. |
 | P2 | Content/CMS publishing | CMS, mini-CMS, blog, magazine | `content-cms` implemented as a headless module; add route proof only when landing/content-heavy generated apps need it. |
 | P2 | Utility modules | URL shortener, QR generator, document renderer, HTML renderer, video maker | `url-shortener`, `html-renderer`, `content-cms`, and `video-generation` implemented; QR and Markdown-to-PDF stay reference/free-tool candidates for now. |
 | P2 | Runtime/control-plane patterns | OpenClaw launcher instance, integrations, channels, custom domains, managed instances | Mine for managed deploy/control-plane design, not as an app template yet. |
@@ -268,7 +268,7 @@ Defer:
 - auth/users/customers, QR image generation, R2 byte upload, signed URLs, email logs, and UI.
 
 Template:
-- Add project/customer portal routes only when a paid pilot or public demo path needs construction/project progress tracking.
+- Added ERP shell project/customer progress routes after the module surface existed.
 
 ## P2 Utility Adoption
 
@@ -368,7 +368,7 @@ The next valuable StackSuite adoption is not another accounting pass. After comp
 1. Estimates/quotes and recurring documents as the next accounting add-on.
 2. Route proof for `membership-credits` in booking template when booking membership becomes part of a demo path.
 3. HR people ops module proof is complete; add an HR template only after a pilot or demo path needs it.
-4. Project progress proof is complete; add project/customer portal routes only when that workflow becomes part of a pilot or public demo path.
+4. Project progress proof is complete and now has ERP shell route proof for internal timelines plus public token snapshots.
 5. URL shortener, HTML renderer, content CMS, and video generation proof is complete; keep QR/document/rendering utilities small and add them only when they support acquisition or a template.
 6. OpenClaw, WhatsApp platform, CoreOps, PPT monitor, and Deepwork stay reference-only until an existing module/template roadmap needs their specific patterns.
 7. A focused `sms-crm-sveltekit`, content site, video creator, support route, or project-progress route/template proof only if those workflows become part of the public demo path.

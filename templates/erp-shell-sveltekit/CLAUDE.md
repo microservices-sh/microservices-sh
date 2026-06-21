@@ -27,6 +27,11 @@ To surface a module: add a `MODULE_NAV` row + a route under `src/routes/app/<sec
 (call `requireModule(...)` first). The existing pages (`customers`, `invoices`,
 `notifications`) are reference samples to copy and adapt — full recipe in the playbook.
 
+Project progress is wired as a customer-ops module. Keep `/app/project-progress/*`
+as adapters over `createProjectProgressService(...)`; the public
+`/project/[accessToken]` page is read-only, rate-limited, and must treat the token
+as a bearer secret.
+
 ## Module wiring → `src/lib/server/stores.ts` + `src/hooks.server.ts`
 
 Module stores (D1/R2-backed in prod, memory in dev) are constructed in

@@ -68,6 +68,11 @@ import {
   createSupportInboxMemoryStore,
   type SupportInboxStore
 } from "@microservices-sh/support-inbox";
+import {
+  createD1ProjectProgressStore,
+  createProjectProgressMemoryStore,
+  type ProjectProgressStore
+} from "@microservices-sh/project-progress";
 
 import type { RbacStore } from "@microservices-sh/org-team-rbac/ports";
 import type { TableGateway } from "@microservices-sh/admin-shell/ports";
@@ -112,6 +117,7 @@ const memorySmsCampaignsStore = createSmsCampaignsMemoryStore();
 const memoryFormStore = createMemoryFormStore();
 const memoryBookingRepository = createMemoryBookingRepository();
 const memorySupportInboxStore = createSupportInboxMemoryStore();
+const memoryProjectProgressStore = createProjectProgressMemoryStore();
 
 export interface ServerStores {
   rbacStore: RbacStore;
@@ -142,6 +148,7 @@ export interface ServerStores {
   formStore: FormStore;
   bookingRepository: BookingRepository;
   supportInboxStore: SupportInboxStore;
+  projectProgressStore: ProjectProgressStore;
 }
 
 // The platform bindings as declared on App.Platform — referenced via the platform
@@ -181,7 +188,8 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     smsCampaignsStore: db ? createD1SmsCampaignsStore(db) : memorySmsCampaignsStore,
     formStore: db ? createD1FormStore(db) : memoryFormStore,
     bookingRepository: db ? createD1BookingRepository(db) : memoryBookingRepository,
-    supportInboxStore: db ? createD1SupportInboxStore(db) : memorySupportInboxStore
+    supportInboxStore: db ? createD1SupportInboxStore(db) : memorySupportInboxStore,
+    projectProgressStore: db ? createD1ProjectProgressStore(db) : memoryProjectProgressStore
   };
 }
 
@@ -194,6 +202,7 @@ export const memoryStores = {
   recurringInvoiceStore: memoryRecurringInvoiceStore,
   numberAllocator: memoryNumberAllocator,
   supportInboxStore: memorySupportInboxStore,
+  projectProgressStore: memoryProjectProgressStore,
   mediaStore: memoryMediaStore,
   objectStorage: memoryObjectStorage,
   auditStore: memoryAuditStore

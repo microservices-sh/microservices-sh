@@ -164,6 +164,34 @@
       }
     },
     {
+      "id": "project-progress",
+      "version": "0.1.0",
+      "source": "registry:project-progress@0.1.0",
+      "checksum": "sha256:preview-project-progress-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/project-progress",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["project-progress.read", "project-progress.write", "project-progress.admin", "project-progress.extend", "project-progress.observe"],
+        "rpc": [
+          { "method": "createProject", "scope": "project-progress.write", "public": false },
+          { "method": "listProjects", "scope": "project-progress.read", "public": false },
+          { "method": "getProjectSnapshot", "scope": "project-progress.read", "public": false },
+          { "method": "updateProjectStatus", "scope": "project-progress.write", "public": false },
+          { "method": "createProgressLog", "scope": "project-progress.write", "public": false },
+          { "method": "addProjectComment", "scope": "project-progress.write", "public": false },
+          { "method": "grantProjectAccess", "scope": "project-progress.admin", "public": false },
+          { "method": "revokeProjectAccess", "scope": "project-progress.admin", "public": false },
+          { "method": "resolvePublicProject", "scope": "public-token", "public": true }
+        ],
+        "hooks": ["beforeProjectCreate", "beforeProgressLogCreate", "afterProgressLogCreated", "afterCommentCreated"],
+        "events": ["project-progress.created", "project-progress.updated", "project-progress.project.created", "project-progress.project.status-changed", "project-progress.access.granted", "project-progress.access.revoked", "project-progress.log.created", "project-progress.media.attached", "project-progress.comment.created"],
+        "requires": ["customer"]
+      }
+    },
+    {
       "id": "product-catalog",
       "version": "0.1.0",
       "source": "registry:product-catalog@0.1.0",

@@ -51,6 +51,7 @@
     "@microservices-sh/org-team-rbac": "workspace:*",
     "@microservices-sh/payment": "workspace:*",
     "@microservices-sh/product-catalog": "workspace:*",
+    "@microservices-sh/project-progress": "workspace:*",
     "@microservices-sh/sales-order": "workspace:*",
     "@microservices-sh/shipment": "workspace:*",
     "@microservices-sh/sms-campaigns": "workspace:*",

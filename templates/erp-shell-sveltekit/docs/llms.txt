@@ -33,6 +33,8 @@ src/routes/app/team/accept/+page.server.ts -> acceptInvitation
 src/routes/app/billing/+page.server.ts   -> listPlans / startSubscription / changePlan
 src/routes/admin/[resource]/+page.server.ts -> listRecords (admin-shell)
 src/routes/api/desktop/import/+server.ts -> authenticated approved-draft import adapter
+src/routes/app/project-progress/*       -> createProjectProgressService route adapters
+src/routes/project/[accessToken]        -> rate-limited public project snapshot
 
 src/lib/server/stores.ts   -> resolves D1 or memory module adapters per request
 src/lib/server/org-context.ts -> active-org tracking + requireOrgPermission gate

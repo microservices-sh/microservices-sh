@@ -4,14 +4,16 @@ Status: `ready`
 
 A single-company **ERP shell** for Cloudflare SvelteKit. One company organization,
 employees with role-based access, and operational modules (customers, invoices,
-files) that plug into a left-sidebar app shell. The sidebar is **derived from the
-installed module set** in `microservices.lock.json` — not hardcoded. A super-admin
-area gives schema-driven CRUD over the underlying tables.
+files, support, project progress) that plug into a left-sidebar app shell. The
+sidebar is **derived from the installed module set** in
+`microservices.lock.json` — not hardcoded. A super-admin area gives schema-driven
+CRUD over the underlying tables.
 
 ## Modules
 
 Wired: auth, identity, org-team-rbac, admin-shell, audit-log, customer, invoice,
-file-media, jobs-workflows, notifications-inapp, webhook-delivery.
+file-media, project-progress, jobs-workflows, notifications-inapp,
+webhook-delivery.
 
 User-facing modules get a sidebar entry; pure infra modules (auth, identity,
 audit-log, gateway) do not.
@@ -27,6 +29,10 @@ audit-log, gateway) do not.
 | `/app/customers` | Customer book (list + add), customer module |
 | `/app/invoices` | Invoice ledger, invoice module |
 | `/app/files` | Stored files (metadata), file-media module |
+| `/app/project-progress` | Customer project timeline list, project-progress module |
+| `/app/project-progress/new` | Create a customer project timeline |
+| `/app/project-progress/[id]` | Project timeline, comments, status, access grants |
+| `/project/[accessToken]` | Read-only public project snapshot; token is a bearer secret |
 | `/app/jobs` | Queue health and recurring schedules, jobs-workflows module |
 | `/app/webhooks` | Endpoint inventory and delivery attempts, webhook-delivery module |
 | `/app/team` | Members, invitations, role changes (RBAC-gated) |

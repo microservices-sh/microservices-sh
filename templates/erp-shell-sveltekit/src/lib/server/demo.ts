@@ -23,6 +23,7 @@ import { createUploadTicket, completeUpload } from "@microservices-sh/file-media
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
 import { recordEvent } from "@microservices-sh/audit-log";
 import type { AuditEventStore } from "@microservices-sh/audit-log/ports";
+import { createProjectProgressService, type ProjectProgressStore } from "@microservices-sh/project-progress";
 
 export interface DemoDeps {
 	tenantId: string;
@@ -34,6 +35,7 @@ export interface DemoDeps {
 	objectStorage: ObjectStorage & {
 		setSize?: (key: string, info: { size: number; contentType?: string }) => void;
 	};
+	projectProgressStore: ProjectProgressStore;
 	auditStore: AuditEventStore;
 }
 
@@ -249,6 +251,64 @@ export async function seedDemoData(deps: DemoDeps): Promise<void> {
 					payload: { originalName: file.name }
 				});
 			}
+		}
+
+		const projectProgress = createProjectProgressService({ store: deps.projectProgressStore });
+		const project = await projectProgress.createProject(
+			{ tenantId: deps.tenantId, actorId: "system:seed", now: "2026-06-21T00:00:00.000Z" },
+			{
+				customerId: customer.id,
+				title: profile.name === "Acme Studios" ? "Studio buildout" : "Client portal rollout",
+				description:
+					profile.name === "Acme Studios"
+						? "Weekly progress tracking for the renovated production studio."
+						: "Implementation milestones for the new billing portal.",
+				location: profile.name === "Acme Studios" ? "Suite 400" : "Remote",
+				status: profile.name === "Acme Studios" ? "in_progress" : "planning",
+				startDate: "2026-06-15",
+				expectedEndDate: profile.name === "Acme Studios" ? "2026-07-10" : "2026-07-25"
+			}
+		);
+		if (project.ok && project.data) {
+			const progressLog = await projectProgress.createProgressLog(
+				{ tenantId: deps.tenantId, actorId: "system:seed", now: "2026-06-21T09:00:00.000Z" },
+				{
+					projectId: project.data.project.id,
+					uploaderId: "system:seed",
+					category: profile.name === "Acme Studios" ? "carpentry" : "general",
+					description:
+						profile.name === "Acme Studios"
+							? "Framing is complete and inspection photos are ready for review."
+							: "Kickoff complete. Requirements and owner approvals are captured.",
+					capturedAt: "2026-06-21T09:00:00.000Z"
+				}
+			);
+			await projectProgress.grantProjectAccess(
+				{ tenantId: deps.tenantId, actorId: "system:seed", now: "2026-06-21T09:05:00.000Z" },
+				{
+					projectId: project.data.project.id,
+					userId: "worker:demo",
+					canUpload: true,
+					canView: true
+				}
+			);
+			if (progressLog.ok) {
+				await projectProgress.addProjectComment(
+					{ tenantId: deps.tenantId, actorId: "system:seed", now: "2026-06-21T09:10:00.000Z" },
+					{
+						projectId: project.data.project.id,
+						authorType: "admin",
+						authorName: "Operations",
+						content: "Demo milestone seeded from project-progress."
+					}
+				);
+			}
+			await audit({
+				eventName: "project-progress.project.created",
+				entityType: "project-progress",
+				entityId: project.data.project.id,
+				payload: { customerId: customer.id, status: project.data.project.status }
+			});
 		}
 	}
 

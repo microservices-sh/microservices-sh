@@ -20,6 +20,7 @@ import type { SmsCampaignsStore } from "@microservices-sh/sms-campaigns/ports";
 import type { FormStore } from "@microservices-sh/forms-intake/ports";
 import type { BookingRepository } from "@microservices-sh/booking/ports";
 import type { SupportInboxStore } from "@microservices-sh/support-inbox";
+import type { ProjectProgressStore } from "@microservices-sh/project-progress";
 
 declare global {
   namespace App {
@@ -92,6 +93,7 @@ declare global {
       formStore: FormStore;
       bookingRepository: BookingRepository;
       supportInboxStore: SupportInboxStore;
+      projectProgressStore: ProjectProgressStore;
       // The signed-in principal, resolved from the session store each request.
       // isSuperAdmin is derived from the account's isAdmin flag, never the cookie.
       user: { id: string; email: string; isSuperAdmin: boolean } | null;

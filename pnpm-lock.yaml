@@ -1765,6 +1765,9 @@ importers:
       '@microservices-sh/product-catalog':
         specifier: workspace:*
         version: link:../../modules/product-catalog
+      '@microservices-sh/project-progress':
+        specifier: workspace:*
+        version: link:../../modules/project-progress
       '@microservices-sh/sales-order':
         specifier: workspace:*
         version: link:../../modules/sales-order
@@ -1887,6 +1890,9 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@25.9.3)(lightningcss@1.32.0)
       wrangler:
         specifier: ^4.58.0
         version: 4.101.0(@cloudflare/workers-types@4.20260613.1)

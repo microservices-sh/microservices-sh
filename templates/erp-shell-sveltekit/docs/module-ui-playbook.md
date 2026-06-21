@@ -94,6 +94,7 @@ The reference page is deliberately generic. When customizing:
 | ads-manager | Ads — connections, alerts, performance review, copy drafts, and publish plan (live insights need the upstream connector) | ✅ `app/ads` |
 | forms-intake | Forms — define forms + review submissions (public submit is a separate surface) | ✅ `app/forms` |
 | booking | Bookings — schedule list + cancel (create needs seeded services) | ✅ `app/bookings` |
+| project-progress | Projects — customer progress timeline, public snapshot, comments, and access grants (media bytes stay in file-media) | ✅ `app/project-progress`, `project/[accessToken]` |
 | jobs-workflows | Jobs — queue health, manual enqueue, schedules, and catch-up controls | ✅ `app/jobs` |
 | webhook-delivery | Webhooks — endpoints, redacted signing status, delivery log, and safe test delivery | ✅ `app/webhooks` |
 | auth, identity, email, gateway, audit-log, admin-shell, idempotency | infra | — no user UI by design |

@@ -26,6 +26,9 @@ Safe first actions:
   `isSuperAdmin` flag, not an org role.
 - Do not vendor module internals under `src/lib/server/modules`. Depend on the
   module packages and consume their exported use cases, ports, and adapters.
+- `project-progress` owns project timelines, access grants, comments, and public
+  token snapshots. ERP shell routes may adapt those use cases, but must not write
+  project tables directly or expose raw media storage keys on public routes.
 
 Do not add payment, email, auth provider, webhook, migration, secret, or
 production deploy behavior without approval.

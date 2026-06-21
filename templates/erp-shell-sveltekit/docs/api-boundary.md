@@ -26,6 +26,20 @@ The desktop app keeps local draft state only. The Worker remains the canonical
 multi-user ERP backend: D1 for module records, R2 for files/images, KV for
 shared gateway state, Queues for async processing, and audit-log for traceability.
 
+## Project Progress Boundary
+
+`src/routes/app/project-progress/*` are SvelteKit adapters over
+`createProjectProgressService(...)`. They validate the active company org,
+validate customer ids through the customer module, then call project-progress
+service methods for project creation, status updates, timeline logs, comments,
+and access grants. Routes must not write `project_progress_*` tables directly.
+
+`src/routes/project/[accessToken]` treats the access token as a bearer secret.
+It rate-limits lookup attempts through `locals.rateLimitStore`, resolves the
+single company org from RBAC, calls `resolvePublicProject`, and maps media to
+safe metadata only. Public responses must not expose raw storage keys or grant
+mutation actions.
+
 ## Route Adapter Shape
 
 ```ts
