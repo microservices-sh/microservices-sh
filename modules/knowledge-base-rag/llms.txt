@@ -1,0 +1,29 @@
+# Knowledge Base RAG Module
+
+Module ID: knowledge-base-rag
+Status: draft
+Purpose: Tenant-scoped knowledge base with articles, attachments, sources, ingestion jobs, semantic search, and cite-or-refuse grounded answers for support.
+Entrypoint: src/index.ts
+Check: pnpm check:spec
+Build: pnpm build
+
+Use-cases:
+- createArticle / updateArticle / listArticles / getArticle
+- recordSource / listSources / attachArticleFile / listAttachments
+- createWebScanJob / updateWebScanJob / listWebScanJobs
+- createKnowledgeFeed / updateKnowledgeFeed / listKnowledgeFeeds
+- searchKnowledge / answerQuestion
+- draftSupportReply
+
+Service facade:
+- createKnowledgeBaseRagService(deps): raw/internal use-cases bound to shared deps.
+- createKnowledgeBaseRagScopedService(ctx, deps): operator/request use-cases; tenant comes from AuthContext.
+
+Grounding rule: answerQuestion and draftSupportReply must cite retrieved active articles or return 422. Support replies are draft-only.
+
+Adapters:
+- createExtractiveSynthesizer(): deterministic local/test answers.
+- createGatewayAnswerSynthesizer(complete): ai-gateway bridge; caller injects a governed complete closure.
+- createGatewayEmbeddingFn(embed): ai-gateway embedding bridge; caller injects a governed embed closure.
+- createEmbeddingKnowledgeSearchIndex({ embed, vectorStore, store }): provider-neutral vector retrieval with tenant/status revalidation.
+- createVectorizeStore(env.VECTORIZE): Cloudflare Vectorize VectorStore adapter; create metadata indexes for tenantId/projectId/status before inserting.

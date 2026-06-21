@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Knowledge Base RAG Events",
+  "type": "object",
+  "enum": [
+    "knowledge-base-rag.article_created",
+    "knowledge-base-rag.article_updated",
+    "knowledge-base-rag.source_recorded",
+    "knowledge-base-rag.attachment_added",
+    "knowledge-base-rag.web_scan_job_created",
+    "knowledge-base-rag.web_scan_job_updated",
+    "knowledge-base-rag.feed_created",
+    "knowledge-base-rag.feed_updated"
+  ]
+}

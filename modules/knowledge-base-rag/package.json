@@ -1,0 +1,41 @@
+{
+  "name": "@microservices-sh/knowledge-base-rag",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Tenant-scoped knowledge base with articles, attachments, sources, ingestion jobs, semantic search, and cite-or-refuse grounded answers for support.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./schemas": "./src/schemas.ts",
+    "./hooks": "./src/hooks.ts",
+    "./manifest": "./src/manifest/index.ts",
+    "./config": "./src/config/index.ts",
+    "./schema": "./src/schema/index.ts",
+    "./events": "./src/events/index.ts",
+    "./permissions": "./src/permissions/index.ts",
+    "./resources": "./src/resources/index.ts",
+    "./service": "./src/service/index.ts",
+    "./ports": "./src/ports/index.ts",
+    "./adapters/d1": "./src/adapters/d1-knowledge-store.ts",
+    "./adapters/memory": "./src/adapters/memory-knowledge-store.ts",
+    "./adapters/embedding-search-index": "./src/adapters/embedding-knowledge-search-index.ts",
+    "./adapters/extractive-synthesizer": "./src/adapters/extractive-synthesizer.ts",
+    "./adapters/gateway-answer-synthesizer": "./src/adapters/gateway-answer-synthesizer.ts",
+    "./adapters/gateway-embedding": "./src/adapters/gateway-embedding.ts",
+    "./adapters/vectorize": "./src/adapters/vectorize-store.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path .",
+    "test": "vitest run --root ../.. --run modules/knowledge-base-rag/src/knowledge-base-rag.test.ts modules/knowledge-base-rag/src/service/knowledge-base-rag-service.test.ts modules/knowledge-base-rag/src/adapters/gateway-answer-synthesizer.test.ts modules/knowledge-base-rag/src/adapters/embedding-knowledge-search-index.test.ts modules/knowledge-base-rag/src/adapters/gateway-embedding.test.ts modules/knowledge-base-rag/src/adapters/vectorize-store.test.ts --passWithNoTests=false"
+  },
+  "dependencies": {
+    "@microservices-sh/connection-contract": "workspace:*",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "typescript": "^5.9.3"
+  }
+}

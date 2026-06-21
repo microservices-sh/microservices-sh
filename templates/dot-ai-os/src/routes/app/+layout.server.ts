@@ -30,6 +30,7 @@ export const load: LayoutServerLoad = async ({ locals, cookies, platform }) => {
       tenantId: org.id,
       customerRepository: locals.customerRepository,
       ticketStore: locals.ticketStore,
+      knowledgeStore: locals.knowledgeStore,
       invoiceStore: locals.invoiceStore,
       numberAllocator: locals.numberAllocator,
       mediaStore: locals.mediaStore,

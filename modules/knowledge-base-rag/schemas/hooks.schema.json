@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Knowledge Base RAG Hooks",
+  "type": "object",
+  "properties": {
+    "beforeArticleCreate": {
+      "type": "string"
+    },
+    "beforeArticleUpdate": {
+      "type": "string"
+    },
+    "afterAttachmentAdded": {
+      "type": "string"
+    },
+    "afterGroundedAnswerDrafted": {
+      "type": "string"
+    }
+  }
+}

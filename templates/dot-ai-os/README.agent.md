@@ -23,8 +23,10 @@ Safe first actions:
   `src/lib/server/erp-nav.ts`; add a module mapping there to surface installed modules.
 - Task, focus, and daily-review state is owned by `@microservices-sh/operator-work`.
   Use its use cases; do not write `operator_*` tables directly.
-- Upstream-inspired calendar, knowledge, content, and AI-team sample data still
-  lives in `src/lib/os-data.ts` until dedicated modules own those domains.
+- Knowledge articles are owned by `@microservices-sh/knowledge-base-rag`; use
+  `listArticlesScoped` / `createArticleScoped` and do not write knowledge tables directly.
+- Upstream-inspired calendar, content, and AI-team sample data still lives in
+  `src/lib/os-data.ts` until dedicated modules own those domains.
 - `/admin` is platform super-admin scope, gated by the session `isSuperAdmin`
   flag, not an org role.
 - Do not vendor module internals under `src/lib/server/modules`.

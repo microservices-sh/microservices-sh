@@ -1,6 +1,8 @@
 <script lang="ts">
-  import { Badge, Button, Eyebrow } from "$lib/ui";
+  import { Alert, Badge, Button, Eyebrow, Field } from "$lib/ui";
   import { knowledgeItems, knowledgeStages } from "$lib/os-data";
+
+  let { data, form } = $props();
 </script>
 
 <svelte:head>
@@ -17,14 +19,68 @@
         approval-gated instead of hidden in the template.
       </p>
     </div>
-    <form class="import-bar" aria-label="Knowledge URL import">
-      <label for="knowledge-url">Import URL</label>
-      <div>
-        <input id="knowledge-url" name="url" placeholder="https://..." />
-        <Button type="button" variant="primary">Digest</Button>
-      </div>
-    </form>
+    {#if data.canManage}
+      <form class="import-bar" method="POST" action="?/create" aria-label="Knowledge capture">
+        <Field label="Title" id="knowledge-title">
+          <input
+            id="knowledge-title"
+            name="title"
+            required
+            maxlength="200"
+            autocomplete="off"
+            value={form?.values?.title ?? ""}
+          />
+        </Field>
+        <Field label="Source URL" id="knowledge-url">
+          <input
+            id="knowledge-url"
+            name="sourceUrl"
+            inputmode="url"
+            placeholder="https://..."
+            value={form?.values?.sourceUrl ?? ""}
+          />
+        </Field>
+        <Field label="Reusable context" id="knowledge-content">
+          <textarea id="knowledge-content" name="content" rows="4" required minlength="20">{form?.values?.content ?? ""}</textarea>
+        </Field>
+        <div class="form-actions">
+          <Button type="submit" variant="primary">Save article</Button>
+        </div>
+      </form>
+    {/if}
   </div>
+
+  {#if form?.error}
+    <Alert>{form.error}</Alert>
+  {:else if form?.created}
+    <Alert tone="success">Article saved.</Alert>
+  {/if}
+
+  <section class="panel module-panel">
+    <div class="section-head">
+      <div>
+        <Eyebrow>Knowledge articles</Eyebrow>
+        <h2>{data.articles.length} saved articles</h2>
+      </div>
+      <Badge tone="neutral">knowledge-base-rag</Badge>
+    </div>
+    <div class="article-stack">
+      {#each data.articles as article}
+        <article>
+          <div>
+            <strong>{article.title}</strong>
+            <span>{article.updatedLabel} · {article.wordCount} words · {article.sourceType}</span>
+          </div>
+          <p>{article.excerpt}</p>
+          {#if article.sourceUrl}
+            <a href={article.sourceUrl} target="_blank" rel="noreferrer">Source</a>
+          {/if}
+        </article>
+      {:else}
+        <p class="empty-stage">No saved articles yet.</p>
+      {/each}
+    </div>
+  </section>
 
   <div class="knowledge-grid">
     {#each knowledgeStages as stage}
@@ -77,6 +133,8 @@
   .knowledge-page,
   .knowledge-head,
   .knowledge-grid,
+  .module-panel,
+  .article-stack,
   .stage-stack,
   .tag-row {
     display: grid;
@@ -88,19 +146,43 @@
   }
   .import-bar {
     display: grid;
-    gap: 8px;
+    gap: 0;
     border: 1px solid var(--color-line);
     border-radius: var(--radius-card);
     background: var(--color-surface);
     padding: 16px;
   }
-  .import-bar div {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) max-content;
-    gap: 10px;
-  }
   .knowledge-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .article-stack article {
+    display: grid;
+    gap: 8px;
+    border-block-start: 1px solid var(--color-line);
+    padding-block: 14px;
+  }
+  .article-stack article:first-child {
+    border-block-start: 0;
+    padding-block-start: 0;
+  }
+  .article-stack article > div {
+    display: grid;
+    gap: 2px;
+  }
+  .article-stack strong {
+    color: var(--color-ink);
+  }
+  .article-stack span,
+  .article-stack a {
+    color: var(--color-muted);
+    font-size: 0.88rem;
+  }
+  .article-stack p {
+    margin: 0;
   }
   .stage-head {
     display: flex;
@@ -145,8 +227,12 @@
     }
   }
   @media (max-width: 620px) {
-    .import-bar div {
-      grid-template-columns: 1fr;
+    .form-actions {
+      justify-content: stretch;
+    }
+    .form-actions :global(a),
+    .form-actions :global(button) {
+      width: 100%;
     }
   }
 </style>

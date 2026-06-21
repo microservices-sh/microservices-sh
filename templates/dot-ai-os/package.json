@@ -36,6 +36,7 @@
     "@microservices-sh/identity": "workspace:*",
     "@microservices-sh/invoice": "workspace:*",
     "@microservices-sh/jobs-workflows": "workspace:*",
+    "@microservices-sh/knowledge-base-rag": "workspace:*",
     "@microservices-sh/notifications-inapp": "workspace:*",
     "@microservices-sh/operator-work": "workspace:*",
     "@microservices-sh/org-team-rbac": "workspace:*",

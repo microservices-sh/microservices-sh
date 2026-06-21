@@ -58,6 +58,7 @@ Future MCP/CLI tools should expose the same content through:
 | [`identity`](./identity.md) | Available | Passwordless email-code login, server-side sessions, and scoped service-token bridging through auth. |
 | [`gateway`](./gateway.md) | Available | Public trust boundary: API-key auth, rate limiting, scope narrowing, token exchange via auth. |
 | [`customer`](./customer.md) | Available | Customer profiles, tags, consent fields, and customer events. |
+| [`knowledge-base-rag`](./knowledge-base-rag.md) | Draft | Tenant-scoped knowledge articles, grounded answers, and draft-only support replies. |
 | [`booking`](./booking.md) | Available | Service booking, availability, cancellation, and booking events. |
 | [`payment`](./payment.md) | Available | Stripe-backed payment provider: payment intents, payment records, and signed webhook verification. |
 | [`idempotency`](./idempotency.md) | Available | Scoped idempotency records for safe retry, replay, and duplicate side-effect prevention. |

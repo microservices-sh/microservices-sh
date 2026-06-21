@@ -1,0 +1,282 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "knowledge-base-rag",
+  "name": "Knowledge Base RAG",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Tenant-scoped knowledge base with articles, attachments, sources, ingestion jobs, semantic search, and cite-or-refuse grounded answers for support.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": [
+      "sveltekit-later",
+      "hono-later"
+    ]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "knowledge_articles",
+        "knowledge_sources",
+        "knowledge_attachments",
+        "knowledge_web_scan_jobs",
+        "knowledge_feeds",
+        "domain_events"
+      ]
+    }
+  ],
+  "permissions": [
+    "knowledge-base-rag.read",
+    "knowledge-base-rag.write",
+    "knowledge-base-rag.admin",
+    "knowledge-base-rag.extend",
+    "knowledge-base-rag.observe"
+  ],
+  "connections": {
+    "requires": [],
+    "optional": [
+      "auth",
+      "org-team-rbac",
+      "audit-log",
+      "file-media",
+      "support-ticket",
+      "ai-gateway",
+      "jobs-workflows"
+    ],
+    "rpc": {
+      "exposes": [
+        {
+          "method": "createArticle",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        },
+        {
+          "method": "getArticle",
+          "scope": "knowledge-base-rag.read",
+          "public": false
+        },
+        {
+          "method": "listArticles",
+          "scope": "knowledge-base-rag.read",
+          "public": false
+        },
+        {
+          "method": "updateArticle",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        },
+        {
+          "method": "recordSource",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        },
+        {
+          "method": "listSources",
+          "scope": "knowledge-base-rag.read",
+          "public": false
+        },
+        {
+          "method": "attachArticleFile",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        },
+        {
+          "method": "listAttachments",
+          "scope": "knowledge-base-rag.read",
+          "public": false
+        },
+        {
+          "method": "createWebScanJob",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        },
+        {
+          "method": "listWebScanJobs",
+          "scope": "knowledge-base-rag.read",
+          "public": false
+        },
+        {
+          "method": "updateWebScanJob",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        },
+        {
+          "method": "createKnowledgeFeed",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        },
+        {
+          "method": "listKnowledgeFeeds",
+          "scope": "knowledge-base-rag.read",
+          "public": false
+        },
+        {
+          "method": "updateKnowledgeFeed",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        },
+        {
+          "method": "searchKnowledge",
+          "scope": "knowledge-base-rag.read",
+          "public": false
+        },
+        {
+          "method": "answerQuestion",
+          "scope": "knowledge-base-rag.read",
+          "public": false
+        },
+        {
+          "method": "draftSupportReply",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        }
+      ],
+      "calls": [
+        {
+          "module": "ai-gateway",
+          "method": "complete",
+          "scope": "ai.invoke",
+          "optional": true
+        },
+        {
+          "module": "file-media",
+          "method": "getFile",
+          "scope": "file-media.read",
+          "optional": true
+        },
+        {
+          "module": "support-ticket",
+          "method": "saveDraftReply",
+          "scope": "support-ticket.write",
+          "optional": true
+        }
+      ]
+    },
+    "events": {
+      "emits": [
+        "knowledge-base-rag.article_created",
+        "knowledge-base-rag.article_updated",
+        "knowledge-base-rag.source_recorded",
+        "knowledge-base-rag.attachment_added",
+        "knowledge-base-rag.web_scan_job_created",
+        "knowledge-base-rag.web_scan_job_updated",
+        "knowledge-base-rag.feed_created",
+        "knowledge-base-rag.feed_updated"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeArticleCreate": {
+        "kind": "filter",
+        "scope": "knowledge-base-rag.extend"
+      },
+      "beforeArticleUpdate": {
+        "kind": "filter",
+        "scope": "knowledge-base-rag.extend"
+      },
+      "afterAttachmentAdded": {
+        "kind": "observer",
+        "scope": "knowledge-base-rag.observe"
+      },
+      "afterGroundedAnswerDrafted": {
+        "kind": "observer",
+        "scope": "knowledge-base-rag.observe"
+      }
+    },
+    "provides": {
+      "hooks": []
+    }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": [
+      "config",
+      "hooks",
+      "overlay",
+      "fork"
+    ]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [
+        {
+          "label": "Knowledge",
+          "path": "/knowledge",
+          "permission": "knowledge-base-rag.read",
+          "icon": "BookOpen"
+        }
+      ],
+      "referenceUi": [
+        "reference-ui/admin/README.md"
+      ]
+    },
+    "visitor": {
+      "applicable": false
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": [
+        "knowledge-base-rag.createArticle",
+        "knowledge-base-rag.getArticle",
+        "knowledge-base-rag.listArticles",
+        "knowledge-base-rag.updateArticle",
+        "knowledge-base-rag.recordSource",
+        "knowledge-base-rag.listSources",
+        "knowledge-base-rag.attachArticleFile",
+        "knowledge-base-rag.listAttachments",
+        "knowledge-base-rag.createWebScanJob",
+        "knowledge-base-rag.listWebScanJobs",
+        "knowledge-base-rag.updateWebScanJob",
+        "knowledge-base-rag.createKnowledgeFeed",
+        "knowledge-base-rag.listKnowledgeFeeds",
+        "knowledge-base-rag.updateKnowledgeFeed",
+        "knowledge-base-rag.searchKnowledge",
+        "knowledge-base-rag.answerQuestion",
+        "knowledge-base-rag.draftSupportReply"
+      ],
+      "skillPaths": [
+        "skills/knowledge-base-rag-operator/SKILL.md"
+      ],
+      "approvalRequiredFor": [
+        "knowledge-base-rag.createArticle",
+        "knowledge-base-rag.updateArticle",
+        "knowledge-base-rag.recordSource",
+        "knowledge-base-rag.attachArticleFile",
+        "knowledge-base-rag.createWebScanJob",
+        "knowledge-base-rag.updateWebScanJob",
+        "knowledge-base-rag.createKnowledgeFeed",
+        "knowledge-base-rag.updateKnowledgeFeed",
+        "knowledge-base-rag.draftSupportReply",
+        "ai-gateway.complete"
+      ]
+    }
+  },
+  "skills": [
+    {
+      "id": "knowledge-base-rag-operator",
+      "path": "skills/knowledge-base-rag-operator/SKILL.md",
+      "recommendedFor": [
+        "admin-operations",
+        "support-triage",
+        "knowledge-curation",
+        "agentic-tools"
+      ]
+    }
+  ],
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": [
+      "migrations",
+      "pii-fields",
+      "ai-provider-calls",
+      "production-deploy",
+      "external-side-effects"
+    ]
+  }
+}

@@ -4,6 +4,7 @@ import type { AuditEventStore } from "@microservices-sh/audit-log/ports";
 import type { SigningKeyStore } from "@microservices-sh/auth/ports";
 import type { CustomerRepository } from "@microservices-sh/customer/ports";
 import type { TicketStore } from "@microservices-sh/support-ticket/ports";
+import type { KnowledgeStore } from "@microservices-sh/knowledge-base-rag/ports";
 import type { InvoiceStore, NumberAllocator } from "@microservices-sh/invoice/ports";
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
 import type { NotificationStore } from "@microservices-sh/notifications-inapp/ports";
@@ -35,6 +36,7 @@ declare global {
       signingKeyStore: SigningKeyStore;
       customerRepository: CustomerRepository;
       ticketStore: TicketStore;
+      knowledgeStore: KnowledgeStore;
       invoiceStore: InvoiceStore;
       numberAllocator: NumberAllocator;
       mediaStore: MediaStore;

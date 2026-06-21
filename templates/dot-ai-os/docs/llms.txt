@@ -3,8 +3,8 @@
 Purpose: guide agents implementing or customizing the `dot-ai-os` template: an
 agent-native operator workspace on Cloudflare SvelteKit with module-backed
 identity, RBAC, audit, file, contact, work-packet, support, task, focus, and
-daily-review surfaces plus template-owned starter workflows adapted from Jimmy
-Dashboard OS.
+daily-review surfaces plus knowledge articles and template-owned starter
+workflows adapted from Jimmy Dashboard OS.
 
 ## Read First
 
@@ -24,6 +24,7 @@ Dashboard OS.
 - `customer` — contacts and stakeholder records
 - `invoice` — work packets/value tracking in this starter
 - `support-ticket` — support inbox/open loops
+- `knowledge-base-rag` — knowledge articles, source records, and grounded answer ports
 - `file-media` — file metadata and R2 object storage
 - `jobs-workflows` — async job slot
 - `notifications-inapp` — in-app notification slot
@@ -33,9 +34,10 @@ Dashboard OS.
 
 SvelteKit route files are adapters. Domain/API logic lives in detached module use
 cases. `/app/tasks`, `/app/focus`, and `/app/review` use the `operator-work`
-module. Template-owned workflow pages (`/app/calendar`, `/app/knowledge`,
-`/app/content`, `/app/ai-team`) still use `src/lib/os-data.ts` sample data and
-should stay thin until a dedicated module or documented D1 table owns their data.
+module. `/app/knowledge` uses `knowledge-base-rag`. Template-owned workflow
+pages (`/app/calendar`, `/app/content`, `/app/ai-team`) still use
+`src/lib/os-data.ts` sample data and should stay thin until a dedicated module or
+documented D1 table owns their data.
 
 ```txt
 src/routes/signup/+page.server.ts          -> createOrganization
@@ -47,6 +49,7 @@ src/routes/app/files/+page.server.ts       -> listFiles / createUploadTicket
 src/routes/app/tasks/+page.server.ts       -> listOperatorTasks / upsertOperatorTask
 src/routes/app/focus/+page.server.ts       -> listFocusBlocks / upsertFocusBlock
 src/routes/app/review/+page.server.ts      -> listDailyReviews / saveDailyReview
+src/routes/app/knowledge/+page.server.ts   -> listArticlesScoped / createArticleScoped
 src/routes/admin/[resource]/+page.server.ts -> listRecords
 ```
 

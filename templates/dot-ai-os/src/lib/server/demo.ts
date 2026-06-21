@@ -11,6 +11,8 @@ import { upsertCustomer } from "@microservices-sh/customer";
 import type { CustomerRepository } from "@microservices-sh/customer/ports";
 import { createTicket } from "@microservices-sh/support-ticket";
 import type { TicketStore } from "@microservices-sh/support-ticket/ports";
+import { createArticle } from "@microservices-sh/knowledge-base-rag";
+import type { KnowledgeStore } from "@microservices-sh/knowledge-base-rag/ports";
 import { createInvoice, issueInvoice } from "@microservices-sh/invoice";
 import type { InvoiceStore, NumberAllocator } from "@microservices-sh/invoice/ports";
 import { createUploadTicket, completeUpload } from "@microservices-sh/file-media";
@@ -19,12 +21,13 @@ import { recordEvent } from "@microservices-sh/audit-log";
 import type { AuditEventStore } from "@microservices-sh/audit-log/ports";
 import { saveDailyReview, upsertFocusBlock, upsertOperatorTask } from "@microservices-sh/operator-work";
 import type { OperatorWorkStore } from "@microservices-sh/operator-work/ports";
-import { focusBlocks, operatorTasks } from "$lib/os-data";
+import { focusBlocks, knowledgeItems, operatorTasks } from "$lib/os-data";
 
 export interface DemoDeps {
   tenantId: string;
   customerRepository: CustomerRepository;
   ticketStore: TicketStore;
+  knowledgeStore: KnowledgeStore;
   invoiceStore: InvoiceStore;
   numberAllocator: NumberAllocator;
   mediaStore: MediaStore;
@@ -198,6 +201,18 @@ export async function seedDemoData(deps: DemoDeps): Promise<void> {
     },
     { store: deps.operatorWorkStore }
   );
+
+  for (const item of knowledgeItems) {
+    await createArticle(
+      {
+        tenantId: deps.tenantId,
+        title: item.title,
+        content: `${item.summary} Tags: ${item.tags.join(", ")}. Source: ${item.source}.`,
+        sourceType: "manual"
+      },
+      { store: deps.knowledgeStore }
+    );
+  }
 
   // A couple of demo support tickets scoped to the workspace tenant.
   for (const ticket of DEMO_TICKETS) {

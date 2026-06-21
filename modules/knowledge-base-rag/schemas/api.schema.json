@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Knowledge Base RAG API",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "createArticle": {
+      "type": "object"
+    },
+    "listArticles": {
+      "type": "object"
+    },
+    "listSources": {
+      "type": "object"
+    },
+    "listAttachments": {
+      "type": "object"
+    },
+    "createWebScanJob": {
+      "type": "object"
+    },
+    "listWebScanJobs": {
+      "type": "object"
+    },
+    "updateWebScanJob": {
+      "type": "object"
+    },
+    "createKnowledgeFeed": {
+      "type": "object"
+    },
+    "listKnowledgeFeeds": {
+      "type": "object"
+    },
+    "updateKnowledgeFeed": {
+      "type": "object"
+    },
+    "searchKnowledge": {
+      "type": "object"
+    },
+    "answerQuestion": {
+      "type": "object"
+    },
+    "draftSupportReply": {
+      "type": "object"
+    }
+  }
+}

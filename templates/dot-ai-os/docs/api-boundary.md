@@ -7,11 +7,12 @@ adapters.
 
 The upstream-informed DOT AI OS pages for tasks, focus planning, and daily
 review now use `@microservices-sh/operator-work` use cases over the
-`OperatorWorkStore` port. Calendar context, knowledge, content, and AI-team
-routing still use `src/lib/os-data.ts` sample data. That remaining sample data
-is UI contract data only; production persistence for those domains must move
-into a module use case or a documented template-owned D1 table with migrations,
-checks, and approval gates.
+`OperatorWorkStore` port. Knowledge uses `@microservices-sh/knowledge-base-rag`
+through `KnowledgeStore`. Calendar context, content, and AI-team routing still
+use `src/lib/os-data.ts` sample data. That remaining sample data is UI contract
+data only; production persistence for those domains must move into a module use
+case or a documented template-owned D1 table with migrations, checks, and
+approval gates.
 
 ## Layers
 
@@ -75,6 +76,7 @@ getOperatorWorkbench
 listOperatorTasks / upsertOperatorTask / updateOperatorTaskStatus
 listFocusBlocks / upsertFocusBlock
 listDailyReviews / saveDailyReview
+listArticlesScoped / createArticleScoped
 ```
 
 Every write includes `actorId` and `sourceLabel`; route adapters also record an

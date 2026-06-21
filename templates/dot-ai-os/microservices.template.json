@@ -29,6 +29,7 @@
       "invoice",
       "file-media",
       "support-ticket",
+      "knowledge-base-rag",
       "operator-work"
     ],
     "optional": [
@@ -81,6 +82,13 @@
       "activeModule": "support-ticket",
       "allowedModules": [
         "support-ticket"
+      ],
+      "approvalRisk": "medium"
+    },
+    "knowledge": {
+      "activeModule": "knowledge-base-rag",
+      "allowedModules": [
+        "knowledge-base-rag"
       ],
       "approvalRisk": "medium"
     },

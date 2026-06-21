@@ -31,20 +31,24 @@ run setup at `/signup` creates the workspace via `org-team-rbac`.
 
 ## DOT AI OS Workflow Pages
 
-These pages are template-owned starter surfaces:
+These pages are module-backed workflow surfaces:
 
 - `/app/tasks`
 - `/app/focus`
-- `/app/calendar`
 - `/app/review`
 - `/app/knowledge`
+
+These pages are template-owned starter surfaces:
+
+- `/app/calendar`
 - `/app/content`
 - `/app/ai-team`
 
-The starter workflow data lives in `src/lib/os-data.ts`. Keep these routes thin
-until a dedicated module owns persisted data. Calendar OAuth/write-back, Hermes
-ingestion, Obsidian export, AI-provider calls, and external ingestion require
-explicit approval gates.
+Task, focus, and review state is owned by `operator-work`; knowledge articles are
+owned by `knowledge-base-rag`. The remaining starter workflow data lives in
+`src/lib/os-data.ts`. Keep these routes thin until a dedicated module owns
+persisted data. Calendar OAuth/write-back, Hermes ingestion, Obsidian export,
+AI-provider calls, and external ingestion require explicit approval gates.
 
 ## Admin Registry
 

@@ -15,10 +15,11 @@ appear from the installed module set instead of being hardcoded in the layout.
 ## Modules
 
 Wired: auth, identity, org-team-rbac, admin-shell, audit-log, customer, invoice,
-support-ticket, file-media, jobs-workflows, notifications-inapp, operator-work.
+support-ticket, knowledge-base-rag, file-media, jobs-workflows, notifications-inapp,
+operator-work.
 
-Optional extension slots: calendar-google, email, webhook-delivery, ingestion,
-content/knowledge persistence, and future AI-provider modules.
+Optional extension slots: calendar-google, email, webhook-delivery, external
+ingestion, content publishing, and future AI-provider modules.
 
 ## Upstream Adaptation
 
@@ -35,13 +36,13 @@ Carried over as operator-work module surfaces:
 Carried over as template-owned starter surfaces:
 
 - calendar feed/sync shape
-- knowledge capture pipeline
+- knowledge article capture through knowledge-base-rag
 - content production pipeline
 - AI team / digital worker roster
 
 Provider calls, Google Calendar OAuth/write-back, Hermes ingestion, AI rewrites,
-Obsidian export, and durable content/knowledge storage require explicit module
-contracts or documented template-owned tables before production use.
+Obsidian export and provider ingestion require explicit module contracts or
+documented template-owned tables before production use.
 
 ## Routes
 
@@ -55,7 +56,7 @@ contracts or documented template-owned tables before production use.
 | `/app/focus` | Focus plan, backed by operator-work |
 | `/app/calendar` | Calendar context and feed/sync starter surface |
 | `/app/review` | Daily review, backed by operator-work |
-| `/app/knowledge` | Knowledge-log starter surface |
+| `/app/knowledge` | Knowledge articles, backed by knowledge-base-rag |
 | `/app/content` | Content pipeline starter surface |
 | `/app/ai-team` | Visible digital-worker roster and routing rules |
 | `/app/customers` | Contacts, backed by the customer module |
@@ -75,8 +76,8 @@ SvelteKit routes are thin adapters. Domain logic lives in module use cases such
 as `createOrganization`, `upsertCustomer`, `createInvoice`, `listFiles`,
 `getOperatorWorkbench`, `upsertOperatorTask`, `saveDailyReview`, and
 `recordEvent`. The template owns the app shell, routes, layout, UI composition,
-and sample DOT AI OS data for knowledge, content, calendar, and AI-team surfaces
-in `src/lib/os-data.ts`.
+and sample DOT AI OS data for content, calendar, and AI-team surfaces in
+`src/lib/os-data.ts`.
 
 Stores resolve to D1/R2 adapters in production and in-memory adapters locally, so
 the app runs out of the box for development.

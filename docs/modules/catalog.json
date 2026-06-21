@@ -386,6 +386,132 @@
       ]
     },
     {
+      "id": "knowledge-base-rag",
+      "name": "Knowledge Base RAG",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/knowledge",
+      "docPath": "docs/modules/knowledge-base-rag.md",
+      "summary": "Tenant-scoped knowledge articles, source records, attachment references, active-only search, and cite-or-refuse grounded answers for support workflows.",
+      "requires": [],
+      "permissions": [
+        "knowledge-base-rag.read",
+        "knowledge-base-rag.write",
+        "knowledge-base-rag.admin",
+        "knowledge-base-rag.extend",
+        "knowledge-base-rag.observe"
+      ],
+      "rpc": [
+        {
+          "method": "createArticle",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        },
+        {
+          "method": "getArticle",
+          "scope": "knowledge-base-rag.read",
+          "public": false
+        },
+        {
+          "method": "listArticles",
+          "scope": "knowledge-base-rag.read",
+          "public": false
+        },
+        {
+          "method": "updateArticle",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        },
+        {
+          "method": "recordSource",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        },
+        {
+          "method": "listSources",
+          "scope": "knowledge-base-rag.read",
+          "public": false
+        },
+        {
+          "method": "attachArticleFile",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        },
+        {
+          "method": "listAttachments",
+          "scope": "knowledge-base-rag.read",
+          "public": false
+        },
+        {
+          "method": "createWebScanJob",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        },
+        {
+          "method": "listWebScanJobs",
+          "scope": "knowledge-base-rag.read",
+          "public": false
+        },
+        {
+          "method": "updateWebScanJob",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        },
+        {
+          "method": "createKnowledgeFeed",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        },
+        {
+          "method": "listKnowledgeFeeds",
+          "scope": "knowledge-base-rag.read",
+          "public": false
+        },
+        {
+          "method": "updateKnowledgeFeed",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        },
+        {
+          "method": "searchKnowledge",
+          "scope": "knowledge-base-rag.read",
+          "public": false
+        },
+        {
+          "method": "answerQuestion",
+          "scope": "knowledge-base-rag.read",
+          "public": false
+        },
+        {
+          "method": "draftSupportReply",
+          "scope": "knowledge-base-rag.write",
+          "public": false
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeArticleCreate",
+        "beforeArticleUpdate",
+        "afterAttachmentAdded",
+        "afterGroundedAnswerDrafted"
+      ],
+      "events": [
+        "knowledge-base-rag.article_created",
+        "knowledge-base-rag.article_updated",
+        "knowledge-base-rag.source_recorded",
+        "knowledge-base-rag.attachment_added",
+        "knowledge-base-rag.web_scan_job_created",
+        "knowledge-base-rag.web_scan_job_updated",
+        "knowledge-base-rag.feed_created",
+        "knowledge-base-rag.feed_updated"
+      ]
+    },
+    {
       "id": "shipment",
       "name": "Shipment",
       "version": "0.1.0",
