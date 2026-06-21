@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 90
+Phase 91
 
 ## Phases
 
@@ -700,6 +700,13 @@ Phase 90
 - [x] Add read-only `/app/banking/imports/[id]` over tenant-scoped bank-reconciliation import and transaction list APIs.
 - [x] Link the Banking import history table to the import detail route.
 - [x] Add accounting template policy checks for tenant scoping and read-only side-effect boundary.
+- [x] Verify bank-reconciliation tests, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 91: Accounting Banking Reconciliation Detail Route Proof
+- [x] Add read-only `/app/banking/reconciliations/[id]` over account-scoped reconciliation, transaction, and import list APIs.
+- [x] Link the Banking reconciliation session list to the reconciliation detail route.
+- [x] Add accounting template policy checks for tenant/account/session filtering and read-only side-effect boundary.
 - [x] Verify bank-reconciliation tests, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 

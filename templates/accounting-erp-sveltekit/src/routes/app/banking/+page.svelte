@@ -107,7 +107,7 @@
         <div class="session-list">
           {#each data.reconciliations.slice(0, 4) (session.id)}
             <div>
-              <span>{session.statementDate}</span>
+              <a href={`/app/banking/reconciliations/${session.id}`}>{session.statementDate}</a>
               <strong>{money(session.statementBalanceCents)}</strong>
               <Badge tone={session.status === "completed" ? "good" : "warn"}>{session.status}</Badge>
             </div>
@@ -299,7 +299,7 @@
     gap: 10px;
     font-size: 0.86rem;
   }
-  .session-list span {
+  .session-list a {
     color: var(--color-ink-faint);
     font-family: var(--font-mono);
     font-size: 0.72rem;

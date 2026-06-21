@@ -5,6 +5,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const recurringBillDetailServer = readText("src/routes/app/payables/recurring/[id]/+page.server.ts");
   const bankingImportDetailServer = readText("src/routes/app/banking/imports/[id]/+page.server.ts");
   const bankingImportDetailPage = readText("src/routes/app/banking/imports/[id]/+page.svelte");
+  const bankingReconciliationDetailServer = readText("src/routes/app/banking/reconciliations/[id]/+page.server.ts");
+  const bankingReconciliationDetailPage = readText("src/routes/app/banking/reconciliations/[id]/+page.svelte");
 
   assertFileIncludesAll(
     "docs/api-boundary.md",
@@ -341,6 +343,11 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "/app/banking/imports/${statementImport.id}",
     "Banking import history links to the read-only statement import detail route."
   );
+  assertFileIncludes(
+    "src/routes/app/banking/+page.svelte",
+    "/app/banking/reconciliations/${session.id}",
+    "Banking reconciliation history links to the read-only reconciliation detail route."
+  );
   assertFileIncludesAll(
     "src/routes/app/banking/imports/[id]/+page.server.ts",
     [
@@ -394,6 +401,61 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "src/routes/app/banking/imports/[id]/+page.svelte",
     ["Imported transactions", "CSV mapping", "Open banking actions", "Reconciliation context"],
     "Banking import detail page exposes transaction review, mapping, and related reconciliation context."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/banking/reconciliations/[id]/+page.server.ts",
+    [
+      "requireModule(\"bank-reconciliation\"",
+      "requireOrgPermission",
+      "\"org.read\"",
+      "listBankAccounts(ctx)",
+      "service.listReconciliations(ctx, account.id)",
+      "listStatementTransactions(ctx, reconciliation.bankAccountId)",
+      "listStatementImports(ctx, reconciliation.bankAccountId)",
+      "transaction.bankAccountId !== reconciliation.bankAccountId",
+      "transaction.tenantId !== activeOrgId",
+      "transaction.reconciliationId === reconciliation.id",
+      "transaction.reconciled === true",
+      "reconciliation.status !== \"in_progress\"",
+      "transaction.transactionDate <= reconciliation.statementDate"
+    ],
+    "Banking reconciliation detail proves account scope, uses read-only bank-reconciliation lists, and filters transactions by tenant/account plus session status."
+  );
+  assert(
+    !bankingReconciliationDetailServer.includes("export const actions") &&
+      !bankingReconciliationDetailServer.includes("BankReconciliationStore") &&
+      !bankingReconciliationDetailServer.includes("createD1BankReconciliationStore") &&
+      !bankingReconciliationDetailServer.includes("platform.env.DB") &&
+      !bankingReconciliationDetailServer.includes(".prepare(") &&
+      !bankingReconciliationDetailServer.includes("createBankAccount") &&
+      !bankingReconciliationDetailServer.includes("importStatementCsv") &&
+      !bankingReconciliationDetailServer.includes("importStatementTransactions") &&
+      !bankingReconciliationDetailServer.includes("suggestMatches") &&
+      !bankingReconciliationDetailServer.includes("createMatch") &&
+      !bankingReconciliationDetailServer.includes("matchTransaction") &&
+      !bankingReconciliationDetailServer.includes("startReconciliation") &&
+      !bankingReconciliationDetailServer.includes("completeReconciliation") &&
+      !bankingReconciliationDetailServer.includes("recordEvent") &&
+      !bankingReconciliationDetailServer.includes("enqueueJob") &&
+      !bankingReconciliationDetailServer.includes("sendEmail") &&
+      !bankingReconciliationDetailServer.includes("postJournalEntry") &&
+      !bankingReconciliationDetailServer.includes("syncInvoiceToReceivables") &&
+      !/(?:insert|update|upsert|delete)[A-Z]/.test(bankingReconciliationDetailServer),
+    "Banking reconciliation detail route remains read-only; import, match, reconciliation, event, job, email, journal, sync, and direct store writes stay off the detail route.",
+    "policy:accounting-banking-reconciliation-detail-read-only"
+  );
+  assert(
+    !bankingReconciliationDetailPage.includes("<form") &&
+      !bankingReconciliationDetailPage.includes("method=\"POST\"") &&
+      !bankingReconciliationDetailPage.includes("use:enhance") &&
+      !bankingReconciliationDetailPage.includes("?/"),
+    "Banking reconciliation detail page does not render write-capable forms or SvelteKit action targets.",
+    "policy:accounting-banking-reconciliation-detail-ui-read-only"
+  );
+  assertFileIncludesAll(
+    "src/routes/app/banking/reconciliations/[id]/+page.svelte",
+    ["Statement transactions", "Related imports", "Balance proof", "Open banking actions"],
+    "Banking reconciliation detail page exposes transaction review, import context, and balance proof."
   );
   assertFileIncludesAll(
     "microservices.lock.json",

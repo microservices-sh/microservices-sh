@@ -1934,6 +1934,22 @@ Note: an initial `create-microservices-app` test run overlapped with `create-mic
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 91 accounting banking reconciliation detail route proof
+
+- **Status:** complete.
+- Goal: close the Banking reconciliation detail route gap while leaving start/complete and matching side effects on the existing Banking operator route.
+- Added `/app/banking/reconciliations/[id]` backed by account-first `listBankAccounts(ctx)`, account-scoped `listReconciliations(ctx, account.id)`, `listStatementTransactions(ctx, reconciliation.bankAccountId)`, and `listStatementImports(ctx, reconciliation.bankAccountId)`.
+- The route filters completed sessions by `transaction.reconciliationId === reconciliation.id` and `transaction.reconciled === true`; in-progress sessions show unreconciled account transactions on or before the statement date, and abandoned sessions do not inherit in-progress filtering.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Bank-reconciliation tests | Existing import, matching, and reconciliation behavior remains green | `pnpm --dir modules/bank-reconciliation test` passed, 4/4 | Pass |
+| Accounting template spec | Policy catches reconciliation detail route and read-only boundary | `pnpm --dir templates/accounting-erp-sveltekit check:spec` passed | Pass |
+| Accounting template build | SvelteKit/Cloudflare build compiles after route additions | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Packaged accounting template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and sequential `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 90 accounting banking import detail route proof
 
 - **Status:** complete.

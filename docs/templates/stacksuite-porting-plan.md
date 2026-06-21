@@ -46,7 +46,7 @@ Two read-only explorer passes on 2026-06-21 identified the remaining adoption ga
 - Accounting depth has moved past the original thin slice. Ledger posting, post/void/reversal workflows, trial balance, AR/AP posting adapters, invoice/customer-payment settlement, Stripe settlement, and recurring-invoice job posting are implemented in the template/module split. Remaining accounting backlog is setup depth, fiscal close/reopen/lock rules, richer account metadata, and full financial statements.
 - AP has vendors, bills, payments, aging, bill posting, payment settlement, and recurring bill storage primitives. Remaining backlog is recurring bill generation through jobs-workflows, pause/resume/cancel lifecycle, approval routing, and richer payment-account handling.
 - AR now stores invoice snapshots/payments/aging, customer statements, manual invoice issue/payment/void sync, Stripe settlement sync, customer-payment settlement posting, and recurring auto-issued invoice sync. Remaining backlog is richer deposit-account configuration, unapplied balance reporting, and reusable statement/export contracts.
-- Banking now exposes imports, import detail review, match suggestions, match creation, reconciliation start, and reconciliation completion in the accounting template workflow. Remaining backlog is CSV field mapping, duplicate handling, confirm/remove/exclude match lifecycle, clear/unclear operations, richer summaries/history, and provider/OCR hooks.
+- Banking now exposes imports, import detail review, match suggestions, match creation, reconciliation start, reconciliation completion, and reconciliation detail review in the accounting template workflow. Remaining backlog is CSV field mapping, duplicate handling, confirm/remove/exclude match lifecycle, clear/unclear operations, richer summaries/history, and provider/OCR hooks.
 - BAO invoice documents include commerce-specific projections: sales-order link, product-backed lines, contact/address snapshots, shipping status, shipping fee, discount, terms, payment method, PDF key, Stripe payment-link fields, and external IDs. Keep invoice core lean and put document snapshots in a template projection or an invoice-document extension.
 - BAO fulfillment links invoices, shipment batches, and stock movement. The commerce template now covers reservation/release, combo-component reservation, invoice-originated shipment deduction, shipment batches, shipment detail, packing slips, and pick lists. Remaining backlog is richer shipment status transitions and inventory reconciliation documents.
 - BAO WooCommerce behavior remains provider-specific. The current template has HMAC verification, manual page sync, signed order webhooks, order import, and audit events; future provider depth should stay below `commerce-sync` adapters and template bridges.
@@ -209,7 +209,7 @@ Port in this order:
 3. Ledger/report routes backed by accounting-core report contracts.
 4. Payables recurring templates and scheduled bill generation once AP list/update/generate APIs exist.
 5. Receivables recurring invoices and estimates once invoice APIs exist.
-6. Banking reconciliation detail routes once bank-reconciliation exposes richer sessions and matches.
+6. Banking match lifecycle routes once bank-reconciliation exposes confirm/remove/exclude and clear/unclear operations.
 7. OCR review routes wired to document-extraction hooks.
 8. API keys and request logs after gateway scope support exists.
 
@@ -347,7 +347,7 @@ Done for the first accounting/commerce operator surface:
 
 Remaining routes should be added only after the backing module API exists:
 
-- accounting setup, chart, fiscal periods, banking reconciliation detail.
+- accounting setup, chart, fiscal periods.
 - commerce sales-order create/send, richer shipment status transitions, MCP settings, persistent inventory count documents, and inventory alerts.
 
 ### Phase 3: External Operations
