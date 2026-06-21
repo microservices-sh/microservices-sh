@@ -59,9 +59,9 @@
     llmEngine: "ollama"
   };
   let runtimeSettings: RuntimeSettings = {
-    gemmaModel: "gemma4:e4b",
+    gemmaModel: "gemma4:e4b-it-qat",
     ocrLanguage: "eng",
-    suggestedModels: ["gemma4:e2b", "gemma4:e4b", "gemma4:12b", "gemma4:26b", "gemma4:31b"],
+    suggestedModels: ["gemma4:e2b-it-qat", "gemma4:e4b-it-qat", "gemma4:e2b", "gemma4:e4b", "gemma4:12b"],
     installedModels: [],
     selectedModelInstalled: false,
     ollamaInstalled: false
@@ -91,7 +91,7 @@
   let activePathname = "#import";
   let selectedJobId: string | null = null;
   let selectedDraft: ExtractionDraft | null = null;
-  let settingsDraftModel = "gemma4:e4b";
+  let settingsDraftModel = "gemma4:e4b-it-qat";
   let settingsDraftOcrLanguage = "eng";
   let erpImportBaseUrl = "http://localhost:5173";
   let erpImportToken = "";

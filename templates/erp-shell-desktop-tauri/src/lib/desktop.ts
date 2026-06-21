@@ -131,7 +131,7 @@ export async function getRuntimeStatus() {
   return call<RuntimeStatus>("runtime_status", undefined, {
     ocr: "ready",
     llm: "ready",
-    model: "gemma4:e4b",
+    model: "gemma4:e4b-it-qat",
     mode: "browser-preview",
     ocrEngine: "gemma vision",
     llmEngine: "ollama"
@@ -416,17 +416,17 @@ function sampleDraft(job: QueueJob): ExtractionDraft {
     summary: "Browser preview extraction draft. Desktop mode reads the document with the local Gemma vision model.",
     confidence: 0.8,
     runtime: "sidecar",
-    model: "gemma4:e4b",
+    model: "gemma4:e4b-it-qat",
     warnings: ["Preview data only; run in Tauri desktop mode for local OCR."]
   };
 }
 
 function sampleRuntimeSettings(): RuntimeSettings {
   return {
-    gemmaModel: "gemma4:e4b",
+    gemmaModel: "gemma4:e4b-it-qat",
     ocrLanguage: "eng",
-    suggestedModels: ["gemma4:e2b", "gemma4:e4b", "gemma4:12b", "gemma4:26b", "gemma4:31b"],
-    installedModels: ["gemma4:e4b"],
+    suggestedModels: ["gemma4:e2b-it-qat", "gemma4:e4b-it-qat", "gemma4:e2b", "gemma4:e4b", "gemma4:12b"],
+    installedModels: ["gemma4:e4b-it-qat"],
     selectedModelInstalled: true,
     ollamaInstalled: true
   };
