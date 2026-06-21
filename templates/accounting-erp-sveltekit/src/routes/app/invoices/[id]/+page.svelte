@@ -5,8 +5,12 @@
   let { data, form } = $props();
   const inv = $derived(data.invoice);
 
-  let payAmount = $state(data.invoice.outstandingAmount);
+  let payAmount = $state("");
   let submitting = $state(false);
+
+  $effect(() => {
+    payAmount = String(inv.outstandingAmount);
+  });
 
   function payEnhance() {
     submitting = true;
