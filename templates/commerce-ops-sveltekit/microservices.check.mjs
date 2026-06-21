@@ -117,12 +117,16 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "src/lib/server/commerce-order-import.ts",
     [
       "createDraftOrder",
+      "confirmOrder",
+      "cancelOrder",
+      "createSalesOrderInventoryReservationPort",
       "upsertCustomer",
       "findProductBySku",
       "recordProviderMapping",
+      "mappedStatus",
       "woocommerce:"
     ],
-    "Commerce order import helper maps normalized WooCommerce orders into customer, product, sales-order, and provider-mapping modules."
+    "Commerce order import helper maps normalized WooCommerce orders into customer, product, sales-order, inventory lifecycle, and provider-mapping modules."
   );
   assertFileIncludesAll(
     "src/routes/app/sales-orders/+page.server.ts",

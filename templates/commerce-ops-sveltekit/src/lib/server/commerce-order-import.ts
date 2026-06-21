@@ -1,5 +1,5 @@
 import { upsertCustomer } from "@microservices-sh/customer";
-import { createDraftOrder } from "@microservices-sh/sales-order";
+import { cancelOrder, confirmOrder, createDraftOrder } from "@microservices-sh/sales-order";
 import type {
   NormalizedCommerceAddress,
   NormalizedCommerceEnvelope,
@@ -8,6 +8,11 @@ import type {
   ProviderMapping
 } from "@microservices-sh/commerce-sync";
 import type { Product } from "@microservices-sh/product-catalog";
+import type { SalesOrderStatus, SalesOrderWithLineItems } from "@microservices-sh/sales-order";
+import {
+  createSalesOrderInventoryReservationPort,
+  releaseSalesOrderReservations
+} from "./sales-order-inventory";
 
 type Actor = { id: string; email?: string; permissions?: string[] };
 
@@ -15,6 +20,7 @@ export interface CommerceOrderImportDeps {
   commerceSyncService: App.Locals["commerceSyncService"];
   customerRepository: App.Locals["customerRepository"];
   productCatalogStore: App.Locals["productCatalogStore"];
+  inventoryStore?: App.Locals["inventoryStore"];
   salesOrderStore: App.Locals["salesOrderStore"];
   actor: Actor;
 }
@@ -25,6 +31,8 @@ export interface CommerceOrderImportResult {
   created: boolean;
   customerId: string | null;
   lineCount: number;
+  status: SalesOrderStatus;
+  mappedStatus: NormalizedCommerceOrderPayload["mappedStatus"];
 }
 
 function isWooCommerceOrderPayload(value: unknown): value is NormalizedCommerceOrderPayload {
@@ -164,6 +172,76 @@ function importNotes(order: NormalizedCommerceOrderPayload): string {
   return `Imported WooCommerce order ${order.externalId} (${order.status}). Source total ${(order.totalCents / 100).toFixed(2)} ${order.currency}.${coupons}`;
 }
 
+function importResultFromOrder(
+  order: SalesOrderWithLineItems,
+  created: boolean,
+  mappedStatus: NormalizedCommerceOrderPayload["mappedStatus"]
+): CommerceOrderImportResult {
+  return {
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    created,
+    customerId: order.customerId,
+    lineCount: order.lineItems.length,
+    status: order.status,
+    mappedStatus
+  };
+}
+
+async function applyImportedLifecycleStatus(
+  imported: SalesOrderWithLineItems,
+  sourceOrder: NormalizedCommerceOrderPayload,
+  deps: CommerceOrderImportDeps
+): Promise<SalesOrderWithLineItems> {
+  if (sourceOrder.mappedStatus === "draft") return imported;
+
+  if (sourceOrder.mappedStatus === "cancelled") {
+    const cancelled = await cancelOrder(
+      {
+        tenantId: imported.tenantId,
+        orderId: imported.id,
+        reason: `WooCommerce status ${sourceOrder.status}`
+      },
+      { salesOrderStore: deps.salesOrderStore, actor: deps.actor }
+    );
+    if (!cancelled.ok || !cancelled.data) {
+      throw new Error(cancelled.ok ? "Could not cancel WooCommerce sales order." : cancelled.error.message);
+    }
+    if (deps.inventoryStore) {
+      await releaseSalesOrderReservations(cancelled.data.order, {
+        inventoryStore: deps.inventoryStore,
+        productCatalogStore: deps.productCatalogStore,
+        actorId: deps.actor.id,
+        permissions: deps.actor.permissions ?? []
+      });
+    }
+    return cancelled.data.order;
+  }
+
+  const confirmed = await confirmOrder(
+    { tenantId: imported.tenantId, orderId: imported.id },
+    {
+      salesOrderStore: deps.salesOrderStore,
+      inventoryReservationPort: deps.inventoryStore
+        ? createSalesOrderInventoryReservationPort({
+            inventoryStore: deps.inventoryStore,
+            productCatalogStore: deps.productCatalogStore,
+            actorId: deps.actor.id,
+            permissions: deps.actor.permissions ?? []
+          })
+        : undefined,
+      actor: deps.actor
+    }
+  );
+  if (!confirmed.ok || !confirmed.data) {
+    throw new Error(confirmed.ok ? "Could not confirm WooCommerce sales order." : confirmed.error.message);
+  }
+
+  // WooCommerce `completed` maps to `invoiced`; the import bridge confirms and
+  // reserves stock now, leaving invoice creation to the invoice/AR handoff slice.
+  return confirmed.data.order;
+}
+
 export async function importWooCommerceOrderEnvelope(
   envelope: NormalizedCommerceEnvelope,
   deps: CommerceOrderImportDeps
@@ -176,13 +254,7 @@ export async function importWooCommerceOrderEnvelope(
   const source = orderExternalSource(envelope.connectionId);
   const existing = await deps.salesOrderStore.findOrderByExternalRef(envelope.tenantId, source, order.externalId);
   if (existing) {
-    return {
-      orderId: existing.id,
-      orderNumber: existing.orderNumber,
-      created: false,
-      customerId: existing.customerId,
-      lineCount: existing.lineItems.length
-    };
+    return importResultFromOrder(await applyImportedLifecycleStatus(existing, order, deps), false, order.mappedStatus);
   }
 
   const mappingsResult = await deps.commerceSyncService.listProviderMappings({ tenantId: envelope.tenantId });
@@ -194,13 +266,7 @@ export async function importWooCommerceOrderEnvelope(
   if (mappedOrder) {
     const mappedExisting = await deps.salesOrderStore.getOrder(envelope.tenantId, mappedOrder.internalId);
     if (mappedExisting) {
-      return {
-        orderId: mappedExisting.id,
-        orderNumber: mappedExisting.orderNumber,
-        created: false,
-        customerId: mappedExisting.customerId,
-        lineCount: mappedExisting.lineItems.length
-      };
+      return importResultFromOrder(await applyImportedLifecycleStatus(mappedExisting, order, deps), false, order.mappedStatus);
     }
   }
 
@@ -272,18 +338,13 @@ export async function importWooCommerceOrderEnvelope(
     }
   );
   if (!draft.ok || !draft.data) throw new Error(draft.ok ? "Could not create WooCommerce sales order draft." : draft.error.message);
+  const importedOrder = await applyImportedLifecycleStatus(draft.data.order, order, deps);
 
   await recordProviderMapping(deps, envelope, {
     resourceType: "order",
     externalId: order.externalId,
-    internalId: draft.data.order.id
+    internalId: importedOrder.id
   });
 
-  return {
-    orderId: draft.data.order.id,
-    orderNumber: draft.data.order.orderNumber,
-    created: true,
-    customerId,
-    lineCount: draft.data.order.lineItems.length
-  };
+  return importResultFromOrder(importedOrder, true, order.mappedStatus);
 }

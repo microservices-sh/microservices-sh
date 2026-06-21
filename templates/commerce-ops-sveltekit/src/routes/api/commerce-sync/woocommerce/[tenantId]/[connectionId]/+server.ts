@@ -149,8 +149,9 @@ export const POST: RequestHandler = async ({ request, params, platform, locals }
       commerceSyncService: locals.commerceSyncService,
       customerRepository: locals.customerRepository,
       productCatalogStore: locals.productCatalogStore,
+      inventoryStore: locals.inventoryStore,
       salesOrderStore: locals.salesOrderStore,
-      actor: { id: "woocommerce-webhook" }
+      actor: { id: "woocommerce-webhook", permissions: ["inventory.write"] }
     });
 
     await recordEvent(
@@ -160,7 +161,15 @@ export const POST: RequestHandler = async ({ request, params, platform, locals }
         entityType: "sales_order",
         entityId: imported.orderId,
         source: "api/commerce-sync/woocommerce",
-        payload: { tenantId, connectionId, externalId, created: imported.created, lineCount: imported.lineCount }
+        payload: {
+          tenantId,
+          connectionId,
+          externalId,
+          created: imported.created,
+          lineCount: imported.lineCount,
+          status: imported.status,
+          mappedStatus: imported.mappedStatus
+        }
       },
       { auditStore: locals.auditStore }
     );
