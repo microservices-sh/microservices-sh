@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 63
+Phase 64
 
 ## Phases
 
@@ -499,6 +499,14 @@ Phase 63
 - [x] Implement tenant-scoped projects, worker access grants, progress logs, media metadata, comments, public snapshots, memory store, D1 store, migration, schemas, docs, metadata, permissions, events, resources, exports, and tests.
 - [x] Keep auth/users/customers, QR image generation, byte uploads, R2 signing, email logs, and UI outside the module boundary.
 - [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
+- **Status:** complete
+
+### Phase 64: HelpGrid Support Ticket Hardening
+- [x] Inspect HelpGrid ticket sequences, comments, attachments, and share-token workflows.
+- [x] Extend `support-ticket` with per-tenant ticket numbers, comments, attachment metadata, public follow-up share tokens, thread listing, and public token resolution.
+- [x] Add memory/D1 store methods, migration tables, schemas, module metadata, OpenAPI/docs, events, exports, scoped wrappers, and tests.
+- [x] Keep pending upload sessions, raw R2 uploads, signed URLs, AI analyses/follow-up questions, billing tokens, WhatsApp, and UI outside the module boundary.
+- [x] Verify build, tests, module spec, migration smoke, JSON parsing, registry build, and whitespace checks for the module slice.
 - **Status:** complete
 
 ## Key Questions

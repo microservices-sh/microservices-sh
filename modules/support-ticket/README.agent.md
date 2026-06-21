@@ -15,8 +15,11 @@ Rules:
    - `createTicket` emits `support-ticket.created`.
    - `updateTicket` emits `support-ticket.updated`, and additionally
      `support-ticket.status_changed` whenever the status transitions.
-6. All lookups/listing are tenant-scoped (`tenantId`).
-7. Risk `medium`: migrations, PII fields, external side effects, and production
+   - Comment, attachment, and share-token write use cases emit dedicated events.
+6. All scoped wrappers must enforce the active `AuthContext.orgId`.
+7. Keep upload streaming, R2/signed URL logic, AI analyses, billing tokens, email,
+   and WhatsApp/provider calls outside this module.
+8. Risk `medium`: migrations, PII fields, public share tokens, attachment storage integration, external side effects, and production
    deploy are approval-gated.
-8. Run `pnpm --filter @microservices-sh/support-ticket build`, `check:spec`, and
+9. Run `pnpm --filter @microservices-sh/support-ticket build`, `check:spec`, and
    `test` after edits.

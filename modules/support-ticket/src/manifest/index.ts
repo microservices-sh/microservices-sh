@@ -6,7 +6,7 @@ export const manifest = {
   status: "available",
   class: "core",
   summary:
-    "Tenant-scoped support tickets with subject/description, an open->pending->resolved->closed status lifecycle, priority, assignment, and lifecycle events.",
+    "Tenant-scoped support tickets with sequence numbers, lifecycle state, priority, assignment, comments, attachment metadata, and public follow-up links.",
   entrypoint: "src/index.ts"
 } as const;
 

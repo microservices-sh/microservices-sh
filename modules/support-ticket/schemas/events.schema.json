@@ -5,7 +5,15 @@
   "properties": {
     "eventName": {
       "type": "string",
-      "enum": ["support-ticket.created", "support-ticket.updated", "support-ticket.status_changed"]
+      "enum": [
+        "support-ticket.created",
+        "support-ticket.updated",
+        "support-ticket.status_changed",
+        "support-ticket.comment.created",
+        "support-ticket.attachment.attached",
+        "support-ticket.share-token.created",
+        "support-ticket.share-token.revoked"
+      ]
     },
     "entityType": {
       "type": "string",

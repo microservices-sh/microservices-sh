@@ -7,6 +7,7 @@ export type TicketPriority = "low" | "normal" | "high" | "urgent";
 export interface Ticket {
   id: string;
   tenantId: string;
+  ticketNumber: number;
   subject: string;
   description: string;
   status: TicketStatus;
@@ -15,6 +16,50 @@ export interface Ticket {
   assigneeId: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export type TicketCommentAuthorType = "customer" | "agent" | "system";
+
+export interface TicketComment {
+  id: string;
+  tenantId: string;
+  ticketId: string;
+  authorType: TicketCommentAuthorType;
+  authorId: string | null;
+  authorName: string | null;
+  authorEmail: string | null;
+  content: string;
+  isInternal: boolean;
+  createdAt: string;
+}
+
+export interface TicketAttachment {
+  id: string;
+  tenantId: string;
+  ticketId: string;
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  storageKey: string;
+  createdAt: string;
+}
+
+export interface TicketShareToken {
+  id: string;
+  tenantId: string;
+  ticketId: string;
+  token: string;
+  isActive: boolean;
+  expiresAt: string | null;
+  createdAt: string;
+  lastAccessedAt: string | null;
+}
+
+export interface TicketPublicSnapshot {
+  ticket: Ticket;
+  shareToken: TicketShareToken;
+  comments: TicketComment[];
+  attachments: TicketAttachment[];
 }
 
 export interface TicketFilter {

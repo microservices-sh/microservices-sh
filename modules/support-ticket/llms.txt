@@ -2,22 +2,33 @@
 
 Purpose: reusable prebuilt support-ticket logic for microservices.sh templates.
 Tenant-scoped tickets (open -> pending -> resolved -> closed) with priority and
-assignment. Powers the ERP/help-desk template surface.
+assignment, per-tenant ticket numbers, comments, attachment metadata, and public
+follow-up share tokens. Powers the ERP/help-desk template surface.
 
 Entry points:
 - `src/index.ts` exports the safe public surface.
 - `src/use-cases/` contains framework-neutral behavior: createTicket, getTicket,
-  listTickets, updateTicket.
+  listTickets, updateTicket, addTicketComment, listTicketThread, attachTicketFile,
+  createTicketShareToken, listTicketShareTokens, revokeTicketShareToken,
+  resolveTicketShareToken.
 - `src/ports/` defines the `TicketStore` repository interface.
 - `src/adapters/` contains Cloudflare D1 and memory `TicketStore` implementations.
 - `src/meta.ts` builds the Result envelope Meta (correlationId threading, Plan 25 section 4).
-- `migrations/0001_support_ticket.sql` owns the support_tickets table + domain_events.
+- `migrations/0001_support_ticket.sql` owns the base tickets table and domain_events.
+- `migrations/0002_ticket_thread_share_tokens.sql` adds ticket numbers, ticket
+  sequences, comments, attachment metadata, and share tokens.
 - `schemas/` and `openapi.json` describe API-facing contracts.
 - `module.json` is the machine-readable module manifest.
 
 Model:
-- Entity: Ticket { id, tenantId, subject, description, status, priority,
+- Entity: Ticket { id, tenantId, ticketNumber, subject, description, status, priority,
   requesterEmail, assigneeId, createdAt, updatedAt }.
+- Entity: TicketComment { id, tenantId, ticketId, authorType, authorName,
+  authorEmail, content, isInternal, createdAt }.
+- Entity: TicketAttachment { id, tenantId, ticketId, filename, contentType,
+  sizeBytes, storageKey, createdAt }.
+- Entity: TicketShareToken { id, tenantId, ticketId, token, isActive, expiresAt,
+  createdAt, lastAccessedAt }.
 - Status enum: open | pending | resolved | closed (default open).
 - Priority enum: low | normal | high | urgent (default normal).
 
@@ -26,10 +37,13 @@ Result + events (the point - do not remove):
 - createTicket emits support-ticket.created.
 - updateTicket emits support-ticket.updated, and additionally
   support-ticket.status_changed when the status actually transitions.
+- Comment, attachment, and share-token write use cases emit dedicated events.
 - All listing/lookup is tenant-scoped (tenantId).
 
 Agent rules:
 - Keep ticket behavior in this module; keep app routes and UI in templates.
+- Keep raw upload/R2 streaming, signed URLs, pending upload sessions, AI analyses,
+  billing token usage, and WhatsApp/provider calls outside this module.
 - Use `TicketStore` for persistence; never make real I/O in tests (use the memory adapter).
 - Keep use cases framework-neutral (no SvelteKit/Hono imports).
 - Ask before changing PII schema, migrations, external side effects, or production deploy.

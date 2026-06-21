@@ -2,5 +2,90 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Support Ticket API",
   "type": "object",
-  "additionalProperties": true
+  "additionalProperties": false,
+  "$defs": {
+    "ticketStatus": {
+      "type": "string",
+      "enum": ["open", "pending", "resolved", "closed"]
+    },
+    "ticketPriority": {
+      "type": "string",
+      "enum": ["low", "normal", "high", "urgent"]
+    },
+    "commentAuthorType": {
+      "type": "string",
+      "enum": ["customer", "agent", "system"]
+    },
+    "createTicketInput": {
+      "type": "object",
+      "required": ["tenantId", "subject", "description", "requesterEmail"],
+      "additionalProperties": false,
+      "properties": {
+        "tenantId": { "type": "string", "minLength": 1 },
+        "subject": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "description": { "type": "string" },
+        "status": { "$ref": "#/$defs/ticketStatus" },
+        "priority": { "$ref": "#/$defs/ticketPriority" },
+        "requesterEmail": { "type": "string", "format": "email" },
+        "assigneeId": { "type": ["string", "null"] }
+      }
+    },
+    "updateTicketInput": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "status": { "$ref": "#/$defs/ticketStatus" },
+        "priority": { "$ref": "#/$defs/ticketPriority" },
+        "assigneeId": { "type": ["string", "null"] }
+      }
+    },
+    "addTicketCommentInput": {
+      "type": "object",
+      "required": ["ticketId", "authorType", "content"],
+      "additionalProperties": false,
+      "properties": {
+        "ticketId": { "type": "string", "minLength": 1 },
+        "authorType": { "$ref": "#/$defs/commentAuthorType" },
+        "authorId": { "type": ["string", "null"] },
+        "authorName": { "type": ["string", "null"] },
+        "authorEmail": { "type": ["string", "null"], "format": "email" },
+        "content": { "type": "string", "minLength": 1, "maxLength": 5000 },
+        "isInternal": { "type": "boolean", "default": false }
+      }
+    },
+    "attachTicketFileInput": {
+      "type": "object",
+      "required": ["ticketId", "filename", "contentType", "sizeBytes", "storageKey"],
+      "additionalProperties": false,
+      "properties": {
+        "ticketId": { "type": "string", "minLength": 1 },
+        "filename": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "contentType": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "sizeBytes": { "type": "integer", "minimum": 0 },
+        "storageKey": { "type": "string", "minLength": 1, "maxLength": 1024 }
+      }
+    },
+    "createTicketShareTokenInput": {
+      "type": "object",
+      "required": ["ticketId"],
+      "additionalProperties": false,
+      "properties": {
+        "ticketId": { "type": "string", "minLength": 1 },
+        "expiresAt": { "type": ["string", "null"] }
+      }
+    },
+    "ticketPublicSnapshot": {
+      "type": "object",
+      "required": ["ticket", "shareToken", "comments", "attachments"],
+      "additionalProperties": true,
+      "properties": {
+        "ticket": { "type": "object" },
+        "shareToken": { "type": "object" },
+        "comments": { "type": "array", "items": { "type": "object" } },
+        "attachments": { "type": "array", "items": { "type": "object" } }
+      }
+    }
+  }
 }

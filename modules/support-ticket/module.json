@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "status": "available",
   "class": "core",
-  "summary": "Tenant-scoped support tickets with subject/description, an open->pending->resolved->closed status lifecycle, priority, assignment, and lifecycle events.",
+  "summary": "Tenant-scoped support tickets with sequence numbers, lifecycle state, priority, assignment, comments, attachment metadata, and public follow-up links.",
   "runtime": {
     "language": "typescript",
     "platform": "cloudflare-workers",
@@ -14,23 +14,49 @@
   },
   "entrypoint": "src/index.ts",
   "resources": [
-    { "type": "d1", "binding": "DB", "tables": ["support_tickets", "domain_events"] }
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "support_tickets",
+        "support_ticket_sequences",
+        "support_ticket_comments",
+        "support_ticket_attachments",
+        "support_ticket_share_tokens",
+        "domain_events"
+      ]
+    }
   ],
   "permissions": ["support.read", "support.manage"],
   "connections": {
     "requires": [],
-    "optional": ["auth", "audit-log", "email", "customer"],
+    "optional": ["auth", "audit-log", "email", "customer", "file-media", "support-inbox", "knowledge-base-rag"],
     "rpc": {
       "exposes": [
         { "method": "createTicket", "scope": "support.manage", "public": false },
         { "method": "getTicket", "scope": "support.read", "public": false },
         { "method": "listTickets", "scope": "support.read", "public": false },
-        { "method": "updateTicket", "scope": "support.manage", "public": false }
+        { "method": "updateTicket", "scope": "support.manage", "public": false },
+        { "method": "addTicketComment", "scope": "support.manage", "public": false },
+        { "method": "listTicketThread", "scope": "support.read", "public": false },
+        { "method": "attachTicketFile", "scope": "support.manage", "public": false },
+        { "method": "createTicketShareToken", "scope": "support.manage", "public": false },
+        { "method": "listTicketShareTokens", "scope": "support.read", "public": false },
+        { "method": "revokeTicketShareToken", "scope": "support.manage", "public": false },
+        { "method": "resolveTicketShareToken", "scope": "public-token", "public": true }
       ],
       "calls": []
     },
     "events": {
-      "emits": ["support-ticket.created", "support-ticket.updated", "support-ticket.status_changed"],
+      "emits": [
+        "support-ticket.created",
+        "support-ticket.updated",
+        "support-ticket.status_changed",
+        "support-ticket.comment.created",
+        "support-ticket.attachment.attached",
+        "support-ticket.share-token.created",
+        "support-ticket.share-token.revoked"
+      ],
       "consumes": []
     },
     "hookPoints": {
@@ -56,9 +82,27 @@
     },
     "agentic": {
       "applicable": true,
-      "tools": ["support-ticket.listTickets", "support-ticket.getTicket", "support-ticket.createTicket", "support-ticket.updateTicket"],
+      "tools": [
+        "support-ticket.listTickets",
+        "support-ticket.getTicket",
+        "support-ticket.listTicketThread",
+        "support-ticket.createTicket",
+        "support-ticket.updateTicket",
+        "support-ticket.addTicketComment",
+        "support-ticket.attachTicketFile",
+        "support-ticket.createTicketShareToken",
+        "support-ticket.listTicketShareTokens",
+        "support-ticket.revokeTicketShareToken"
+      ],
       "skillPaths": ["skills/support-ticket-operator/SKILL.md"],
-      "approvalRequiredFor": ["support-ticket.createTicket", "support-ticket.updateTicket"]
+      "approvalRequiredFor": [
+        "support-ticket.createTicket",
+        "support-ticket.updateTicket",
+        "support-ticket.addTicketComment",
+        "support-ticket.attachTicketFile",
+        "support-ticket.createTicketShareToken",
+        "support-ticket.revokeTicketShareToken"
+      ]
     }
   },
   "skills": [
@@ -70,6 +114,13 @@
   ],
   "approval": {
     "risk": "medium",
-    "requiresApprovalFor": ["migrations", "pii-fields", "production-deploy", "external-side-effects"]
+    "requiresApprovalFor": [
+      "migrations",
+      "pii-fields",
+      "attachment-storage-integration",
+      "public-share-token",
+      "production-deploy",
+      "external-side-effects"
+    ]
   }
 }

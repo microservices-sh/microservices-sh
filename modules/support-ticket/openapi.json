@@ -3,7 +3,7 @@
   "info": {
     "title": "Support Ticket Module",
     "version": "0.1.0",
-    "description": "Tenant-scoped support tickets with a status lifecycle, priority, and assignment. Routes are owned by the host app; these are the boundary shapes."
+    "description": "Tenant-scoped support tickets with sequence numbers, status lifecycle, priority, assignment, comments, attachment metadata, and public follow-up links. Routes are owned by the host app; these are the boundary shapes."
   },
   "paths": {
     "/tickets": {
@@ -78,6 +78,82 @@
           "200": { "description": "Ticket updated" },
           "400": { "description": "Invalid update input" },
           "404": { "description": "Ticket not found" }
+        }
+      }
+    },
+    "/tickets/{id}/thread": {
+      "get": {
+        "summary": "List ticket comments and attachment metadata",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "includeInternal", "in": "query", "schema": { "type": "boolean", "default": false } }
+        ],
+        "responses": {
+          "200": { "description": "Ticket thread" },
+          "404": { "description": "Ticket not found" }
+        }
+      }
+    },
+    "/tickets/{id}/comments": {
+      "post": {
+        "summary": "Add a ticket comment or internal note",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "201": { "description": "Comment created" },
+          "400": { "description": "Invalid comment input" },
+          "404": { "description": "Ticket not found" }
+        }
+      }
+    },
+    "/tickets/{id}/attachments": {
+      "post": {
+        "summary": "Attach already-uploaded file metadata to a ticket",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "201": { "description": "Attachment metadata recorded" },
+          "400": { "description": "Invalid attachment input" },
+          "404": { "description": "Ticket not found" }
+        }
+      }
+    },
+    "/tickets/{id}/share-tokens": {
+      "get": {
+        "summary": "List public follow-up links for a ticket",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Share tokens" },
+          "404": { "description": "Ticket not found" }
+        }
+      },
+      "post": {
+        "summary": "Create a public follow-up link for a ticket",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "201": { "description": "Share token created" },
+          "400": { "description": "Invalid share-token input" },
+          "404": { "description": "Ticket not found" }
+        }
+      }
+    },
+    "/tickets/share-tokens/{shareTokenId}": {
+      "delete": {
+        "summary": "Revoke a public follow-up link",
+        "parameters": [{ "name": "shareTokenId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Share token revoked" },
+          "404": { "description": "Share token not found" }
+        }
+      }
+    },
+    "/ticket-followup/{token}": {
+      "get": {
+        "summary": "Resolve a public ticket snapshot by share token",
+        "x-approval-required": true,
+        "parameters": [{ "name": "token", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Public ticket snapshot" },
+          "404": { "description": "Share token not found" },
+          "410": { "description": "Share token expired" }
         }
       }
     }

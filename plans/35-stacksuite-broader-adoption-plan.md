@@ -41,7 +41,7 @@ Remaining gaps are mostly add-on business workflows, not more full-app cloning.
 | Priority | Candidate | Source Evidence | Recommendation |
 |---|---|---|---|
 | P0 | `sms-campaigns` module | `sms-crm` contacts, groups, templates, vendor configs, campaigns, recipients, SMS logs | Implemented as a contract-checked module; add an `sms-crm-sveltekit` template only when route proof is needed. |
-| P0 | Support inbox/widget hardening | HelpGrid widget settings, quick actions, conversations, messages, channel metadata, agent takeover | Implemented as `support-inbox` to avoid bloating ticket CRUD; ticket comments/attachments/share tokens remain a `support-ticket` follow-up. |
+| P0 | Support inbox/widget hardening | HelpGrid widget settings, quick actions, conversations, messages, channel metadata, agent takeover | Implemented as `support-inbox`; `support-ticket` now owns comments, attachment metadata, share tokens, and per-tenant ticket numbers. |
 | P1 | Membership and customer credits | Booking membership tiers, customer memberships, credits, credit transactions, membership history | Implemented as `membership-credits`; route proof can extend `booking-sveltekit` later. |
 | P1 | Estimates/quotes and recurring invoice templates | Accounting Chiangs estimates, accepted/converted lifecycle, recurring invoices, recurring items, send/post/void schemas | `estimate-quote` and `recurring-documents` implemented; route proof can extend `accounting-erp-sveltekit` later. |
 | P1 | Storage entitlements and expiring share links | DashDrive files, short IDs, expiry, download count, storage packages, purchases | `storage-entitlements` implemented; integrate with `file-media` or client portal routes later. |
@@ -105,7 +105,7 @@ Adoption choice:
 - Add `support-inbox` if widget settings, conversations, live chat, and agent takeover should remain separate from ticket CRUD.
 
 Recommended split:
-- `support-ticket`: ticket comments, attachments, public share token, sequence numbers, internal notes.
+- `support-ticket`: implemented ticket comments, attachment metadata, public share tokens, sequence numbers, and internal notes.
 - `support-inbox`: widget settings, quick actions, conversations, messages, channel metadata, agent takeover.
 - `knowledge-base-rag`: articles, sources, scans, attachments, search, grounded answers.
 
@@ -316,7 +316,8 @@ Recommended order:
 ### Phase C: Support Inbox Split
 - Completed `support-inbox` for widget settings, quick actions, conversations, messages, channel metadata, and agent takeover.
 - Kept `knowledge-base-rag` as the grounded-answer provider, not as ticket-internal logic.
-- Remaining follow-up: extend `support-ticket` with comments, attachments, public share token, and sequence numbers after the current dirty `support-ticket` edits settle.
+- Completed `support-ticket` hardening with per-tenant ticket numbers, comments/internal notes, attachment metadata, public follow-up share tokens, public token snapshots, and scoped wrappers.
+- Kept pending upload sessions, raw R2 uploads, signed URLs, AI analyses/follow-up questions, billing tokens, WhatsApp, and UI outside the `support-ticket` module boundary.
 - Add route proof in `client-portal-sveltekit` or a focused support template when the module is needed in a demo path.
 
 ### Phase D: Membership Credits
@@ -365,12 +366,11 @@ Recommended order:
 The next valuable StackSuite adoption is not another accounting pass. After completing the `sms-campaigns` module, it is:
 
 1. Estimates/quotes and recurring documents as the next accounting add-on.
-2. Ticket comments/attachments/share-token hardening once `support-ticket` concurrent edits settle.
-3. Route proof for `membership-credits` in booking template when booking membership becomes part of a demo path.
-4. HR people ops module proof is complete; add an HR template only after a pilot or demo path needs it.
-5. Project progress proof is complete; add project/customer portal routes only when that workflow becomes part of a pilot or public demo path.
-6. URL shortener, HTML renderer, content CMS, and video generation proof is complete; keep QR/document/rendering utilities small and add them only when they support acquisition or a template.
-7. OpenClaw, WhatsApp platform, CoreOps, PPT monitor, and Deepwork stay reference-only until an existing module/template roadmap needs their specific patterns.
-8. A focused `sms-crm-sveltekit`, content site, video creator, support route, or project-progress route/template proof only if those workflows become part of the public demo path.
+2. Route proof for `membership-credits` in booking template when booking membership becomes part of a demo path.
+3. HR people ops module proof is complete; add an HR template only after a pilot or demo path needs it.
+4. Project progress proof is complete; add project/customer portal routes only when that workflow becomes part of a pilot or public demo path.
+5. URL shortener, HTML renderer, content CMS, and video generation proof is complete; keep QR/document/rendering utilities small and add them only when they support acquisition or a template.
+6. OpenClaw, WhatsApp platform, CoreOps, PPT monitor, and Deepwork stay reference-only until an existing module/template roadmap needs their specific patterns.
+7. A focused `sms-crm-sveltekit`, content site, video creator, support route, or project-progress route/template proof only if those workflows become part of the public demo path.
 
 Everything else should stay P2 until the System Harness launch proof and existing focused templates are cleaner.

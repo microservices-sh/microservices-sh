@@ -1469,3 +1469,20 @@
 | Project Progress spec | Module contract check passes | `pnpm --filter @microservices-sh/project-progress check:spec` passed | Pass |
 | D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/project-progress/migrations/0001_initial.sql"` passed | Pass |
 | JSON docs | OpenAPI, manifest, and JSON schemas parse | Node JSON parse check passed | Pass |
+
+### Phase 64 HelpGrid support-ticket hardening
+
+- **Status:** complete.
+- Goal: finish the HelpGrid ticket follow-up gap without merging support inbox/widget behavior back into `support-ticket`.
+- Added per-tenant ticket sequence numbers to core tickets.
+- Added durable ticket comments, internal-note filtering, attachment metadata, public follow-up share tokens, public token snapshots, and scoped wrappers for tenant-sensitive admin actions.
+- Added memory and D1 store support plus migration tables for sequences, comments, attachments, and share tokens.
+- Kept pending upload sessions, raw R2 uploads, signed URLs, AI analyses/follow-up questions, billing tokens, WhatsApp, and UI outside the module boundary.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Support Ticket build | TypeScript typecheck passes | `pnpm --filter @microservices-sh/support-ticket build` passed | Pass |
+| Support Ticket tests | Ticket CRUD, tenant scoping, sequences, comments, attachments, share tokens, expiry, and public snapshots pass | `pnpm --filter @microservices-sh/support-ticket test` passed, 18/18 | Pass |
+| Support Ticket spec | Module contract check passes | `pnpm --filter @microservices-sh/support-ticket check:spec` passed | Pass |
+| D1 migration | Module migrations load in SQLite | `sqlite3 :memory: ".read modules/support-ticket/migrations/0001_support_ticket.sql" ".read modules/support-ticket/migrations/0002_ticket_thread_share_tokens.sql"` passed | Pass |
+| JSON docs | OpenAPI, manifest, and JSON schemas parse | Node JSON parse check passed | Pass |

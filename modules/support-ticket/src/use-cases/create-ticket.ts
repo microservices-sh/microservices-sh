@@ -34,10 +34,12 @@ export async function createTicket(
   const draft = await beforeTicketCreate(parsed.data);
   const nowIso = new Date(deps.now?.() ?? Date.now()).toISOString();
   const id = deps.id?.() ?? "tkt_" + crypto.randomUUID().slice(0, 16);
+  const ticketNumber = await deps.store.nextTicketNumber(draft.tenantId);
 
   const ticket: Ticket = {
     id,
     tenantId: draft.tenantId,
+    ticketNumber,
     subject: draft.subject,
     description: draft.description,
     status: draft.status,

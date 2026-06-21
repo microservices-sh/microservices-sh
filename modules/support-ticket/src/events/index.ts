@@ -2,6 +2,14 @@
 // generic updated event whenever an update transitions the ticket status, so
 // consumers (notifications, SLA timers) can subscribe narrowly.
 export const events = {
-  emitted: ["support-ticket.created", "support-ticket.updated", "support-ticket.status_changed"],
+  emitted: [
+    "support-ticket.created",
+    "support-ticket.updated",
+    "support-ticket.status_changed",
+    "support-ticket.comment.created",
+    "support-ticket.attachment.attached",
+    "support-ticket.share-token.created",
+    "support-ticket.share-token.revoked"
+  ],
   consumed: []
 } as const;
