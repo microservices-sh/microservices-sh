@@ -1175,9 +1175,6 @@ importers:
       '@microservices-sh/admin-shell':
         specifier: workspace:*
         version: link:../../modules/admin-shell
-      '@microservices-sh/ads-manager':
-        specifier: workspace:*
-        version: link:../../modules/ads-manager
       '@microservices-sh/audit-log':
         specifier: workspace:*
         version: link:../../modules/audit-log
@@ -1196,12 +1193,6 @@ importers:
       '@microservices-sh/identity':
         specifier: workspace:*
         version: link:../../modules/identity
-      '@microservices-sh/image-generation':
-        specifier: workspace:*
-        version: link:../../modules/image-generation
-      '@microservices-sh/marketing-research':
-        specifier: workspace:*
-        version: link:../../modules/marketing-research
       '@microservices-sh/org-team-rbac':
         specifier: workspace:*
         version: link:../../modules/org-team-rbac
