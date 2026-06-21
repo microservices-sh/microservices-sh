@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 81
+Phase 82
 
 ## Phases
 
@@ -630,6 +630,14 @@ Phase 81
 - [x] Keep the accounting template lock and generated template copy consistent with the `/app/quotes` route adapter.
 - [x] Update module-contract expectations for the canonical quote runtime mount.
 - [x] Verify module spec, internal catalog tests, workspace specs, create-app build/test, and whitespace checks.
+- **Status:** complete
+
+### Phase 82: Commerce Inventory Adjust And Reconcile Route Proof
+- [x] Add commerce inventory operator actions for manual stock adjustment and physical count reconciliation.
+- [x] Render recent count/adjustment movements alongside the movement ledger.
+- [x] Add focused commerce template policy checks for the inventory receive/adjust/reconcile route proof.
+- [x] Refresh StackSuite planning docs so route-level inventory adjust/reconcile is no longer marked pending.
+- [x] Verify commerce template spec/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

@@ -156,7 +156,7 @@ Use the source commerce schema to extend the existing modules:
 - product aliases for packing slips and operational labels.
 - reorder point and reorder quantity.
 - stock movement ledger with reason/source metadata.
-- receive, adjust, and reconcile use cases.
+- receive, adjust, and reconcile use cases plus focused route proof.
 - persistent inventory reconciliation documents with counted quantities, differences, status, and completion flows.
 - inventory alert read models.
 
@@ -336,19 +336,19 @@ Still pending:
 - invoice-document extension contracts beyond the current invoice, quote, and recurring draft handoffs.
 - AP recurring bill route proof for final bill approval/posting flows.
 - accounting setup packs, full statements, and fiscal close/reopen/lock contracts.
-- inventory receive/adjust/reconcile documents and alert read models.
+- persistent inventory reconciliation documents and alert read models.
 
 ### Phase 2: Focused Template Routes
 
 Done for the first accounting/commerce operator surface:
 
 - accounting ledger, payables, receivables, banking, reports, invoice collection, Stripe settlement, and scheduled jobs.
-- commerce products, inventory, sales orders, shipments, commerce sync, invoices, payment settlement, document exports, and scheduled jobs.
+- commerce products, inventory receive/adjust/reconcile, sales orders, shipments, commerce sync, invoices, payment settlement, document exports, and scheduled jobs.
 
 Remaining routes should be added only after the backing module API exists:
 
 - accounting setup, chart, fiscal periods, AP recurring bill detail, banking import/reconciliation detail.
-- commerce sales-order detail/create/send, shipment detail/packing slip, inventory receive/adjust/reconcile, sync logs, MCP settings.
+- commerce sales-order detail/create/send, shipment detail/packing slip, sync logs, MCP settings, persistent inventory count documents, and inventory alerts.
 
 ### Phase 3: External Operations
 

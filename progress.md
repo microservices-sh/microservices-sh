@@ -1789,3 +1789,19 @@
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed | Pass |
 | Create app package | Packaged accounting template copy remains buildable and tests stay green | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 82 Commerce inventory adjust and reconcile route proof
+
+- **Status:** complete.
+- Goal: close the StackSuite commerce inventory route gap where receive stock was visible but manual adjustments and physical count reconciliation were only available as module primitives.
+- Added `adjustStock` and `reconcileStock` operator actions to the commerce inventory route, both backed by the inventory module's `reconcileStock` movement primitive.
+- Added page controls for adjustment/count entry and a recent counts/adjustments panel.
+- Added commerce template policy checks and refreshed the StackSuite porting plan backlog wording.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Commerce template spec | Policy catches receive/adjust/reconcile route proof and template contract remains valid | `pnpm --dir templates/commerce-ops-sveltekit check:spec` passed | Pass |
+| Commerce template build | SvelteKit/Cloudflare build compiles after inventory route additions | `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
+| Create app package | Packaged commerce template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

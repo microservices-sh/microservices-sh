@@ -2,7 +2,7 @@ import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { listProducts } from "@microservices-sh/product-catalog";
-import { listStockMovements, stockIn } from "@microservices-sh/inventory";
+import { listStockMovements, reconcileStock as reconcileInventoryStock, stockIn } from "@microservices-sh/inventory";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 
@@ -10,9 +10,19 @@ function text(value: FormDataEntryValue | null): string {
   return String(value ?? "").trim();
 }
 
-function positiveNumber(value: string): number | null {
+function integer(value: string): number | null {
   const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+function positiveInteger(value: string): number | null {
+  const parsed = integer(value);
+  return parsed != null && parsed > 0 ? parsed : null;
+}
+
+function nonNegativeInteger(value: string): number | null {
+  const parsed = integer(value);
+  return parsed != null && parsed >= 0 ? parsed : null;
 }
 
 function productReader(productCatalogStore: App.Locals["productCatalogStore"]) {
@@ -76,7 +86,7 @@ export const actions: Actions = {
       quantity: text(form.get("quantity")),
       reason: text(form.get("reason"))
     };
-    const quantity = positiveNumber(values.quantity);
+    const quantity = positiveInteger(values.quantity);
     if (!values.productId || !quantity) return fail(400, { error: "Choose a product and enter a positive quantity.", values });
 
     const result = await stockIn(
@@ -110,5 +120,126 @@ export const actions: Actions = {
     );
 
     return { stocked: true };
+  },
+  adjustStock: async ({ request, locals, cookies, platform }) => {
+    requireModule("inventory", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const values = {
+      productId: text(form.get("productId")),
+      locationId: text(form.get("locationId")) || "default",
+      adjustment: text(form.get("adjustment")),
+      reference: text(form.get("reference")),
+      reason: text(form.get("reason"))
+    };
+    const adjustment = integer(values.adjustment);
+    if (!values.productId || !adjustment) {
+      return fail(400, { error: "Choose a product and enter a non-zero adjustment.", values });
+    }
+
+    const current = await locals.inventoryStore.getBalance(org.id, values.productId, values.locationId);
+    const countedQuantity = current.onHand + adjustment;
+    if (countedQuantity < 0) {
+      return fail(400, { error: "Adjustment would make on-hand stock negative.", values });
+    }
+
+    const result = await reconcileInventoryStock(
+      {
+        tenantId: org.id,
+        productId: values.productId,
+        locationId: values.locationId,
+        countedQuantity,
+        sourceType: "operator-adjustment",
+        sourceId: values.reference || `adjustment:${Date.now()}:${values.productId}`,
+        reason: values.reason || `Manual stock adjustment ${adjustment > 0 ? "+" : ""}${adjustment}`
+      },
+      {
+        inventoryStore: locals.inventoryStore,
+        productReader: productReader(locals.productCatalogStore),
+        actor: { id: locals.user.id, email: locals.user.email, permissions }
+      }
+    );
+    if (!result.ok) return fail(result.status, { error: result.error.message, values });
+
+    await recordEvent(
+      {
+        eventName: "inventory.stock_reconciled",
+        actorId: locals.user.id,
+        entityType: "stock_movement",
+        entityId: result.data.movement.id,
+        source: "app/inventory",
+        payload: {
+          productId: values.productId,
+          locationId: values.locationId,
+          adjustment,
+          countedQuantity,
+          sourceType: "operator-adjustment"
+        }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { adjusted: true };
+  },
+  reconcileStock: async ({ request, locals, cookies, platform }) => {
+    requireModule("inventory", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const values = {
+      productId: text(form.get("productId")),
+      locationId: text(form.get("locationId")) || "default",
+      countedQuantity: text(form.get("countedQuantity")),
+      reference: text(form.get("reference")),
+      reason: text(form.get("reason"))
+    };
+    const countedQuantity = nonNegativeInteger(values.countedQuantity);
+    if (!values.productId || countedQuantity == null) {
+      return fail(400, { error: "Choose a product and enter a zero-or-higher counted quantity.", values });
+    }
+
+    const result = await reconcileInventoryStock(
+      {
+        tenantId: org.id,
+        productId: values.productId,
+        locationId: values.locationId,
+        countedQuantity,
+        sourceType: "cycle-count",
+        sourceId: values.reference || `count:${Date.now()}:${values.productId}`,
+        reason: values.reason || "Physical count reconciliation"
+      },
+      {
+        inventoryStore: locals.inventoryStore,
+        productReader: productReader(locals.productCatalogStore),
+        actor: { id: locals.user.id, email: locals.user.email, permissions }
+      }
+    );
+    if (!result.ok) return fail(result.status, { error: result.error.message, values });
+
+    await recordEvent(
+      {
+        eventName: "inventory.stock_reconciled",
+        actorId: locals.user.id,
+        entityType: "stock_movement",
+        entityId: result.data.movement.id,
+        source: "app/inventory",
+        payload: {
+          productId: values.productId,
+          locationId: values.locationId,
+          countedQuantity,
+          sourceType: "cycle-count"
+        }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { reconciled: true };
   }
 };

@@ -285,6 +285,16 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Sales order route wires confirm, invoice, and cancel lifecycle actions through module ports plus inventory release side effects."
   );
   assertFileIncludesAll(
+    "src/routes/app/inventory/+page.server.ts",
+    ["reconcileInventoryStock", "adjustStock", "reconcileStock", "operator-adjustment", "cycle-count", "inventory.stock_reconciled"],
+    "Inventory route exposes receive, manual adjustment, and physical count reconciliation through the inventory module."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/inventory/+page.svelte",
+    ["Adjust stock", "Reconcile count", "Recent counts & adjustments", "?/adjustStock", "?/reconcileStock"],
+    "Inventory page exposes StackSuite receive/adjust/reconcile route proof for operators."
+  );
+  assertFileIncludesAll(
     "src/lib/server/demo.ts",
     ["demoInventoryReservationPort", "reserveStock", "inventoryReservationPort"],
     "Commerce demo seeding confirms orders through the same inventory reservation bridge as the route adapter."
