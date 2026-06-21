@@ -92,12 +92,12 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/shipments/+page.server.ts",
-    ["deductStock", "consumeReserved", "completeShipment", "shipmentDocuments", "customerSnapshot"],
-    "Shipment completion consumes reserved inventory for sales-order-backed fulfillment and exposes sales-order shipping context for packing slips."
+    ["deductStock", "consumeReserved", "completeShipment", "shipmentDocuments", "customerSnapshot", "expandProductComponents", "pickListPrintItems"],
+    "Shipment completion consumes reserved inventory for sales-order-backed fulfillment and exposes alias-aware, combo-expanded shipping context for packing slips."
   );
   assertFileIncludesAll(
     "src/routes/app/shipments/+page.svelte",
-    ["printShipmentPackingSlip", "printShipmentPickList", "Packing slip", "Pick list"],
+    ["printShipmentPackingSlip", "printShipmentPickList", "pickItems", "Packing slip", "Pick list"],
     "Shipments page exposes StackSuite-style packing slip and pick-list print actions."
   );
   assertFileIncludesAll(

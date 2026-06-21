@@ -40,11 +40,12 @@
       customerPhone: doc?.customerPhone ?? null,
       shippingAddress: doc?.shippingAddress ?? null,
       orderNotes: doc?.orderNotes ?? null,
-      items: shipment.items.map((item) => ({
+      items: doc?.items ?? shipment.items.map((item) => ({
         sku: item.sku,
         description: item.description,
         quantity: item.quantity
-      }))
+      })),
+      pickItems: doc?.pickItems
     };
   }
 </script>

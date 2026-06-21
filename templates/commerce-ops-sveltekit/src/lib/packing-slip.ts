@@ -20,6 +20,7 @@ export interface ShipmentPrintData {
   shippingAddress: string | null;
   orderNotes: string | null;
   items: ShipmentPrintItem[];
+  pickItems?: ShipmentPrintItem[];
 }
 
 interface PickListItem {
@@ -201,7 +202,7 @@ function aggregatePickList(items: ShipmentPrintItem[]): PickListItem[] {
 }
 
 export function generateShipmentPickListHtml(data: ShipmentPrintData): string {
-  const rows = aggregatePickList(data.items)
+  const rows = aggregatePickList(data.pickItems?.length ? data.pickItems : data.items)
     .map((item) => `<tr>
       <td class="sku mono">${escapeHtml(item.sku)}</td>
       <td><span class="strong">${escapeHtml(item.description)}</span></td>

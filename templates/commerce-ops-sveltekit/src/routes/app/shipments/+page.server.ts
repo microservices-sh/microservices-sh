@@ -2,9 +2,11 @@ import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { deductStock, getStockBalance } from "@microservices-sh/inventory";
+import { expandProductComponents, type Product } from "@microservices-sh/product-catalog";
 import { createShipment, completeShipment, listShipments, type ShipmentInventoryPort } from "@microservices-sh/shipment";
 import { getOrder, listOrders } from "@microservices-sh/sales-order";
 import { money } from "$lib/format";
+import type { ShipmentPrintItem } from "$lib/packing-slip";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 
@@ -23,6 +25,53 @@ function salesOrderIdsForShipment(shipment: { externalSource: string | null; ext
     if (item.sourceType === "sales-order") ids.add(item.sourceId);
   }
   return [...ids];
+}
+
+function printItemLabel(product: Product | null, fallback: string): string {
+  return product?.alias || product?.name || fallback;
+}
+
+async function orderedPrintItems(locals: App.Locals, tenantId: string, items: Array<{ productId: string | null; sku: string | null; description: string; quantity: number }>): Promise<ShipmentPrintItem[]> {
+  return Promise.all(
+    items.map(async (item) => {
+      const product = item.productId ? await locals.productCatalogStore.getProduct(tenantId, item.productId) : null;
+      return {
+        sku: product?.sku ?? item.sku,
+        description: printItemLabel(product, item.description),
+        quantity: item.quantity
+      };
+    })
+  );
+}
+
+async function pickListPrintItems(locals: App.Locals, tenantId: string, items: Array<{ productId: string | null; sku: string | null; description: string; quantity: number }>): Promise<ShipmentPrintItem[]> {
+  const expanded: ShipmentPrintItem[] = [];
+  for (const item of items) {
+    if (!item.productId) {
+      expanded.push({ sku: item.sku, description: item.description, quantity: item.quantity });
+      continue;
+    }
+
+    const components = await expandProductComponents(
+      { tenantId, productId: item.productId, quantity: item.quantity },
+      { productCatalogStore: locals.productCatalogStore }
+    );
+    if (!components.ok || !components.data) {
+      const product = await locals.productCatalogStore.getProduct(tenantId, item.productId);
+      expanded.push({ sku: product?.sku ?? item.sku, description: printItemLabel(product, item.description), quantity: item.quantity });
+      continue;
+    }
+
+    for (const component of components.data.components) {
+      const product = await locals.productCatalogStore.getProduct(tenantId, component.productId);
+      expanded.push({
+        sku: product?.sku ?? item.sku,
+        description: printItemLabel(product, item.description),
+        quantity: component.quantity
+      });
+    }
+  }
+  return expanded;
 }
 
 function inventoryPort(locals: App.Locals, actorId: string): ShipmentInventoryPort {
@@ -117,11 +166,15 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
   const orders = ordersResult.ok ? ordersResult.data.orders : [];
   const shipments = shipmentsResult.ok ? shipmentsResult.data.shipments : [];
   const ordersById = new Map(orders.map((order) => [order.id, order]));
-  const shipmentDocuments = shipments.map((shipment) => {
+  const shipmentDocuments = await Promise.all(shipments.map(async (shipment) => {
     const order = salesOrderIdsForShipment(shipment)
       .map((id) => ordersById.get(id))
       .find(Boolean);
     const snapshot = order?.customerSnapshot ?? null;
+    const [items, pickItems] = await Promise.all([
+      orderedPrintItems(locals, activeOrgId, shipment.items),
+      pickListPrintItems(locals, activeOrgId, shipment.items)
+    ]);
     return {
       shipmentId: shipment.id,
       orderNumber: order?.orderNumber ?? (shipment.externalSource === "sales-order" ? shipment.externalId : null),
@@ -130,9 +183,11 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
       customerEmail: snapshot?.email ?? null,
       customerPhone: snapshot?.phone ?? null,
       shippingAddress: snapshot?.shippingAddress ?? snapshot?.billingAddress ?? null,
-      orderNotes: order?.notes ?? null
+      orderNotes: order?.notes ?? null,
+      items,
+      pickItems
     };
-  });
+  }));
   const shippedOrderIds = new Set(
     shipments
       .filter((shipment) => shipment.status !== "cancelled")
