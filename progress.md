@@ -1896,3 +1896,23 @@
 | Create app package | Packaged commerce template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 88 commerce sales order detail route proof
+
+- **Status:** complete.
+- Goal: close the focused commerce sales-order detail route gap while keeping create/send behavior and lifecycle side effects on existing backed surfaces.
+- Added read-only `/app/sales-orders/[id]` backed by `getOrder`, print, line CSV export, order summary data, and ledger handoff for lifecycle actions.
+- Linked the sales-order ledger and shipment detail page to the sales-order detail route.
+- Added commerce template policy checks for the detail route load, read-only side-effect boundary, and UI document actions.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Commerce template spec | Policy catches sales-order detail route, read-only boundary, print, and CSV | `pnpm --dir templates/commerce-ops-sveltekit check:spec` passed | Pass |
+| Commerce template build | SvelteKit/Cloudflare build compiles after sales-order route additions | `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
+| Sales-order tests | Sales-order module behavior remains green | `pnpm --filter @microservices-sh/sales-order test` passed, 6/6 | Pass |
+| Commerce integration tests | Document export and sales-order inventory lifecycle coverage remains green | `pnpm test -- tests/integration/commerce-document-export.test.ts tests/integration/commerce-sales-order-inventory-lifecycle.test.ts` passed; this repo command ran the full Vitest suite, 981/981 with 1 skipped | Pass |
+| Create app package | Packaged commerce template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and sequential `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+Note: an initial `create-microservices-app` test run overlapped with `create-microservices-app build` and reported transient shim drift. `pnpm sync:shims` made no file changes, and the sequential test rerun passed.

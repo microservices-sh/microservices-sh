@@ -9,6 +9,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const agentCenter = readText("src/routes/app/agent/+page.server.ts");
   const commerceSyncLogsServer = readText("src/routes/app/commerce-sync/logs/+page.server.ts");
   const commerceSyncLogsPage = readText("src/routes/app/commerce-sync/logs/+page.svelte");
+  const salesOrderDetailServer = readText("src/routes/app/sales-orders/[id]/+page.server.ts");
 
   assertFileIncludesAll(
     "docs/api-boundary.md",
@@ -310,8 +311,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/sales-orders/+page.svelte",
-    ["generateSalesOrderPrintHtml", "generateSalesOrderLedgerCsv", "generateSalesOrderLineItemsCsv", "printSalesOrder", "exportSalesOrder", "Export CSV", "?/cancel"],
-    "Sales order ledger exposes row-level print, CSV, and cancellation actions."
+    ["generateSalesOrderPrintHtml", "generateSalesOrderLedgerCsv", "generateSalesOrderLineItemsCsv", "printSalesOrder", "exportSalesOrder", "Export CSV", "?/cancel", "/app/sales-orders/${order.id}"],
+    "Sales order ledger exposes row-level print, CSV, detail route, and cancellation actions."
   );
   assertFileIncludesAll(
     "src/lib/server/sales-order-inventory.ts",
@@ -322,6 +323,25 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "src/routes/app/sales-orders/+page.server.ts",
     ["cancelOrder", "createSalesOrderInventoryReservationPort", "releaseSalesOrderReservations", "releasedReservations", "sales-order.order_cancelled"],
     "Sales order route wires confirm, invoice, and cancel lifecycle actions through module ports plus inventory release side effects."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/sales-orders/[id]/+page.server.ts",
+    ["getOrder", "requireModule(\"sales-order\"", "requireOrgPermission", "\"org.read\""],
+    "Sales order detail route loads one tenant-scoped order through the module under route-level read permission."
+  );
+  assert(
+    !salesOrderDetailServer.includes("export const actions") &&
+      !salesOrderDetailServer.includes("confirmOrder") &&
+      !salesOrderDetailServer.includes("markOrderInvoiced") &&
+      !salesOrderDetailServer.includes("cancelOrder") &&
+      !salesOrderDetailServer.includes("listEvents"),
+    "Sales order detail route remains read-only; lifecycle side effects stay on the ledger route.",
+    "policy:commerce-sales-order-detail-read-only"
+  );
+  assertFileIncludesAll(
+    "src/routes/app/sales-orders/[id]/+page.svelte",
+    ["generateSalesOrderPrintHtml", "generateSalesOrderLineItemsCsv", "Print sales order", "Export line CSV", "Open ledger actions"],
+    "Sales order detail page exposes read-only document review, print, and CSV actions."
   );
   assertFileIncludesAll(
     "src/routes/app/inventory/+page.server.ts",

@@ -56,7 +56,7 @@
             <dt>Sales order</dt>
             <dd>
               {#if data.order}
-                <a href="/app/sales-orders">{data.order.orderNumber}</a>
+                <a href={`/app/sales-orders/${data.order.id}`}>{data.order.orderNumber}</a>
                 <span class="muted"> · {data.order.status}</span>
               {:else}
                 —

@@ -139,7 +139,7 @@
             <tbody>
               {#each data.orders as order (order.id)}
                 <tr>
-                  <td><code>{order.orderNumber ?? order.id}</code></td>
+                  <td><a href={`/app/sales-orders/${order.id}`}><code>{order.orderNumber ?? order.id}</code></a></td>
                   <td>{order.customerSnapshot?.displayName ?? "Walk-in customer"}</td>
                   <td>{order.lineItems.length}</td>
                   <td>{money(order.totalCents, order.currency)}</td>
@@ -150,6 +150,7 @@
                     <div class="row-actions">
                       <Button type="button" variant="ghost" size="sm" onclick={() => printSalesOrder(order)}>Print</Button>
                       <Button type="button" variant="ghost" size="sm" onclick={() => exportSalesOrder(order)}>CSV</Button>
+                      <Button href={`/app/sales-orders/${order.id}`} variant="ghost" size="sm">Open</Button>
                       {#if data.canManage && order.status === "draft"}
                         <form class="action-form" method="POST" action="?/confirm" use:enhance>
                           <input type="hidden" name="orderId" value={order.id} />

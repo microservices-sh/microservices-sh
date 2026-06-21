@@ -348,7 +348,7 @@ Done for the first accounting/commerce operator surface:
 Remaining routes should be added only after the backing module API exists:
 
 - accounting setup, chart, fiscal periods, AP recurring bill detail pages, banking import/reconciliation detail.
-- commerce sales-order detail/create/send, richer shipment status transitions, MCP settings, persistent inventory count documents, and inventory alerts.
+- commerce sales-order create/send, richer shipment status transitions, MCP settings, persistent inventory count documents, and inventory alerts.
 
 ### Phase 3: External Operations
 

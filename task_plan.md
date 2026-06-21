@@ -681,6 +681,13 @@ Phase 85
 - [x] Verify commerce-sync tests, commerce template spec/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 
+### Phase 88: Commerce Sales Order Detail Route Proof
+- [x] Add read-only `/app/sales-orders/[id]` backed by `getOrder`, print, CSV, and order summary data.
+- [x] Link the sales-order ledger and shipment detail page to the sales-order detail route.
+- [x] Add commerce template policy checks for detail load, read-only side-effect boundary, print, and CSV.
+- [x] Verify commerce template spec/build, sales-order tests, commerce integration tests, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.
