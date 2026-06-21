@@ -49,17 +49,29 @@ export const manifest = {
     },
     "events": {
       "emits": [
-        "commerce-sync.created",
-        "commerce-sync.updated"
+        "commerce-sync.connection_created",
+        "commerce-sync.mapping_recorded",
+        "commerce-sync.sync_started",
+        "commerce-sync.sync_completed",
+        "commerce-sync.webhook_recorded",
+        "commerce-sync.payload_normalized"
       ],
       "consumes": []
     },
     "hookPoints": {
-      "beforeCommerceSyncCreate": {
+      "beforeCommerceConnectionCreate": {
         "kind": "filter",
         "scope": "commerce-sync.extend"
       },
-      "afterCommerceSyncUpdated": {
+      "beforeCommerceSyncRun": {
+        "kind": "filter",
+        "scope": "commerce-sync.extend"
+      },
+      "beforeCommerceWebhookRecord": {
+        "kind": "filter",
+        "scope": "commerce-sync.extend"
+      },
+      "afterCommercePayloadNormalized": {
         "kind": "observer",
         "scope": "commerce-sync.observe"
       }
@@ -133,10 +145,13 @@ export const manifest = {
     }
   ],
   "approval": {
-    "risk": "medium",
+    "risk": "high",
     "requiresApprovalFor": [
       "migrations",
       "pii-fields",
+      "provider-credential-changes",
+      "webhook-activation",
+      "sync-execution",
       "production-deploy",
       "external-side-effects"
     ]

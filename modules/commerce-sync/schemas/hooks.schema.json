@@ -3,10 +3,16 @@
   "title": "Commerce Sync Hooks",
   "type": "object",
   "properties": {
-    "beforeCommerceSyncCreate": {
+    "beforeCommerceConnectionCreate": {
       "type": "string"
     },
-    "afterCommerceSyncUpdated": {
+    "beforeCommerceSyncRun": {
+      "type": "string"
+    },
+    "beforeCommerceWebhookRecord": {
+      "type": "string"
+    },
+    "afterCommercePayloadNormalized": {
       "type": "string"
     }
   }

@@ -1,13 +1,21 @@
 export interface CommerceSyncHooks {
-  beforeCommerceSyncCreate?: (input: unknown) => Promise<unknown> | unknown;
-  afterCommerceSyncUpdated?: (record: unknown) => Promise<void> | void;
+  beforeCommerceConnectionCreate?: (input: unknown) => Promise<unknown> | unknown;
+  beforeCommerceSyncRun?: (input: unknown) => Promise<unknown> | unknown;
+  beforeCommerceWebhookRecord?: (input: unknown) => Promise<unknown> | unknown;
+  afterCommercePayloadNormalized?: (record: unknown) => Promise<void> | void;
 }
 
 export const defaultCommerceSyncHooks: Required<CommerceSyncHooks> = {
-  beforeCommerceSyncCreate(input) {
+  beforeCommerceConnectionCreate(input) {
     return input;
   },
-  afterCommerceSyncUpdated() {
+  beforeCommerceSyncRun(input) {
+    return input;
+  },
+  beforeCommerceWebhookRecord(input) {
+    return input;
+  },
+  afterCommercePayloadNormalized() {
     return undefined;
   }
 };

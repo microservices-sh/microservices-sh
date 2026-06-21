@@ -19,4 +19,24 @@ export default function check({ assertFileIncludes }) {
     "CREATE TABLE IF NOT EXISTS commerce_sync_envelopes",
     "Commerce Sync module persists normalized commerce envelopes."
   );
+  assertFileIncludes(
+    "module.json",
+    "commerce-sync.connection_created",
+    "Commerce Sync module advertises domain-specific connection events."
+  );
+  assertFileIncludes(
+    "module.json",
+    "commerce-sync.sync_completed",
+    "Commerce Sync module advertises domain-specific sync completion events."
+  );
+  assertFileIncludes(
+    "module.json",
+    "beforeCommerceWebhookRecord",
+    "Commerce Sync module advertises webhook-record hook points."
+  );
+  assertFileIncludes(
+    "module.json",
+    "\"risk\": \"high\"",
+    "Commerce Sync approval risk matches provider credential and webhook operations."
+  );
 }
