@@ -10,6 +10,8 @@ import type {
   FiscalPeriodFilter,
   FiscalPeriodStatus,
   FiscalPeriodType,
+  GeneralLedgerFilter,
+  GeneralLedgerPosting,
   JournalEntry,
   JournalEntryStatus,
   JournalLine,
@@ -122,6 +124,21 @@ function rowToTrialBalancePosting(row: Record<string, unknown>): TrialBalancePos
     },
     rawDebitCents: Number(row.raw_debit_cents ?? 0),
     rawCreditCents: Number(row.raw_credit_cents ?? 0)
+  };
+}
+
+function rowToGeneralLedgerPosting(row: Record<string, unknown>): GeneralLedgerPosting {
+  return {
+    entryId: String(row.entry_id),
+    lineId: String(row.line_id),
+    periodId: String(row.period_id),
+    entryDate: String(row.entry_date),
+    description: nullableString(row.description),
+    sourceRef: nullableString(row.source_ref),
+    sourceType: nullableString(row.source_type),
+    lineDescription: nullableString(row.line_description),
+    debitCents: Number(row.debit_cents ?? 0),
+    creditCents: Number(row.credit_cents ?? 0)
   };
 }
 
@@ -438,6 +455,44 @@ export function createD1AccountingCoreStore(db: D1Database): AccountingCoreStore
       await updateJournalEntryRecord(db, original);
       await insertJournalEntryRecord(db, reversal);
       await insertJournalLines(db, reversalLines);
+    },
+
+    async listGeneralLedgerPostings(filter: GeneralLedgerFilter) {
+      const clauses = ["e.tenant_id = ?", "l.account_id = ?", "e.status IN ('posted', 'void')"];
+      const binds: unknown[] = [filter.tenantId, filter.accountId];
+      if (filter.periodId) {
+        clauses.push("e.period_id = ?");
+        binds.push(filter.periodId);
+      }
+      if (filter.startDate) {
+        clauses.push("e.entry_date >= ?");
+        binds.push(filter.startDate);
+      }
+      if (filter.endDate) {
+        clauses.push("e.entry_date <= ?");
+        binds.push(filter.endDate);
+      }
+      const result = await db
+        .prepare(
+          `SELECT
+             e.id AS entry_id,
+             l.id AS line_id,
+             e.period_id AS period_id,
+             e.entry_date AS entry_date,
+             e.description AS description,
+             e.source_ref AS source_ref,
+             e.source_type AS source_type,
+             l.description AS line_description,
+             l.debit_cents AS debit_cents,
+             l.credit_cents AS credit_cents
+           FROM accounting_journal_lines l
+           JOIN accounting_journal_entries e ON e.tenant_id = l.tenant_id AND e.id = l.entry_id
+           WHERE ${clauses.join(" AND ")}
+           ORDER BY e.entry_date ASC, e.id ASC, l.id ASC`
+        )
+        .bind(...binds)
+        .all<Record<string, unknown>>();
+      return (result.results ?? []).map(rowToGeneralLedgerPosting);
     },
 
     async listTrialBalancePostings(filter: TrialBalanceFilter) {

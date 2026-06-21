@@ -17,6 +17,7 @@ export {
   fiscalPeriodStatusUpdateSchema,
   fiscalPeriodTransitionSchema,
   fiscalPeriodTypeSchema,
+  generalLedgerSchema,
   journalEntryInputSchema,
   journalEntryStatusSchema,
   journalEntryUpdateSchema,
@@ -50,6 +51,7 @@ export { createJournalEntry } from "./use-cases/create-journal-entry";
 export { updateJournalEntry } from "./use-cases/update-journal-entry";
 export { postJournalEntry } from "./use-cases/post-journal-entry";
 export { voidJournalEntry } from "./use-cases/void-journal-entry";
+export { getGeneralLedger } from "./use-cases/get-general-ledger";
 export { getTrialBalance } from "./use-cases/get-trial-balance";
 export type { AccountingCoreStore } from "./ports";
 export type {
@@ -66,6 +68,10 @@ export type {
   FiscalPeriodFilter,
   FiscalPeriodStatus,
   FiscalPeriodType,
+  GeneralLedgerEntry,
+  GeneralLedgerFilter,
+  GeneralLedgerPosting,
+  GeneralLedgerReport,
   JournalEntry,
   JournalEntryStatus,
   JournalEntryWithLines,

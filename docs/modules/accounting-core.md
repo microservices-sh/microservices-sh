@@ -48,6 +48,7 @@ Tenant-scoped double-entry accounting foundation with chart of accounts, fiscal 
 - A posted source reference cannot be posted twice.
 - Posted entries are not edited; voiding creates reversal behavior.
 - Trial balance debit and credit totals must balance.
+- General ledger reports are tenant/account scoped and compute account-normal opening, running, and closing balances from posted and void journal lines.
 
 ## Approval Gate
 Risk: medium

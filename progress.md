@@ -1989,6 +1989,26 @@
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 98 accounting general ledger report contract
+
+- **Status:** complete.
+- Goal: port the source-backed StackSuite general-ledger report contract into accounting-core and expose it through the accounting template.
+- Confirmed the source implements trial balance and general ledger reports, while income statement, balance sheet, and cash flow remain design-plan ideas rather than working source code.
+- Added `getGeneralLedger` with account-scoped filters, optional fiscal period/date range, opening balance support, account-normal running balances, and tenant-scoped account validation.
+- Added memory and D1 store posting readers over posted/void journal lines and covered both adapters with general-ledger tests.
+- Added the General Ledger account/date selector and report table to `/app/reports`, leaving future financial statements in the backlog until report row definitions exist.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounting-core tests | General ledger, setup, fiscal periods, posting, CAS, and trial balance behavior remain green | `pnpm --filter @microservices-sh/accounting-core test` passed, 18/18 | Pass |
+| Accounting-core spec/build | Module docs/OpenAPI/schema/source guard stay aligned with `getGeneralLedger` | `pnpm --filter @microservices-sh/accounting-core check:spec` and `pnpm --filter @microservices-sh/accounting-core build` passed | Pass |
+| Accounting template spec/build | Reports page wires general ledger without breaking Cloudflare/SvelteKit build | `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Bundled accounting template rebuilds and create-app tests remain green when run sequentially | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+Note: an initial `create-microservices-app` test run overlapped with `create-microservices-app build` and reported transient shim drift. `pnpm sync:shims` made no file changes, and the sequential test rerun passed.
+
 ### Phase 87 commerce sync logs route proof
 
 - **Status:** complete.

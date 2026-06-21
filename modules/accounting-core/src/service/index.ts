@@ -28,3 +28,8 @@ export function normalBalanceForType(type: AccountType): NormalBalance {
 export function dateInPeriod(entryDate: string, period: FiscalPeriod): boolean {
   return entryDate >= period.startsOn && entryDate <= period.endsOn;
 }
+
+export function previousDate(date: string): string {
+  const parsed = Date.parse(`${date}T00:00:00.000Z`);
+  return new Date(parsed - 86_400_000).toISOString().slice(0, 10);
+}

@@ -177,6 +177,16 @@
           "200": { "description": "Trial balance" }
         }
       }
+    },
+    "/general-ledger": {
+      "get": {
+        "summary": "Get account-level general ledger entries with opening and running balances",
+        "operationId": "getGeneralLedger",
+        "responses": {
+          "200": { "description": "General ledger report" },
+          "404": { "description": "Account or fiscal period not found" }
+        }
+      }
     }
   },
   "components": {
@@ -200,6 +210,17 @@
       "JournalEntryStatus": {
         "type": "string",
         "enum": ["draft", "posted", "void"]
+      },
+      "GeneralLedgerEntry": {
+        "type": "object",
+        "properties": {
+          "entryId": { "type": "string" },
+          "lineId": { "type": "string" },
+          "entryDate": { "type": "string", "format": "date" },
+          "debitCents": { "$ref": "#/components/schemas/MoneyCents" },
+          "creditCents": { "$ref": "#/components/schemas/MoneyCents" },
+          "runningBalanceCents": { "$ref": "#/components/schemas/MoneyCents" }
+        }
       }
     }
   }

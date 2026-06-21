@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 97
+Phase 98
 
 ## Phases
 
@@ -761,6 +761,14 @@ Phase 97
 - [x] Return `accounting-core.FISCAL_PERIOD_TRANSITION_CONFLICT` without writing an event when close/reopen/lock loses a race.
 - [x] Add use-case and D1 adapter tests for stale status and tenant mismatch failures.
 - [x] Update module docs and policy checks for fiscal-period compare-and-set lifecycle writes.
+- [x] Verify accounting-core tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 98: Accounting General Ledger Report Contract
+- [x] Add source-style account-scoped general ledger filters, types, schema, and use case.
+- [x] Add memory and D1 general ledger posting reads over posted/void journal lines.
+- [x] Add module metadata, OpenAPI, docs, and policy checks for `getGeneralLedger`.
+- [x] Expose general ledger account/date selection on accounting template reports.
 - [x] Verify accounting-core tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 

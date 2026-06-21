@@ -10,6 +10,7 @@ import {
   getAccount,
   getAccountingSetupStatus,
   getFiscalPeriod,
+  getGeneralLedger,
   getTrialBalance,
   listFiscalPeriods,
   lockFiscalPeriod,
@@ -21,13 +22,34 @@ import {
   updateJournalEntry,
   voidJournalEntry,
   type AccountingCoreStore,
-  type FiscalPeriod
+  type Account,
+  type FiscalPeriod,
+  type JournalEntry,
+  type JournalLine
 } from "./index";
 
 const TENANT_ID = "tenant-1";
 const T0 = Date.parse("2026-01-15T12:00:00.000Z");
 const fixedNow = (ms = T0) => () => ms;
 const D1_FISCAL_PERIOD_SCHEMA = `
+CREATE TABLE accounting_accounts (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  code TEXT NOT NULL,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  account_subtype TEXT,
+  parent_id TEXT,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  normal_balance TEXT NOT NULL,
+  description TEXT,
+  is_system INTEGER NOT NULL DEFAULT 0,
+  is_reconcilable INTEGER NOT NULL DEFAULT 0,
+  is_header INTEGER NOT NULL DEFAULT 0,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
 CREATE TABLE accounting_fiscal_periods (
   id TEXT PRIMARY KEY,
   tenant_id TEXT NOT NULL,
@@ -41,6 +63,36 @@ CREATE TABLE accounting_fiscal_periods (
   locked_at TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
+);
+CREATE TABLE accounting_journal_entries (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  period_id TEXT NOT NULL,
+  entry_date TEXT NOT NULL,
+  description TEXT,
+  status TEXT NOT NULL,
+  source_ref TEXT,
+  source_type TEXT,
+  posted_at TEXT,
+  posted_by_id TEXT,
+  voided_at TEXT,
+  voided_by_id TEXT,
+  void_reason TEXT,
+  reversal_entry_id TEXT,
+  reverses_entry_id TEXT,
+  created_by_id TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE accounting_journal_lines (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  entry_id TEXT NOT NULL,
+  account_id TEXT NOT NULL,
+  description TEXT,
+  debit_cents INTEGER NOT NULL DEFAULT 0,
+  credit_cents INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
 );
 `;
 
@@ -83,13 +135,14 @@ async function setupLedger(status: "open" | "closed" | "locked" = "open") {
 async function createBalancedEntry(
   setup: Awaited<ReturnType<typeof setupLedger>>,
   amountCents = 10_000,
-  sourceRef?: string
+  sourceRef?: string,
+  entryDate = "2026-01-15"
 ) {
   const result = await createJournalEntry(
     {
       tenantId: TENANT_ID,
       periodId: setup.period.id,
-      entryDate: "2026-01-15",
+      entryDate,
       description: "Sale",
       sourceRef,
       sourceType: sourceRef ? "invoice" : undefined,
@@ -427,6 +480,117 @@ describe("accounting-core: setup", () => {
     expect(stored).toEqual(expect.objectContaining({ status: "closed", lockedAt: null }));
   });
 
+  it("returns D1-backed general ledger rows with running balances", async () => {
+    const { d1 } = createTestD1(D1_FISCAL_PERIOD_SCHEMA);
+    const store = createD1AccountingCoreStore(d1);
+    const baseAccount = {
+      tenantId: TENANT_ID,
+      subtype: null,
+      parentId: null,
+      currency: "USD",
+      description: null,
+      isSystem: false,
+      isReconcilable: false,
+      isHeader: false,
+      active: true,
+      createdAt: "2026-01-15T12:00:00.000Z",
+      updatedAt: "2026-01-15T12:00:00.000Z"
+    };
+    const cash: Account = {
+      ...baseAccount,
+      id: "acct_cash",
+      code: "1000",
+      name: "Cash",
+      type: "asset",
+      normalBalance: "debit"
+    };
+    const revenue: Account = {
+      ...baseAccount,
+      id: "acct_revenue",
+      code: "4000",
+      name: "Sales Revenue",
+      type: "revenue",
+      normalBalance: "credit"
+    };
+    const period: FiscalPeriod = {
+      id: "per_d1_gl",
+      tenantId: TENANT_ID,
+      name: "January 2026",
+      periodType: "month",
+      startsOn: "2026-01-01",
+      endsOn: "2026-01-31",
+      status: "open",
+      closedById: null,
+      closedAt: null,
+      lockedAt: null,
+      createdAt: "2026-01-15T12:00:00.000Z",
+      updatedAt: "2026-01-15T12:00:00.000Z"
+    };
+    const entry: JournalEntry = {
+      id: "je_d1",
+      tenantId: TENANT_ID,
+      periodId: period.id,
+      entryDate: "2026-01-20",
+      description: "Invoice posted",
+      status: "posted",
+      sourceRef: "invoice:d1",
+      sourceType: "invoice",
+      postedAt: "2026-01-20T12:00:00.000Z",
+      postedById: "actor-1",
+      voidedAt: null,
+      voidedById: null,
+      voidReason: null,
+      reversalEntryId: null,
+      reversesEntryId: null,
+      createdById: "actor-1",
+      createdAt: "2026-01-20T12:00:00.000Z",
+      updatedAt: "2026-01-20T12:00:00.000Z"
+    };
+    const lines: JournalLine[] = [
+      {
+        id: "jl_cash",
+        tenantId: TENANT_ID,
+        entryId: entry.id,
+        accountId: cash.id,
+        description: "Cash received",
+        debitCents: 3_000,
+        creditCents: 0,
+        createdAt: "2026-01-20T12:00:00.000Z"
+      },
+      {
+        id: "jl_revenue",
+        tenantId: TENANT_ID,
+        entryId: entry.id,
+        accountId: revenue.id,
+        description: "Invoice revenue",
+        debitCents: 0,
+        creditCents: 3_000,
+        createdAt: "2026-01-20T12:00:00.000Z"
+      }
+    ];
+
+    await store.insertAccount(cash);
+    await store.insertAccount(revenue);
+    await store.insertFiscalPeriod(period);
+    await store.insertJournalEntry(entry, lines);
+
+    const report = await getGeneralLedger(
+      { tenantId: TENANT_ID, accountId: revenue.id, startDate: "2026-01-01", endDate: "2026-01-31", includeOpeningBalance: true },
+      { accountingCoreStore: store }
+    );
+    expect(report.ok).toBe(true);
+    if (report.ok) {
+      expect(report.data.generalLedger.entries).toEqual([
+        expect.objectContaining({
+          entryId: entry.id,
+          lineDescription: "Invoice revenue",
+          creditCents: 3_000,
+          runningBalanceCents: 3_000
+        })
+      ]);
+    }
+  });
+
   it("seeds a donor-derived chart with hierarchy, system flags, reconcilable accounts, and contra balances", async () => {
     const store = createMemoryAccountingCoreStore();
     const deps = { accountingCoreStore: store, now: fixedNow() };
@@ -525,6 +689,51 @@ describe("accounting-core: trial balance and voiding", () => {
       expect(trialBalance.data.trialBalance.lines).toEqual([
         expect.objectContaining({ accountCode: "1000", debitCents: 12_345, creditCents: 0 }),
         expect.objectContaining({ accountCode: "4000", debitCents: 0, creditCents: 12_345 })
+      ]);
+    }
+  });
+
+  it("returns a source-style general ledger with opening and running balances", async () => {
+    const setup = await setupLedger();
+    const first = await createBalancedEntry(setup, 10_000, "invoice:100", "2026-01-10");
+    const second = await createBalancedEntry(setup, 2_500, "invoice:101", "2026-01-20");
+    const firstPost = await postJournalEntry({ tenantId: TENANT_ID, entryId: first.id }, setup.deps);
+    const secondPost = await postJournalEntry({ tenantId: TENANT_ID, entryId: second.id }, setup.deps);
+    expect(firstPost.ok).toBe(true);
+    expect(secondPost.ok).toBe(true);
+
+    const report = await getGeneralLedger(
+      {
+        tenantId: TENANT_ID,
+        accountId: setup.revenue.id,
+        startDate: "2026-01-15",
+        endDate: "2026-01-31",
+        includeOpeningBalance: true
+      },
+      setup.deps
+    );
+
+    expect(report.ok).toBe(true);
+    if (report.ok) {
+      expect(report.data.generalLedger).toEqual(
+        expect.objectContaining({
+          tenantId: TENANT_ID,
+          account: expect.objectContaining({ id: setup.revenue.id, normalBalance: "credit" }),
+          openingBalanceCents: 10_000,
+          totalDebitCents: 0,
+          totalCreditCents: 2_500,
+          closingBalanceCents: 12_500
+        })
+      );
+      expect(report.data.generalLedger.entries).toEqual([
+        expect.objectContaining({
+          entryId: second.id,
+          entryDate: "2026-01-20",
+          sourceRef: "invoice:101",
+          debitCents: 0,
+          creditCents: 2_500,
+          runningBalanceCents: 12_500
+        })
       ]);
     }
   });

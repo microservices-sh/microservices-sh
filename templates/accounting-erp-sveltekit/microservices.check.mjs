@@ -306,13 +306,22 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/reports/+page.server.ts",
-    ["getAgingReport", "getReceivableAging", "listOpenReceivables", "generateCustomerStatement", "requireModule(\"accounts-receivable\""],
-    "Accounting reports route composes AP aging, AR aging, open receivables, and customer statements from module APIs."
+    [
+      "getAgingReport",
+      "getReceivableAging",
+      "listOpenReceivables",
+      "generateCustomerStatement",
+      "getGeneralLedger",
+      "listAccounts",
+      "requireModule(\"accounting-core\"",
+      "requireModule(\"accounts-receivable\""
+    ],
+    "Accounting reports route composes AP aging, AR aging, open receivables, customer statements, and general ledger from module APIs."
   );
   assertFileIncludesAll(
     "src/routes/app/reports/+page.svelte",
-    ["Aged receivables", "Aged payables", "Customer statement", "Statement invoices"],
-    "Accounting reports page renders aging reports and customer statement output."
+    ["Aged receivables", "Aged payables", "Customer statement", "Statement invoices", "General ledger", "runningBalanceCents"],
+    "Accounting reports page renders aging reports, customer statement output, and account-level general ledger output."
   );
   assertFileIncludes(
     "src/routes/app/receivables/+page.svelte",

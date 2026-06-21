@@ -19,7 +19,8 @@ import {
   reopenFiscalPeriod,
   createJournalEntry,
   postJournalEntry,
-  getTrialBalance
+  getTrialBalance,
+  getGeneralLedger
 } from "@microservices-sh/accounting-core";
 ```
 
@@ -36,3 +37,5 @@ Money is stored as integer cents. Journal lines must use exactly one non-zero de
 Fiscal periods carry a `periodType` of `month`, `quarter`, `year`, or `custom`. Fiscal-period lifecycle follows source StackSuite close semantics: open periods can close, closed periods can reopen or lock, and locked periods cannot transition. Closing records `closedById` when an actor is supplied; reopening clears close metadata. Lifecycle writes use compare-and-set status guards so stale close, reopen, and lock attempts return `accounting-core.FISCAL_PERIOD_TRANSITION_CONFLICT` without emitting a status-change event. Same-status updates and direct open-to-locked transitions return `accounting-core.INVALID_FISCAL_PERIOD_TRANSITION`.
 
 Posted entries are immutable. Voiding a posted entry marks the original as `void` and creates a posted reversal entry with swapped debit and credit lines; lines are never deleted to correct posted history.
+
+Reporting includes trial balance and source-style general ledger read models. General ledger reports are scoped by tenant and account, can filter by fiscal period or date range, and compute opening, running, and closing balances in integer cents using the account's normal balance.

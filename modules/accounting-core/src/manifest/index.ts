@@ -102,7 +102,8 @@ export const manifest = {
         "accounting-core.createJournalEntry",
         "accounting-core.postJournalEntry",
         "accounting-core.voidJournalEntry",
-        "accounting-core.getTrialBalance"
+        "accounting-core.getTrialBalance",
+        "accounting-core.getGeneralLedger"
       ],
       approvalRequiredFor: [
         "accounting-core.createAccount",

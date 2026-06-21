@@ -5,6 +5,8 @@ import type {
   AccountFilter,
   FiscalPeriod,
   FiscalPeriodFilter,
+  GeneralLedgerFilter,
+  GeneralLedgerPosting,
   JournalEntry,
   JournalLine,
   TrialBalanceFilter,
@@ -56,6 +58,16 @@ function trialBalanceEntryVisible(entry: JournalEntry, filter: TrialBalanceFilte
     (entry.status === "posted" || entry.status === "void") &&
     (!filter.periodId || entry.periodId === filter.periodId) &&
     (!filter.asOfDate || entry.entryDate <= filter.asOfDate)
+  );
+}
+
+function generalLedgerEntryVisible(entry: JournalEntry, filter: GeneralLedgerFilter): boolean {
+  return (
+    entry.tenantId === filter.tenantId &&
+    (entry.status === "posted" || entry.status === "void") &&
+    (!filter.periodId || entry.periodId === filter.periodId) &&
+    (!filter.startDate || entry.entryDate >= filter.startDate) &&
+    (!filter.endDate || entry.entryDate <= filter.endDate)
   );
 }
 
@@ -157,6 +169,34 @@ export function createMemoryAccountingCoreStore(): AccountingCoreStore {
       entries.set(original.id, cloneEntry(original));
       entries.set(reversal.id, cloneEntry(reversal));
       linesByEntry.set(reversal.id, reversalLines.map(cloneLine));
+    },
+
+    async listGeneralLedgerPostings(filter) {
+      const rows: GeneralLedgerPosting[] = [];
+      for (const entry of entries.values()) {
+        if (!generalLedgerEntryVisible(entry, filter)) continue;
+        for (const line of linesByEntry.get(entry.id) ?? []) {
+          if (line.tenantId !== filter.tenantId || line.accountId !== filter.accountId) continue;
+          rows.push({
+            entryId: entry.id,
+            lineId: line.id,
+            periodId: entry.periodId,
+            entryDate: entry.entryDate,
+            description: entry.description,
+            sourceRef: entry.sourceRef,
+            sourceType: entry.sourceType,
+            lineDescription: line.description,
+            debitCents: line.debitCents,
+            creditCents: line.creditCents
+          });
+        }
+      }
+      return rows.sort(
+        (a, b) =>
+          a.entryDate.localeCompare(b.entryDate) ||
+          a.entryId.localeCompare(b.entryId) ||
+          a.lineId.localeCompare(b.lineId)
+      );
     },
 
     async listTrialBalancePostings(filter) {

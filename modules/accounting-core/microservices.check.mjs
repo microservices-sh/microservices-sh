@@ -35,12 +35,15 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
       "fiscalPeriodIdentitySchema",
       "fiscalPeriodTransitionSchema",
       "fiscalPeriodTypeSchema",
+      "generalLedgerSchema",
       "closeFiscalPeriod",
+      "getGeneralLedger",
       "getFiscalPeriod",
       "listFiscalPeriods",
       "lockFiscalPeriod",
       "reopenFiscalPeriod",
       "./use-cases/close-fiscal-period",
+      "./use-cases/get-general-ledger",
       "./use-cases/get-fiscal-period",
       "./use-cases/list-fiscal-periods",
       "./use-cases/lock-fiscal-period",
@@ -61,6 +64,7 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
   assertFileIncludesAll(
     "src/manifest/index.ts",
     [
+      "accounting-core.getGeneralLedger",
       "accounting-core.getFiscalPeriod",
       "accounting-core.listFiscalPeriods",
       "accounting-core.closeFiscalPeriod",
@@ -72,6 +76,7 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
   assertFileIncludesAll(
     "module.json",
     [
+      "accounting-core.getGeneralLedger",
       "accounting-core.getFiscalPeriod",
       "accounting-core.listFiscalPeriods",
       "accounting-core.closeFiscalPeriod",
@@ -85,6 +90,8 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
     [
       "\"ChartOfAccountsStandard\"",
       "\"gaap\", \"ifrs\"",
+      "\"/general-ledger\"",
+      "\"operationId\": \"getGeneralLedger\"",
       "\"/fiscal-periods\"",
       "\"operationId\": \"listFiscalPeriods\"",
       "\"/fiscal-periods/{id}\"",
@@ -94,6 +101,32 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
       "\"operationId\": \"reopenFiscalPeriod\""
     ],
     "Accounting Core OpenAPI documents fiscal-period list, detail, and lifecycle transition operations."
+  );
+  assertFileIncludesAll(
+    "src/use-cases/get-general-ledger.ts",
+    [
+      "generalLedgerSchema",
+      "listGeneralLedgerPostings",
+      "runningBalanceCents",
+      "openingBalanceCents",
+      "accounting-core.INVALID_GENERAL_LEDGER_INPUT"
+    ],
+    "Accounting Core general ledger use case validates account/date filters and returns opening/running balances."
+  );
+  assertFileIncludesAll(
+    "src/ports/index.ts",
+    ["listGeneralLedgerPostings", "GeneralLedgerFilter", "GeneralLedgerPosting"],
+    "Accounting Core store port exposes source-style general ledger postings."
+  );
+  assertFileIncludesAll(
+    "src/adapters/d1-accounting-core-store.ts",
+    ["listGeneralLedgerPostings", "e.status IN ('posted', 'void')", "ORDER BY e.entry_date ASC, e.id ASC"],
+    "Accounting Core D1 adapter reads posted/void general ledger rows by account and date."
+  );
+  assertFileIncludesAll(
+    "src/adapters/memory-accounting-core-store.ts",
+    ["listGeneralLedgerPostings", "generalLedgerEntryVisible", "lineDescription"],
+    "Accounting Core memory adapter mirrors source-style general ledger row filtering."
   );
   assertFileIncludesAll(
     "src/use-cases/get-fiscal-period.ts",

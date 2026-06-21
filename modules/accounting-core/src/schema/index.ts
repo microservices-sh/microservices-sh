@@ -14,6 +14,7 @@ export {
   fiscalPeriodStatusUpdateSchema,
   fiscalPeriodTransitionSchema,
   fiscalPeriodTypeSchema,
+  generalLedgerSchema,
   journalEntryInputSchema,
   journalEntryStatusSchema,
   journalEntryUpdateSchema,

@@ -33,6 +33,12 @@
       "items": {
         "enum": ["month", "quarter", "year", "custom"]
       }
+    },
+    "generalLedgerFields": {
+      "type": "array",
+      "items": {
+        "enum": ["openingBalanceCents", "runningBalanceCents", "closingBalanceCents"]
+      }
     }
   }
 }

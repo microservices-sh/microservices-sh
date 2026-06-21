@@ -157,6 +157,45 @@ export interface TrialBalance {
   balanced: boolean;
 }
 
+export interface GeneralLedgerFilter {
+  tenantId: string;
+  accountId: string;
+  periodId?: string;
+  startDate?: string;
+  endDate?: string;
+  includeOpeningBalance?: boolean;
+}
+
+export interface GeneralLedgerPosting {
+  entryId: string;
+  lineId: string;
+  periodId: string;
+  entryDate: string;
+  description: string | null;
+  sourceRef: string | null;
+  sourceType: string | null;
+  lineDescription: string | null;
+  debitCents: number;
+  creditCents: number;
+}
+
+export interface GeneralLedgerEntry extends GeneralLedgerPosting {
+  runningBalanceCents: number;
+}
+
+export interface GeneralLedgerReport {
+  tenantId: string;
+  account: Account;
+  periodId: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  openingBalanceCents: number;
+  totalDebitCents: number;
+  totalCreditCents: number;
+  closingBalanceCents: number;
+  entries: GeneralLedgerEntry[];
+}
+
 export interface AccountingEvent {
   eventName:
     | "accounting-core.account_created"

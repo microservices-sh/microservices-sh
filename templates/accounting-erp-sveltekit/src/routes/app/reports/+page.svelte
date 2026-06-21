@@ -46,8 +46,19 @@
   </PageHeader>
 
   <form class="report-filter mt-6" method="GET">
+    <Field label="From" id="report-start-date">
+      <input id="report-start-date" name="startDate" type="date" value={data.startDate ?? ""} />
+    </Field>
     <Field label="As of" id="report-as-of">
       <input id="report-as-of" name="asOf" type="date" value={data.asOfDay} />
+    </Field>
+    <Field label="General ledger" id="report-account">
+      <select id="report-account" name="accountId">
+        <option value="">No ledger</option>
+        {#each data.accounts as account (account.id)}
+          <option value={account.id} selected={data.selectedAccountId === account.id}>{account.code} · {account.name}</option>
+        {/each}
+      </select>
     </Field>
     <Field label="Customer statement" id="report-customer">
       <select id="report-customer" name="customerId">
@@ -193,12 +204,58 @@
       </div>
     </Card>
   {/if}
+
+  {#if data.generalLedger}
+    <Card class="mt-6">
+      <div class="card-headline">
+        <h2>General ledger</h2>
+        <Badge tone="neutral">{data.generalLedger.account.code}</Badge>
+      </div>
+      <div class="statement-summary">
+        <div><span>Opening</span><strong>{money(data.generalLedger.openingBalanceCents)}</strong></div>
+        <div><span>Debits</span><strong>{money(data.generalLedger.totalDebitCents)}</strong></div>
+        <div><span>Credits</span><strong>{money(data.generalLedger.totalCreditCents)}</strong></div>
+        <div><span>Closing</span><strong>{money(data.generalLedger.closingBalanceCents)}</strong></div>
+      </div>
+      {#if data.generalLedger.entries.length > 0}
+        <div class="table-scroll mt-4">
+          <table>
+            <caption>{data.generalLedger.account.name} ledger</caption>
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Entry</th>
+                <th scope="col">Source</th>
+                <th scope="col">Debit</th>
+                <th scope="col">Credit</th>
+                <th scope="col">Running</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each data.generalLedger.entries as entry (`${entry.entryId}-${entry.lineId}`)}
+                <tr>
+                  <td>{entry.entryDate}</td>
+                  <td>{entry.description ?? entry.lineDescription ?? entry.entryId}</td>
+                  <td>{entry.sourceRef ?? entry.sourceType ?? "-"}</td>
+                  <td>{money(entry.debitCents)}</td>
+                  <td>{money(entry.creditCents)}</td>
+                  <td>{money(entry.runningBalanceCents)}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {:else}
+        <p class="empty">No ledger entries for this account and date range.</p>
+      {/if}
+    </Card>
+  {/if}
 </main>
 
 <style>
   .report-filter {
     display: grid;
-    grid-template-columns: minmax(160px, 220px) minmax(220px, 1fr) auto;
+    grid-template-columns: minmax(150px, 180px) minmax(150px, 180px) minmax(220px, 1fr) minmax(220px, 1fr) auto;
     align-items: end;
     gap: 12px;
   }

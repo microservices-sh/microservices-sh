@@ -133,7 +133,8 @@
         "accounting-core.createJournalEntry",
         "accounting-core.postJournalEntry",
         "accounting-core.voidJournalEntry",
-        "accounting-core.getTrialBalance"
+        "accounting-core.getTrialBalance",
+        "accounting-core.getGeneralLedger"
       ],
       "skillPaths": [
         "skills/accounting-core-operator/SKILL.md"

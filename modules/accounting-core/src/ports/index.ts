@@ -5,6 +5,8 @@ import type {
   FiscalPeriod,
   FiscalPeriodFilter,
   FiscalPeriodStatus,
+  GeneralLedgerFilter,
+  GeneralLedgerPosting,
   JournalEntry,
   JournalLine,
   TrialBalanceFilter,
@@ -35,6 +37,7 @@ export interface AccountingCoreStore {
   ): Promise<JournalEntry | null>;
   voidJournalEntry(original: JournalEntry, reversal: JournalEntry, reversalLines: JournalLine[]): Promise<void>;
 
+  listGeneralLedgerPostings(filter: GeneralLedgerFilter): Promise<GeneralLedgerPosting[]>;
   listTrialBalancePostings(filter: TrialBalanceFilter): Promise<TrialBalancePosting[]>;
   writeEvent(event: AccountingEvent): Promise<void>;
 }

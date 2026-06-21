@@ -43,7 +43,7 @@ Keep the templates source-visible and module-backed. Template-side adapters may 
 
 Two read-only explorer passes on 2026-06-21 identified the remaining adoption gaps:
 
-- Accounting depth has moved past the original thin slice. Ledger posting, fiscal period close/reopen/lock rules, fiscal period type/close-actor metadata, fiscal close compare-and-set hardening, GAAP/IFRS setup seed selection, base-currency chart setup, post/void/reversal workflows, trial balance, AR/AP posting adapters, invoice/customer-payment settlement, Stripe settlement, and recurring-invoice job posting are implemented in the template/module split. Remaining accounting backlog is default-account setup persistence, richer account metadata, and full financial statements.
+- Accounting depth has moved past the original thin slice. Ledger posting, fiscal period close/reopen/lock rules, fiscal period type/close-actor metadata, fiscal close compare-and-set hardening, GAAP/IFRS setup seed selection, base-currency chart setup, post/void/reversal workflows, trial balance, general ledger, AR/AP posting adapters, invoice/customer-payment settlement, Stripe settlement, and recurring-invoice job posting are implemented in the template/module split. Remaining accounting backlog is default-account setup persistence, richer account metadata, and full financial statements.
 - AP has vendors, bills, payments, aging, bill posting, payment settlement, and recurring bill storage primitives. Remaining backlog is recurring bill generation through jobs-workflows, pause/resume/cancel lifecycle, approval routing, and richer payment-account handling.
 - AR now stores invoice snapshots/payments/aging, customer statements, manual invoice issue/payment/void sync, Stripe settlement sync, customer-payment settlement posting, and recurring auto-issued invoice sync. Remaining backlog is richer deposit-account configuration, unapplied balance reporting, and reusable statement/export contracts.
 - Banking now exposes imports, import detail review, match suggestions, match creation, reconciliation start, reconciliation completion, and reconciliation detail review in the accounting template workflow. Remaining backlog is CSV field mapping, duplicate handling, confirm/remove/exclude match lifecycle, clear/unclear operations, richer summaries/history, and provider/OCR hooks.
@@ -123,7 +123,7 @@ Port setup and reporting depth into `modules/accounting-core`:
 - setup wizard use cases for persisted fiscal year, default AR/AP/income/retained earnings accounts, and full setup orchestration.
 - fiscal-period close/reopen rules.
 - journal numbering, posting, voiding, and reversal contracts.
-- trial balance, income statement, balance sheet, cash flow, and general ledger report contracts.
+- income statement, balance sheet, and cash flow contracts after report row definitions; trial balance and general ledger are implemented.
 
 ### Bank Reconciliation
 
@@ -327,7 +327,7 @@ Mostly done for the first StackSuite parity milestone:
 
 - recurring invoice contracts and scheduled auto-issued invoice accounting sync.
 - AP/AR posting and settlement adapters.
-- ledger posting, void/reversal, trial balance, AR/AP aging, and customer statement workflows.
+- ledger posting, void/reversal, trial balance, general ledger, AR/AP aging, and customer statement workflows.
 - commerce sync webhook/signature/sync-log/order-contact/order-import contracts.
 - inventory reservation/release/deduction contracts across sales orders, invoices, shipments, and MCP lifecycle tools.
 

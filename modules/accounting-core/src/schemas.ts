@@ -140,6 +140,15 @@ export const trialBalanceSchema = z.object({
   includeZero: z.boolean().optional()
 });
 
+export const generalLedgerSchema = z.object({
+  tenantId: z.string().min(1),
+  accountId: z.string().min(1),
+  periodId: z.string().min(1).optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  includeOpeningBalance: z.boolean().optional()
+});
+
 export const setupStatusInputSchema = z.object({
   tenantId: z.string().min(1)
 });
