@@ -13,6 +13,7 @@ export type AccountSubtype =
   | "cogs"
   | "other_expense";
 export type NormalBalance = "debit" | "credit";
+export type FiscalPeriodType = "month" | "quarter" | "year" | "custom";
 export type FiscalPeriodStatus = "open" | "closed" | "locked";
 export type JournalEntryStatus = "draft" | "posted" | "void";
 export type ChartOfAccountsStandard = "gaap";
@@ -51,9 +52,11 @@ export interface FiscalPeriod {
   id: string;
   tenantId: string;
   name: string;
+  periodType: FiscalPeriodType;
   startsOn: string;
   endsOn: string;
   status: FiscalPeriodStatus;
+  closedById: string | null;
   closedAt: string | null;
   lockedAt: string | null;
   createdAt: string;
@@ -107,6 +110,7 @@ export interface AccountFilter {
 export interface FiscalPeriodFilter {
   tenantId: string;
   status?: FiscalPeriodStatus;
+  periodType?: FiscalPeriodType;
   limit?: number;
 }
 

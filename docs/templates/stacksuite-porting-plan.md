@@ -43,7 +43,7 @@ Keep the templates source-visible and module-backed. Template-side adapters may 
 
 Two read-only explorer passes on 2026-06-21 identified the remaining adoption gaps:
 
-- Accounting depth has moved past the original thin slice. Ledger posting, fiscal period close/reopen/lock rules, post/void/reversal workflows, trial balance, AR/AP posting adapters, invoice/customer-payment settlement, Stripe settlement, and recurring-invoice job posting are implemented in the template/module split. Remaining accounting backlog is setup depth, fiscal period type and close-actor metadata, richer account metadata, and full financial statements.
+- Accounting depth has moved past the original thin slice. Ledger posting, fiscal period close/reopen/lock rules, fiscal period type/close-actor metadata, post/void/reversal workflows, trial balance, AR/AP posting adapters, invoice/customer-payment settlement, Stripe settlement, and recurring-invoice job posting are implemented in the template/module split. Remaining accounting backlog is setup depth, richer account metadata, fiscal close concurrency hardening, and full financial statements.
 - AP has vendors, bills, payments, aging, bill posting, payment settlement, and recurring bill storage primitives. Remaining backlog is recurring bill generation through jobs-workflows, pause/resume/cancel lifecycle, approval routing, and richer payment-account handling.
 - AR now stores invoice snapshots/payments/aging, customer statements, manual invoice issue/payment/void sync, Stripe settlement sync, customer-payment settlement posting, and recurring auto-issued invoice sync. Remaining backlog is richer deposit-account configuration, unapplied balance reporting, and reusable statement/export contracts.
 - Banking now exposes imports, import detail review, match suggestions, match creation, reconciliation start, reconciliation completion, and reconciliation detail review in the accounting template workflow. Remaining backlog is CSV field mapping, duplicate handling, confirm/remove/exclude match lifecycle, clear/unclear operations, richer summaries/history, and provider/OCR hooks.
@@ -334,7 +334,7 @@ Mostly done for the first StackSuite parity milestone:
 Still pending:
 
 - invoice-document extension contracts beyond the current invoice, quote, and recurring draft handoffs.
-- accounting setup packs, fiscal period type/close-actor metadata, and full statement contracts.
+- accounting setup packs, fiscal close concurrency hardening, and full statement contracts.
 - persistent inventory reconciliation documents and alert read models.
 
 ### Phase 2: Focused Template Routes
@@ -348,7 +348,7 @@ Done for the first accounting/commerce operator surface:
 
 Remaining routes should be added only after the backing module API exists:
 
-- accounting setup, fiscal period metadata parity, and fiscal close concurrency hardening.
+- accounting setup, fiscal close concurrency hardening, and full statement routes.
 - commerce sales-order create/send, richer shipment status transitions, MCP settings, persistent inventory count documents, and inventory alerts.
 
 ### Phase 3: External Operations

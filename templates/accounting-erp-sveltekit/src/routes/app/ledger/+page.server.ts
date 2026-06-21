@@ -14,10 +14,13 @@ import {
   reopenFiscalPeriod as reopenAccountingFiscalPeriod,
   voidJournalEntry,
   type AccountType,
-  type FiscalPeriod
+  type FiscalPeriod,
+  type FiscalPeriodType
 } from "@microservices-sh/accounting-core";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
+
+const PERIOD_TYPES = new Set<FiscalPeriodType>(["month", "quarter", "year", "custom"]);
 
 function text(value: FormDataEntryValue | null): string {
   return String(value ?? "").trim();
@@ -25,6 +28,10 @@ function text(value: FormDataEntryValue | null): string {
 
 function accountType(value: string): AccountType | null {
   return ["asset", "liability", "equity", "revenue", "expense"].includes(value) ? (value as AccountType) : null;
+}
+
+function fiscalPeriodType(value: string): FiscalPeriodType | null {
+  return PERIOD_TYPES.has(value as FiscalPeriodType) ? (value as FiscalPeriodType) : null;
 }
 
 function dateOnly(value: string): string | null {
@@ -190,17 +197,20 @@ export const actions: Actions = {
     const form = await request.formData();
     const values = {
       name: text(form.get("name")),
+      periodType: text(form.get("periodType")) || "month",
       startsOn: text(form.get("startsOn")),
       endsOn: text(form.get("endsOn"))
     };
+    const periodType = fiscalPeriodType(values.periodType);
     const startsOn = dateOnly(values.startsOn);
     const endsOn = dateOnly(values.endsOn);
-    if (!values.name || !startsOn || !endsOn) return fail(400, { error: "Enter period name and dates.", values });
+    if (!values.name || !periodType || !startsOn || !endsOn) return fail(400, { error: "Enter period name, type, and dates.", values });
 
     const result = await createFiscalPeriod(
       {
         tenantId: ctx.org.id,
         name: values.name,
+        periodType,
         startsOn,
         endsOn,
         status: "open"

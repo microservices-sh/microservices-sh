@@ -1932,6 +1932,25 @@
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 95 accounting fiscal period metadata parity
+
+- **Status:** complete.
+- Goal: add StackSuite fiscal-period metadata parity without changing lifecycle semantics or adding period edit workflows.
+- Added `periodType` (`month`, `quarter`, `year`, `custom`) and `closedById` to accounting-core types, schemas, memory/D1 adapters, and fresh/upgrade migrations.
+- Close now records `closedById` when an actor is supplied; reopen clears close metadata; lock preserves existing close metadata.
+- Ledger period list/detail UI now shows period type and close actor metadata, and manual period creation accepts period type while still defaulting lifecycle status to open.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Migration replay | Fresh module/template D1 stacks apply without duplicate fiscal-period metadata columns | Module and template SQLite replays passed; `period_type` and `closed_by_id` exist after additive migrations | Pass |
+| Accounting-core tests | Period-type filtering, close actor metadata, and existing ledger behavior remain green | `pnpm --filter @microservices-sh/accounting-core test` passed, 13/13 | Pass |
+| Accounting-core spec/build | Module migrations/docs/OpenAPI/manifest/source guard stay aligned with metadata fields | `pnpm --filter @microservices-sh/accounting-core check:spec` and `pnpm --filter @microservices-sh/accounting-core build` passed | Pass |
+| Accounting template spec | Policy catches mirrored migration and period type UI | `pnpm --dir templates/accounting-erp-sveltekit check:spec` passed | Pass |
+| Accounting template build | SvelteKit/Cloudflare build compiles after metadata UI changes | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Packaged accounting template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and sequential `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 87 commerce sync logs route proof
 
 - **Status:** complete.

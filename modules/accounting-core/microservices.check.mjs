@@ -9,6 +9,11 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
     "CREATE TABLE IF NOT EXISTS accounting_fiscal_periods",
     "Accounting Core module migration owns fiscal periods."
   );
+  assertFileIncludesAll(
+    "migrations/0003_fiscal_period_metadata.sql",
+    ["ADD COLUMN period_type TEXT NOT NULL DEFAULT 'month'", "ADD COLUMN closed_by_id TEXT"],
+    "Accounting Core upgrade migration adds source-parity fiscal-period metadata."
+  );
   assertFileIncludes(
     "migrations/0001_initial.sql",
     "CREATE TABLE IF NOT EXISTS accounting_journal_entries",
@@ -29,6 +34,7 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
     [
       "fiscalPeriodIdentitySchema",
       "fiscalPeriodTransitionSchema",
+      "fiscalPeriodTypeSchema",
       "closeFiscalPeriod",
       "getFiscalPeriod",
       "listFiscalPeriods",
@@ -94,6 +100,7 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
       "open",
       "closed",
       "locked",
+      "closedById",
       "accounting-core.INVALID_FISCAL_PERIOD_TRANSITION",
       "previousStatus"
     ],
@@ -116,12 +123,12 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
   );
   assertFileIncludesAll(
     "README.md",
-    ["open periods can close", "closed periods can reopen or lock", "locked periods cannot transition"],
+    ["periodType", "closedById", "open periods can close", "closed periods can reopen or lock", "locked periods cannot transition"],
     "Accounting Core README documents fiscal-period lifecycle invariants."
   );
   assertFileIncludesAll(
     "llms.txt",
-    ["open->closed", "closed->open", "closed->locked", "locked periods cannot transition"],
+    ["periodType month|quarter|year|custom", "close actor metadata", "open->closed", "closed->open", "closed->locked", "locked periods cannot transition"],
     "Accounting Core LLM notes document fiscal-period lifecycle invariants."
   );
 }

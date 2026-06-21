@@ -2,6 +2,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const accountsPayableMigration = readText("migrations/0024_accounts_payable.sql");
   const accountsReceivableMigration = readText("migrations/0025_accounts_receivable.sql");
   const bankReconciliationMigration = readText("migrations/0026_bank_reconciliation.sql");
+  const accountingFiscalPeriodMetadataMigration = readText("migrations/0030_accounting_fiscal_period_metadata.sql");
   const recurringBillDetailServer = readText("src/routes/app/payables/recurring/[id]/+page.server.ts");
   const bankingImportDetailServer = readText("src/routes/app/banking/imports/[id]/+page.server.ts");
   const bankingImportDetailPage = readText("src/routes/app/banking/imports/[id]/+page.svelte");
@@ -350,6 +351,22 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       !readText("src/routes/app/ledger/+page.server.ts").includes("status: text(form.get(\"status\""),
     "Ledger fiscal-period creation defaults to open and does not let the template bypass close/reopen/lock lifecycle actions.",
     "policy:accounting-ledger-fiscal-period-create-open-only"
+  );
+  assertFileIncludesAll(
+    "src/routes/app/ledger/+page.server.ts",
+    ["fiscalPeriodType", "periodType: text(form.get(\"periodType\"", "periodType,"],
+    "Ledger fiscal-period creation captures source-parity period type metadata while defaulting lifecycle status to open."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/ledger/+page.svelte",
+    ["period.periodType", "name=\"periodType\"", "Month", "Quarter", "Year", "Custom"],
+    "Ledger fiscal-period table and create form expose period type metadata."
+  );
+  assert(
+    accountingFiscalPeriodMetadataMigration.includes("ADD COLUMN period_type TEXT NOT NULL DEFAULT 'month'") &&
+      accountingFiscalPeriodMetadataMigration.includes("ADD COLUMN closed_by_id TEXT"),
+    "Accounting template includes an upgrade migration for fiscal-period period_type and closed_by_id metadata.",
+    "policy:accounting-fiscal-period-metadata-migration"
   );
   assertFileIncludesAll(
     "src/routes/app/ledger/+page.svelte",

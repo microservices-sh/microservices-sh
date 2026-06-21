@@ -33,6 +33,6 @@ Templates own app shell, route adapters, UI layout, auth context extraction, and
 
 Money is stored as integer cents. Journal lines must use exactly one non-zero debit or credit amount. Journal entries must balance before they can be saved or posted. Posting is rejected for closed or locked fiscal periods. A posted `sourceRef` is unique per tenant so upstream invoices, orders, and adjustments cannot post twice.
 
-Fiscal-period lifecycle follows source StackSuite close semantics: open periods can close, closed periods can reopen or lock, and locked periods cannot transition. Same-status updates and direct open-to-locked transitions return `accounting-core.INVALID_FISCAL_PERIOD_TRANSITION`.
+Fiscal periods carry a `periodType` of `month`, `quarter`, `year`, or `custom`. Fiscal-period lifecycle follows source StackSuite close semantics: open periods can close, closed periods can reopen or lock, and locked periods cannot transition. Closing records `closedById` when an actor is supplied; reopening clears close metadata. Same-status updates and direct open-to-locked transitions return `accounting-core.INVALID_FISCAL_PERIOD_TRANSITION`.
 
 Posted entries are immutable. Voiding a posted entry marks the original as `void` and creates a posted reversal entry with swapped debit and credit lines; lines are never deleted to correct posted history.

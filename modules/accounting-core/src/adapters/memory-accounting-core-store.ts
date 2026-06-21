@@ -43,7 +43,11 @@ function accountVisible(account: Account, filter: AccountFilter): boolean {
 }
 
 function periodVisible(period: FiscalPeriod, filter: FiscalPeriodFilter): boolean {
-  return period.tenantId === filter.tenantId && (!filter.status || period.status === filter.status);
+  return (
+    period.tenantId === filter.tenantId &&
+    (!filter.status || period.status === filter.status) &&
+    (!filter.periodType || period.periodType === filter.periodType)
+  );
 }
 
 function trialBalanceEntryVisible(entry: JournalEntry, filter: TrialBalanceFilter): boolean {

@@ -213,7 +213,7 @@ describe("accounting-core: setup", () => {
       deps
     );
     const february = await createFiscalPeriod(
-      { tenantId: TENANT_ID, name: "February 2026", startsOn: "2026-02-01", endsOn: "2026-02-28", status: "closed" },
+      { tenantId: TENANT_ID, name: "February 2026", periodType: "quarter", startsOn: "2026-02-01", endsOn: "2026-02-28", status: "closed" },
       deps
     );
     const otherTenantPeriod = await createFiscalPeriod(
@@ -226,7 +226,7 @@ describe("accounting-core: setup", () => {
     expect(found.ok).toBe(true);
     if (found.ok) {
       expect(found.data.period).toEqual(
-        expect.objectContaining({ id: january.data.period.id, tenantId: TENANT_ID, name: "January 2026" })
+        expect.objectContaining({ id: january.data.period.id, tenantId: TENANT_ID, name: "January 2026", periodType: "month" })
       );
     }
 
@@ -238,6 +238,12 @@ describe("accounting-core: setup", () => {
     expect(openPeriods.ok).toBe(true);
     if (openPeriods.ok) {
       expect(openPeriods.data.periods).toEqual([expect.objectContaining({ id: january.data.period.id, status: "open" })]);
+    }
+
+    const quarterPeriods = await listFiscalPeriods({ tenantId: TENANT_ID, periodType: "quarter" }, deps);
+    expect(quarterPeriods.ok).toBe(true);
+    if (quarterPeriods.ok) {
+      expect(quarterPeriods.data.periods).toEqual([expect.objectContaining({ id: february.data.period.id, periodType: "quarter" })]);
     }
   });
 
@@ -260,6 +266,7 @@ describe("accounting-core: setup", () => {
     expect(closed.data.period).toEqual(
       expect.objectContaining({
         status: "closed",
+        closedById: "actor-1",
         closedAt: "2026-01-15T12:00:00.000Z",
         lockedAt: null
       })
@@ -268,7 +275,7 @@ describe("accounting-core: setup", () => {
     const reopened = await reopenFiscalPeriod({ tenantId: TENANT_ID, periodId: created.data.period.id, actorId: "actor-1" }, deps);
     expect(reopened.ok).toBe(true);
     if (!reopened.ok) throw new Error(reopened.error.message);
-    expect(reopened.data.period).toEqual(expect.objectContaining({ status: "open", closedAt: null, lockedAt: null }));
+    expect(reopened.data.period).toEqual(expect.objectContaining({ status: "open", closedById: null, closedAt: null, lockedAt: null }));
 
     const closedAgain = await updateFiscalPeriodStatus(
       { tenantId: TENANT_ID, periodId: created.data.period.id, status: "closed", actorId: "actor-1" },
@@ -281,6 +288,7 @@ describe("accounting-core: setup", () => {
     expect(locked.data.period).toEqual(
       expect.objectContaining({
         status: "locked",
+        closedById: "actor-1",
         closedAt: "2026-01-15T12:00:00.000Z",
         lockedAt: "2026-01-15T12:00:00.000Z"
       })

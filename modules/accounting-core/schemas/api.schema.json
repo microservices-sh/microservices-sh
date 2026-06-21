@@ -21,6 +21,12 @@
       "items": {
         "enum": ["open", "closed", "locked"]
       }
+    },
+    "fiscalPeriodTypes": {
+      "type": "array",
+      "items": {
+        "enum": ["month", "quarter", "year", "custom"]
+      }
     }
   }
 }

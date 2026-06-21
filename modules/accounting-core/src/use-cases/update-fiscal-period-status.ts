@@ -9,12 +9,12 @@ function canTransition(from: FiscalPeriodStatus, to: FiscalPeriodStatus): boolea
   return false;
 }
 
-function applyTransition(period: FiscalPeriod, status: FiscalPeriodStatus, now: string): FiscalPeriod {
+function applyTransition(period: FiscalPeriod, status: FiscalPeriodStatus, now: string, actorId?: string | null): FiscalPeriod {
   if (status === "open") {
-    return { ...period, status, closedAt: null, lockedAt: null, updatedAt: now };
+    return { ...period, status, closedById: null, closedAt: null, lockedAt: null, updatedAt: now };
   }
   if (status === "closed") {
-    return { ...period, status, closedAt: period.closedAt ?? now, lockedAt: null, updatedAt: now };
+    return { ...period, status, closedById: period.closedById ?? actorId ?? null, closedAt: period.closedAt ?? now, lockedAt: null, updatedAt: now };
   }
   return { ...period, status, closedAt: period.closedAt ?? now, lockedAt: now, updatedAt: now };
 }
@@ -34,7 +34,7 @@ export async function transitionFiscalPeriodStatus(
   }
 
   const now = isoNow(deps.now);
-  const updated = applyTransition(period, input.status, now);
+  const updated = applyTransition(period, input.status, now, input.actorId);
 
   await deps.accountingCoreStore.updateFiscalPeriod(updated);
   await deps.accountingCoreStore.writeEvent({

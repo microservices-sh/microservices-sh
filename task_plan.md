@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 94
+Phase 95
 
 ## Phases
 
@@ -735,6 +735,15 @@ Phase 94
 - [x] Make Ledger manual fiscal-period creation default to open so template UI cannot bypass lifecycle actions.
 - [x] Update module docs, manifests, OpenAPI, LLM notes, and policy checks for lifecycle invariants.
 - [x] Verify accounting-core tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 95: Accounting Fiscal Period Metadata Parity
+- [x] Add source-parity fiscal period `periodType` and `closedById` fields to accounting-core types, schemas, adapters, and migrations.
+- [x] Add module and template D1 upgrade migrations for existing generated apps.
+- [x] Preserve `closedById` during lock, set it during close, and clear it during reopen.
+- [x] Expose period type and close actor metadata in Ledger period list/detail UI.
+- [x] Add period-type filtering tests and policy checks for metadata migrations/docs/UI.
+- [x] Verify accounting-core tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, migration replay, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

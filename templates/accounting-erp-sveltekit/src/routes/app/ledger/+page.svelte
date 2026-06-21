@@ -117,6 +117,7 @@
             <thead>
               <tr>
                 <th scope="col">Period</th>
+                <th scope="col">Type</th>
                 <th scope="col">Dates</th>
                 <th scope="col">Status</th>
                 {#if data.canManage}<th scope="col">Set</th>{/if}
@@ -129,6 +130,7 @@
                     <strong><a href={`/app/ledger/fiscal-periods/${period.id}`}>{period.name}</a></strong>
                     <span><a href={`/app/ledger/fiscal-periods/${period.id}`}><code>{period.id}</code></a></span>
                   </td>
+                  <td>{period.periodType}</td>
                   <td>{period.startsOn} - {period.endsOn}</td>
                   <td><Badge tone={statusTone(period.status)}>{period.status}</Badge></td>
                   {#if data.canManage}
@@ -241,6 +243,14 @@
       <Card title="Create fiscal period">
         <form method="POST" action="?/createFiscalPeriod" use:enhance>
           <Field label="Name" id="period-name"><input id="period-name" name="name" required placeholder="June 2026" value={form?.values?.name ?? ""} /></Field>
+          <Field label="Type" id="period-type">
+            <select id="period-type" name="periodType" required>
+              <option value="month" selected={(form?.values?.periodType ?? "month") === "month"}>Month</option>
+              <option value="quarter" selected={form?.values?.periodType === "quarter"}>Quarter</option>
+              <option value="year" selected={form?.values?.periodType === "year"}>Year</option>
+              <option value="custom" selected={form?.values?.periodType === "custom"}>Custom</option>
+            </select>
+          </Field>
           <div class="form-row">
             <Field label="Starts on" id="period-start"><input id="period-start" name="startsOn" type="date" required value={form?.values?.startsOn ?? data.today} /></Field>
             <Field label="Ends on" id="period-end"><input id="period-end" name="endsOn" type="date" required value={form?.values?.endsOn ?? data.today} /></Field>

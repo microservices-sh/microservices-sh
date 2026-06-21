@@ -9,6 +9,7 @@ import type {
   FiscalPeriod,
   FiscalPeriodFilter,
   FiscalPeriodStatus,
+  FiscalPeriodType,
   JournalEntry,
   JournalEntryStatus,
   JournalLine,
@@ -51,9 +52,11 @@ function rowToFiscalPeriod(row: Record<string, unknown>): FiscalPeriod {
     id: String(row.id),
     tenantId: String(row.tenant_id),
     name: String(row.name),
+    periodType: String(row.period_type ?? "month") as FiscalPeriodType,
     startsOn: String(row.starts_on),
     endsOn: String(row.ends_on),
     status: String(row.status) as FiscalPeriodStatus,
+    closedById: nullableString(row.closed_by_id),
     closedAt: nullableString(row.closed_at),
     lockedAt: nullableString(row.locked_at),
     createdAt: String(row.created_at),
@@ -125,7 +128,7 @@ function rowToTrialBalancePosting(row: Record<string, unknown>): TrialBalancePos
 const ACCOUNT_COLS =
   "id, tenant_id, code, name, type, account_subtype, parent_id, currency, normal_balance, description, is_system, is_reconcilable, is_header, active, created_at, updated_at";
 const PERIOD_COLS =
-  "id, tenant_id, name, starts_on, ends_on, status, closed_at, locked_at, created_at, updated_at";
+  "id, tenant_id, name, period_type, starts_on, ends_on, status, closed_by_id, closed_at, locked_at, created_at, updated_at";
 const ENTRY_COLS =
   "id, tenant_id, period_id, entry_date, description, status, source_ref, source_type, posted_at, posted_by_id, voided_at, voided_by_id, void_reason, reversal_entry_id, reverses_entry_id, created_by_id, created_at, updated_at";
 const LINE_COLS = "id, tenant_id, entry_id, account_id, description, debit_cents, credit_cents, created_at";
@@ -295,14 +298,16 @@ export function createD1AccountingCoreStore(db: D1Database): AccountingCoreStore
 
     async insertFiscalPeriod(period) {
       await db
-        .prepare(`INSERT INTO accounting_fiscal_periods (${PERIOD_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .prepare(`INSERT INTO accounting_fiscal_periods (${PERIOD_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .bind(
           period.id,
           period.tenantId,
           period.name,
+          period.periodType,
           period.startsOn,
           period.endsOn,
           period.status,
+          period.closedById,
           period.closedAt,
           period.lockedAt,
           period.createdAt,
@@ -314,15 +319,17 @@ export function createD1AccountingCoreStore(db: D1Database): AccountingCoreStore
     async updateFiscalPeriod(period) {
       await db
         .prepare(
-          `UPDATE accounting_fiscal_periods SET name = ?, starts_on = ?, ends_on = ?, status = ?,
-             closed_at = ?, locked_at = ?, updated_at = ?
+          `UPDATE accounting_fiscal_periods SET name = ?, period_type = ?, starts_on = ?, ends_on = ?, status = ?,
+             closed_by_id = ?, closed_at = ?, locked_at = ?, updated_at = ?
            WHERE tenant_id = ? AND id = ?`
         )
         .bind(
           period.name,
+          period.periodType,
           period.startsOn,
           period.endsOn,
           period.status,
+          period.closedById,
           period.closedAt,
           period.lockedAt,
           period.updatedAt,
@@ -346,6 +353,10 @@ export function createD1AccountingCoreStore(db: D1Database): AccountingCoreStore
       if (filter.status) {
         clauses.push("status = ?");
         binds.push(filter.status);
+      }
+      if (filter.periodType) {
+        clauses.push("period_type = ?");
+        binds.push(filter.periodType);
       }
       const result = await db
         .prepare(`SELECT ${PERIOD_COLS} FROM accounting_fiscal_periods WHERE ${clauses.join(" AND ")} ORDER BY starts_on ASC LIMIT ?`)

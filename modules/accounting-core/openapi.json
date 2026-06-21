@@ -189,6 +189,10 @@
         "type": "string",
         "enum": ["open", "closed", "locked"]
       },
+      "FiscalPeriodType": {
+        "type": "string",
+        "enum": ["month", "quarter", "year", "custom"]
+      },
       "JournalEntryStatus": {
         "type": "string",
         "enum": ["draft", "posted", "void"]

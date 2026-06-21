@@ -30,6 +30,7 @@
       <Card title="Period profile">
         <dl class="detail-list">
           <div><dt>Name</dt><dd>{period.name}</dd></div>
+          <div><dt>Type</dt><dd>{period.periodType}</dd></div>
           <div><dt>Start</dt><dd>{period.startsOnShort}</dd></div>
           <div><dt>End</dt><dd>{period.endsOnShort}</dd></div>
           <div><dt>Length</dt><dd>{period.dayCount} days</dd></div>
@@ -122,6 +123,7 @@
 
       <Card title="Close policy">
         <dl class="detail-list">
+          <div><dt>Closed by</dt><dd>{period.closedById || "-"}</dd></div>
           <div><dt>Closed</dt><dd>{period.closed || "-"}</dd></div>
           <div><dt>Locked</dt><dd>{period.locked || "-"}</dd></div>
         </dl>
