@@ -13,7 +13,7 @@
     data.balances.reduce((total, item) => total + item.balance.available, 0)
   );
   const metrics = $derived<Metric[]>([
-    { label: "Tracked SKUs", value: data.balances.length, tone: "neutral", hint: "main location" },
+    { label: "Tracked SKUs", value: data.balances.length, tone: "neutral", hint: "default location" },
     { label: "Available", value: available, tone: available > 0 ? "good" : "neutral", hint: "units on hand" },
     { label: "Below reorder", value: lowStock, tone: lowStock > 0 ? "warn" : "good", hint: lowStock > 0 ? "review purchasing" : "all clear" }
   ]);
@@ -125,7 +125,7 @@
                 {/each}
               </select>
             </Field>
-            <Field label="Location" id="stock-location"><input id="stock-location" name="locationId" value={form?.values?.locationId ?? "main"} /></Field>
+            <Field label="Location" id="stock-location"><input id="stock-location" name="locationId" value={form?.values?.locationId ?? "default"} /></Field>
             <Field label="Quantity" id="stock-quantity"><input id="stock-quantity" name="quantity" type="number" min="1" step="1" value={form?.values?.quantity ?? "1"} /></Field>
           </div>
           <Field label="Reason" id="stock-reason"><input id="stock-reason" name="reason" placeholder="Purchase order receipt" value={form?.values?.reason ?? ""} /></Field>

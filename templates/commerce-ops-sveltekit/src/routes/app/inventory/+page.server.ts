@@ -44,7 +44,7 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
         sku: product.sku,
         name: product.name,
         reorderPoint: product.reorderPoint,
-        balance: await locals.inventoryStore.getBalance(activeOrgId, product.id, "main")
+        balance: await locals.inventoryStore.getBalance(activeOrgId, product.id, "default")
       }))
   );
 
@@ -72,7 +72,7 @@ export const actions: Actions = {
     const form = await request.formData();
     const values = {
       productId: text(form.get("productId")),
-      locationId: text(form.get("locationId")) || "main",
+      locationId: text(form.get("locationId")) || "default",
       quantity: text(form.get("quantity")),
       reason: text(form.get("reason"))
     };
