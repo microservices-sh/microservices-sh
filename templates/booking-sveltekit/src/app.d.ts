@@ -31,6 +31,8 @@ declare global {
         STRIPE_WEBHOOK_SECRET?: string;
         /** Per-tenant secret verifying the Hermes agent's ops read-back token (Plan 32, /ops). */
         OPS_VERIFY_SECRET?: string;
+        /** Owner id bound to OPS_VERIFY_SECRET. Defaults to "owner" for local/dev single-owner apps. */
+        OPS_OWNER_ID?: string;
       };
     }
 
