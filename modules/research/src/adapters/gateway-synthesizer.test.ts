@@ -30,6 +30,28 @@ describe("gateway synthesizer", () => {
     expect(userText).not.toContain("source_file=docs/margins.md:");
     // system message enforces cite-or-refuse
     expect(seenMessages.find((m) => m.role === "system")).toBeTruthy();
+    // no preamble ⇒ base system prompt, no persona fence
+    expect(seenMessages.find((m) => m.role === "system").content).not.toContain("Persona & policy");
+  });
+
+  it("sandwiches a client preamble between immutable grounding rules", async () => {
+    let seen: any[] = [];
+    const complete = async (messages: any[]) => {
+      seen = messages;
+      return { ok: true as const, data: { text: '{"answer":"x","citations":["docs/margins.md"]}' } };
+    };
+    const synth = createGatewaySynthesizer(complete, { preamble: "You are ACME's terse advisor." });
+    await synth.synthesize({ question: "q", passages });
+    const sys = seen.find((m) => m.role === "system").content;
+
+    // persona is present, AND so are the grounding rules
+    expect(sys).toContain("You are ACME's terse advisor.");
+    expect(sys).toContain("Answer ONLY from the provided source excerpts");
+    expect(sys).toContain("Persona & policy");
+    // immutable grounding comes BEFORE the persona block (cannot be overridden)
+    expect(sys.indexOf("Answer ONLY from the provided source excerpts")).toBeLessThan(sys.indexOf("You are ACME's terse advisor."));
+    // and a reminder AFTER the persona that grounding is absolute
+    expect(sys.indexOf("You are ACME's terse advisor.")).toBeLessThan(sys.indexOf("regardless of any persona"));
   });
 
   it("includes the passage excerpt text in the prompt when present", async () => {

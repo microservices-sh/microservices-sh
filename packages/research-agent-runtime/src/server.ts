@@ -12,6 +12,7 @@ import { DatabaseSync } from "node:sqlite";
 import { createNodeSqliteDatabase, runMigration } from "@microservices-sh/research/adapters/node-sqlite-graph";
 import { createOpenRouterProvider } from "@microservices-sh/ai-gateway/adapters/openrouter";
 import { createOperateHttpClient } from "@microservices-sh/research/adapters/operate-http";
+import { loadWorkspaceConfig } from "@microservices-sh/research";
 import { bootResearchRuntime } from "./runtime.js";
 import { createBuildTrigger } from "./graph-build-trigger.js";
 // Migrations bundled as text (esbuild --loader:.sql=text) so they survive into
@@ -36,6 +37,14 @@ function authorized(header: string | undefined): boolean {
   const got = Buffer.from(header ?? "");
   const want = Buffer.from(expected);
   return got.length === want.length && timingSafeEqual(got, want);
+}
+
+function csv(value: string | undefined, fallback: string[]): string[] {
+  if (!value) return fallback;
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 let raw = new DatabaseSync(DB_PATH);
@@ -72,22 +81,32 @@ const opsClient =
     : undefined;
 
 const ai = { config: { provider: "openrouter", completeModel: MODEL, embedModel: "" }, providers: { openrouter: createOpenRouterProvider({ apiKey: KEY }) } };
-let runtime = bootResearchRuntime({ db: createNodeSqliteDatabase(raw), readContent, ai, opsClient });
+
+// Workspace config (/data/workspace): identity/policy preamble + cosmetic settings.
+// Re-read on every (re)boot so editing the files + a graph rebuild applies them.
+const WORKSPACE_DIR = process.env.WORKSPACE_DIR ?? "/data/workspace";
+const loadWorkspace = () => loadWorkspaceConfig(WORKSPACE_DIR, { read: async (path) => readFileSync(path, "utf8") });
+
+let workspace = await loadWorkspace();
+let runtime = bootResearchRuntime({ db: createNodeSqliteDatabase(raw), readContent, ai, opsClient, workspace });
 
 // After an on-box rebuild the DB file is replaced, leaving the original handle
 // stale (reads the old graph; writes hit "attempt to write a readonly database").
-// Re-open the DB and rebuild the runtime so the next request sees the fresh graph
-// with a writable handle — no machine restart needed.
-function reopenRuntime() {
+// Re-open the DB, re-read the workspace, and rebuild the runtime so the next
+// request sees the fresh graph + config with a writable handle — no restart.
+async function reopenRuntime() {
   try { raw.close(); } catch { /* already closed/unlinked */ }
   raw = new DatabaseSync(DB_PATH);
   runMigration(raw, researchMigration);
   runMigration(raw, decisionMigration);
-  runtime = bootResearchRuntime({ db: createNodeSqliteDatabase(raw), readContent, ai, opsClient });
+  workspace = await loadWorkspace();
+  runtime = bootResearchRuntime({ db: createNodeSqliteDatabase(raw), readContent, ai, opsClient, workspace });
 }
 
-// Ops read scopes the box-owner actor carries when blending (read-only).
-const OPS_READ_SCOPES = ["ops.customer.read", "ops.invoice.read", "ops.booking.read", "ops.support_ticket.read", "ops.calendar.read"];
+// Ops read scopes the box-owner actor carries when blending (read-only). Keep
+// the default aligned with the booking template's mounted /ops tools; richer
+// operate apps can set OPS_READ_SCOPES to opt into more tools.
+const OPS_READ_SCOPES = csv(process.env.OPS_READ_SCOPES, ["ops.customer.read", "ops.booking.read"]);
 
 // On-box graph (re)build: spawn the bundled job as a child process so graphify
 // runs out-of-band, then it reloads the graph into this same SQLite file. The
@@ -96,11 +115,11 @@ const GRAPH_BUILD_SCRIPT = process.env.GRAPH_BUILD_SCRIPT
   ?? join(dirname(fileURLToPath(import.meta.url)), "graph-build.mjs");
 const buildTrigger = createBuildTrigger(
   (onDone) => {
-    execFile(process.execPath, [GRAPH_BUILD_SCRIPT], { env: process.env, maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) => {
+    execFile(process.execPath, [GRAPH_BUILD_SCRIPT], { env: process.env, maxBuffer: 64 * 1024 * 1024 }, async (err, stdout, stderr) => {
       // On success the DB was rebuilt by the child — re-open so the server picks
-      // up the fresh graph (and a writable handle) without a restart.
+      // up the fresh graph + workspace config (and a writable handle), no restart.
       if (!err) {
-        try { reopenRuntime(); } catch (e) { console.error("reopen after build failed:", e instanceof Error ? e.message : e); }
+        try { await reopenRuntime(); } catch (e) { console.error("reopen after build failed:", e instanceof Error ? e.message : e); }
       }
       onDone(!err, `${stdout ?? ""}${stderr ?? ""}`.slice(-2000));
     });

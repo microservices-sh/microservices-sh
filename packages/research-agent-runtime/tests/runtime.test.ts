@@ -114,4 +114,53 @@ describe.skipIf(!DatabaseSync)("bootResearchRuntime (real node:sqlite, fake prov
     expect(r.data.planes.ops).toBe(1);
     expect(r.data.planes.graph).toBeGreaterThan(0);
   });
+
+  it("applies the workspace persona preamble to synthesis while keeping grounding", async () => {
+    let seenSystem = "";
+    const capture = {
+      async complete({ messages }: { messages: { role: string; content: string }[] }) {
+        seenSystem = messages.find((m) => m.role === "system")?.content ?? "";
+        return { text: '{"answer":"Margins fell.","citations":["docs/margins.md"]}', usage: { inputTokens: 1, outputTokens: 1 } };
+      },
+      async embed() { throw new Error("no embed"); }
+    };
+    const raw = new DatabaseSync(":memory:");
+    runMigration(raw, readFileSync("modules/research/migrations/0001_research.sql", "utf8"));
+    runMigration(raw, readFileSync("modules/decision/migrations/0001_decision.sql", "utf8"));
+    const rt = bootResearchRuntime({
+      db: createNodeSqliteDatabase(raw),
+      readContent: ({ sourceFile }) => `EXCERPT of ${sourceFile}: margins fell.`,
+      ai: { config: { provider: "openrouter", completeModel: "fake", embedModel: "" }, providers: { openrouter: capture } },
+      now: () => Date.parse("2026-06-19T00:00:00.000Z"),
+      workspace: { systemPreamble: "PERSONA-MARKER: ACME's terse ops advisor.", settings: { topK: 3 } }
+    });
+    await rt.loadGraph(graphify, "acme");
+
+    const r = await rt.research({ question: "Summarize the margin report" }, actor);
+    expect(r.ok).toBe(true);
+    expect(seenSystem).toContain("PERSONA-MARKER: ACME's terse ops advisor."); // persona applied
+    expect(seenSystem).toContain("Answer ONLY from the provided source excerpts"); // grounding intact
+  });
+
+  it("narrows ops tools to the workspace allow-list (booking dropped, invoice kept)", async () => {
+    const opsCalls: string[] = [];
+    const raw = new DatabaseSync(":memory:");
+    runMigration(raw, readFileSync("modules/research/migrations/0001_research.sql", "utf8"));
+    runMigration(raw, readFileSync("modules/decision/migrations/0001_decision.sql", "utf8"));
+    const rt = bootResearchRuntime({
+      db: createNodeSqliteDatabase(raw),
+      readContent: ({ sourceFile }) => `EXCERPT of ${sourceFile}.`,
+      ai: { config: { provider: "openrouter", completeModel: "fake", embedModel: "" }, providers: { openrouter: provider } },
+      now: () => Date.parse("2026-06-19T00:00:00.000Z"),
+      // workspace allows ONLY the invoice tool.
+      workspace: { systemPreamble: "", settings: { opsTools: ["ops.invoice.read"] } },
+      opsClient: { async read(call) { opsCalls.push(call.tool); return []; } }
+    });
+    await rt.loadGraph(graphify, "acme");
+    // Box is granted BOTH invoice + booking, but the workspace narrows to invoice.
+    const actorBoth = { id: "acme", tenantId: "acme", scopes: ["research.read", "ai.invoke", "ops.invoice.read", "ops.booking.read"] };
+    await rt.assist({ question: "show ACME's invoices and bookings" }, actorBoth);
+    expect(opsCalls).toContain("ops.invoice.read");
+    expect(opsCalls).not.toContain("ops.booking.read"); // narrowed out by config
+  });
 });

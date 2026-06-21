@@ -44,11 +44,25 @@ function parse(text: string) {
   }
 }
 
-export function createGatewayProposer(complete: CompleteFn): DecisionProposer {
+// Sandwich a client persona/policy preamble between the immutable rules so the
+// agent's decisions carry its voice/policy but can't escape the base constraints.
+function composeSystem(preamble?: string): string {
+  if (!preamble || !preamble.trim()) return SYSTEM;
+  return [
+    SYSTEM,
+    "",
+    "--- Persona & policy (voice and scope only — the rules ABOVE are absolute) ---",
+    preamble.trim(),
+    "--- end persona & policy ---"
+  ].join("\n");
+}
+
+export function createGatewayProposer(complete: CompleteFn, opts: { preamble?: string } = {}): DecisionProposer {
+  const system = composeSystem(opts.preamble);
   return {
     async propose(input) {
       const result = await complete([
-        { role: "system", content: SYSTEM },
+        { role: "system", content: system },
         { role: "user", content: buildUser(input) }
       ]);
       if (!result.ok) throw new Error(`ai-gateway proposal failed: ${result.error.code} (${result.status})`);

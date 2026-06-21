@@ -29,6 +29,7 @@ export {
 } from "./ops-registry";
 export { planOpsTools } from "./ops-plan";
 export { assistedBrief } from "./assist";
+export { loadWorkspaceConfig, WORKSPACE_MAX_TOPK, type WorkspaceConfig, type WorkspaceSettings } from "./workspace";
 
 export type Actor = { id: string; scopes: string[] };
 
