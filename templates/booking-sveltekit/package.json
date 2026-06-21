@@ -26,7 +26,8 @@
     "smoke:http": "node scripts/microservices.js preview smoke",
     "smoke:local": "node scripts/microservices.js local smoke",
     "microservices": "node scripts/microservices.js",
-    "mcp": "tsx generated/mcp-server.mjs"
+    "generate:mcp": "node scripts/generate-mcp.mjs",
+    "mcp": "node scripts/generate-mcp.mjs && tsx generated/mcp-server.mjs"
   },
   "dependencies": {
     "@microservices-sh/sdk-internal": "workspace:*",
