@@ -25,9 +25,12 @@
     "deploy:preview": "node scripts/microservices.js deploy preview --confirm deploy",
     "smoke:http": "node scripts/microservices.js preview smoke",
     "smoke:local": "node scripts/microservices.js local smoke",
-    "microservices": "node scripts/microservices.js"
+    "microservices": "node scripts/microservices.js",
+    "mcp": "tsx generated/mcp-server.mjs"
   },
   "dependencies": {
+    "@microservices-sh/sdk-internal": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.0.0",
     "@microservices-sh/audit-log": "workspace:*",
     "@microservices-sh/auth": "workspace:*",
     "@microservices-sh/email": "workspace:*",
@@ -53,6 +56,7 @@
     "@tailwindcss/vite": "^4.1.13",
     "drizzle-kit": "^0.31.4",
     "tailwindcss": "^4.1.13",
+    "tsx": "^4.22.4",
     "typescript": "^5.9.3",
     "wrangler": "^4.58.0"
   }
