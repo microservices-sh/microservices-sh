@@ -324,6 +324,25 @@ export async function loadDocumentDraft(jobId: string) {
   return call<ExtractionDraft | null>("document_draft", { jobId }, job?.draft ?? null);
 }
 
+// A labelled placeholder so the review preview pane is visible in browser
+// preview (where there is no local file). Desktop mode returns the real page.
+const PREVIEW_PLACEHOLDER =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='420' height='540'>
+      <rect width='420' height='540' rx='8' fill='#f7fafc' stroke='#d6dce5'/>
+      <rect x='40' y='44' width='200' height='16' rx='3' fill='#d6dce5'/>
+      <rect x='40' y='80' width='120' height='10' rx='3' fill='#e6ebf1'/>
+      ${[140, 168, 196, 224, 252, 280, 308].map((y) => `<rect x='40' y='${y}' width='340' height='8' rx='3' fill='#eef2f7'/>`).join("")}
+      <rect x='240' y='452' width='140' height='14' rx='3' fill='#d8f6e8'/>
+      <text x='40' y='510' font-family='monospace' font-size='13' fill='#8792a2'>source preview · desktop mode</text>
+    </svg>`
+  );
+
+export async function getDocumentPreview(jobId: string) {
+  return call<string | null>("document_preview", { jobId }, PREVIEW_PLACEHOLDER);
+}
+
 export async function enqueueSampleDocuments() {
   return call<QueueJob[]>("enqueue_sample_documents", undefined, sampleDocuments());
 }

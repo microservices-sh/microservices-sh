@@ -18,6 +18,7 @@
   import {
     approveJob,
     extractDocument,
+    getDocumentPreview,
     getErpImportSettings,
     getImportStatus,
     getRuntimeSettings,
@@ -99,6 +100,10 @@
   let modelTestMessage = "Run a model test after changing the selected Gemma tag.";
   // Live local-LLM telemetry shown in the bottom status bar (last LLM event).
   let llmActivity: string | null = null;
+  // Source-document preview (the page image) shown beside the extracted fields.
+  let previewUrl: string | null = null;
+  let previewFor: string | null = null;
+  let previewLoading = false;
   let importMessage = "Select a folder to create local draft jobs.";
   let erpSubmitMessage = "Approved drafts submit to the remote ERP database. Local storage remains draft-only.";
   let metrics: Metric[] = [];
@@ -206,6 +211,7 @@
   $: importedCount = folder?.newDocuments ?? jobs.length;
   $: selectedJob = jobs.find((job) => job.id === selectedJobId) ?? jobs.find((job) => job.draft) ?? null;
   $: activeDraft = selectedJob?.draft ?? selectedDraft;
+  $: if (activePage === "#review" && selectedJob?.id) void loadPreview(selectedJob.id);
   $: activePage = pageDetails[activePathname] ? activePathname : "#import";
   $: page = pageDetails[activePage];
   $: pageMetaPrimary =
@@ -410,6 +416,20 @@
     selectedJobId = job.id;
     selectedDraft = job.draft ?? (await loadDocumentDraft(job.id));
     navigateToPage("#review");
+  }
+
+  async function loadPreview(jobId: string) {
+    if (previewFor === jobId) return;
+    previewFor = jobId;
+    previewUrl = null;
+    previewLoading = true;
+    try {
+      previewUrl = await getDocumentPreview(jobId);
+    } catch {
+      previewUrl = null;
+    } finally {
+      previewLoading = false;
+    }
   }
 
   async function runExtraction(job: QueueJob) {
@@ -893,6 +913,15 @@
           {/snippet}
 
           {#if activeDraft}
+            {#if previewUrl}
+              <figure class="doc-preview">
+                <img src={previewUrl} alt={`Source preview of ${selectedJob?.name ?? "document"}`} />
+                <figcaption>Source document · check the fields against it</figcaption>
+              </figure>
+            {:else if previewLoading}
+              <div class="doc-preview doc-preview--empty">Rendering source preview…</div>
+            {/if}
+
             <div class="draft-summary">
               <strong>{selectedJob?.name ?? "Selected document"}</strong>
               <span>{activeDraft.summary ?? "Review extracted fields before ERP import."}</span>
