@@ -1031,7 +1031,9 @@ fn normalize_with_gemma_images(
 
     let response = ollama_generate_with_images(model, job, &encoded_pages)?;
     let parsed = parse_json_object(&response)?;
-    let mut draft = finalize_gemma_draft(job, model, parsed, None)?;
+    let extraction: GemmaExtraction = serde_json::from_value(parsed)
+        .map_err(|error| format!("Gemma response did not match the extraction schema: {error}"))?;
+    let mut draft = build_validated_draft(job, model, None, extraction);
     if image_pages.len() > encoded_pages.len() {
         draft.warnings.push(format!(
             "Gemma vision used the first {} pages out of {}.",
@@ -1055,26 +1057,297 @@ fn encode_image_pages(image_pages: &[PathBuf]) -> Result<Vec<String>, String> {
         .collect()
 }
 
-fn finalize_gemma_draft(
+// ── Structured output: what the local model returns ──────────────────
+// The model is constrained to this shape by `extraction_schema()` (Ollama's
+// `format` field). It does NOT return confidence — we compute that ourselves
+// from deterministic validators, so the review signal is verifiable rather than
+// a number the model guessed.
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct GemmaExtraction {
+    #[serde(default)]
+    fields: Vec<GemmaField>,
+    #[serde(default)]
+    line_items: Vec<GemmaLineItem>,
+    #[serde(default)]
+    summary: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct GemmaField {
+    name: String,
+    #[serde(default)]
+    value: Value,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct GemmaLineItem {
+    #[serde(default)]
+    description: Value,
+    #[serde(default)]
+    quantity: Value,
+    #[serde(default)]
+    amount: Value,
+}
+
+/// JSON Schema sent as Ollama's `format`, constraining the model to emit exactly
+/// this document shape — eliminates the "invent the schema" brittleness and the
+/// whole class of unparseable / mismatched responses.
+fn extraction_schema() -> Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "fields": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": { "type": "string" },
+                        "value": { "type": "string" }
+                    },
+                    "required": ["name", "value"]
+                }
+            },
+            "lineItems": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "description": { "type": "string" },
+                        "quantity": { "type": "string" },
+                        "amount": { "type": "string" }
+                    },
+                    "required": ["description", "amount"]
+                }
+            },
+            "summary": { "type": "string" }
+        },
+        "required": ["fields", "summary"]
+    })
+}
+
+struct FieldOutcome {
+    confidence: f32,
+    needs_review: bool,
+    warning: Option<String>,
+}
+
+/// Deterministic per-field validation. Confidence reflects whether the value
+/// passes a real check (date parses, amount is numeric, total reconciles with
+/// the line items) — not the model's self-assessment.
+fn validate_field(name: &str, value: &str, line_total: Option<f64>) -> FieldOutcome {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return FieldOutcome {
+            confidence: 0.0,
+            needs_review: true,
+            warning: Some(format!("Field '{name}' is empty and needs manual entry.")),
+        };
+    }
+
+    let key = name.to_ascii_lowercase();
+
+    if key.contains("date") {
+        return if looks_like_date(trimmed) {
+            FieldOutcome { confidence: 0.95, needs_review: false, warning: None }
+        } else {
+            FieldOutcome {
+                confidence: 0.4,
+                needs_review: true,
+                warning: Some(format!("Field '{name}' value '{trimmed}' is not a recognizable date.")),
+            }
+        };
+    }
+
+    if key == "currency" {
+        let ok = trimmed.len() == 3 && trimmed.chars().all(|c| c.is_ascii_alphabetic());
+        return FieldOutcome {
+            confidence: if ok { 0.9 } else { 0.5 },
+            needs_review: !ok,
+            warning: None,
+        };
+    }
+
+    if key.contains("total")
+        || key.contains("amount")
+        || key.contains("subtotal")
+        || key.contains("tax")
+        || key.contains("price")
+        || key.contains("balance")
+    {
+        return match parse_amount(trimmed) {
+            Some(amount) => {
+                if key.contains("total") {
+                    if let Some(sum) = line_total {
+                        return if (amount - sum).abs() <= 0.01 {
+                            FieldOutcome { confidence: 0.99, needs_review: false, warning: None }
+                        } else {
+                            FieldOutcome {
+                                confidence: 0.5,
+                                needs_review: true,
+                                warning: Some(format!(
+                                    "Total {amount:.2} does not match the line-item sum {sum:.2}."
+                                )),
+                            }
+                        };
+                    }
+                }
+                FieldOutcome { confidence: 0.9, needs_review: false, warning: None }
+            }
+            None => FieldOutcome {
+                confidence: 0.35,
+                needs_review: true,
+                warning: Some(format!("Field '{name}' value '{trimmed}' is not a valid amount.")),
+            },
+        };
+    }
+
+    // Present, non-empty free text: usable, but still worth a human glance.
+    FieldOutcome { confidence: 0.75, needs_review: false, warning: None }
+}
+
+/// Parse a printed money value (`$1,240.00`, `1 240,00`-free) into a number.
+fn parse_amount(value: &str) -> Option<f64> {
+    let cleaned: String = value
+        .chars()
+        .filter(|c| c.is_ascii_digit() || *c == '.' || *c == '-')
+        .collect();
+    if cleaned.is_empty() || cleaned == "-" || cleaned == "." {
+        return None;
+    }
+    cleaned.parse::<f64>().ok()
+}
+
+/// True for `YYYY-MM-DD`, `MM/DD/YYYY`, `DD.MM.YYYY` style numeric dates.
+fn looks_like_date(value: &str) -> bool {
+    let parts: Vec<&str> = value
+        .trim()
+        .split(|c| c == '-' || c == '/' || c == '.')
+        .collect();
+    parts.len() == 3
+        && parts
+            .iter()
+            .all(|part| !part.is_empty() && part.len() <= 4 && part.chars().all(|c| c.is_ascii_digit()))
+}
+
+fn line_items_total(items: &[GemmaLineItem]) -> Option<f64> {
+    let amounts: Vec<f64> = items
+        .iter()
+        .filter_map(|item| parse_amount(&value_to_plain_string(&item.amount)))
+        .collect();
+    if amounts.is_empty() {
+        None
+    } else {
+        Some(amounts.iter().sum())
+    }
+}
+
+fn value_to_plain_string(value: &Value) -> String {
+    match value {
+        Value::String(text) => text.clone(),
+        Value::Null => String::new(),
+        Value::Bool(flag) => flag.to_string(),
+        Value::Number(number) => number.to_string(),
+        other => other.to_string(),
+    }
+}
+
+/// Turn the model's structured output into a stored draft, assigning every
+/// field a validator-backed confidence and collecting validator warnings.
+fn build_validated_draft(
     job: &QueueJob,
     model: &str,
-    parsed: Value,
     raw_text: Option<String>,
-) -> Result<ExtractionDraft, String> {
-    let mut draft: ExtractionDraft = serde_json::from_value(parsed).map_err(|error| {
-        format!("Gemma response did not match extraction draft schema: {error}")
-    })?;
+    extraction: GemmaExtraction,
+) -> ExtractionDraft {
+    let line_total = line_items_total(&extraction.line_items);
+    let mut warnings = Vec::new();
+    let mut fields = Vec::new();
 
-    draft.schema_id = schema_id_for_job(job).to_string();
-    draft.target_type = target_type_for_job(job).to_string();
-    draft.runtime = "sidecar".to_string();
-    draft.model = Some(model.to_string());
-    if let Some(raw_text) = raw_text.filter(|value| !value.trim().is_empty()) {
-        draft.raw_text = Some(raw_text);
+    for raw in &extraction.fields {
+        let value = value_to_plain_string(&raw.value);
+        let outcome = validate_field(&raw.name, &value, line_total);
+        if let Some(warning) = outcome.warning {
+            warnings.push(warning);
+        }
+        fields.push(ExtractedField {
+            name: raw.name.clone(),
+            value: Value::String(value),
+            confidence: outcome.confidence,
+            source: None,
+            needs_review: Some(outcome.needs_review),
+        });
     }
-    draft.confidence = draft.confidence.clamp(0.0, 1.0);
 
-    Ok(draft)
+    if fields.is_empty() {
+        warnings
+            .push("The model returned no fields; this document needs manual review.".to_string());
+    }
+
+    let tables = build_line_item_table(&extraction.line_items);
+    let confidence = average_confidence(&fields);
+
+    ExtractionDraft {
+        schema_id: schema_id_for_job(job).to_string(),
+        target_type: target_type_for_job(job).to_string(),
+        fields,
+        tables,
+        raw_text,
+        summary: extraction
+            .summary
+            .filter(|value| !value.trim().is_empty())
+            .or_else(|| Some(format!("{} extracted with {model}.", job.name))),
+        confidence,
+        runtime: "sidecar".to_string(),
+        model: Some(model.to_string()),
+        warnings,
+    }
+}
+
+fn build_line_item_table(items: &[GemmaLineItem]) -> Vec<ExtractedTable> {
+    if items.is_empty() {
+        return Vec::new();
+    }
+
+    let rows = items
+        .iter()
+        .map(|item| {
+            let mut row = serde_json::Map::new();
+            row.insert(
+                "description".to_string(),
+                Value::String(value_to_plain_string(&item.description)),
+            );
+            row.insert(
+                "quantity".to_string(),
+                Value::String(value_to_plain_string(&item.quantity)),
+            );
+            row.insert(
+                "amount".to_string(),
+                Value::String(value_to_plain_string(&item.amount)),
+            );
+            row
+        })
+        .collect();
+
+    // Confidence = fraction of rows whose amount parses as a number.
+    let parsed = items
+        .iter()
+        .filter(|item| parse_amount(&value_to_plain_string(&item.amount)).is_some())
+        .count();
+    let confidence = (parsed as f32 / items.len() as f32).clamp(0.0, 1.0);
+
+    vec![ExtractedTable {
+        name: "lineItems".to_string(),
+        columns: vec![
+            "description".to_string(),
+            "quantity".to_string(),
+            "amount".to_string(),
+        ],
+        rows,
+        confidence,
+        source: None,
+    }]
 }
 
 fn configured_gemma_model() -> String {
@@ -1262,7 +1535,7 @@ fn ollama_generate_with_images(
         "prompt": prompt,
         "images": images,
         "stream": false,
-        "format": "json",
+        "format": extraction_schema(),
         "options": { "temperature": 0 }
     });
     let started = Instant::now();
@@ -1291,19 +1564,16 @@ fn ollama_generate_with_images(
 }
 
 fn gemma_image_prompt(job: &QueueJob) -> String {
-    let schema_context = format!(
-        "Schema: {}. Target type: {}. Document name: {}.",
-        schema_id_for_job(job),
-        target_type_for_job(job),
-        job.name
+    let kind_line = format!(
+        "This document is a {}. Use field names that suit it (for example documentNumber, date, vendor, total, currency).",
+        target_type_for_job(job)
     );
 
     [
-        "Read the attached scanned business document image(s).",
-        "Return only JSON with: schemaId, targetType, fields, tables, rawText, summary, confidence, runtime, model, warnings.",
-        "Every field must include name, value, confidence, and needsReview when uncertain.",
-        "Do not invent values; use null with low confidence when the source is unclear.",
-        schema_context.as_str(),
+        "Read the attached scanned business document image(s) and extract the key data.",
+        "Respond with `fields` (an array of {name, value} where value is the text exactly as printed), an optional `lineItems` array of {description, quantity, amount}, and a short `summary`.",
+        "Copy values exactly as printed. If a value is unreadable or absent, use an empty string. Do not invent values.",
+        kind_line.as_str(),
     ]
     .join(" ")
 }
@@ -2492,6 +2762,86 @@ mod tests {
         assert_eq!(
             String::from_utf8(decode_chunked(raw).expect("decode")).expect("utf8"),
             "hello"
+        );
+    }
+
+    #[test]
+    fn parse_amount_handles_printed_money() {
+        assert_eq!(parse_amount("$1,240.00"), Some(1240.0));
+        assert_eq!(parse_amount("1200"), Some(1200.0));
+        assert_eq!(parse_amount("n/a"), None);
+        assert_eq!(parse_amount(""), None);
+    }
+
+    #[test]
+    fn looks_like_date_accepts_common_formats() {
+        assert!(looks_like_date("2026-06-20"));
+        assert!(looks_like_date("06/20/2026"));
+        assert!(!looks_like_date("June 20"));
+        assert!(!looks_like_date("2026"));
+    }
+
+    #[test]
+    fn validate_field_uses_deterministic_checks() {
+        let ok = validate_field("total", "$100.00", Some(100.0));
+        assert!(ok.confidence > 0.9 && !ok.needs_review && ok.warning.is_none());
+
+        let mismatch = validate_field("total", "$120.00", Some(100.0));
+        assert!(mismatch.needs_review && mismatch.warning.is_some());
+
+        let empty = validate_field("vendor", "   ", None);
+        assert_eq!(empty.confidence, 0.0);
+        assert!(empty.needs_review);
+
+        let bad_date = validate_field("date", "sometime", None);
+        assert!(bad_date.needs_review && bad_date.warning.is_some());
+    }
+
+    #[test]
+    fn build_validated_draft_reconciles_total_and_builds_table() {
+        let job = build_job(Path::new("vendor-invoice.png"), "abc1234567890def".to_string())
+            .expect("job");
+        let extraction = GemmaExtraction {
+            fields: vec![
+                GemmaField {
+                    name: "date".to_string(),
+                    value: Value::String("2026-06-20".to_string()),
+                },
+                GemmaField {
+                    name: "total".to_string(),
+                    value: Value::String("$30.00".to_string()),
+                },
+            ],
+            line_items: vec![
+                GemmaLineItem {
+                    description: Value::String("Item A".to_string()),
+                    quantity: Value::String("1".to_string()),
+                    amount: Value::String("$10.00".to_string()),
+                },
+                GemmaLineItem {
+                    description: Value::String("Item B".to_string()),
+                    quantity: Value::String("2".to_string()),
+                    amount: Value::String("$20.00".to_string()),
+                },
+            ],
+            summary: Some("Invoice".to_string()),
+        };
+
+        let draft = build_validated_draft(&job, "gemma4:e4b", None, extraction);
+
+        let total = draft
+            .fields
+            .iter()
+            .find(|field| field.name == "total")
+            .expect("total field");
+        assert!(total.confidence > 0.95, "reconciled total should be high confidence");
+        assert_eq!(total.needs_review, Some(false));
+        assert_eq!(draft.tables.len(), 1);
+        assert_eq!(draft.tables[0].rows.len(), 2);
+        assert!(
+            draft.warnings.is_empty(),
+            "a clean invoice should produce no validator warnings, got: {:?}",
+            draft.warnings
         );
     }
 
