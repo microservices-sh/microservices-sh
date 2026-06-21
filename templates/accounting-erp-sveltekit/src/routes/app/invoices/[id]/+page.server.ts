@@ -1,6 +1,6 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { error, fail, redirect } from "@sveltejs/kit";
-import { getInvoiceScoped, recordPaymentScoped, authContext } from "@microservices-sh/invoice";
+import { getInvoiceScoped, recordPaymentScoped, voidInvoiceScoped, authContext } from "@microservices-sh/invoice";
 import type { AuthContext } from "@microservices-sh/invoice";
 import { getCustomer } from "@microservices-sh/customer";
 import { listEvents, recordEvent } from "@microservices-sh/audit-log";
@@ -8,6 +8,7 @@ import { notify } from "@microservices-sh/notifications-inapp";
 import { requireOrgPermission, loadCompanyContext } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 import { money, relativeTime, humanizeEvent } from "$lib/format";
+import { syncInvoiceToReceivables } from "$lib/server/accounts-receivable-sync";
 import type { Tone } from "$lib/ui/types";
 
 const statusTone = (s: string): Tone =>
@@ -68,6 +69,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
       paid: money(invoice.amountPaidCents, invoice.currency),
       outstanding: money(outstandingCents, invoice.currency),
       outstandingAmount: (outstandingCents / 100).toFixed(2),
+      isVoidable: invoice.status === "open",
       issued: invoice.issuedAt ? relativeTime(invoice.issuedAt, now) : null,
       due: invoice.dueAt ? relativeTime(invoice.dueAt, now) : null,
       paidAt: invoice.paidAt ? relativeTime(invoice.paidAt, now) : null
@@ -88,7 +90,8 @@ export const actions: Actions = {
   // Record a payment against this invoice. The module flips status to "paid" once
   // the balance is covered; the cascade then notifies the operator in-app (shows
   // on the dashboard unread panel + notifications inbox).
-  payment: async ({ request, params, locals, cookies }) => {
+  payment: async ({ request, params, locals, cookies, platform }) => {
+    requireModule("accounts-receivable", platform);
     if (!locals.user) return fail(403, { error: "Not signed in to a company." });
     const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
     if (!org) return fail(403, { error: "Not signed in to a company." });
@@ -102,12 +105,33 @@ export const actions: Actions = {
     const amount = Number(form.get("amount"));
     const amountCents = Number.isFinite(amount) ? Math.round(amount * 100) : 0;
     if (amountCents <= 0) return fail(400, { error: "Enter a payment amount greater than zero." });
+    const currentInvoice = await findInvoice(ctx, invoiceId, locals.invoiceStore);
+    if (!currentInvoice || currentInvoice.status !== "open") {
+      return fail(409, { error: "Only open invoices can receive payments." });
+    }
+    const currentOutstandingCents = Math.max(0, currentInvoice.totalCents - currentInvoice.amountPaidCents);
+    if (amountCents > currentOutstandingCents) {
+      return fail(400, { error: "Payment exceeds the invoice open balance." });
+    }
 
     // Enforced boundary (plan 33): recordPaymentScoped checks ownership against
     // the session org before applying the payment — a cross-tenant write is 404.
     const result = await recordPaymentScoped(ctx, { invoiceId, amountCents }, { invoiceStore: locals.invoiceStore });
     if (!result.ok || !result.data) {
       return fail(result.status ?? 400, { error: result.error?.message ?? "Could not record the payment." });
+    }
+
+    const paid = result.data.status === "paid";
+    const invoice = await findInvoice(ctx, invoiceId, locals.invoiceStore);
+    let syncWarning: string | null = null;
+    if (invoice) {
+      const synced = await syncInvoiceToReceivables({
+        accountsReceivableService: locals.accountsReceivableService,
+        tenantId: activeOrgId,
+        actorId: locals.user.id,
+        invoice
+      });
+      if (!synced.ok) syncWarning = synced.message;
     }
 
     await recordEvent(
@@ -117,13 +141,16 @@ export const actions: Actions = {
         entityType: "invoice",
         entityId: invoiceId,
         source: "app/invoices/detail",
-        payload: { amountCents, status: result.data.status }
+        payload: {
+          amountCents,
+          status: result.data.status,
+          receivablesSynced: syncWarning === null,
+          receivablesSyncError: syncWarning
+        }
       },
       { auditStore: locals.auditStore }
     );
 
-    const paid = result.data.status === "paid";
-    const invoice = await findInvoice(ctx, invoiceId, locals.invoiceStore);
     let customerName = "a customer";
     if (invoice) {
       const cust = await getCustomer({ id: invoice.customerId }, { customerRepository: locals.customerRepository });
@@ -142,6 +169,53 @@ export const actions: Actions = {
       { store: locals.notificationStore }
     );
 
-    return { ok: true, paymentRecorded: true, paid };
+    return { ok: true, paymentRecorded: true, paid, syncWarning };
+  },
+
+  void: async ({ params, locals, cookies, platform }) => {
+    requireModule("accounts-receivable", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    const activeOrgId = org.id;
+
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "member.manage", locals.rbacStore);
+    const ctx = authContext({ orgId: activeOrgId, actorId: locals.user.id, roles: permissions });
+    const invoiceId = params.id;
+
+    const result = await voidInvoiceScoped(ctx, invoiceId, { invoiceStore: locals.invoiceStore });
+    if (!result.ok || !result.data) {
+      return fail(result.status ?? 400, { error: result.error?.message ?? "Could not void the invoice." });
+    }
+
+    const invoice = await findInvoice(ctx, invoiceId, locals.invoiceStore);
+    let syncWarning: string | null = null;
+    if (invoice) {
+      const synced = await syncInvoiceToReceivables({
+        accountsReceivableService: locals.accountsReceivableService,
+        tenantId: activeOrgId,
+        actorId: locals.user.id,
+        invoice
+      });
+      if (!synced.ok) syncWarning = synced.message;
+    }
+
+    await recordEvent(
+      {
+        eventName: "invoice.voided",
+        actorId: locals.user.id,
+        entityType: "invoice",
+        entityId: invoiceId,
+        source: "app/invoices/detail",
+        payload: {
+          status: result.data.status,
+          receivablesSynced: syncWarning === null,
+          receivablesSyncError: syncWarning
+        }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { ok: true, invoiceVoided: true, syncWarning };
   }
 };

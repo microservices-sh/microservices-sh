@@ -40,7 +40,13 @@
   </PageHeader>
 
   {#if form?.paymentRecorded}
-    <Alert tone="success">{form.paid ? "Payment recorded — invoice marked paid." : "Payment recorded."}</Alert>
+    <Alert tone={form.syncWarning ? "warning" : "success"}>
+      {form.paid ? "Payment recorded — invoice marked paid." : "Payment recorded."}{#if form.syncWarning} Receivables sync needs retry: {form.syncWarning}{/if}
+    </Alert>
+  {:else if form?.invoiceVoided}
+    <Alert tone={form.syncWarning ? "warning" : "success"}>
+      Invoice voided.{#if form.syncWarning} Receivables sync needs retry: {form.syncWarning}{/if}
+    </Alert>
   {:else if form?.error}
     <Alert tone="error">{form.error}</Alert>
   {/if}
@@ -82,6 +88,13 @@
             <FormActions submitLabel="Record payment" submittingLabel="Recording…" {submitting} />
           </form>
         </Card>
+        {#if inv.isVoidable}
+          <Card title="Invoice controls">
+            <form method="POST" action="?/void" use:enhance>
+              <Button type="submit" variant="ghost">Void invoice</Button>
+            </form>
+          </Card>
+        {/if}
       {:else}
         <Card title="Status">
           <p class="status-note">

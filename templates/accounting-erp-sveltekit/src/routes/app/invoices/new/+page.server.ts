@@ -1,10 +1,11 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
-import { createInvoice, issueInvoiceScoped, authContext } from "@microservices-sh/invoice";
+import { createInvoice, getInvoiceScoped, issueInvoiceScoped, authContext } from "@microservices-sh/invoice";
 import { listCustomers } from "@microservices-sh/customer";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { requireOrgPermission, loadCompanyContext } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
+import { syncInvoiceToReceivables } from "$lib/server/accounts-receivable-sync";
 
 interface LineRow {
   description: string;
@@ -59,7 +60,8 @@ export const actions: Actions = {
   // internal staging state, so the ERP's "New invoice" simply issues. Numbers
   // are allocated atomically by the module's NumberAllocator at issue time. On
   // success we redirect back to the ledger with the new number for a flash.
-  default: async ({ request, locals, cookies }) => {
+  default: async ({ request, locals, cookies, platform }) => {
+    requireModule("accounts-receivable", platform);
     if (!locals.user) return fail(403, { error: "Not signed in to a company." });
     const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
     if (!org) return fail(403, { error: "Not signed in to a company." });
@@ -97,6 +99,17 @@ export const actions: Actions = {
       return fail(issued.status ?? 400, { error: issued.error?.message ?? "Could not issue the invoice." });
     }
 
+    const invoiceSnapshot = await getInvoiceScoped(ctx, draft.data.id, { invoiceStore: locals.invoiceStore });
+    if (!invoiceSnapshot.ok || !invoiceSnapshot.data) {
+      return fail(invoiceSnapshot.status ?? 400, { error: invoiceSnapshot.error?.message ?? "Could not load the issued invoice." });
+    }
+    const synced = await syncInvoiceToReceivables({
+      accountsReceivableService: locals.accountsReceivableService,
+      tenantId: activeOrgId,
+      actorId: locals.user.id,
+      invoice: invoiceSnapshot.data.invoice
+    });
+
     await recordEvent(
       {
         eventName: "invoice.issued",
@@ -104,7 +117,12 @@ export const actions: Actions = {
         entityType: "invoice",
         entityId: draft.data.id,
         source: "app/invoices/new",
-        payload: { number: issued.data.number, customerId }
+        payload: {
+          number: issued.data.number,
+          customerId,
+          receivablesSynced: synced.ok,
+          receivablesSyncError: synced.ok ? null : synced.message
+        }
       },
       { auditStore: locals.auditStore }
     );

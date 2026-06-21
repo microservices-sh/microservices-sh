@@ -35,7 +35,9 @@
   />
 
   {#if form?.paymentRecorded}
-    <Alert tone="success">Customer payment recorded and applied.</Alert>
+    <Alert tone={form.syncWarning ? "warning" : "success"}>
+      {form.paid ? "Invoice paid and receivables updated." : "Invoice payment recorded and receivables updated."}{#if form.syncWarning} Receivables sync needs retry: {form.syncWarning}{/if}
+    </Alert>
   {:else if form?.error}
     <Alert tone="error">{form.error}</Alert>
   {/if}
@@ -54,7 +56,7 @@
               </div>
               <div class="invoice-actions">
                 <Badge tone={Date.parse(invoice.dueDate) < Date.parse(`${data.reportDate}T00:00:00.000Z`) ? "bad" : "warn"}>{money(invoice.amountDueCents)}</Badge>
-                {#if data.canManage}
+                {#if data.canManage && invoice.canRecordPayment}
                   <form class="payment-form" method="POST" action="?/recordPayment" use:enhance>
                     <input type="hidden" name="invoiceId" value={invoice.id} />
                     <input type="hidden" name="paymentKey" value={invoice.paymentKey} />
@@ -76,6 +78,8 @@
                     </div>
                     <Button type="submit" variant="primary" size="sm">Apply</Button>
                   </form>
+                {:else if data.canManage}
+                  <Badge tone="neutral">demo</Badge>
                 {/if}
               </div>
             </li>

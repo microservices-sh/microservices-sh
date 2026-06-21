@@ -2,10 +2,12 @@ import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { getAccountsReceivableModuleStatus } from "@microservices-sh/accounts-receivable";
 import type { AccountsReceivableService, InvoiceSnapshot, TenantContext } from "@microservices-sh/accounts-receivable";
+import { authContext, getInvoiceScoped, recordPaymentScoped } from "@microservices-sh/invoice";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { listCustomers } from "@microservices-sh/customer";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
+import { syncInvoiceToReceivables } from "$lib/server/accounts-receivable-sync";
 
 const REPORT_DATE = "2026-06-21T00:00:00.000Z";
 const REPORT_DAY = REPORT_DATE.slice(0, 10);
@@ -88,6 +90,7 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
       ? receivables.data.map((invoice) => ({
           ...invoice,
           customerName: customerNameById.get(invoice.customerId) ?? invoice.customerId,
+          canRecordPayment: !invoice.id.startsWith("ar-demo-"),
           paymentKey: createPaymentKey(invoice.id)
         }))
       : [],
@@ -98,6 +101,7 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
 export const actions: Actions = {
   recordPayment: async ({ request, locals, cookies, platform }) => {
     requireModule("accounts-receivable", platform);
+    requireModule("invoice", platform);
     if (!locals.user) return fail(403, { error: "Not signed in to a company." });
     const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
     if (!org) return fail(403, { error: "Not signed in to a company." });
@@ -118,32 +122,53 @@ export const actions: Actions = {
 
     const service = locals.accountsReceivableService;
     const ctx = { tenantId: org.id, actorId: locals.user.id, now: REPORT_DATE };
+    const invoiceCtx = authContext({ orgId: org.id, actorId: locals.user.id, roles: permissions });
     await seedDemoReceivables(service, ctx, Boolean(platform?.env?.DB));
     const receivables = await service.listOpenReceivables(ctx);
     if (!receivables.ok) return fail(400, { error: receivables.error?.message ?? "Could not load open receivables.", values });
     const invoice = receivables.data.find((item) => item.id === values.invoiceId);
     if (!invoice) return fail(404, { error: "Open receivable not found.", values });
+    if (invoice.id.startsWith("ar-demo-")) {
+      return fail(409, { error: "Demo receivables are read-only. Create an invoice to record a real payment.", values });
+    }
     if (amountCents > invoice.amountDueCents) return fail(400, { error: "Payment exceeds the invoice open balance.", values });
 
     const idempotencyKey = `${values.paymentKey || createPaymentKey(invoice.id)}:${values.paymentDate}:${amountCents}`;
-    const payment = await service.recordCustomerPayment(ctx, {
-      customerId: invoice.customerId,
-      amountCents,
-      paymentDate,
-      idempotencyKey
-    });
-    if (!payment.ok || !payment.data) {
-      return fail(400, { error: payment.error?.message ?? "Could not record the customer payment.", values });
+    const currentInvoice = await getInvoiceScoped(invoiceCtx, invoice.id, { invoiceStore: locals.invoiceStore });
+    if (!currentInvoice.ok || !currentInvoice.data) {
+      return fail(currentInvoice.status ?? 404, { error: currentInvoice.error?.message ?? "Invoice not found.", values });
+    }
+    if (currentInvoice.data.invoice.status !== "open") {
+      return fail(409, { error: "Only open invoices can receive payments.", values });
+    }
+    const currentOutstandingCents = Math.max(0, currentInvoice.data.invoice.totalCents - currentInvoice.data.invoice.amountPaidCents);
+    if (amountCents > currentOutstandingCents) {
+      return fail(400, { error: "Payment exceeds the canonical invoice open balance.", values });
     }
 
-    if (payment.data.unappliedCents >= amountCents) {
-      const applied = await service.applyCustomerPayment(ctx, {
-        paymentId: payment.data.id,
-        applications: [{ invoiceId: invoice.id, amountCents }]
+    const payment = await recordPaymentScoped(
+      invoiceCtx,
+      {
+        invoiceId: invoice.id,
+        amountCents,
+        idempotencyKey
+      },
+      { invoiceStore: locals.invoiceStore }
+    );
+    if (!payment.ok || !payment.data) {
+      return fail(payment.status ?? 400, { error: payment.error?.message ?? "Could not record the invoice payment.", values });
+    }
+
+    const canonicalInvoice = await getInvoiceScoped(invoiceCtx, invoice.id, { invoiceStore: locals.invoiceStore });
+    let syncWarning: string | null = canonicalInvoice.ok && canonicalInvoice.data ? null : "Could not load the paid invoice for AR sync.";
+    if (canonicalInvoice.ok && canonicalInvoice.data) {
+      const synced = await syncInvoiceToReceivables({
+        accountsReceivableService: service,
+        tenantId: org.id,
+        actorId: locals.user.id,
+        invoice: canonicalInvoice.data.invoice
       });
-      if (!applied.ok) return fail(400, { error: applied.error?.message ?? "Could not apply the payment.", values });
-    } else if (payment.data.unappliedCents > 0) {
-      return fail(409, { error: "Payment key was already used for a different amount.", values });
+      if (!synced.ok) syncWarning = synced.message;
     }
 
     await recordEvent(
@@ -153,11 +178,19 @@ export const actions: Actions = {
         entityType: "invoice",
         entityId: invoice.id,
         source: "app/receivables",
-        payload: { amountCents, customerId: invoice.customerId, paymentId: payment.data.id }
+        payload: {
+          amountCents,
+          customerId: invoice.customerId,
+          paymentDate,
+          idempotencyKey,
+          invoiceStatus: payment.data.status,
+          receivablesSynced: syncWarning === null,
+          receivablesSyncError: syncWarning
+        }
       },
       { auditStore: locals.auditStore }
     );
 
-    return { paymentRecorded: true };
+    return { paymentRecorded: true, paid: payment.data.status === "paid", syncWarning };
   }
 };

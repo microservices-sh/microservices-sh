@@ -171,6 +171,26 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Template keeps Accounts Receivable D1 schema aligned with invoice snapshots and unapplied balances."
   );
   assertFileIncludesAll(
+    "src/lib/server/accounts-receivable-sync.ts",
+    ["upsertInvoiceSnapshot", "invoice.status === \"draft\"", "amountDueCents = status === \"void\" ? 0"],
+    "Template synchronizes issued, paid, and voided invoice lifecycle state into Accounts Receivable snapshots."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/invoices/[id]/+page.server.ts",
+    ["syncInvoiceToReceivables", "recordPaymentScoped", "voidInvoiceScoped"],
+    "Invoice detail payments and voids refresh the Accounts Receivable invoice snapshot."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/invoices/new/+page.server.ts",
+    ["syncInvoiceToReceivables", "getInvoiceScoped", "issueInvoiceScoped"],
+    "New invoice issuance creates an Accounts Receivable invoice snapshot from the canonical invoice record."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/receivables/+page.server.ts",
+    ["recordPaymentScoped", "getInvoiceScoped", "syncInvoiceToReceivables"],
+    "Receivables payment actions use the invoice module as lifecycle authority before refreshing AR snapshots."
+  );
+  assertFileIncludesAll(
     "src/routes/app/banking/+page.server.ts",
     ["createBankAccount", "importStatementCsv", "matchTransaction", "startReconciliation", "listReconciliations", "completeReconciliation", "recordEvent"],
     "Banking route exposes operator actions and persisted reconciliation sessions through bank-reconciliation service methods."
