@@ -194,6 +194,15 @@ export interface RecurringBillTemplateWithLineItems extends RecurringBillTemplat
   lineItems: RecurringBillLineItem[];
 }
 
+export interface RecurringBillTemplateFilter {
+  tenantId: string;
+  vendorId?: string;
+  status?: RecurringBillStatus;
+  statuses?: RecurringBillStatus[];
+  dueOnOrBefore?: string;
+  limit?: number;
+}
+
 export interface AgingBill {
   id: string;
   billNumber: string;

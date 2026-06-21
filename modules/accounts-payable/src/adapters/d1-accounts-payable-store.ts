@@ -10,6 +10,7 @@ import type {
   BillWithLineItems,
   RecurringBillFrequency,
   RecurringBillLineItem,
+  RecurringBillTemplateFilter,
   RecurringBillStatus,
   RecurringBillTemplate,
   RecurringBillTemplateWithLineItems,
@@ -223,6 +224,50 @@ export function createD1AccountsPayableStore(db: D1Database): AccountsPayableSto
       .bind(tenantId, paymentId)
       .all<Record<string, unknown>>();
     return (result.results ?? []).map(rowToApplication);
+  }
+
+  async function listRecurringLineItems(
+    tenantId: string,
+    templateId: string
+  ): Promise<RecurringBillLineItem[]> {
+    const result = await db
+      .prepare(
+        `SELECT ${RECURRING_LINE_COLS} FROM accounts_payable_recurring_bill_line_items WHERE tenant_id = ? AND recurring_bill_template_id = ? ORDER BY sort_order ASC`
+      )
+      .bind(tenantId, templateId)
+      .all<Record<string, unknown>>();
+    return (result.results ?? []).map(rowToRecurringLine);
+  }
+
+  async function withRecurringLineItems(
+    template: RecurringBillTemplate
+  ): Promise<RecurringBillTemplateWithLineItems> {
+    return { ...template, lineItems: await listRecurringLineItems(template.tenantId, template.id) };
+  }
+
+  function recurringTemplateFilterClauses(filter: RecurringBillTemplateFilter): {
+    clauses: string[];
+    binds: unknown[];
+  } {
+    const clauses = ["tenant_id = ?"];
+    const binds: unknown[] = [filter.tenantId];
+    if (filter.vendorId) {
+      clauses.push("vendor_id = ?");
+      binds.push(filter.vendorId);
+    }
+    if (filter.status) {
+      clauses.push("status = ?");
+      binds.push(filter.status);
+    }
+    if (filter.statuses?.length) {
+      clauses.push(`status IN (${filter.statuses.map(() => "?").join(", ")})`);
+      binds.push(...filter.statuses);
+    }
+    if (filter.dueOnOrBefore) {
+      clauses.push("next_bill_date <= ?");
+      binds.push(filter.dueOnOrBefore);
+    }
+    return { clauses, binds };
   }
 
   return {
@@ -571,14 +616,18 @@ export function createD1AccountsPayableStore(db: D1Database): AccountsPayableSto
         .bind(tenantId, templateId)
         .first<Record<string, unknown>>();
       if (!row) return null;
-      const template = rowToTemplate(row);
+      return withRecurringLineItems(rowToTemplate(row));
+    },
+
+    async listRecurringBillTemplates(filter) {
+      const { clauses, binds } = recurringTemplateFilterClauses(filter);
       const result = await db
         .prepare(
-          `SELECT ${RECURRING_LINE_COLS} FROM accounts_payable_recurring_bill_line_items WHERE tenant_id = ? AND recurring_bill_template_id = ? ORDER BY sort_order ASC`
+          `SELECT ${TEMPLATE_COLS} FROM accounts_payable_recurring_bill_templates WHERE ${clauses.join(" AND ")} ORDER BY next_bill_date ASC, name ASC LIMIT ?`
         )
-        .bind(tenantId, templateId)
+        .bind(...binds, filter.limit ?? 100)
         .all<Record<string, unknown>>();
-      return { ...template, lineItems: (result.results ?? []).map(rowToRecurringLine) } satisfies RecurringBillTemplateWithLineItems;
+      return Promise.all((result.results ?? []).map((row) => withRecurringLineItems(rowToTemplate(row))));
     },
 
     async writeEvent(event) {

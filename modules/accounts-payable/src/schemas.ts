@@ -106,6 +106,7 @@ export const agingReportInputSchema = z.object({
 });
 
 export const recurringBillFrequencySchema = z.enum(["weekly", "monthly", "quarterly", "yearly", "custom"]);
+export const recurringBillStatusSchema = z.enum(["active", "paused", "cancelled", "completed"]);
 
 export const createRecurringBillTemplateInputSchema = z.object({
   tenantId: z.string().min(1),
@@ -125,6 +126,15 @@ export const createRecurringBillTemplateInputSchema = z.object({
   totalCents: z.number().int().min(0).optional()
 });
 
+export const listRecurringBillTemplatesInputSchema = z.object({
+  tenantId: z.string().min(1),
+  vendorId: z.string().optional(),
+  status: recurringBillStatusSchema.optional(),
+  statuses: z.array(recurringBillStatusSchema).optional(),
+  dueOnOrBefore: z.string().datetime().optional(),
+  limit: z.number().int().min(1).max(500).default(100)
+});
+
 export type CreateVendorInput = z.infer<typeof createVendorInputSchema>;
 export type ListVendorsInput = z.infer<typeof listVendorsInputSchema>;
 export type BillLineItemInput = z.infer<typeof billLineItemInputSchema>;
@@ -134,3 +144,4 @@ export type ListBillsInput = z.infer<typeof listBillsInputSchema>;
 export type RecordBillPaymentInput = z.infer<typeof recordBillPaymentInputSchema>;
 export type AgingReportInput = z.infer<typeof agingReportInputSchema>;
 export type CreateRecurringBillTemplateInput = z.infer<typeof createRecurringBillTemplateInputSchema>;
+export type ListRecurringBillTemplatesInput = z.infer<typeof listRecurringBillTemplatesInputSchema>;

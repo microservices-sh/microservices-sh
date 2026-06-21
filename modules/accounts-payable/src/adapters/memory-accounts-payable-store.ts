@@ -10,6 +10,7 @@ import type {
   BillWithLineItems,
   RecurringBillLineItem,
   RecurringBillTemplate,
+  RecurringBillTemplateFilter,
   RecurringBillTemplateWithLineItems,
   Vendor,
   VendorFilter
@@ -52,6 +53,27 @@ function matchesBillFilter(bill: Bill, filter: BillFilter): boolean {
     (!filter.vendorId || bill.vendorId === filter.vendorId) &&
     (!filter.status || bill.status === filter.status) &&
     (!filter.statuses || filter.statuses.includes(bill.status))
+  );
+}
+
+function cloneRecurringLine(line: RecurringBillLineItem): RecurringBillLineItem {
+  return { ...line };
+}
+
+function withRecurringLineItems(
+  template: RecurringBillTemplate,
+  lines: RecurringBillLineItem[]
+): RecurringBillTemplateWithLineItems {
+  return { ...template, lineItems: lines.map(cloneRecurringLine) };
+}
+
+function matchesRecurringTemplateFilter(template: RecurringBillTemplate, filter: RecurringBillTemplateFilter): boolean {
+  return (
+    template.tenantId === filter.tenantId &&
+    (!filter.vendorId || template.vendorId === filter.vendorId) &&
+    (!filter.status || template.status === filter.status) &&
+    (!filter.statuses || filter.statuses.includes(template.status)) &&
+    (!filter.dueOnOrBefore || template.nextBillDate <= filter.dueOnOrBefore)
   );
 }
 
@@ -163,10 +185,15 @@ export function createMemoryAccountsPayableStore(): AccountsPayableStore {
     async getRecurringBillTemplate(tenantId, templateId) {
       const template = recurringTemplates.get(templateId);
       if (!template || template.tenantId !== tenantId) return null;
-      return {
-        ...template,
-        lineItems: (recurringLinesByTemplate.get(template.id) ?? []).map((line) => ({ ...line }))
-      };
+      return withRecurringLineItems(template, recurringLinesByTemplate.get(template.id) ?? []);
+    },
+
+    async listRecurringBillTemplates(filter) {
+      return [...recurringTemplates.values()]
+        .filter((template) => matchesRecurringTemplateFilter(template, filter))
+        .sort((a, b) => a.nextBillDate.localeCompare(b.nextBillDate) || a.name.localeCompare(b.name))
+        .slice(0, filter.limit ?? 100)
+        .map((template) => withRecurringLineItems(template, recurringLinesByTemplate.get(template.id) ?? []));
     },
 
     async writeEvent(event) {

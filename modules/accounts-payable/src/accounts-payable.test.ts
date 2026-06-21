@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   createBill,
+  createRecurringBillTemplate,
   createMemoryAccountsPayableStore,
   createVendor,
   getAgingReport,
+  listRecurringBillTemplates,
   listVendors,
   markBillPayable,
   recordBillPayment
@@ -254,5 +256,74 @@ describe("accounts-payable: aging", () => {
     expect(report.data.report.vendors.flatMap((vendor) => vendor.bills).map((bill) => bill.id).sort()).toEqual(
       [current.id, overdue.id].sort()
     );
+  });
+});
+
+describe("accounts-payable: recurring bill templates", () => {
+  it("lists recurring templates by tenant, status, due date, and includes line items", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const vendor = await seedVendor(store, "tenant-1");
+    await seedVendor(store, "tenant-2");
+
+    const dueSoon = await createRecurringBillTemplate(
+      {
+        tenantId: "tenant-1",
+        vendorId: vendor.id,
+        name: "Monthly hosting",
+        frequency: "monthly",
+        startDate: "2026-01-01T00:00:00.000Z",
+        lineItems: [{ description: "Hosting", quantity: 1, unitAmountCents: 8_000, taxCents: 0 }]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0) }
+    );
+    if (!dueSoon.ok) throw new Error(dueSoon.error.message);
+
+    const future = await createRecurringBillTemplate(
+      {
+        tenantId: "tenant-1",
+        vendorId: vendor.id,
+        name: "Annual support",
+        frequency: "yearly",
+        startDate: "2026-01-01T00:00:00.000Z",
+        lineItems: [{ description: "Support", quantity: 1, unitAmountCents: 50_000, taxCents: 0 }]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0 + 1) }
+    );
+    if (!future.ok) throw new Error(future.error.message);
+
+    const otherTenantVendor = await seedVendor(store, "tenant-2");
+    const otherTenant = await createRecurringBillTemplate(
+      {
+        tenantId: "tenant-2",
+        vendorId: otherTenantVendor.id,
+        name: "Other tenant",
+        frequency: "monthly",
+        startDate: "2026-01-01T00:00:00.000Z",
+        lineItems: [{ description: "Other", quantity: 1, unitAmountCents: 1_000, taxCents: 0 }]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0 + 2) }
+    );
+    if (!otherTenant.ok) throw new Error(otherTenant.error.message);
+
+    const listed = await listRecurringBillTemplates(
+      {
+        tenantId: "tenant-1",
+        status: "active",
+        dueOnOrBefore: "2026-02-01T00:00:00.000Z"
+      },
+      { accountsPayableStore: store }
+    );
+
+    expect(listed.ok).toBe(true);
+    if (!listed.ok) throw new Error(listed.error.message);
+    expect(listed.data.count).toBe(1);
+    expect(listed.data.templates[0]).toMatchObject({
+      id: dueSoon.data.template.id,
+      tenantId: "tenant-1",
+      name: "Monthly hosting",
+      totalCents: 8_000
+    });
+    expect(listed.data.templates[0].lineItems).toHaveLength(1);
+    expect(listed.data.templates[0].lineItems[0]).toMatchObject({ description: "Hosting", totalCents: 8_000 });
   });
 });

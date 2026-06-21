@@ -11,6 +11,7 @@ import type {
   BillPaymentWithApplications,
   BillWithLineItems,
   RecurringBillLineItem,
+  RecurringBillTemplateFilter,
   RecurringBillTemplate,
   RecurringBillTemplateWithLineItems,
   Vendor,
@@ -38,6 +39,7 @@ export interface AccountsPayableStore {
 
   insertRecurringBillTemplate(template: RecurringBillTemplate, lineItems: RecurringBillLineItem[]): Promise<void>;
   getRecurringBillTemplate(tenantId: string, templateId: string): Promise<RecurringBillTemplateWithLineItems | null>;
+  listRecurringBillTemplates(filter: RecurringBillTemplateFilter): Promise<RecurringBillTemplateWithLineItems[]>;
 
   writeEvent(event: AccountsPayableEvent): Promise<void>;
 }

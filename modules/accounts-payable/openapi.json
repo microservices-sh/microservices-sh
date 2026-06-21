@@ -43,6 +43,16 @@
         "summary": "Open balance aging report",
         "responses": { "200": { "description": "Aging report" } }
       }
+    },
+    "/recurring-bill-templates": {
+      "post": {
+        "summary": "Create recurring bill template",
+        "responses": { "201": { "description": "Recurring bill template created" }, "422": { "description": "Invalid totals" } }
+      },
+      "get": {
+        "summary": "List recurring bill templates",
+        "responses": { "200": { "description": "Recurring bill template list" } }
+      }
     }
   }
 }
