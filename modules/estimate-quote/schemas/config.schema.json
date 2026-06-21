@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Estimate Quote Config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "defaultCurrency": {
+      "type": "string",
+      "default": "USD",
+      "minLength": 3,
+      "maxLength": 3
+    },
+    "quoteNumberPrefix": {
+      "type": "string",
+      "default": "EST",
+      "minLength": 1
+    },
+    "defaultExpiryDays": {
+      "type": "integer",
+      "default": 30,
+      "minimum": 1
+    }
+  }
+}

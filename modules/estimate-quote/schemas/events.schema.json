@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Estimate Quote Events",
+  "type": "string",
+  "enum": [
+    "estimate-quote.created",
+    "estimate-quote.updated",
+    "estimate-quote.sent",
+    "estimate-quote.viewed",
+    "estimate-quote.accepted",
+    "estimate-quote.declined",
+    "estimate-quote.expired",
+    "estimate-quote.converted",
+    "estimate-quote.voided"
+  ]
+}

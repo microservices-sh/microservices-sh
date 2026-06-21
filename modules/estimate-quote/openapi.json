@@ -1,0 +1,79 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Estimate Quote Module",
+    "version": "0.1.0",
+    "description": "Tenant-scoped estimates and quotes with draft, send, view, accept, decline, expire, void, and convert workflows."
+  },
+  "paths": {
+    "/estimate-quotes": {
+      "get": {
+        "summary": "List estimate quotes",
+        "responses": {
+          "200": {
+            "description": "Estimate quote list"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a draft estimate quote",
+        "responses": {
+          "201": {
+            "description": "Estimate quote created"
+          }
+        }
+      }
+    },
+    "/estimate-quotes/{quoteId}": {
+      "get": {
+        "summary": "Get an estimate quote",
+        "responses": {
+          "200": {
+            "description": "Estimate quote"
+          },
+          "404": {
+            "description": "Estimate quote not found"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update a draft estimate quote",
+        "responses": {
+          "200": {
+            "description": "Estimate quote updated"
+          }
+        }
+      }
+    },
+    "/estimate-quotes/{quoteId}/send": {
+      "post": {
+        "summary": "Mark a draft estimate quote as sent",
+        "responses": {
+          "200": {
+            "description": "Estimate quote sent"
+          }
+        }
+      }
+    },
+    "/estimate-quotes/{quoteId}/accept": {
+      "post": {
+        "summary": "Accept a sent or viewed estimate quote",
+        "responses": {
+          "200": {
+            "description": "Estimate quote accepted"
+          }
+        }
+      }
+    },
+    "/estimate-quotes/{quoteId}/convert": {
+      "post": {
+        "summary": "Record conversion to an invoice and return invoice draft data",
+        "responses": {
+          "200": {
+            "description": "Estimate quote converted"
+          }
+        }
+      }
+    }
+  }
+}

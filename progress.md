@@ -1329,3 +1329,18 @@
 | Membership Credits spec | Module contract check passes | `pnpm --filter @microservices-sh/membership-credits check:spec` passed | Pass |
 | D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/membership-credits/migrations/0001_initial.sql"` passed | Pass |
 | JSON docs | OpenAPI and JSON schema stubs parse | Node JSON parse check passed | Pass |
+
+### Phase 55 StackSuite Estimate Quote module
+
+- **Status:** complete.
+- Goal: port accounting-system estimate/quote lifecycle into a reusable module without touching the concurrently dirty `invoice` module.
+- Added `modules/estimate-quote` for quote numbering, draft line-item edits, integer-cents totals, send/view/accept/decline/expire/void lifecycle transitions, and invoice conversion metadata.
+- Kept invoice creation outside the module: conversion records a caller-supplied invoice id and returns an invoice draft payload for an invoice module or route adapter to persist.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Estimate Quote build | TypeScript typecheck passes | `pnpm --filter @microservices-sh/estimate-quote build` passed | Pass |
+| Estimate Quote tests | Totals, lifecycle, conversion, expiry, and stats pass | `pnpm --filter @microservices-sh/estimate-quote test` passed, 3/3 | Pass |
+| Estimate Quote spec | Module contract check passes | `pnpm --filter @microservices-sh/estimate-quote check:spec` passed | Pass |
+| D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/estimate-quote/migrations/0001_initial.sql"` passed | Pass |
+| JSON docs | OpenAPI and JSON schema stubs parse | Node JSON parse check passed | Pass |

@@ -1,0 +1,137 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "estimate-quote",
+  "name": "Estimate Quote",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Estimate Quote module for microservices.sh templates.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": [
+      "hono-later",
+      "sveltekit-later"
+    ]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "estimate_quotes",
+        "estimate_quote_lines",
+        "domain_events"
+      ]
+    }
+  ],
+  "permissions": [
+    "estimate-quote.read",
+    "estimate-quote.write",
+    "estimate-quote.admin",
+    "estimate-quote.extend",
+    "estimate-quote.observe"
+  ],
+  "connections": {
+    "requires": [],
+    "optional": [
+      "auth",
+      "audit-log"
+    ],
+    "rpc": {
+      "exposes": [],
+      "calls": []
+    },
+    "events": {
+      "emits": [
+        "estimate-quote.created",
+        "estimate-quote.updated",
+        "estimate-quote.sent",
+        "estimate-quote.viewed",
+        "estimate-quote.accepted",
+        "estimate-quote.declined",
+        "estimate-quote.expired",
+        "estimate-quote.converted",
+        "estimate-quote.voided"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeEstimateQuoteCreate": {
+        "kind": "filter",
+        "scope": "estimate-quote.extend"
+      },
+      "afterEstimateQuoteUpdated": {
+        "kind": "observer",
+        "scope": "estimate-quote.observe"
+      }
+    },
+    "provides": {
+      "hooks": []
+    }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": [
+      "config",
+      "hooks",
+      "overlay",
+      "fork"
+    ]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [
+        {
+          "label": "Estimate Quote",
+          "path": "/estimate-quote",
+          "permission": "estimate-quote.read"
+        }
+      ],
+      "referenceUi": [
+        "reference-ui/admin/README.md"
+      ]
+    },
+    "visitor": {
+      "applicable": false,
+      "referenceUi": [
+        "reference-ui/visitor/README.md"
+      ]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": [
+        "estimate-quote.read",
+        "estimate-quote.write"
+      ],
+      "skillPaths": [
+        "skills/estimate-quote-operator/SKILL.md"
+      ],
+      "approvalRequiredFor": [
+        "estimate-quote.write"
+      ]
+    }
+  },
+  "skills": [
+    {
+      "id": "estimate-quote-operator",
+      "path": "skills/estimate-quote-operator/SKILL.md",
+      "recommendedFor": [
+        "admin-operations",
+        "agentic-tools"
+      ]
+    }
+  ],
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": [
+      "migrations",
+      "pii-fields",
+      "production-deploy",
+      "external-side-effects"
+    ]
+  }
+}

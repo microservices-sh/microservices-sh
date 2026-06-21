@@ -39,7 +39,7 @@ Remaining gaps are mostly add-on business workflows, not more full-app cloning.
 | P0 | `sms-campaigns` module | `sms-crm` contacts, groups, templates, vendor configs, campaigns, recipients, SMS logs | Implemented as a contract-checked module; add an `sms-crm-sveltekit` template only when route proof is needed. |
 | P0 | Support inbox/widget hardening | HelpGrid widget settings, quick actions, conversations, messages, channel metadata, agent takeover | Implemented as `support-inbox` to avoid bloating ticket CRUD; ticket comments/attachments/share tokens remain a `support-ticket` follow-up. |
 | P1 | Membership and customer credits | Booking membership tiers, customer memberships, credits, credit transactions, membership history | Implemented as `membership-credits`; route proof can extend `booking-sveltekit` later. |
-| P1 | Estimates/quotes and recurring invoice templates | Accounting Chiangs estimates, accepted/converted lifecycle, recurring invoices, recurring items, send/post/void schemas | Add `estimate-quote`; add recurring invoice generation either to `invoice` or a separate `recurring-documents` module. |
+| P1 | Estimates/quotes and recurring invoice templates | Accounting Chiangs estimates, accepted/converted lifecycle, recurring invoices, recurring items, send/post/void schemas | `estimate-quote` implemented; add recurring invoice generation either to `invoice` or a separate `recurring-documents` module. |
 | P1 | Storage entitlements and expiring share links | DashDrive files, short IDs, expiry, download count, storage packages, purchases | Extend `file-media` or add `storage-entitlements`; useful for client portals and file-heavy templates. |
 | P1 | HR people ops | HR employees, departments, positions, leave balances/requests, attendance | Add `hr-people-ops`; template later, not before P0 modules. |
 | P2 | Content/CMS publishing | CMS, mini-CMS, blog, magazine | Add only if needed for landing/content-heavy generated apps. |
@@ -160,7 +160,7 @@ The accounting Chiangs app has high-value lifecycle behavior not currently repre
 - send/post/void invoice API schemas.
 
 Recommended modules:
-- `estimate-quote`: quote/estimate documents and conversion handoff to `invoice`.
+- `estimate-quote`: implemented for quote/estimate documents and conversion handoff to `invoice`.
 - Extend `invoice` with recurring invoice templates only if the recurrence scope stays invoice-specific.
 - Otherwise create `recurring-documents` for recurring invoices, bills, and other scheduled business documents.
 

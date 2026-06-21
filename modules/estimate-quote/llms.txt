@@ -1,0 +1,9 @@
+# Estimate Quote Module
+
+Module ID: estimate-quote
+Status: draft
+Purpose: Estimate/quote lifecycle with integer-cents totals, expiry, acceptance, voiding, and invoice conversion metadata.
+Entrypoint: src/index.ts
+Check: pnpm --filter @microservices-sh/estimate-quote check:spec
+Build: pnpm --filter @microservices-sh/estimate-quote build
+Test: pnpm --filter @microservices-sh/estimate-quote test
