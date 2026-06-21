@@ -87,7 +87,7 @@ export const manifest = {
       "nav": [
         {
           "label": "Estimate Quote",
-          "path": "/estimate-quote",
+          "path": "/quotes",
           "permission": "estimate-quote.read"
         }
       ],

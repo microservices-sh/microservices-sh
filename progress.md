@@ -1774,3 +1774,18 @@
 | Focused template JSON checks | Accounting and commerce templates expose passing StackSuite catalog coverage checks | `node packages/workspace-tools/src/index.js check template --path templates/accounting-erp-sveltekit --json` and commerce equivalent passed | Pass |
 | Workspace specs | All module/template specs pass with the new guard enabled | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 81 Estimate Quote surface path alignment
+
+- **Status:** complete.
+- Goal: remove the remaining focused accounting template drift where `estimate-quote` advertised `/estimate-quote` while the template lock and route adapter use `/quotes`.
+- Aligned the estimate-quote module manifest, generated manifest source, public docs catalog, public module doc, and internal module-contract catalog to canonical mount `/quotes`.
+- Synced the packaged accounting template module copy and updated module-contract expectations.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Estimate Quote spec | Module manifest remains valid after nav path alignment | `pnpm --filter @microservices-sh/estimate-quote check:spec` passed | Pass |
+| Internal catalog tests | Internal catalog exposes quote runtime mount `/quotes` and StackSuite docs remain duplicate-free | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js packages/sdk-internal/tests/module-versioning.test.js` passed | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed | Pass |
+| Create app package | Packaged accounting template copy remains buildable and tests stay green | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 80
+Phase 81
 
 ## Phases
 
@@ -623,6 +623,13 @@ Phase 80
 - [x] Add template checks that fail when locked StackSuite modules are missing from the internal `module-contract` catalog.
 - [x] Scope the first guard to StackSuite commerce/accounting, quote/recurring, and email rows while broader historical module docs are completed separately.
 - [x] Verify workspace-tools build, focused accounting/commerce template checks, full workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 81: Estimate Quote Surface Path Alignment
+- [x] Align the estimate-quote canonical admin nav and docs/internal catalog mount to `/quotes`.
+- [x] Keep the accounting template lock and generated template copy consistent with the `/app/quotes` route adapter.
+- [x] Update module-contract expectations for the canonical quote runtime mount.
+- [x] Verify module spec, internal catalog tests, workspace specs, create-app build/test, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

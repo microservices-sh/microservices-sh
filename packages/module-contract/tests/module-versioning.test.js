@@ -254,7 +254,7 @@ describe("module version selectors", () => {
     expect(inspectModule("estimate-quote@0.1.0")).toMatchObject({
       id: "estimate-quote",
       status: "draft",
-      runtime: { mount: "/estimate-quote" },
+      runtime: { mount: "/quotes" },
       optional: expect.arrayContaining(["auth", "audit-log", "invoice"]),
       eventsEmitted: expect.arrayContaining([
         "estimate-quote.accepted",

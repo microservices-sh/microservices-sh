@@ -328,7 +328,7 @@
       "version": "0.1.0",
       "status": "draft",
       "class": "core",
-      "mount": "/estimate-quote",
+      "mount": "/quotes",
       "docPath": "docs/modules/estimate-quote.md",
       "summary": "Estimate and quote documents with draft editing, lifecycle transitions, accepted conversion, and invoice draft handoff.",
       "requires": [],

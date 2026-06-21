@@ -2,12 +2,12 @@
 
 Status: draft
 Module ID: `estimate-quote`
-Mount: `/estimate-quote`
+Mount: `/quotes`
 
 ## Summary
 Tenant-scoped estimate and quote documents with integer-cent line totals, draft edits, send/view/accept/decline/expire/void lifecycle transitions, and conversion metadata for invoice handoff.
 
-Accounting templates may expose this module as `/app/quotes`; that route is a template adapter. The reusable module keeps the quote contract, storage, events, permissions, hooks, and migrations framework-neutral.
+Accounting templates expose this module as `/app/quotes`; that route prefixes the canonical `/quotes` mount inside the app shell. The reusable module keeps the quote contract, storage, events, permissions, hooks, and migrations framework-neutral.
 
 ## Dependencies
 - optional: auth, audit-log

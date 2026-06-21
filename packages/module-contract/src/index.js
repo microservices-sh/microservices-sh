@@ -307,11 +307,11 @@ const INTERNAL_CATALOG_MODULES = Object.freeze([
     status: "draft",
     summary: "Estimate and quote documents with draft editing, lifecycle transitions, accepted conversion, and invoice draft handoff.",
     optional: ["auth", "audit-log", "invoice"],
-    mount: "/estimate-quote",
+    mount: "/quotes",
     surfaces: {
       admin: {
         applicable: true,
-        nav: [{ label: "Estimate Quote", path: "/estimate-quote", permission: "estimate-quote.read" }],
+        nav: [{ label: "Estimate Quote", path: "/quotes", permission: "estimate-quote.read" }],
         referenceUi: ["reference-ui/admin/README.md"],
       },
       visitor: {
