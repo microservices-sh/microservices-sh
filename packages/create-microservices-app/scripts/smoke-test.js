@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { mkdir, mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -80,9 +80,39 @@ function assertRepoTemplateScaffold(root, templateId, expectedModules) {
   if (!existsSync(join(root, "packages", "connection-contract", "package.json"))) {
     throw new Error(`${templateId} create command did not include the connection-contract package source.`);
   }
+  assertNoWorkspaceRuntimeDeps(root, templateId);
 
   run("node", ["--check", "scripts/microservices.js"], { cwd: root, stdio: "inherit" });
   run("node", ["scripts/microservices.js", "check", "--json"], { cwd: root, stdio: "inherit" });
+}
+
+function assertNoWorkspaceRuntimeDeps(root, label) {
+  const packagePaths = [join(root, "package.json")];
+  for (const area of ["modules", "packages"]) {
+    const areaRoot = join(root, area);
+    if (!existsSync(areaRoot)) continue;
+    for (const entry of readdirSync(areaRoot, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        const pkgPath = join(areaRoot, entry.name, "package.json");
+        if (existsSync(pkgPath)) packagePaths.push(pkgPath);
+      }
+    }
+  }
+
+  const offenders = [];
+  for (const pkgPath of packagePaths) {
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+    for (const field of ["dependencies", "optionalDependencies", "peerDependencies"]) {
+      for (const [name, version] of Object.entries(pkg[field] ?? {})) {
+        if (String(version).startsWith("workspace:")) {
+          offenders.push(`${pkgPath}:${field}.${name}=${version}`);
+        }
+      }
+    }
+  }
+  if (offenders.length) {
+    throw new Error(`${label} generated app contains runtime workspace dependencies:\n${offenders.join("\n")}`);
+  }
 }
 
 try {

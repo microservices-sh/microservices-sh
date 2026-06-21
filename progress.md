@@ -1564,3 +1564,24 @@
 | Documentation diff | Plan reflects completed parity and remaining backlog without changing code behavior | Reviewed `git diff -- docs/templates/stacksuite-porting-plan.md` | Pass |
 | Stale wording scan | Public plan no longer claims completed parity work is still absent | `rg -n "still thin|not yet represented|Both explorers flagged|Done or in progress|Add missing module API surface" docs/templates/stacksuite-porting-plan.md` returned no matches | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 70 commerce generated-app packaging fix
+
+- **Status:** complete.
+- Goal: close the P0 CLI/template packaging failures found by the StackSuite packaging audit.
+- Bundled `@microservices-sh/sdk-internal` and `@microservices-sh/module-contract` as generated-app support packages for templates that depend on SDK/MCP helpers.
+- Rewrote copied support-package package.json dependencies, so `sdk-internal` points at `file:../module-contract` instead of retaining `workspace:*`.
+- Added `readText` to the generated SvelteKit contract-check runner and synced all SvelteKit project shims.
+- Added create-app built-smoke coverage to reject runtime `workspace:*` dependencies in generated root, module, and support-package manifests.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Create app build | Bundled templates materialize support packages and dist compiles | `pnpm --filter create-microservices-app build` passed | Pass |
+| Bundle closure | Template dependency closure remains complete | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
+| Built smoke | Generated app smoke rejects runtime workspace deps and still scaffolds templates | `pnpm --filter create-microservices-app smoke:built` passed | Pass |
+| Create app tests | Node test suite remains green | `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Shim sync | Generated project shims include `readText` and stay in sync | `pnpm check:shims` passed, 13 targets | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Generated install | Fresh commerce generated app installs without root/support-package `workspace:*` runtime deps | `pnpm --dir /tmp/stackstatus-p0-commerce-fix install --lockfile-only --ignore-scripts` passed | Pass |
+| Generated check | Fresh commerce generated app contract check passes with `readText` policy | `node scripts/microservices.js check --json` passed in `/tmp/stackstatus-p0-commerce-fix` | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

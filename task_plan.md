@@ -546,6 +546,14 @@ Phase 67
 - [x] Verify documentation diff, stale wording scan, and whitespace checks.
 - **Status:** complete
 
+### Phase 70: Commerce Generated-App Packaging Fix
+- [x] Vendor `sdk-internal` and `module-contract` into generated apps that depend on StackSuite MCP/generation helpers.
+- [x] Rewrite copied support-package runtime dependencies so generated apps do not retain `workspace:*` links.
+- [x] Pass `readText` into generated SvelteKit contract checks so template policies behave the same in source and generated apps.
+- [x] Add built-smoke coverage that rejects generated runtime `workspace:*` dependencies.
+- [x] Verify create-app build/test/smoke, shim sync, full spec checks, generated commerce install, generated commerce check, and whitespace checks.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

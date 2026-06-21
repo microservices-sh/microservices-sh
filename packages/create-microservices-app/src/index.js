@@ -137,6 +137,16 @@ function applyRepoTemplateConfig(files, appName, configOverride) {
         return file;
       }
     }
+    if (file.path.startsWith("packages/") && file.path.endsWith("/package.json")) {
+      try {
+        const pkg = JSON.parse(file.contents);
+        rewriteBundledModuleDeps(pkg.dependencies, "../../modules");
+        rewriteBundledPackageDeps(pkg.dependencies, "..");
+        return { ...file, contents: `${JSON.stringify(pkg, null, 2)}\n` };
+      } catch {
+        return file;
+      }
+    }
     if (file.path === "microservices.config.json") {
       try {
         const cfg = JSON.parse(file.contents);

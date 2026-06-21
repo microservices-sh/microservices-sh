@@ -54,6 +54,8 @@ export const BUNDLED_MODULES = [
 
 export const BUNDLED_PACKAGES = new Map([
   ["@microservices-sh/connection-contract", "connection-contract"],
+  ["@microservices-sh/module-contract", "module-contract"],
+  ["@microservices-sh/sdk-internal", "sdk-internal"],
   // ops-token's codec (mint/verify) is vendored like connection-contract so the
   // generated operate-app can verify ops tokens; it's pulled in transitively by
   // the research module (booking's /ops read-back route). See plan 32.
@@ -61,9 +63,9 @@ export const BUNDLED_PACKAGES = new Map([
 ]);
 
 // Published @microservices-sh packages a generated app may resolve from npm
-// directly (so they don't need vendoring). Kept here so the closure test allows
-// them. sdk-internal/module-contract are also esbuild-aliased into the CLI bundle.
-export const PUBLISHED_ALLOWLIST = ["@microservices-sh/sdk-internal", "@microservices-sh/module-contract"];
+// directly (so they don't need vendoring). Keep this empty until packages are
+// actually published with non-workspace dependency versions.
+export const PUBLISHED_ALLOWLIST = [];
 
 // Per-scaffoldable-template manifest: which module/package SOURCE gets copied into
 // the bundle (consumed by scripts/build.js). This is the "copied" half; BUNDLED_*
@@ -102,14 +104,14 @@ export const REPO_TEMPLATE_MODULES = {
 };
 
 export const REPO_TEMPLATE_PACKAGES = {
-  "booking-sveltekit": ["connection-contract", "ops-token"],
+  "booking-sveltekit": ["connection-contract", "module-contract", "sdk-internal", "ops-token"],
   "company-landing-astro": [],
   "wordpress-emdash-blog-astro": [],
   "saas-starter-sveltekit": ["connection-contract"],
   "saas-growth-sveltekit": ["connection-contract"],
-  "client-portal-sveltekit": ["connection-contract"],
+  "client-portal-sveltekit": ["connection-contract", "module-contract", "sdk-internal"],
   "dot-ai-os": ["connection-contract"],
   "erp-shell-sveltekit": ["connection-contract"],
-  "commerce-ops-sveltekit": ["connection-contract"],
+  "commerce-ops-sveltekit": ["connection-contract", "module-contract", "sdk-internal"],
   "accounting-erp-sveltekit": ["connection-contract"],
 };

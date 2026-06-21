@@ -87,13 +87,18 @@ const record = (ok, message, id) => results.push(ok
   ? { id: id || ("spec:" + (++n)), status: "pass" }
   : { id: id || ("spec:" + (++n)), status: "fail", message });
 const exists = (p) => existsSync(p);
+const readText = (p) => {
+  const text = readSafe(p);
+  if (text === null) throw new Error("File not found: " + p);
+  return text;
+};
 const assert = (cond, message, id) => record(Boolean(cond), message, id);
 const assertFileIncludes = (p, expected, message) => record(((t) => t !== null && t.includes(expected))(readSafe(p)), message, "spec:" + p);
 const assertFileIncludesAll = (p, items, message) => record(((t) => t !== null && items.every((s) => t.includes(s)))(readSafe(p)), message, "spec:" + p);
 try {
   const mod = await import(pathToFileURL(specPath).href);
   if (typeof mod.default === "function") {
-    await mod.default({ assert, assertFileIncludes, assertFileIncludesAll, exists });
+    await mod.default({ assert, assertFileIncludes, assertFileIncludesAll, exists, readText });
   }
 } catch (error) {
   results.push({ id: "spec:contract", status: "fail", message: "contract check threw: " + (error && error.message ? error.message : String(error)) });
