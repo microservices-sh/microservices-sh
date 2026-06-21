@@ -28,6 +28,22 @@ Workflow:
   components and `src/lib/server/notifications.ts`. Not externalized yet; edit in
   place if needed, carefully.
 
+## Expose modules as governed agent tools (MCP)
+
+This app can serve its modules to an AI agent as **governed tools** — each rpc
+method becomes a scoped, approval-gated, audited MCP tool.
+
+- `generated/tool-manifest.ts` + `generated/mcp-server.mjs` are generated from the
+  module contracts by the build (do not hand-edit; they're build output).
+- `src/lib/server/mcp-wiring.ts` is the **edit seam**: it binds each tool to its
+  module use-case + deps (memory adapters by default; swap to the D1 adapters for
+  a real DB), supplies the audit sink, and resolves the agent's actor + scopes
+  (from `MCP_AGENT_ID` / `MCP_AGENT_SCOPES`).
+
+Run the stdio server (after a build/generate, with deps installed):
+`npm run mcp`. Mutations are held at an approval gate until the caller confirms;
+reads with the right scope flow through; every call is written to the audit log.
+
 ## Don't
 
 - Don't edit `src/content.types.ts` — it's generated from the schema.
