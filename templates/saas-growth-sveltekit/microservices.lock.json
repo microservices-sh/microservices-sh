@@ -1,0 +1,512 @@
+{
+  "schemaVersion": "2026-06-13",
+  "generatedAt": "template-scaffold",
+  "registry": {
+    "id": "microservices.sh",
+    "contractVersion": "2026-06-13"
+  },
+  "generator": {
+    "package": "create-microservices-app",
+    "version": "0.0.0"
+  },
+  "template": {
+    "id": "saas-growth-sveltekit",
+    "version": "0.1.0",
+    "source": "registry:saas-starter-sveltekit@0.1.0",
+    "checksum": "sha256:scaffold-saas-starter-sveltekit-0.1.0"
+  },
+  "deploy": {
+    "mode": "embedded"
+  },
+  "modules": [
+    {
+      "id": "auth",
+      "version": "0.1.0",
+      "source": "registry:auth@0.1.0",
+      "checksum": "sha256:preview-auth-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/auth",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "auth.mint",
+          "auth.verify",
+          "auth.admin"
+        ],
+        "rpc": [
+          {
+            "method": "mintToken",
+            "scope": "auth.mint",
+            "public": false
+          },
+          {
+            "method": "verifyToken",
+            "scope": "auth.verify",
+            "public": false
+          },
+          {
+            "method": "getJwks",
+            "scope": null,
+            "public": true
+          }
+        ],
+        "hooks": [
+          "beforeMintToken",
+          "afterTokenMinted"
+        ],
+        "events": [
+          "auth.token_minted",
+          "auth.key_rotated"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "identity",
+      "version": "0.1.0",
+      "source": "registry:identity@0.1.0",
+      "checksum": "sha256:preview-identity-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/identity",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "identity.login",
+          "identity.session",
+          "identity.admin",
+          "identity.extend",
+          "identity.observe"
+        ],
+        "rpc": [
+          {
+            "method": "requestLoginCode",
+            "scope": "identity.login",
+            "public": false
+          },
+          {
+            "method": "verifyLoginCode",
+            "scope": "identity.login",
+            "public": false
+          },
+          {
+            "method": "readSession",
+            "scope": "identity.session",
+            "public": false
+          },
+          {
+            "method": "destroySession",
+            "scope": "identity.session",
+            "public": false
+          }
+        ],
+        "hooks": [
+          "beforeVerifyCode",
+          "afterSessionCreated"
+        ],
+        "events": [
+          "identity.login_code_issued",
+          "identity.login_verified",
+          "identity.session_created",
+          "identity.session_destroyed"
+        ],
+        "requires": [
+          "auth"
+        ]
+      }
+    },
+    {
+      "id": "email",
+      "version": "0.1.0",
+      "source": "registry:email@0.1.0",
+      "checksum": "sha256:preview-email-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/email",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "email.read",
+          "email.write",
+          "email.admin"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeEmailSend",
+          "afterEmailQueued",
+          "afterEmailFailed"
+        ],
+        "events": [
+          "email.queued",
+          "email.sent",
+          "email.failed"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "org-team-rbac",
+      "version": "0.1.0",
+      "source": "registry:org-team-rbac@0.1.0",
+      "checksum": "sha256:preview-org-team-rbac-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/orgs",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "org.read",
+          "org.manage",
+          "member.manage"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeInvite",
+          "onMembershipChanged"
+        ],
+        "events": [
+          "org.created",
+          "member.invited",
+          "member.joined",
+          "member.removed",
+          "role.updated"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "billing-subscriptions",
+      "version": "0.1.0",
+      "source": "registry:billing-subscriptions@0.1.0",
+      "checksum": "sha256:preview-billing-subscriptions-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/billing",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "billing.read",
+          "billing.write",
+          "billing.admin"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeSubscriptionChange",
+          "onSubscriptionActivated",
+          "onSubscriptionPastDue"
+        ],
+        "events": [
+          "subscription.started",
+          "subscription.activated",
+          "subscription.past_due",
+          "subscription.canceled",
+          "subscription.plan_changed"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "admin-shell",
+      "version": "0.1.0",
+      "source": "registry:admin-shell@0.1.0",
+      "checksum": "sha256:preview-admin-shell-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/admin",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [],
+        "permissions": [
+          "admin.access",
+          "admin.read",
+          "admin.write"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeWrite",
+          "onAdminAction"
+        ],
+        "events": [
+          "admin.record_created",
+          "admin.record_updated",
+          "admin.record_deleted"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "audit-log",
+      "version": "0.1.0",
+      "source": "registry:audit-log@0.1.0",
+      "checksum": "sha256:preview-audit-log-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/audit",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "audit.read",
+          "audit.export",
+          "audit.admin"
+        ],
+        "rpc": [],
+        "hooks": [
+          "redactAuditPayload",
+          "beforeAuditExport"
+        ],
+        "events": [
+          "audit.recorded",
+          "audit.exported"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "payment",
+      "version": "0.1.0",
+      "source": "registry:payment@0.1.0",
+      "checksum": "sha256:preview-payment-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/payments",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "payment.read",
+          "payment.write",
+          "payment.admin",
+          "payment.extend",
+          "payment.observe"
+        ],
+        "rpc": [],
+        "hooks": [],
+        "events": [
+          "payment.checkout_created",
+          "payment.succeeded",
+          "payment.refunded",
+          "payment.failed"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "image-generation",
+      "version": "0.1.0",
+      "source": "registry:image-generation@0.1.0",
+      "checksum": "sha256:preview-image-generation-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/images",
+        "bindings": [
+          "DB",
+          "IMAGE_BUCKET"
+        ],
+        "resources": [
+          "D1",
+          "R2"
+        ],
+        "permissions": [
+          "image.generate",
+          "image.read",
+          "image.admin",
+          "image.extend",
+          "image.observe"
+        ],
+        "rpc": [
+          {
+            "method": "generateImage",
+            "scope": "image.generate",
+            "public": false
+          },
+          {
+            "method": "editImage",
+            "scope": "image.generate",
+            "public": false
+          },
+          {
+            "method": "listImages",
+            "scope": "image.read",
+            "public": false
+          },
+          {
+            "method": "getImage",
+            "scope": "image.read",
+            "public": false
+          },
+          {
+            "method": "deleteImage",
+            "scope": "image.admin",
+            "public": false
+          }
+        ],
+        "hooks": [
+          "beforeGenerate",
+          "onImageGenerated"
+        ],
+        "events": [
+          "image.generated",
+          "image.edited",
+          "image.deleted"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "ads-manager",
+      "version": "0.1.0",
+      "source": "registry:ads-manager@0.1.0",
+      "checksum": "sha256:preview-ads-manager-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/ads",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "ads.connect",
+          "ads.read",
+          "ads.manage",
+          "ads.admin",
+          "ads.observe"
+        ],
+        "rpc": [
+          {
+            "method": "connectAccount",
+            "scope": "ads.connect",
+            "public": false
+          },
+          {
+            "method": "listConnections",
+            "scope": "ads.read",
+            "public": false
+          },
+          {
+            "method": "disconnectAccount",
+            "scope": "ads.admin",
+            "public": false
+          },
+          {
+            "method": "listCampaigns",
+            "scope": "ads.read",
+            "public": false
+          },
+          {
+            "method": "getInsights",
+            "scope": "ads.read",
+            "public": false
+          },
+          {
+            "method": "syncInsights",
+            "scope": "ads.read",
+            "public": false
+          },
+          {
+            "method": "detectAnomalies",
+            "scope": "ads.read",
+            "public": false
+          },
+          {
+            "method": "listAlerts",
+            "scope": "ads.read",
+            "public": false
+          }
+        ],
+        "hooks": [
+          "beforeSync",
+          "onAlertRaised"
+        ],
+        "events": [
+          "ad.account_connected",
+          "ad.account_disconnected",
+          "ad.insights_synced",
+          "ad.alert_raised"
+        ],
+        "requires": []
+      }
+    },
+    {
+      "id": "marketing-research",
+      "version": "0.1.0",
+      "source": "registry:marketing-research@0.1.0",
+      "checksum": "sha256:preview-marketing-research-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/marketing-research",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "marketing.read",
+          "marketing.run",
+          "marketing.admin",
+          "marketing.observe"
+        ],
+        "rpc": [],
+        "hooks": [],
+        "events": [],
+        "requires": []
+      }
+    }
+  ],
+  "customizations": {
+    "config": true,
+    "hooks": [
+      "beforeInvite",
+      "onMembershipChanged",
+      "beforeSubscriptionChange",
+      "onSubscriptionActivated",
+      "beforeWrite",
+      "onAdminAction",
+      "redactAuditPayload"
+    ],
+    "overlays": [],
+    "forks": []
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "saas-growth-sveltekit",
+  "version": "0.1.0",
+  "status": "ready",
+  "displayName": "SaaS Growth SvelteKit",
+  "category": "business-system",
+  "summary": "Multi-tenant B2B SaaS starter with growth tooling for Cloudflare SvelteKit: org sign-up, team RBAC, and subscription billing with Stripe payments \u2014 plus AI image generation, ad-account monitoring, and marketing research.",
+  "runtime": {
+    "language": "typescript",
+    "framework": "sveltekit",
+    "adapter": "@sveltejs/adapter-cloudflare",
+    "platform": "cloudflare-workers",
+    "entrypoint": ".svelte-kit/cloudflare/_worker.js"
+  },
+  "deployment": {
+    "defaultMode": "managed-cloudflare",
+    "managedNamespace": "microservices-sh",
+    "byoCloudflare": "later"
+  },
+  "modules": {
+    "required": [
+      "auth",
+      "identity",
+      "email",
+      "org-team-rbac",
+      "billing-subscriptions",
+      "admin-shell",
+      "audit-log",
+      "payment",
+      "image-generation",
+      "ads-manager",
+      "marketing-research"
+    ],
+    "optional": [
+      "webhook-delivery",
+      "notifications-inapp"
+    ]
+  },
+  "slots": {
+    "identity": {
+      "activeModule": "identity",
+      "allowedModules": [
+        "auth",
+        "identity"
+      ],
+      "approvalRisk": "high"
+    },
+    "tenancy": {
+      "activeModule": "org-team-rbac",
+      "allowedModules": [
+        "org-team-rbac"
+      ],
+      "approvalRisk": "high"
+    },
+    "billing": {
+      "activeModule": "billing-subscriptions",
+      "allowedModules": [
+        "billing-subscriptions"
+      ],
+      "approvalRisk": "high"
+    },
+    "admin": {
+      "activeModule": "admin-shell",
+      "allowedModules": [
+        "admin-shell"
+      ],
+      "approvalRisk": "medium"
+    },
+    "audit": {
+      "activeModule": "audit-log",
+      "allowedModules": [
+        "audit-log"
+      ],
+      "approvalRisk": "medium"
+    },
+    "payment": {
+      "activeModule": "payment",
+      "allowedModules": [
+        "payment"
+      ],
+      "approvalRisk": "high"
+    },
+    "messaging": {
+      "activeModule": "email",
+      "allowedModules": [
+        "email"
+      ],
+      "approvalRisk": "high"
+    },
+    "media": {
+      "activeModule": "image-generation",
+      "allowedModules": [
+        "image-generation"
+      ],
+      "approvalRisk": "medium"
+    },
+    "advertising": {
+      "activeModule": "ads-manager",
+      "allowedModules": [
+        "ads-manager"
+      ],
+      "approvalRisk": "medium"
+    },
+    "research": {
+      "activeModule": "marketing-research",
+      "allowedModules": [
+        "marketing-research"
+      ],
+      "approvalRisk": "low"
+    }
+  },
+  "sourcePolicy": {
+    "templateOwns": [
+      "app shell",
+      "routes",
+      "layout",
+      "UI overlays",
+      "composition glue"
+    ],
+    "modulesOwn": [
+      "domain behavior",
+      "schemas",
+      "use cases",
+      "ports",
+      "migrations"
+    ],
+    "apiLogic": "detached-use-cases-with-sveltekit-adapters"
+  },
+  "checks": [
+    {
+      "id": "migrations",
+      "file": "migrations/0001_core.sql"
+    },
+    {
+      "id": "http-smoke",
+      "file": "scripts/smoke-http.mjs"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "hero": {
+    "eyebrow": "B2B SaaS",
+    "headline": "Ship your SaaS, not boilerplate.",
+    "lead": "Sign up, create an organization, invite your team, and bill on a subscription — multi-tenant from day one.",
+    "primaryCta": { "label": "Create your organization", "href": "/signup" },
+    "secondaryCta": { "label": "Log in", "href": "/login" }
+  },
+  "panel": {
+    "eyebrow": "What's inside",
+    "title": "Multi-tenant by default",
+    "body": "Organization-scoped access, role-based teams, and subscription billing — enforced everywhere, not bolted on.",
+    "features": ["Org sign-up + membership", "Role-based teams", "Subscription billing", "Super-admin console", "Audit trail"]
+  }
+}

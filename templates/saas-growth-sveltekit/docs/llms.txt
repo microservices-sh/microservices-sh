@@ -1,0 +1,64 @@
+# SaaS Starter SvelteKit LLM Guide
+
+Purpose: guide agents implementing or customizing the `saas-starter-sveltekit`
+template — a multi-tenant B2B SaaS starter on Cloudflare SvelteKit.
+
+## Read First
+
+- `microservices.template.json`
+- `microservices.config.json`
+- `microservices.lock.json`
+- `README.agent.md`
+- `docs/api-boundary.md`
+
+## Modules
+
+- `auth` — signing keys / token verification (session wiring point)
+- `org-team-rbac` — organizations, memberships, roles, invitations, authorize
+- `billing-subscriptions` — plans, subscriptions, status, dunning
+- `admin-shell` — generic super-admin table gateway over module tables
+- `audit-log` — append-only event trail
+
+## Architecture Rule
+
+SvelteKit route files are adapters. Domain/API logic lives in detached use cases.
+
+```txt
+src/routes/signup/+page.server.ts        -> createOrganization (org-team-rbac)
+src/routes/app/+layout.server.ts         -> resolvePermissions gate (org-team-rbac)
+src/routes/app/team/+page.server.ts      -> inviteMember / updateMemberRole
+src/routes/app/team/accept/+page.server.ts -> acceptInvitation
+src/routes/app/billing/+page.server.ts   -> listPlans / startSubscription / changePlan
+src/routes/admin/[resource]/+page.server.ts -> listRecords (admin-shell)
+
+src/lib/server/stores.ts   -> resolves D1 or memory module adapters per request
+src/lib/server/org-context.ts -> active-org tracking + requireOrgPermission gate
+```
+
+## Tenancy Rules
+
+- Each org is a tenant. `subscriberId` on a subscription is the org id.
+- `resolvePermissions(orgId, userId)` returns `[]` for non-members.
+- Gate every org action with `authorize(orgId, userId, permission, { store })`.
+- The `/admin` area is platform super-admin scope (across all orgs), gated by the
+  session `isSuperAdmin` flag, not an org role.
+
+## Approval Gates
+
+Require user approval before changing:
+
+- secrets
+- remote migrations
+- payment/email provider behavior (Stripe, etc.)
+- Cloudflare resources
+- remote deployments
+- forked module internals
+
+Local baseline commands may apply the checked-in D1 migrations to Wrangler's local
+database:
+
+```bash
+pnpm microservices local migrate
+pnpm microservices local dev
+pnpm microservices local smoke
+```
