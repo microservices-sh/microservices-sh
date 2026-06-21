@@ -11,3 +11,12 @@ export interface TicketStore {
     patch: Partial<Pick<Ticket, "status" | "priority" | "assigneeId">> & { updatedAt: string }
   ): Promise<Ticket | null>;
 }
+
+// A grounded-answer source (cite-or-refuse). The app injects an implementation
+// backed by the research module's retriever + synthesizer, so support replies are
+// drafted ONLY from cited knowledge — an ungrounded question yields an empty
+// answer / no citations, which the draft use-case turns into a refusal rather
+// than a hallucinated reply to a customer.
+export interface GroundedAnswerer {
+  answer(question: string): Promise<{ answer: string; citedSourceFiles: string[] }>;
+}
