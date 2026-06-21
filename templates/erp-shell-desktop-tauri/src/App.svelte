@@ -649,6 +649,12 @@
     return `${Math.round(confidence * 100)}%`;
   }
 
+  function confLevel(confidence: number): "high" | "mid" | "low" {
+    if (confidence >= 0.85) return "high";
+    if (confidence >= 0.6) return "mid";
+    return "low";
+  }
+
   function fieldEditValue(field: ExtractedField) {
     if (field.value === null || field.value === undefined) return "";
     return String(field.value);
@@ -808,12 +814,12 @@
           {/snippet}
           <dl class="status-list">
             <div>
-              <dt>OCR</dt>
-              <dd><Badge tone={toneForStatus(runtime.ocr)}>{statusLabel[runtime.ocr]}</Badge> {ocrDetail}</dd>
+              <dt>Vision OCR</dt>
+              <dd><span class="led" data-tone={toneForStatus(runtime.ocr)} aria-hidden="true"></span><Badge tone={toneForStatus(runtime.ocr)}>{statusLabel[runtime.ocr]}</Badge> {ocrDetail}</dd>
             </div>
             <div>
               <dt>LLM</dt>
-              <dd><Badge tone={toneForStatus(runtime.llm)}>{statusLabel[runtime.llm]}</Badge> {llmDetail}</dd>
+              <dd><span class="led" data-tone={toneForStatus(runtime.llm)} aria-hidden="true"></span><Badge tone={toneForStatus(runtime.llm)}>{statusLabel[runtime.llm]}</Badge> {llmDetail}</dd>
             </div>
             <div>
               <dt>Model</dt>
@@ -876,8 +882,11 @@
             <div class="draft-summary">
               <strong>{selectedJob?.name ?? "Selected document"}</strong>
               <span>{activeDraft.summary ?? "Review extracted fields before ERP import."}</span>
+              <div class="confidence-bar" data-level={confLevel(activeDraft.confidence)} style={`--conf:${Math.round(activeDraft.confidence * 100)}%`}>
+                <span class="confidence-bar-track"><span class="confidence-bar-fill"></span></span>
+                <span class="confidence-bar-label">{confidenceLabel(activeDraft.confidence)} overall confidence</span>
+              </div>
               <div class="draft-meta">
-                <Badge tone={activeDraft.confidence >= 0.85 ? "good" : "warn"}>{confidenceLabel(activeDraft.confidence)}</Badge>
                 <span>{activeDraft.schemaId}</span>
                 <span>{activeDraft.model ?? activeDraft.runtime}</span>
               </div>
@@ -928,7 +937,12 @@
                         <span class="field-source">{field.source.text}</span>
                       {/if}
                     </td>
-                    <td data-label="Confidence" class="table-num">{confidenceLabel(field.confidence)}</td>
+                    <td data-label="Confidence" class="table-num">
+                      <span class="conf-mini" data-level={confLevel(field.confidence)} style={`--conf:${Math.round(field.confidence * 100)}%`}>
+                        <span class="conf-mini-fill"></span>
+                      </span>
+                      <span class="conf-mini-num">{confidenceLabel(field.confidence)}</span>
+                    </td>
                   </tr>
                 {/each}
               </ResourceTable>
@@ -1214,7 +1228,7 @@
 
               <CustomSelect
                 id="ocr-language"
-                label="OCR language"
+                label="Document language"
                 options={ocrSelectOptions}
                 value={settingsDraftOcrLanguage}
                 onChange={(value) => (settingsDraftOcrLanguage = value)}

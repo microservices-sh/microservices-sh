@@ -380,11 +380,45 @@ meter {
 }
 
 .status-list dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
   margin: 0;
   min-inline-size: 0;
   overflow-wrap: anywhere;
   color: var(--color-ink-soft);
   font-weight: 500;
+}
+
+/* Live runtime LED — echoes the status-bar signal dot. */
+.led {
+  inline-size: 8px;
+  aspect-ratio: 1;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-ink-faint);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-ink-faint) 18%, transparent);
+}
+.led[data-tone="good"] {
+  background: var(--color-green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-green) 20%, transparent), 0 0 8px var(--signal-glow);
+  animation: led-pulse 2.6s var(--ease) infinite;
+}
+.led[data-tone="warn"] {
+  background: var(--color-amber);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-amber) 20%, transparent);
+}
+.led[data-tone="bad"] {
+  background: var(--color-red);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-red) 20%, transparent);
+}
+@keyframes led-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-green) 20%, transparent), 0 0 7px var(--signal-glow); }
+  50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-green) 10%, transparent), 0 0 13px var(--signal-glow); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .led[data-tone="good"] { animation: none; }
 }
 
 .side-stack {
@@ -431,6 +465,63 @@ meter {
   color: var(--color-ink-faint);
   font-family: var(--font-mono);
   font-size: 0.7rem;
+}
+
+/* ── Confidence as a visual (overall + per-field) ─────────────────── */
+.confidence-bar {
+  display: grid;
+  gap: 6px;
+  margin-block: 4px 2px;
+}
+.confidence-bar-track {
+  display: block;
+  block-size: 7px;
+  border-radius: 99px;
+  background: var(--color-line);
+  overflow: hidden;
+}
+.confidence-bar-fill {
+  display: block;
+  block-size: 100%;
+  inline-size: var(--conf, 0%);
+  border-radius: 99px;
+  background: var(--color-green);
+  transition: inline-size 520ms var(--ease);
+}
+.confidence-bar[data-level="mid"] .confidence-bar-fill { background: var(--color-amber); }
+.confidence-bar[data-level="low"] .confidence-bar-fill { background: var(--color-red); }
+.confidence-bar-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: var(--color-ink-faint);
+}
+
+.conf-mini {
+  display: inline-block;
+  vertical-align: middle;
+  inline-size: 52px;
+  block-size: 6px;
+  margin-inline-end: 8px;
+  border-radius: 99px;
+  background: var(--color-line);
+  overflow: hidden;
+}
+.conf-mini-fill {
+  display: block;
+  block-size: 100%;
+  inline-size: var(--conf, 0%);
+  border-radius: 99px;
+  background: var(--color-green);
+}
+.conf-mini[data-level="mid"] .conf-mini-fill { background: var(--color-amber); }
+.conf-mini[data-level="low"] .conf-mini-fill { background: var(--color-red); }
+.conf-mini-num {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confidence-bar-fill { transition: none; }
 }
 
 .warning-list {

@@ -130,8 +130,8 @@ async function call<T>(command: string, args?: Record<string, unknown>, fallback
 export async function getRuntimeStatus() {
   return call<RuntimeStatus>("runtime_status", undefined, {
     ocr: "ready",
-    llm: "missing",
-    model: "Gemma local adapter pending",
+    llm: "ready",
+    model: "gemma4:e4b",
     mode: "browser-preview",
     ocrEngine: "gemma vision",
     llmEngine: "ollama"
