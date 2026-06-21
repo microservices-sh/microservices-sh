@@ -1,6 +1,6 @@
 # DOT AI OS Template
 
-Status: `draft`
+Status: `private-pilot`
 
 DOT AI OS is an agent-native operator workspace for Cloudflare SvelteKit. It
 adapts the Jimmy Dashboard OS "Clear Workbench" shape into the microservices.sh

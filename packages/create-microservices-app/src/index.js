@@ -51,9 +51,10 @@ const REPO_TEMPLATES = {
   },
   "dot-ai-os": {
     id: "dot-ai-os",
-    name: "Corporate OS (DOT AI OS)",
-    status: "draft",
-    summary: "Dedicated company OS on Cloudflare SvelteKit - operate, research, and advise from workflows, knowledge, decisions, files, team roles, and module-backed work surfaces.",
+    name: "DOT AI OS",
+    status: "private-pilot",
+    visibility: "private",
+    summary: "Private-pilot operator workspace on Cloudflare SvelteKit - workflows, knowledge, decisions, files, team roles, and module-backed work surfaces.",
   },
   "erp-shell-sveltekit": {
     id: "erp-shell-sveltekit",
@@ -62,6 +63,11 @@ const REPO_TEMPLATES = {
     summary: "Cloudflare SvelteKit ERP shell - customers, invoices, files, support tickets, teams, admin, and audit log.",
   },
 };
+const PRIVATE_REPO_TEMPLATE_IDS = new Set(
+  Object.values(REPO_TEMPLATES)
+    .filter((template) => template.visibility === "private" || template.status === "private-pilot")
+    .map((template) => template.id)
+);
 function readOwnPackageVersion(packageRoot) {
   try {
     const packageJson = JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8"));
@@ -198,7 +204,6 @@ function telemetryProps(flags, extra = {}) {
     template: flags.template,
     packageManager: flags.packageManager,
     install: flags.install,
-    corporateOs: Boolean(flags.os),
     requestedModuleCount: flags.modules?.length ?? 0,
     version: PACKAGE_VERSION,
     ...extra,
@@ -209,10 +214,10 @@ function durationMs(startedAt) {
   return Math.max(0, Date.now() - startedAt);
 }
 
-function availableTemplateList() {
+function availableTemplateList({ includePrivate = false } = {}) {
   const sdk = listTemplates();
   const procedural = sdk.ok ? sdk.data : [];
-  const repo = Object.values(REPO_TEMPLATES);
+  const repo = Object.values(REPO_TEMPLATES).filter((template) => includePrivate || !PRIVATE_REPO_TEMPLATE_IDS.has(template.id));
   const seen = new Set(procedural.map((template) => template.id));
   const base = [...procedural, ...repo.filter((template) => !seen.has(template.id))];
   const frameworks = loadFrameworks().map((row) => ({
@@ -223,6 +228,10 @@ function availableTemplateList() {
   }));
   const baseIds = new Set(base.map((t) => t.id));
   return [...base, ...frameworks.filter((f) => !baseIds.has(f.id))];
+}
+
+function isPrivateTemplate(templateId) {
+  return PRIVATE_REPO_TEMPLATE_IDS.has(templateId);
 }
 
 function parseArgs(argv) {
@@ -238,8 +247,6 @@ function parseArgs(argv) {
     gitRepo: null,
     git: true,
     interactive: false,
-    os: false,
-    osIntake: null,
     explicit: {
       template: false,
       packageManager: false,
@@ -252,9 +259,6 @@ function parseArgs(argv) {
     const value = argv[index];
     if (value === "--") {
       continue;
-    } else if (value === "--os" || value === "--corporate-os") {
-      flags.os = true;
-      if (!flags.explicit.template) flags.template = "dot-ai-os";
     } else if (value === "--template") {
       flags.template = argv[index + 1] || flags.template;
       flags.explicit.template = true;
@@ -281,15 +285,6 @@ function parseArgs(argv) {
       flags.explicit.git = true;
     } else if (value === "--interactive") {
       flags.interactive = true;
-    } else if (value === "--os-intake") {
-      flags.os = true;
-      if (!flags.explicit.template) flags.template = "dot-ai-os";
-      try {
-        flags.osIntake = JSON.parse(argv[index + 1] || "{}");
-      } catch (error) {
-        throw new Error(`Invalid --os-intake JSON: ${error.message}`);
-      }
-      index += 1;
     } else if (value === "--no-install") {
       flags.install = false;
     } else if (value === "--install") {
@@ -305,6 +300,8 @@ function parseArgs(argv) {
       index += 1;
     } else if (value === "--help" || value === "-h") {
       args.push("help");
+    } else if (value.startsWith("-")) {
+      throw new Error(`Unknown option: ${value}. Run --help for supported flags.`);
     } else {
       args.push(value);
     }
@@ -326,17 +323,13 @@ function usage() {
 
 Usage:
   npm create microservices-app@latest <app-name>
-  npm create microservices-app@latest <app-name> -- --os
   pnpm create microservices-app <app-name>
 
 Options:
   --template <id>              Template id. Default: booking-sveltekit
                                (booking-sveltekit = full Cloudflare SvelteKit app;
-                                dot-ai-os = dedicated Corporate OS workspace;
                                 wordpress-emdash-blog-astro = content-only WordPress migration;
                                 booking-business = Cloudflare Worker / Hono)
-  --os                         Corporate OS onboarding mode. Defaults to dot-ai-os and writes company model docs
-  --os-intake '<json>'          Non-interactive Corporate OS intake override
   --modules <ids>              Comma-separated extra module ids or id@version pins to enable
   --config '<json>'            Template config override
   --git-repo <url>             Initialize git and add origin remote
@@ -356,283 +349,6 @@ function slugify(value) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60) || "microservices-app";
-}
-
-function titleizeSlug(value) {
-  const text = String(value || "company-os").replace(/[-_]+/g, " ").trim();
-  return text
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ") || "Company OS";
-}
-
-function cleanText(value, fallback = "") {
-  const text = typeof value === "string" ? value.trim() : "";
-  return text || fallback;
-}
-
-function cleanOptionalText(value) {
-  const text = typeof value === "string" ? value.trim() : "";
-  if (/^(skip|none|no|null)$/i.test(text)) return null;
-  return text || null;
-}
-
-function cleanList(value, fallback = []) {
-  const raw = Array.isArray(value)
-    ? value
-    : typeof value === "string"
-      ? value.split(/[\n;,]+/)
-      : [];
-  const items = raw
-    .map((item) => String(item ?? "").trim())
-    .filter(Boolean);
-  return items.length ? items : fallback;
-}
-
-function corporateOsSource(config = {}, explicit = null) {
-  const cfg = config && typeof config === "object" ? config : {};
-  const os = cfg.corporateOs && typeof cfg.corporateOs === "object"
-    ? cfg.corporateOs
-    : cfg.os && typeof cfg.os === "object"
-      ? cfg.os
-      : {};
-  return {
-    ...(cfg.business && typeof cfg.business === "object" ? { business: cfg.business } : {}),
-    ...os,
-    ...(explicit && typeof explicit === "object" ? explicit : {}),
-  };
-}
-
-function normalizeCorporateOsIntake(appName, config = {}, explicit = null) {
-  const source = corporateOsSource(config, explicit);
-  const business = source.business && typeof source.business === "object" ? source.business : {};
-  const companyName = cleanText(source.companyName ?? business.name, titleizeSlug(appName));
-  const firstWorkflow = cleanText(
-    source.firstWorkflow,
-    "Capture one operating workflow from intake to owner, decision, and follow-through."
-  );
-
-  return {
-    schemaVersion: "2026-06-19",
-    mode: "corporate-os",
-    company: {
-      name: companyName,
-      website: cleanOptionalText(source.website ?? business.website ?? source.domain),
-      industry: cleanText(source.industry, "operations-heavy company"),
-      teamSize: cleanText(source.teamSize, "20-500"),
-    },
-    owner: {
-      name: cleanText(source.ownerName ?? source.owner, "Operating owner"),
-      email: cleanOptionalText(source.ownerEmail ?? source.email),
-    },
-    operatingLoop: cleanText(source.operatingLoop, "client-delivery"),
-    firstWorkflow,
-    research: {
-      sources: cleanList(source.knowledgeSources ?? source.researchSources, [
-        "Company documents",
-        "Customer records",
-        "Market and competitor research",
-      ]),
-    },
-    advisory: {
-      recurringDecisions: cleanList(source.recurringDecisions ?? source.decisions, [
-        "Weekly operating priorities",
-        "Client or customer risk review",
-        "Next best action for blocked work",
-      ]),
-    },
-    governance: {
-      roles: cleanList(source.roles, ["owner", "admin", "member"]),
-      approvalRules: cleanList(source.approvalRules, [
-        "Human approval required before customer-facing actions",
-        "Decision briefs must include sources and assumptions",
-        "Material workflow changes must create an audit event",
-      ]),
-    },
-    pilot: {
-      successMetric: cleanText(source.successMetric, "Reduce one repeated workflow cycle time by 30%."),
-    },
-  };
-}
-
-function markdownList(items) {
-  return items.map((item) => `- ${item}`).join("\n");
-}
-
-function corporateOsArtifacts(intake) {
-  const json = `${JSON.stringify(intake, null, 2)}\n`;
-  const company = intake.company;
-  const ownerEmail = intake.owner.email ? ` <${intake.owner.email}>` : "";
-  return [
-    {
-      path: "microservices.os.json",
-      contents: json,
-    },
-    {
-      path: "docs/company-model.md",
-      contents: `# Company Model
-
-Company: ${company.name}
-Industry: ${company.industry}
-Team size: ${company.teamSize}
-Website: ${company.website ?? "Not set"}
-Operating owner: ${intake.owner.name}${ownerEmail}
-
-## Position
-
-This Corporate OS is dedicated to ${company.name}. It should encode how the company operates, what it researches, and how advice turns into decisions and follow-through.
-
-## Operating Loop
-
-Primary loop: ${intake.operatingLoop}
-
-First workflow:
-
-${intake.firstWorkflow}
-`,
-    },
-    {
-      path: "docs/operating-map.md",
-      contents: `# Operating Map
-
-## First Workflow
-
-${intake.firstWorkflow}
-
-## Roles
-
-${markdownList(intake.governance.roles)}
-
-## Approval Rules
-
-${markdownList(intake.governance.approvalRules)}
-
-## Implementation Notes
-
-- Keep routes thin; domain behavior belongs in modules.
-- Every advisory recommendation should resolve into an owner, task, approval, workflow, report, or decision log.
-- Treat chat as an interface, not the system of record.
-`,
-    },
-    {
-      path: "docs/research-sources.md",
-      contents: `# Research Sources
-
-Use this file to track the sources the OS may use for research and decision support.
-
-## Starting Sources
-
-${markdownList(intake.research.sources)}
-
-## Source Rules
-
-- Label whether a source is internal, customer-provided, public, or vendor-provided.
-- Capture freshness expectations for recurring reports.
-- Do not connect sensitive systems until permissions and approval rules are explicit.
-`,
-    },
-    {
-      path: "docs/decision-briefs.md",
-      contents: `# Decision Briefs
-
-Decision briefs are the advisory layer of the Corporate OS. Each brief should show sources, assumptions, options, risks, recommendation, owner, and next action.
-
-## Recurring Decisions
-
-${markdownList(intake.advisory.recurringDecisions)}
-
-## Brief Template
-
-### Question
-
-What decision needs to be made?
-
-### Context
-
-What company, customer, market, or operational context matters?
-
-### Sources
-
-List source documents, records, links, and timestamps.
-
-### Options
-
-Compare the practical choices.
-
-### Risks
-
-Name operational, customer, financial, compliance, or delivery risks.
-
-### Recommendation
-
-Make one recommendation with assumptions.
-
-### Follow-through
-
-Owner, due date, task/workflow link, and decision log entry.
-`,
-    },
-    {
-      path: "docs/pilot-plan.md",
-      contents: `# Corporate OS Pilot Plan
-
-## Goal
-
-${intake.pilot.successMetric}
-
-## Scope
-
-- Company model: ${company.name}
-- Operating loop: ${intake.operatingLoop}
-- First workflow: ${intake.firstWorkflow}
-- Research sources: ${intake.research.sources.length}
-- Recurring decisions: ${intake.advisory.recurringDecisions.length}
-
-## Pilot Exit Criteria
-
-- One operating workflow is usable by the owner.
-- At least one research source set is documented.
-- At least one decision brief is produced from company context.
-- Advisory output creates an owner, action, approval, or decision log.
-- Permissions and audit expectations are reviewed before external/customer-facing use.
-`,
-    },
-  ];
-}
-
-function applyCorporateOsProfile(files, intake) {
-  const patched = files.map((file) => {
-    if (file.path !== "microservices.config.json") return file;
-    try {
-      const cfg = JSON.parse(file.contents);
-      cfg.business = {
-        ...(cfg.business || {}),
-        name: intake.company.name,
-        website: intake.company.website,
-        industry: intake.company.industry,
-        teamSize: intake.company.teamSize,
-      };
-      cfg.os = {
-        mode: intake.mode,
-        operatingLoop: intake.operatingLoop,
-        firstWorkflow: intake.firstWorkflow,
-        owner: intake.owner,
-        researchSources: intake.research.sources,
-        recurringDecisions: intake.advisory.recurringDecisions,
-        successMetric: intake.pilot.successMetric,
-      };
-      return { ...file, contents: `${JSON.stringify(cfg, null, 2)}\n` };
-    } catch {
-      return file;
-    }
-  });
-
-  const existing = new Set(patched.map((file) => file.path));
-  for (const artifact of corporateOsArtifacts(intake)) {
-    if (!existing.has(artifact.path)) patched.push(artifact);
-  }
-  return patched;
 }
 
 function writeJson(value) {
@@ -656,7 +372,6 @@ function scriptedAnswers() {
 function canPrompt(targetName, flags) {
   return (
     flags.interactive ||
-    (flags.os && !flags.json && process.env.CI !== "true" && process.stdin.isTTY && process.stdout.isTTY) ||
     (!targetName && !flags.json && process.env.CI !== "true" && process.stdin.isTTY && process.stdout.isTTY)
   );
 }
@@ -721,61 +436,6 @@ function resolveChoices(answer, choices, label) {
   return selected;
 }
 
-const OPERATING_LOOP_CHOICES = [
-  { id: "client-delivery", summary: "Client work, deliverables, approvals, handoffs" },
-  { id: "sales-service", summary: "Lead intake, sales follow-up, customer service" },
-  { id: "internal-ops", summary: "Back-office operations, tasks, reporting, escalations" },
-  { id: "research-advisory", summary: "Research briefs, expert advice, client recommendations" },
-  { id: "multi-site-ops", summary: "Multi-location or franchise operating cadence" },
-];
-
-async function askCorporateOsIntake(appName, flags, ask) {
-  const defaults = normalizeCorporateOsIntake(appName, flags.config, flags.osIntake);
-
-  process.stdout.write("\nCorporate OS intake:\n");
-  const companyName = cleanText(await ask(`Company name [${defaults.company.name}]: `), defaults.company.name);
-  const website = cleanOptionalText(await ask(`Website [${defaults.company.website ?? "skip"}]: `)) ?? defaults.company.website;
-  const industry = cleanText(await ask(`Industry [${defaults.company.industry}]: `), defaults.company.industry);
-  const teamSize = cleanText(await ask(`Team size [${defaults.company.teamSize}]: `), defaults.company.teamSize);
-  const ownerName = cleanText(await ask(`Operating owner [${defaults.owner.name}]: `), defaults.owner.name);
-  const ownerEmail = cleanOptionalText(await ask(`Owner email [${defaults.owner.email ?? "skip"}]: `)) ?? defaults.owner.email;
-
-  printChoices("Operating loops", OPERATING_LOOP_CHOICES);
-  const operatingLoopAnswer = await ask(`Operating loop number or id [${defaults.operatingLoop}]: `);
-  const operatingLoop = resolveChoice(operatingLoopAnswer, OPERATING_LOOP_CHOICES, defaults.operatingLoop, "operating loop");
-
-  const firstWorkflow = cleanText(
-    await ask(`First workflow to encode [${defaults.firstWorkflow}]: `),
-    defaults.firstWorkflow
-  );
-  const knowledgeSources = cleanList(
-    await ask(`Knowledge/research sources, comma-separated [${defaults.research.sources.join(", ")}]: `),
-    defaults.research.sources
-  );
-  const recurringDecisions = cleanList(
-    await ask(`Recurring decisions, comma-separated [${defaults.advisory.recurringDecisions.join(", ")}]: `),
-    defaults.advisory.recurringDecisions
-  );
-  const successMetric = cleanText(
-    await ask(`Pilot success metric [${defaults.pilot.successMetric}]: `),
-    defaults.pilot.successMetric
-  );
-
-  return normalizeCorporateOsIntake(appName, flags.config, {
-    companyName,
-    website,
-    industry,
-    teamSize,
-    ownerName,
-    ownerEmail,
-    operatingLoop,
-    firstWorkflow,
-    knowledgeSources,
-    recurringDecisions,
-    successMetric,
-  });
-}
-
 async function askGuidedSetup(targetName, flags) {
   if (!canPrompt(targetName, flags)) {
     return { targetName, flags };
@@ -796,7 +456,7 @@ async function askGuidedSetup(targetName, flags) {
     const nextFlags = { ...flags };
 
     if (!nextTargetName) {
-      const answer = await ask(nextFlags.os ? "Corporate OS project name: " : "Project name: ");
+      const answer = await ask("Project name: ");
       nextTargetName = answer.trim();
     }
 
@@ -804,16 +464,14 @@ async function askGuidedSetup(targetName, flags) {
       throw new Error("Project name is required.");
     }
 
-    if (nextFlags.os && !flags.explicit.template) {
-      nextFlags.template = "dot-ai-os";
-    } else if (!flags.explicit.template) {
+    if (!flags.explicit.template) {
       const availableTemplates = availableTemplateList();
       printChoices("Templates", availableTemplates);
       const answer = await ask(`Template number or id [${nextFlags.template}]: `);
       nextFlags.template = resolveChoice(answer, availableTemplates, nextFlags.template, "template");
     }
 
-    if (!nextFlags.os && !flags.explicit.modules) {
+    if (!flags.explicit.modules) {
       const docs = listModuleDocs();
       const availableModules = docs.ok ? docs.data : modules.ok ? modules.data : [];
       printChoices("Modules", availableModules);
@@ -821,10 +479,6 @@ async function askGuidedSetup(targetName, flags) {
         "Extra modules to enable or plan, numbers or ids comma-separated [template defaults]: "
       );
       nextFlags.modules = resolveChoices(answer, availableModules, "module");
-    }
-
-    if (nextFlags.os) {
-      nextFlags.osIntake = await askCorporateOsIntake(nextTargetName, nextFlags, ask);
     }
 
     if (!flags.explicit.git && nextFlags.git && nextFlags.gitRepo === null) {
@@ -1084,7 +738,6 @@ async function main() {
 
   const appName = slugify(targetName);
   const targetDirectory = resolve(flags.dir, appName);
-  const corporateOs = flags.os ? normalizeCorporateOsIntake(appName, flags.config, flags.osIntake) : null;
   await track("create_app_started", telemetryProps(flags));
   try {
     await assertEmptyOrMissing(targetDirectory);
@@ -1095,27 +748,17 @@ async function main() {
   }
 
   const isRepoTemplate = Boolean(REPO_TEMPLATES[flags.template]);
-  const allTemplates = availableTemplateList();
+  const allTemplates = availableTemplateList({ includePrivate: true });
+  const publicTemplates = availableTemplateList();
   if (!allTemplates.some((template) => template.id === flags.template)) {
     const response = fail(
       "TEMPLATE_NOT_FOUND",
       `Unknown template: ${flags.template}`,
       "Run with --template set to an available template id.",
-      { available: allTemplates.map((template) => template.id) }
+      { available: publicTemplates.map((template) => template.id) }
     );
     await track("create_app_failed", telemetryProps(flags, { errorCode: "TEMPLATE_NOT_FOUND", durationMs: durationMs(startedAt) }));
     return flags.json ? writeJson(response) : process.stderr.write(`Error: ${response.error.message}\n`);
-  }
-
-  if (flags.os && flags.template !== "dot-ai-os") {
-    const response = fail(
-      "CORPORATE_OS_TEMPLATE_REQUIRED",
-      `Corporate OS mode requires the dot-ai-os template. Received: ${flags.template}`,
-      "Run with --os and omit --template, or pass --template dot-ai-os.",
-      { template: flags.template }
-    );
-    await track("create_app_failed", telemetryProps(flags, { errorCode: "CORPORATE_OS_TEMPLATE_REQUIRED", durationMs: durationMs(startedAt) }));
-    return flags.json ? writeJson(response) : process.stderr.write(`Error: ${response.error.message}\nNext: ${response.error.remediation}\n`);
   }
 
   const frameworkRow = resolveFramework(flags.template);
@@ -1176,10 +819,6 @@ async function main() {
     selectionWarnings = selection.warnings;
   }
 
-  if (corporateOs) {
-    generatedFiles = applyCorporateOsProfile(generatedFiles, corporateOs);
-  }
-
   const { root, written } = await writeGeneratedFiles(targetDirectory, generatedFiles);
   const git = setupGit(root, flags.git ? flags.gitRepo : null);
   let installResult = null;
@@ -1221,21 +860,12 @@ async function main() {
       git,
       written,
       nextCommands: nextCommands(flags.packageManager, appName, flags.install, planOnlyModules, flags.template),
-      corporateOs: corporateOs
-        ? {
-            intake: "microservices.os.json",
-            docs: [
-              "docs/company-model.md",
-              "docs/operating-map.md",
-              "docs/research-sources.md",
-              "docs/decision-briefs.md",
-              "docs/pilot-plan.md",
-            ],
-          }
-        : null,
     },
     warnings: [
       ...selectionWarnings,
+      ...(isPrivateTemplate(flags.template)
+        ? [`${flags.template} is a private-pilot template. It is hidden from public template lists and support is by explicit invitation.`]
+        : []),
       ...(flags.install ? [] : ["Dependencies were not installed. Run the install command before local dev."]),
     ],
   };
@@ -1247,8 +877,7 @@ async function main() {
     moduleCount: generatedModules.length,
     packageManager: flags.packageManager,
     installed: flags.install,
-    corporateOs: Boolean(corporateOs),
-    operatingLoop: corporateOs?.operatingLoop ?? null,
+    privateTemplate: isPrivateTemplate(flags.template),
     durationMs: durationMs(startedAt),
   });
 
@@ -1264,10 +893,9 @@ async function main() {
   process.stdout.write("Next commands:\n");
   process.stdout.write(output.data.nextCommands.map((command) => `  ${command}`).join("\n"));
   process.stdout.write("\n");
-  if (corporateOs) {
-    process.stdout.write("\nCorporate OS artifacts:\n");
-    process.stdout.write(`  microservices.os.json\n`);
-    process.stdout.write(output.data.corporateOs.docs.map((path) => `  ${path}`).join("\n"));
+  if (output.warnings.length) {
+    process.stdout.write("\nWarnings:\n");
+    process.stdout.write(output.warnings.map((warning) => `  - ${warning}`).join("\n"));
     process.stdout.write("\n");
   }
 }

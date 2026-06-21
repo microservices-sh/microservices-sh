@@ -12,9 +12,6 @@ Create a production-shaped Cloudflare app foundation in one command.
 ## Quick start
 
 ```bash
-# Corporate OS onboarding
-npm create microservices-app@latest acme-os -- --os
-
 # npm (note the `--` before flags)
 npm create microservices-app@latest my-app -- --template booking-sveltekit
 
@@ -36,7 +33,6 @@ The current clean quickstart proof is recorded in [`docs/quickstart-proof.md`](.
 - Contract-checked microservices.sh modules wired in or planned through `add --plan`
 - `microservices.lock.json` and LLM-readable module docs under `docs/`
 - A project CLI exposed as `<pm> microservices` — `modules list`, `add --plan`, `upgrade --plan`, `check`, `updates`, and managed deploy-plan commands
-- In Corporate OS mode, a company intake file plus operating, research, advisory, and pilot docs. This is a private-pilot lane until runtime creation, audit persistence, and approval-card flows are proven end-to-end.
 
 ## Why this
 
@@ -67,7 +63,6 @@ Pass with `--template <id>`. Default is `booking-sveltekit`.
 | `booking-sveltekit` | Full Cloudflare SvelteKit booking app — public flow, admin, D1, typed hooks (default) |
 | `booking-business` | Cloudflare Worker / Hono booking app, generated from the module contract |
 | `saas-starter-sveltekit` | Multi-tenant B2B SaaS starter (SvelteKit) — org sign-up, team RBAC, subscriptions, admin, audit log |
-| `dot-ai-os` | Private-pilot Corporate OS workspace on Cloudflare SvelteKit — workflows, knowledge, decisions, files, roles, and module-backed work surfaces |
 | `client-portal-sveltekit` | SvelteKit client portal — customers see their own invoices and files; auth, customer, audit-log |
 | `erp-shell-sveltekit` | SvelteKit ERP shell - customers, invoices, files, support tickets, teams, admin, audit-log |
 | `company-landing-astro` | Static Astro company landing page, no backend modules |
@@ -79,8 +74,6 @@ Pass with `--template <id>`. Default is `booking-sveltekit`.
 | Flag | Description |
 |------|-------------|
 | `--template <id>` | Template id (default `booking-sveltekit`) |
-| `--os` | Corporate OS onboarding mode; defaults to `dot-ai-os` and writes company model docs |
-| `--os-intake '<json>'` | Non-interactive Corporate OS intake override |
 | `--modules <ids>` | Comma-separated extra module ids to enable |
 | `--config '<json>'` | Template config override |
 | `--git-repo <url>` | Run `git init` and add an `origin` remote |
@@ -94,25 +87,9 @@ Pass with `--template <id>`. Default is `booking-sveltekit`.
 ```bash
 npm create microservices-app@latest shop -- --template booking-business --modules audit-log
 npm create microservices-app@latest shop -- --git-repo git@github.com:acme/shop.git
-npm create microservices-app@latest acme-os -- --os --os-intake '{"companyName":"Acme Advisory","operatingLoop":"research-advisory"}'
 ```
 
 Module ids are validated against the live registry — run `<pm> microservices modules list` to see what's available. Unknown ids that are *known but not yet generated* come back as follow-up `add --plan` commands.
-
-## Corporate OS onboarding
-
-`--os` starts from the `dot-ai-os` template and writes a first-pass company operating model. Treat this as a private operator-pilot surface, not the broad public launch path.
-
-- `microservices.os.json`
-- `docs/company-model.md`
-- `docs/operating-map.md`
-- `docs/research-sources.md`
-- `docs/decision-briefs.md`
-- `docs/pilot-plan.md`
-
-The prompts ask what company is being encoded, who owns the rollout, what operating loop matters first, which workflow to ship, what knowledge sources to research, which recurring decisions need briefs, and how the pilot will be judged.
-
-Agent Center, Hermes runtime, Ads Manager, and Marketing Research examples should remain pilot/demo language until runtime creation, audit history, approval persistence, and provider write gates are verified.
 
 ## After scaffolding
 

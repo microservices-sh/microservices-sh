@@ -3635,10 +3635,10 @@
           title: "Encode the company",
           short: "Onboarding starts with the company — not a template.",
           openSurface: true,
-          terminalTitle: "verana-os ▸ os intake",
-          terminalFoot: "writing microservices.os.json · company-model.md",
-          browserUrl: "microservices.os.json",
-          appPill: "Corporate OS intake",
+          terminalTitle: "verana-os ▸ private pilot",
+          terminalFoot: "scaffolding dot-ai-os · private-pilot template",
+          browserUrl: "microservices.template.json",
+          appPill: "Private pilot",
           voiceover: "Most companies don't need another AI assistant — they need their operating model encoded. So we start with the company, not a template.",
           captions: [
             { at: 0, text: "Most companies don't need another AI assistant." },
@@ -3646,11 +3646,11 @@
             { at: 6.2, text: "So we start with the company — not a template." }
           ],
           lines: [
-            { text: "$ npm create microservices-app@latest verana-os -- --os", type: "prompt" },
-            { text: "Corporate OS · template dot-ai-os", type: "ok", note: "not a dev boilerplate" },
-            { text: "$ pnpm microservices os intake", type: "prompt" },
-            { text: "what company are we encoding?", type: "muted" },
-            { text: "→ microservices.os.json", type: "ok", note: "company encoded" }
+            { text: "$ npm create microservices-app@latest verana-os -- --template dot-ai-os", type: "prompt" },
+            { text: "DOT AI OS · private-pilot template", type: "ok", note: "exact id required" },
+            { text: "$ pnpm microservices check --json", type: "prompt" },
+            { text: "template checks: pass", type: "ok" },
+            { text: "→ source-visible workspace", type: "ok", note: "modules + lockfile" }
           ]
         },
         {
@@ -4093,8 +4093,8 @@
       // the live MCP registry manifest (sh.microservices/mcp@0.1.1).
       const surfaces = [
         {
-          url: "microservices.os.json",
-          tag: "Company intake",
+          url: "microservices.template.json",
+          tag: "Private template",
           mount: (run) => intakeFill(run),
           html: `
             <div class="srf--intake">

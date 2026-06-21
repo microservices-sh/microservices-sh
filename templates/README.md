@@ -25,7 +25,7 @@ Templates may share modules and SDK code through workspace packages, but generat
 | `company-landing-astro` | ready | Static Astro company landing page with content contract and no backend modules. |
 | `erp-shell-sveltekit` | ready | Single-company ERP shell for customers, invoices, files, support tickets, teams, admin, and audit-log-backed operations. |
 | `saas-starter-sveltekit` | ready | Multi-tenant B2B SaaS starter with org sign-up, team RBAC, subscriptions, admin shell, and audit log. |
-| `dot-ai-os` | draft / private pilot | Agent-native operator OS with task board, focus planning, calendar context, daily review, knowledge/content pipelines, AI team routing, files, team roles, and module-backed work surfaces. Keep public claims pilot-only until runtime creation and approval persistence are proven. |
+| `dot-ai-os` | private pilot | Agent-native operator OS with task board, focus planning, calendar context, daily review, knowledge/content pipelines, AI team routing, files, team roles, and module-backed work surfaces. Hidden from public create-app template lists; scaffold only by exact template id for private pilots. |
 | `erp-shell-desktop-tauri` | draft | Mac and Windows desktop companion for ERP Shell: local document intake, extraction queue review, runtime status, and approved-draft ERP import. |
 | `wordpress-emdash-blog-astro` | experimental | WordPress blog migration to Astro + EmDash on Cloudflare Workers with exporter-first content import, theme ZIP intake, D1/R2, and source probing. |
 
