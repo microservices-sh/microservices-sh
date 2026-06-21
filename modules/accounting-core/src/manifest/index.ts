@@ -8,6 +8,13 @@ export const manifest = {
   summary:
     "Tenant-scoped double-entry accounting foundation with chart of accounts, fiscal periods, balanced posting, voiding, and trial balance.",
   entrypoint: "src/index.ts",
+  permissions: [
+    "accounting-core.read",
+    "accounting-core.write",
+    "accounting-core.admin",
+    "accounting-core.extend",
+    "accounting-core.observe"
+  ],
   resources: [
     {
       type: "d1",
@@ -21,6 +28,55 @@ export const manifest = {
       ]
     }
   ],
+  connections: {
+    requires: [],
+    optional: ["auth", "audit-log"],
+    rpc: {
+      exposes: [],
+      calls: []
+    },
+    events: {
+      emits: [
+        "accounting-core.account_created",
+        "accounting-core.fiscal_period_created",
+        "accounting-core.fiscal_period_status_changed",
+        "accounting-core.journal_entry_created",
+        "accounting-core.journal_entry_updated",
+        "accounting-core.journal_entry_posted",
+        "accounting-core.journal_entry_voided"
+      ],
+      consumes: []
+    },
+    hookPoints: {
+      beforeAccountCreate: {
+        kind: "filter",
+        scope: "accounting-core.extend"
+      },
+      beforeFiscalPeriodCreate: {
+        kind: "filter",
+        scope: "accounting-core.extend"
+      },
+      beforeJournalEntryCreate: {
+        kind: "filter",
+        scope: "accounting-core.extend"
+      },
+      beforeJournalEntryPost: {
+        kind: "filter",
+        scope: "accounting-core.extend"
+      },
+      beforeJournalEntryVoid: {
+        kind: "filter",
+        scope: "accounting-core.extend"
+      },
+      afterJournalEntryChanged: {
+        kind: "observer",
+        scope: "accounting-core.observe"
+      }
+    },
+    provides: {
+      hooks: []
+    }
+  },
   events: [
     "accounting-core.account_created",
     "accounting-core.fiscal_period_created",
@@ -29,7 +85,27 @@ export const manifest = {
     "accounting-core.journal_entry_updated",
     "accounting-core.journal_entry_posted",
     "accounting-core.journal_entry_voided"
-  ]
+  ],
+  surfaces: {
+    agentic: {
+      applicable: true,
+      tools: [
+        "accounting-core.listAccounts",
+        "accounting-core.createAccount",
+        "accounting-core.createFiscalPeriod",
+        "accounting-core.createJournalEntry",
+        "accounting-core.postJournalEntry",
+        "accounting-core.voidJournalEntry",
+        "accounting-core.getTrialBalance"
+      ],
+      approvalRequiredFor: [
+        "accounting-core.createAccount",
+        "accounting-core.createFiscalPeriod",
+        "accounting-core.postJournalEntry",
+        "accounting-core.voidJournalEntry"
+      ]
+    }
+  }
 } as const;
 
 export const moduleDefinition = manifest;

@@ -2,7 +2,140 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Accounting Core Module",
-    "version": "0.1.0"
+    "version": "0.1.0",
+    "description": "Boundary shapes for tenant-scoped chart of accounts, fiscal periods, balanced journal posting, voiding, and trial balance reporting."
   },
-  "paths": {}
+  "paths": {
+    "/setup/status": {
+      "get": {
+        "summary": "Get accounting setup status",
+        "operationId": "getAccountingSetupStatus",
+        "responses": {
+          "200": { "description": "Accounting setup status" }
+        }
+      }
+    },
+    "/setup/chart-of-accounts": {
+      "post": {
+        "summary": "Seed a standard chart of accounts",
+        "operationId": "seedChartOfAccounts",
+        "responses": {
+          "201": { "description": "Chart of accounts seeded" },
+          "409": { "description": "Chart already configured" }
+        }
+      }
+    },
+    "/setup/fiscal-periods/monthly": {
+      "post": {
+        "summary": "Seed monthly fiscal periods for a year",
+        "operationId": "seedMonthlyFiscalPeriods",
+        "responses": {
+          "201": { "description": "Fiscal periods seeded" },
+          "409": { "description": "Fiscal periods already configured" }
+        }
+      }
+    },
+    "/accounts": {
+      "get": {
+        "summary": "List chart of accounts",
+        "operationId": "listAccounts",
+        "responses": {
+          "200": { "description": "Account list" }
+        }
+      },
+      "post": {
+        "summary": "Create an account",
+        "operationId": "createAccount",
+        "responses": {
+          "201": { "description": "Account created" },
+          "409": { "description": "Duplicate account code" }
+        }
+      }
+    },
+    "/fiscal-periods": {
+      "post": {
+        "summary": "Create a fiscal period",
+        "operationId": "createFiscalPeriod",
+        "responses": {
+          "201": { "description": "Fiscal period created" },
+          "409": { "description": "Overlapping fiscal period" }
+        }
+      }
+    },
+    "/fiscal-periods/{id}/status": {
+      "post": {
+        "summary": "Open, close, or lock a fiscal period",
+        "operationId": "updateFiscalPeriodStatus",
+        "responses": {
+          "200": { "description": "Fiscal period status updated" },
+          "409": { "description": "Invalid fiscal period transition" }
+        }
+      }
+    },
+    "/journal-entries": {
+      "post": {
+        "summary": "Create a balanced draft journal entry",
+        "operationId": "createJournalEntry",
+        "responses": {
+          "201": { "description": "Journal entry created" },
+          "422": { "description": "Unbalanced or invalid journal entry" }
+        }
+      }
+    },
+    "/journal-entries/{id}": {
+      "patch": {
+        "summary": "Update an unposted journal entry",
+        "operationId": "updateJournalEntry",
+        "responses": {
+          "200": { "description": "Journal entry updated" },
+          "409": { "description": "Posted entries are immutable" }
+        }
+      }
+    },
+    "/journal-entries/{id}/post": {
+      "post": {
+        "summary": "Post a balanced journal entry",
+        "operationId": "postJournalEntry",
+        "responses": {
+          "200": { "description": "Journal entry posted" },
+          "409": { "description": "Fiscal period closed, duplicate source, or invalid status" }
+        }
+      }
+    },
+    "/journal-entries/{id}/void": {
+      "post": {
+        "summary": "Void a posted journal entry with a reversal entry",
+        "operationId": "voidJournalEntry",
+        "responses": {
+          "200": { "description": "Journal entry voided and reversal posted" },
+          "409": { "description": "Journal entry cannot be voided" }
+        }
+      }
+    },
+    "/trial-balance": {
+      "get": {
+        "summary": "Get trial balance from posted journal entries",
+        "operationId": "getTrialBalance",
+        "responses": {
+          "200": { "description": "Trial balance" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "MoneyCents": {
+        "type": "integer",
+        "description": "Signed integer cents. Accounting entries must balance total debit and credit cents."
+      },
+      "FiscalPeriodStatus": {
+        "type": "string",
+        "enum": ["open", "closed", "locked"]
+      },
+      "JournalEntryStatus": {
+        "type": "string",
+        "enum": ["draft", "posted", "void"]
+      }
+    }
+  }
 }

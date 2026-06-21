@@ -176,6 +176,16 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Banking route exposes operator actions and persisted reconciliation sessions through bank-reconciliation service methods."
   );
   assertFileIncludesAll(
+    "microservices.lock.json",
+    ["accounts-payable.pay", "beforeBillMarkPayable", "accounts-payable.bill_marked_payable", "accounts-payable.recurring_bill_generated"],
+    "Accounting template lock keeps accounts-payable permissions, hooks, and events aligned with the module contract."
+  );
+  assertFileIncludesAll(
+    "microservices.lock.json",
+    ["beforeMatchCreate", "beforeReconciliationStart", "afterReconciliationChanged"],
+    "Accounting template lock keeps bank-reconciliation hook names aligned with the module contract."
+  );
+  assertFileIncludesAll(
     "src/hooks.server.ts",
     ["@microservices-sh/gateway/adapters/kv-rate-limit", "RATE_LIMIT_KV"],
     "Request hook uses gateway rate-limit stores with the shared RATE_LIMIT_KV binding."
