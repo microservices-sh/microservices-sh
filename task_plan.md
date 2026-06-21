@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 73
+Phase 74
 
 ## Phases
 
@@ -572,6 +572,14 @@ Phase 73
 - [x] Derive the Agent Center visible tool list from lock-declared RPC methods so it stops advertising hand-written non-MCP tools.
 - [x] Add template and integration-test guards for lock-authoritative generation, 50 commerce tools, and absence of unlocked handlers.
 - [x] Verify focused generation, MCP wiring tests, template checks, packaged-template checks, commerce build, create-app build/smoke, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 74: Accounting Domain Event Schema Alignment
+- [x] Update accounting-core and accounts-payable D1 event writers to use the core-owned `domain_events` schema (`event_name`, `entity_type`, `entity_id`).
+- [x] Standardize accounting-core, accounts-payable, accounts-receivable, and bank-reconciliation standalone migrations on the shared domain-event schema.
+- [x] Remove duplicate `domain_events` declarations from the focused accounting template AP, AR, and bank migrations.
+- [x] Add accounting template assertions that `0001_core.sql` owns `domain_events` and later accounting migrations do not redeclare it.
+- [x] Verify focused template checks, module builds/tests, SQLite migration smokes, full workspace specs, accounting build, create-app build/smoke, packaged-template checks, drift scans, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

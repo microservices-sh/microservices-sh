@@ -51,14 +51,6 @@ CREATE TABLE IF NOT EXISTS ar_payment_applications (
   CHECK (amount_cents > 0)
 );
 
-CREATE TABLE IF NOT EXISTS domain_events (
-  id TEXT PRIMARY KEY,
-  event_type TEXT NOT NULL,
-  aggregate_id TEXT,
-  payload TEXT NOT NULL DEFAULT '{}',
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ar_payments_tenant_idempotency
   ON ar_customer_payments (tenant_id, idempotency_key);
 CREATE INDEX IF NOT EXISTS idx_ar_invoice_snapshots_tenant_customer_issued

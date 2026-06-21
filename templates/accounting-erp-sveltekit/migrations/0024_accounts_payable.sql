@@ -147,14 +147,6 @@ CREATE TABLE IF NOT EXISTS accounts_payable_recurring_bill_line_items (
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS domain_events (
-  id TEXT PRIMARY KEY,
-  event_type TEXT NOT NULL,
-  aggregate_id TEXT,
-  payload TEXT NOT NULL DEFAULT '{}',
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE INDEX IF NOT EXISTS idx_ap_vendors_tenant_name ON accounts_payable_vendors(tenant_id, name);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ap_vendors_tenant_external
   ON accounts_payable_vendors(tenant_id, external_source, external_id)

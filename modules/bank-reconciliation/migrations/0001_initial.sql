@@ -119,11 +119,14 @@ CREATE TABLE IF NOT EXISTS bank_reconciliation_sessions (
 
 CREATE TABLE IF NOT EXISTS domain_events (
   id TEXT PRIMARY KEY,
-  event_type TEXT NOT NULL,
-  aggregate_id TEXT,
-  payload TEXT NOT NULL DEFAULT '{}',
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  event_name TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  created_at TEXT NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_domain_events_entity ON domain_events(entity_type, entity_id);
 
 CREATE INDEX IF NOT EXISTS idx_bank_reconciliation_accounts_tenant_org
   ON bank_reconciliation_accounts (tenant_id, org_id);

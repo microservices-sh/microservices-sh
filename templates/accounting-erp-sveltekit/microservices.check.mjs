@@ -1,4 +1,8 @@
-export default function check({ assert, assertFileIncludes, assertFileIncludesAll, exists }) {
+export default function check({ assert, assertFileIncludes, assertFileIncludesAll, exists, readText }) {
+  const accountsPayableMigration = readText("migrations/0024_accounts_payable.sql");
+  const accountsReceivableMigration = readText("migrations/0025_accounts_receivable.sql");
+  const bankReconciliationMigration = readText("migrations/0026_bank_reconciliation.sql");
+
   assertFileIncludesAll(
     "docs/api-boundary.md",
     ["Use Case Shape", "Route Adapter Shape"],
@@ -207,6 +211,18 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "migrations/0025_accounts_receivable.sql",
     ["CREATE TABLE IF NOT EXISTS ar_invoice_snapshots", "unapplied_cents INTEGER NOT NULL DEFAULT 0", "journal_entry_id TEXT"],
     "Template keeps Accounts Receivable D1 schema aligned with invoice snapshots, unapplied balances, and accounting journal references."
+  );
+  assertFileIncludesAll(
+    "migrations/0001_core.sql",
+    ["CREATE TABLE IF NOT EXISTS domain_events", "event_name TEXT NOT NULL", "entity_type TEXT NOT NULL", "entity_id TEXT NOT NULL"],
+    "Core migration owns the shared domain_events schema used by accounting module D1 stores."
+  );
+  assert(
+    !accountsPayableMigration.includes("CREATE TABLE IF NOT EXISTS domain_events") &&
+      !accountsReceivableMigration.includes("CREATE TABLE IF NOT EXISTS domain_events") &&
+      !bankReconciliationMigration.includes("CREATE TABLE IF NOT EXISTS domain_events"),
+    "Accounting AP, AR, and bank migrations do not redeclare the core-owned domain_events table.",
+    "policy:accounting-no-domain-events-redeclare"
   );
   assertFileIncludesAll(
     "src/lib/server/stores.ts",

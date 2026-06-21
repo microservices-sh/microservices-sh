@@ -1641,3 +1641,29 @@
 | Built smoke | Generated app smoke remains green after commerce template packaging sync | `pnpm --filter create-microservices-app smoke:built` passed | Pass |
 | Drift scan | Packaged commerce copy has no stale commerce-sync table/generator/handler matches beyond negative assertions | `rg -n "CREATE TABLE IF NOT EXISTS domain_events|loadConnections|payment_createPaymentIntent|org-team-rbac_authorize" packages/create-microservices-app/templates/commerce-ops-sveltekit/...` returned only negative guard assertions | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 74 accounting domain event schema alignment
+
+- **Status:** complete.
+- Goal: fix the focused accounting template runtime mismatch where `0001_core.sql` created `domain_events(event_name, entity_type, entity_id)` but accounting D1 writers and later accounting migrations still expected `event_type` and `aggregate_id`.
+- Updated `accounting-core` and `accounts-payable` D1 event writers to insert `event_name`, `entity_type`, and `entity_id`.
+- Standardized the standalone accounting-core, accounts-payable, accounts-receivable, and bank-reconciliation migrations on the shared `domain_events` schema.
+- Removed duplicate `domain_events` declarations from the focused accounting AP, AR, and bank migrations so `0001_core.sql` remains the sole owner.
+- Added accounting template policy assertions for core ownership and no later AP/AR/bank redeclarations.
+- Rebuilt the create package so packaged accounting generated apps carry the fixed migrations and module sources.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Focused accounting spec | Template asserts core-owned `domain_events` and no AP/AR/bank redeclarations | `node packages/workspace-tools/src/index.js check template --path templates/accounting-erp-sveltekit` passed | Pass |
+| Accounting-core build/test | D1 writer SQL typechecks and existing accounting behavior stays green | `pnpm --filter @microservices-sh/accounting-core build` and `test` passed, 9/9 | Pass |
+| Accounts-payable build/test | D1 writer SQL typechecks and AP workflows stay green | `pnpm --filter @microservices-sh/accounts-payable build` and `test` passed, 11/11 | Pass |
+| AR/bank builds | Standalone migration changes do not break packages | `pnpm --filter @microservices-sh/accounts-receivable build` and `pnpm --filter @microservices-sh/bank-reconciliation build` passed | Pass |
+| Template migration smoke | Focused accounting migration order accepts standard event inserts | SQLite read of `0001_core.sql`, `0023`, `0024`, `0025`, `0026` plus standard insert passed | Pass |
+| Standalone module migration smoke | Accounting-core and AP standalone migrations accept standard event inserts | SQLite reads plus standard inserts passed for both modules | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Accounting template build | SvelteKit/Cloudflare build compiles after migration policy update | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app build | Packaged accounting template copy is rebuilt from root template/module sources | `pnpm --filter create-microservices-app build` passed | Pass |
+| Packaged template spec | Packaged accounting template has the same domain-event guards as root | `node packages/workspace-tools/src/index.js check template --path packages/create-microservices-app/templates/accounting-erp-sveltekit` passed | Pass |
+| Built smoke | Generated app smoke remains green after accounting template packaging sync | `pnpm --filter create-microservices-app smoke:built` passed | Pass |
+| Drift scan | Packaged accounting copy has no stale AP/AR/bank table or event-type writer matches beyond negative assertions | `rg -n "CREATE TABLE IF NOT EXISTS domain_events|event_type TEXT NOT NULL|aggregate_id|INSERT INTO domain_events \\(id, event_type" packages/create-microservices-app/templates/accounting-erp-sveltekit/...` returned only negative guard assertions | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
