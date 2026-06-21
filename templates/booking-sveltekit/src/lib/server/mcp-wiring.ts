@@ -30,6 +30,12 @@ import { rpcContract as paymentRpc } from "@microservices-sh/payment/rpc";
 import { createMemoryPaymentRepository } from "@microservices-sh/payment/adapters/memory";
 import { createMemoryPaymentGateway } from "@microservices-sh/payment/adapters/memory-gateway";
 
+import { rpcContract as customerRpc } from "@microservices-sh/customer/rpc";
+import { createMemoryCustomerRepository } from "@microservices-sh/customer/adapters/memory";
+
+import { rpcContract as bookingRpc } from "@microservices-sh/booking/rpc";
+import { createMemoryBookingRepository } from "@microservices-sh/booking/adapters/memory";
+
 import { recordEvent } from "@microservices-sh/audit-log";
 import { createMemoryAuditEventStore } from "@microservices-sh/audit-log/adapters/memory";
 
@@ -44,6 +50,8 @@ const paymentDeps = {
   paymentRepository: createMemoryPaymentRepository(),
   paymentGateway: createMemoryPaymentGateway(),
 };
+const customerRepository = createMemoryCustomerRepository();
+const bookingRepository = createMemoryBookingRepository();
 const auditStore = createMemoryAuditEventStore();
 
 // --- the seam exports the generated entry imports (manifest comes from the
@@ -64,6 +72,12 @@ export const handlers: Record<string, (input: unknown) => Promise<unknown>> = {
   identity_readSession: (input) => readSession(input as { sessionId?: string | null }, identityDeps),
   identity_destroySession: (input) => destroySession(input as { sessionId?: string }, identityDeps),
   payment_createPaymentIntent: (input) => paymentRpc.createPaymentIntent.handler(input, paymentDeps),
+  customer_getCustomer: (input) => customerRpc.getCustomer.handler(input, { customerRepository }),
+  customer_listCustomers: (input) => customerRpc.listCustomers.handler(input, { customerRepository }),
+  customer_upsertCustomer: (input) => customerRpc.upsertCustomer.handler(input, { customerRepository }),
+  booking_listBookings: (input) => bookingRpc.listBookings.handler(input, { bookingRepository }),
+  booking_getBooking: (input) => bookingRpc.getBooking.handler(input, { bookingRepository }),
+  booking_getAvailability: (input) => bookingRpc.getAvailability.handler(input, { bookingRepository }),
 };
 
 // Scope check: the agent's granted scopes must include the tool's required scope.
