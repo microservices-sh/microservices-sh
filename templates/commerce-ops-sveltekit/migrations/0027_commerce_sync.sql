@@ -58,14 +58,6 @@ CREATE TABLE IF NOT EXISTS commerce_sync_envelopes (
   received_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS domain_events (
-  id TEXT PRIMARY KEY,
-  event_type TEXT NOT NULL,
-  aggregate_id TEXT,
-  payload TEXT NOT NULL DEFAULT '{}',
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE UNIQUE INDEX IF NOT EXISTS idx_commerce_sync_mapping_external ON commerce_sync_mappings (tenant_id, provider, resource_type, external_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_commerce_sync_webhook_idempotency ON commerce_sync_webhook_receipts (tenant_id, connection_id, idempotency_key);
 CREATE INDEX IF NOT EXISTS idx_commerce_sync_runs_connection ON commerce_sync_runs (tenant_id, connection_id, status);

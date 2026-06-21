@@ -1,5 +1,6 @@
 export default function check({ assert, assertFileIncludes, assertFileIncludesAll, exists, readText }) {
   const hooksServer = readText("src/hooks.server.ts");
+  const commerceSyncMigration = readText("migrations/0027_commerce_sync.sql");
 
   assertFileIncludesAll(
     "docs/api-boundary.md",
@@ -50,6 +51,11 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "migrations/0027_commerce_sync.sql",
     ["CREATE TABLE IF NOT EXISTS commerce_sync_envelopes", "idx_commerce_sync_envelopes_external"],
     "Template keeps normalized commerce envelope storage aligned with the commerce-sync module."
+  );
+  assert(
+    !commerceSyncMigration.includes("CREATE TABLE IF NOT EXISTS domain_events"),
+    "Commerce sync migration does not redeclare the core-owned domain_events table.",
+    "policy:commerce-sync-no-domain-events-redeclare"
   );
   assertFileIncludesAll(
     "src/routes/app/commerce-sync/+page.server.ts",

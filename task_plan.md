@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 67
+Phase 72
 
 ## Phases
 
@@ -558,6 +558,12 @@ Phase 67
 - [x] Add the `email` module contract to `commerce-ops-sveltekit` and `accounting-erp-sveltekit` lockfiles.
 - [x] Add template assertions that email-backed login/invoice-send workflows remain represented in the locks.
 - [x] Verify focused template checks, create-app build/smoke, full workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 72: Commerce Sync Migration Ownership Cleanup
+- [x] Remove the stale `domain_events` table declaration from `commerce-ops-sveltekit` commerce-sync migration; `0001_core.sql` owns the shared event stream.
+- [x] Add a commerce template policy assertion preventing the commerce-sync migration from redeclaring `domain_events`.
+- [x] Verify focused template check, SQLite migration load, full workspace specs, commerce template build, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

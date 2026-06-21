@@ -1601,3 +1601,20 @@
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Built smoke | Generated app smoke remains green with updated focused locks | `pnpm --filter create-microservices-app smoke:built` passed | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 72 commerce sync migration ownership cleanup
+
+- **Status:** complete.
+- Goal: remove a misleading inherited commerce-sync migration table declaration now that `0001_core.sql` owns the shared `domain_events` schema.
+- Removed `CREATE TABLE IF NOT EXISTS domain_events` from `templates/commerce-ops-sveltekit/migrations/0027_commerce_sync.sql`.
+- Added a commerce template policy assertion that reads the migration and rejects future `domain_events` redeclarations.
+- Kept broader ERP/accounting duplicate migration declarations out of this slice because those templates still carry inherited module histories and need a separate migration-ownership review.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Focused template spec | Commerce policy rejects commerce-sync `domain_events` redeclaration | `node packages/workspace-tools/src/index.js check template --path templates/commerce-ops-sveltekit` passed | Pass |
+| Migration smoke | Core plus commerce-sync migrations load in SQLite after removing the duplicate block | `sqlite3 :memory: ".read templates/commerce-ops-sveltekit/migrations/0001_core.sql" ".read templates/commerce-ops-sveltekit/migrations/0027_commerce_sync.sql"` passed | Pass |
+| Duplicate scan | Commerce sync migration no longer declares `domain_events` | `rg -n "CREATE TABLE IF NOT EXISTS domain_events" templates/commerce-ops-sveltekit/migrations/0027_commerce_sync.sql` returned no matches | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Commerce template build | SvelteKit/Cloudflare build compiles after the migration cleanup | `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
