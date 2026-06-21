@@ -44,6 +44,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.objectStorage = stores.objectStorage;
   event.locals.notificationStore = stores.notificationStore;
   event.locals.jobStore = stores.jobStore;
+  event.locals.jobRunStore = stores.jobRunStore;
   event.locals.scheduleStore = stores.scheduleStore;
   event.locals.jobQueue = env?.JOB_QUEUE ? createCfQueueProducer(env.JOB_QUEUE) : undefined;
   event.locals.webhookEndpointStore = stores.webhookEndpointStore;

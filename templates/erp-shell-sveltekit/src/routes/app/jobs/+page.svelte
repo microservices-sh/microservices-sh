@@ -43,12 +43,19 @@
     description="Queue health and controlled enqueue actions for background work."
   >
     {#snippet actions()}
+      {#if data.canManage}
+        <form method="POST" action="?/runDue" use:enhance>
+          <Button type="submit" variant="ghost">Run due jobs</Button>
+        </form>
+      {/if}
       <Button href="/app/settings/schedules" variant="ghost">Manage schedules</Button>
     {/snippet}
   </PageHeader>
 
   {#if form?.enqueued}
     <Alert tone="success">Job enqueued.</Alert>
+  {:else if form?.ranDue}
+    <Alert tone="success">{form.ran} due jobs ran.</Alert>
   {:else if form?.error}
     <Alert tone="error">{form.error}</Alert>
   {/if}

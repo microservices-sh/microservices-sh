@@ -45,6 +45,26 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Request locals expose the recurring invoice store to route adapters."
   );
   assertFileIncludesAll(
+    "src/lib/server/stores.ts",
+    ["createD1JobRunStore", "createMemoryJobRunStore", "jobRunStore"],
+    "Template wires job run storage for due job execution records."
+  );
+  assertFileIncludes(
+    "src/hooks.server.ts",
+    "event.locals.jobRunStore = stores.jobRunStore",
+    "Request locals expose the job run store to route adapters."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/jobs/+page.server.ts",
+    ["runDueJobs", "createRecurringInvoiceJobHandlers", "jobRunStore"],
+    "Jobs route can run due jobs through the registered recurring invoice handler."
+  );
+  assertFileIncludes(
+    "src/lib/server/recurring-invoice-jobs.ts",
+    "invoice.recurring.generate_due",
+    "Template registers the recurring invoice generate-due job handler."
+  );
+  assertFileIncludesAll(
     "src/routes/app/files/+page.server.ts",
     ["@microservices-sh/file-media", "listFiles"],
     "Files route uses the file-media module list use case."

@@ -7,7 +7,7 @@ import type { TicketStore } from "@microservices-sh/support-ticket/ports";
 import type { InvoicePaymentLinkProvider, InvoiceStore, NumberAllocator, RecurringInvoiceStore } from "@microservices-sh/invoice/ports";
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
 import type { NotificationStore } from "@microservices-sh/notifications-inapp/ports";
-import type { JobStore, QueueProducer, ScheduleStore } from "@microservices-sh/jobs-workflows/ports";
+import type { JobRunStore, JobStore, QueueProducer, ScheduleStore } from "@microservices-sh/jobs-workflows/ports";
 import type { DeliveryLogStore, WebhookEndpointStore } from "@microservices-sh/webhook-delivery/ports";
 import type { AccountStore, LoginCodeStore, SessionStore } from "@microservices-sh/identity";
 import type { RateLimitStore } from "@microservices-sh/gateway/ports";
@@ -65,6 +65,7 @@ declare global {
       objectStorage: ObjectStorage;
       notificationStore: NotificationStore;
       jobStore: JobStore;
+      jobRunStore: JobRunStore;
       scheduleStore: ScheduleStore;
       jobQueue?: QueueProducer;
       webhookEndpointStore: WebhookEndpointStore;

@@ -17,7 +17,14 @@ import { createMemoryMediaStore, createMemoryObjectStorage } from "@microservice
 import { createR2ObjectStorage } from "@microservices-sh/file-media/adapters/r2";
 import { createD1NotificationStore } from "@microservices-sh/notifications-inapp/adapters/d1";
 import { createMemoryNotificationStore } from "@microservices-sh/notifications-inapp/adapters/memory";
-import { createD1JobStore, createD1ScheduleStore, createMemoryJobStore, createMemoryScheduleStore } from "@microservices-sh/jobs-workflows";
+import {
+  createD1JobRunStore,
+  createD1JobStore,
+  createD1ScheduleStore,
+  createMemoryJobRunStore,
+  createMemoryJobStore,
+  createMemoryScheduleStore
+} from "@microservices-sh/jobs-workflows";
 import {
   createD1DeliveryLog,
   createD1WebhookEndpointStore,
@@ -63,7 +70,7 @@ import type { TicketStore } from "@microservices-sh/support-ticket/ports";
 import type { InvoiceStore, NumberAllocator, RecurringInvoiceStore } from "@microservices-sh/invoice/ports";
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
 import type { NotificationStore } from "@microservices-sh/notifications-inapp/ports";
-import type { JobStore, ScheduleStore } from "@microservices-sh/jobs-workflows/ports";
+import type { JobRunStore, JobStore, ScheduleStore } from "@microservices-sh/jobs-workflows/ports";
 import type { DeliveryLogStore, WebhookEndpointStore } from "@microservices-sh/webhook-delivery/ports";
 
 // Memory singletons for local dev without D1/R2. State persists across requests in
@@ -82,6 +89,7 @@ const memoryMediaStore = createMemoryMediaStore();
 const memoryObjectStorage = createMemoryObjectStorage();
 const memoryNotificationStore = createMemoryNotificationStore();
 const memoryJobStore = createMemoryJobStore();
+const memoryJobRunStore = createMemoryJobRunStore();
 const memoryScheduleStore = createMemoryScheduleStore();
 const memoryWebhookEndpointStore = createMemoryWebhookEndpointStore();
 const memoryWebhookDeliveryLog = createMemoryDeliveryLog();
@@ -109,6 +117,7 @@ export interface ServerStores {
   objectStorage: ObjectStorage;
   notificationStore: NotificationStore;
   jobStore: JobStore;
+  jobRunStore: JobRunStore;
   scheduleStore: ScheduleStore;
   webhookEndpointStore: WebhookEndpointStore;
   webhookDeliveryLog: DeliveryLogStore;
@@ -146,6 +155,7 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     objectStorage: bucket ? createR2ObjectStorage(bucket) : memoryObjectStorage,
     notificationStore: db ? createD1NotificationStore(db) : memoryNotificationStore,
     jobStore: db ? createD1JobStore(db) : memoryJobStore,
+    jobRunStore: db ? createD1JobRunStore(db) : memoryJobRunStore,
     scheduleStore: db ? createD1ScheduleStore(db) : memoryScheduleStore,
     webhookEndpointStore: db ? createD1WebhookEndpointStore(db) : memoryWebhookEndpointStore,
     webhookDeliveryLog: db ? createD1DeliveryLog(db) : memoryWebhookDeliveryLog,
