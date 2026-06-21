@@ -1,5 +1,8 @@
 export default function check({ assert, assertFileIncludes, assertFileIncludesAll, exists, readText }) {
   const hooksServer = readText("src/hooks.server.ts");
+  const productCatalogMigration = readText("migrations/0019_product_catalog.sql");
+  const salesOrderMigration = readText("migrations/0021_sales_order.sql");
+  const shipmentMigration = readText("migrations/0022_shipment.sql");
   const commerceSyncMigration = readText("migrations/0027_commerce_sync.sql");
   const mcpGenerator = readText("scripts/generate-mcp.mjs");
   const mcpWiring = readText("src/lib/server/mcp-wiring.ts");
@@ -60,6 +63,27 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Commerce sync migration does not redeclare the core-owned domain_events table.",
     "policy:commerce-sync-no-domain-events-redeclare"
   );
+  assert(
+    !productCatalogMigration.includes("CREATE TABLE IF NOT EXISTS domain_events") &&
+      !salesOrderMigration.includes("CREATE TABLE IF NOT EXISTS domain_events") &&
+      !shipmentMigration.includes("CREATE TABLE IF NOT EXISTS domain_events"),
+    "Commerce product, sales-order, and shipment migrations do not redeclare the core-owned domain_events table.",
+    "policy:commerce-domain-events-core-owned"
+  );
+  for (const moduleId of ["product-catalog", "sales-order", "shipment", "commerce-sync"]) {
+    const moduleMigration = `modules/${moduleId}/migrations/0001_initial.sql`;
+    if (!exists(moduleMigration)) continue;
+    const source = readText(moduleMigration);
+    assert(
+      source.includes("event_name TEXT NOT NULL") &&
+        source.includes("entity_type TEXT NOT NULL") &&
+        source.includes("entity_id TEXT NOT NULL") &&
+        !source.includes("event_type TEXT NOT NULL") &&
+        !source.includes("aggregate_id TEXT"),
+      `Packaged ${moduleId} module migration uses the shared domain_events schema.`,
+      `policy:packaged-${moduleId}-domain-events-schema`
+    );
+  }
   assertFileIncludesAll(
     "src/routes/app/commerce-sync/+page.server.ts",
     [

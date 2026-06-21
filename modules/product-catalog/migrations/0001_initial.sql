@@ -48,11 +48,14 @@ CREATE TABLE IF NOT EXISTS combo_products (
 
 CREATE TABLE IF NOT EXISTS domain_events (
   id TEXT PRIMARY KEY,
-  event_type TEXT NOT NULL,
-  aggregate_id TEXT,
+  event_name TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
   payload TEXT NOT NULL DEFAULT '{}',
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_domain_events_entity ON domain_events(entity_type, entity_id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_products_tenant_sku ON products (tenant_id, sku);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_products_tenant_external ON products (tenant_id, external_source, external_id)

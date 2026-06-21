@@ -1683,3 +1683,24 @@
 | Promotion state | StackSuite modules stay draft and email is available | `jq -r ... docs/modules/catalog.json` showed StackSuite rows as `draft` and `email` as `available` | Pass |
 | Workspace specs | All module/template specs remain green after docs catalog sync | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 76 commerce domain event schema alignment
+
+- **Status:** complete.
+- Goal: fix the focused commerce template runtime mismatch where `0001_core.sql` owns `domain_events(event_name, entity_type, entity_id)` but product-catalog, sales-order, and shipment D1 writers still inserted legacy `event_type` and `aggregate_id` columns.
+- Updated product-catalog, sales-order, and shipment D1 event writers to insert `event_name`, `entity_type`, and `entity_id`.
+- Standardized product-catalog, sales-order, shipment, and commerce-sync standalone migrations on the shared `domain_events` schema.
+- Added commerce template assertions that focused commerce migrations do not redeclare the core-owned table and that packaged module migrations use the shared schema.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Module checks | Product catalog, sales order, shipment, and commerce-sync manifests/specs remain valid | `node packages/workspace-tools/src/index.js check module --path ...` passed for all four modules | Pass |
+| Module builds/tests | Updated D1 writer SQL typechecks and existing commerce behavior stays green | Product catalog, sales order, shipment, and commerce-sync builds passed; product catalog, sales order, and shipment tests passed | Pass |
+| Standalone migration smokes | Module migrations accept standard `domain_events` inserts | SQLite reads plus standard event inserts passed for product catalog, sales order, shipment, and commerce-sync | Pass |
+| Focused template migration smoke | Commerce migration order accepts a standard domain-event insert with explicit `created_at` | SQLite read of `0001_core`, product, inventory, sales-order, shipment, and commerce-sync migrations plus standard insert passed | Pass |
+| Commerce template checks | Root and packaged commerce template policies enforce core-owned event schema | `node packages/workspace-tools/src/index.js check template --path templates/commerce-ops-sveltekit` and packaged equivalent passed | Pass |
+| Commerce template build | SvelteKit/Cloudflare build compiles after writer and policy updates | `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
+| Create app build/smoke | Generated app package rebuild and smoke remain green after module copy refresh | `pnpm --filter create-microservices-app build` and `smoke:built` passed | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Drift scan | Targeted modules and packaged copies have no legacy event-column writer or migration matches | `rg -n "INSERT INTO domain_events \\(id, event_type|event_type TEXT NOT NULL|aggregate_id TEXT" ...` returned no matches | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

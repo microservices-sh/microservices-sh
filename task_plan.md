@@ -589,6 +589,13 @@ Phase 74
 - [x] Verify catalog JSON, selected field drift against the generated registry, full workspace specs, and whitespace checks.
 - **Status:** complete
 
+### Phase 76: Commerce Domain Event Schema Alignment
+- [x] Update product-catalog, sales-order, and shipment D1 event writers to use the shared `domain_events` schema (`event_name`, `entity_type`, `entity_id`).
+- [x] Standardize product-catalog, sales-order, shipment, and commerce-sync standalone migrations on the shared domain-event schema.
+- [x] Add commerce template assertions that focused product, sales-order, shipment, and commerce-sync migrations do not redeclare the core-owned table, and packaged module migrations use the shared schema.
+- [x] Verify module checks/builds/tests, SQLite migration smokes, commerce template checks/build/smoke, packaged template checks, full workspace specs, drift scans, and whitespace checks.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

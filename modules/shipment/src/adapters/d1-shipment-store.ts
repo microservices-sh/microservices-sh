@@ -152,8 +152,8 @@ export function createD1ShipmentStore(db: D1Database): ShipmentStore {
     },
     async writeEvent(event) {
       await db
-        .prepare("INSERT INTO domain_events (id, event_type, aggregate_id, payload, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)")
-        .bind(shipmentId("evt"), event.eventName, event.entityId, JSON.stringify(event))
+        .prepare("INSERT INTO domain_events (id, event_name, entity_type, entity_id, payload, created_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)")
+        .bind(shipmentId("evt"), event.eventName, event.entityType, event.entityId, JSON.stringify(event))
         .run();
     }
   };

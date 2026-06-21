@@ -60,11 +60,14 @@ CREATE TABLE IF NOT EXISTS commerce_sync_envelopes (
 
 CREATE TABLE IF NOT EXISTS domain_events (
   id TEXT PRIMARY KEY,
-  event_type TEXT NOT NULL,
-  aggregate_id TEXT,
+  event_name TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
   payload TEXT NOT NULL DEFAULT '{}',
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_domain_events_entity ON domain_events(entity_type, entity_id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_commerce_sync_mapping_external ON commerce_sync_mappings (tenant_id, provider, resource_type, external_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_commerce_sync_webhook_idempotency ON commerce_sync_webhook_receipts (tenant_id, connection_id, idempotency_key);
