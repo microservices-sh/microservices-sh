@@ -50,6 +50,11 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Template keeps normalized commerce envelope storage aligned with the commerce-sync module."
   );
   assertFileIncludesAll(
+    "src/routes/app/commerce-sync/+page.server.ts",
+    ["createCommerceConnection", "startSyncRun", "completeSyncRun", "recordWebhookReceipt", "recordEvent"],
+    "Commerce sync route exposes operator actions through commerce-sync use cases and records audit events."
+  );
+  assertFileIncludesAll(
     "src/lib/server/stores.ts",
     ["createD1RecurringInvoiceStore", "createMemoryRecurringInvoiceStore", "recurringInvoiceStore"],
     "Template wires the invoice recurring template store through the server store resolver."
