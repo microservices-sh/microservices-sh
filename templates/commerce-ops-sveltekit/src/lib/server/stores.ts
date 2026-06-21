@@ -10,8 +10,8 @@ import { createD1CustomerRepository } from "@microservices-sh/customer/adapters/
 import { createMemoryCustomerRepository } from "@microservices-sh/customer/adapters/memory";
 import { createD1TicketStore } from "@microservices-sh/support-ticket/adapters/d1";
 import { createMemoryTicketStore } from "@microservices-sh/support-ticket/adapters/memory";
-import { createD1InvoiceStore, createD1NumberAllocator } from "@microservices-sh/invoice";
-import { createMemoryInvoiceStore, createMemoryNumberAllocator } from "@microservices-sh/invoice";
+import { createD1InvoiceStore, createD1NumberAllocator, createD1RecurringInvoiceStore } from "@microservices-sh/invoice";
+import { createMemoryInvoiceStore, createMemoryNumberAllocator, createMemoryRecurringInvoiceStore } from "@microservices-sh/invoice";
 import { createD1MediaStore } from "@microservices-sh/file-media/adapters/d1";
 import { createMemoryMediaStore, createMemoryObjectStorage } from "@microservices-sh/file-media";
 import { createR2ObjectStorage } from "@microservices-sh/file-media/adapters/r2";
@@ -50,7 +50,7 @@ import type { AuditEventStore } from "@microservices-sh/audit-log/ports";
 import type { SigningKeyStore } from "@microservices-sh/auth/ports";
 import type { CustomerRepository } from "@microservices-sh/customer/ports";
 import type { TicketStore } from "@microservices-sh/support-ticket/ports";
-import type { InvoiceStore, NumberAllocator } from "@microservices-sh/invoice/ports";
+import type { InvoiceStore, NumberAllocator, RecurringInvoiceStore } from "@microservices-sh/invoice/ports";
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
 import type { NotificationStore } from "@microservices-sh/notifications-inapp/ports";
 import type { JobStore, ScheduleStore } from "@microservices-sh/jobs-workflows/ports";
@@ -71,6 +71,7 @@ const memorySigningKeyStore = createMemorySigningKeyStore();
 const memoryCustomerRepository = createMemoryCustomerRepository();
 const memoryTicketStore = createMemoryTicketStore();
 const memoryInvoiceStore = createMemoryInvoiceStore();
+const memoryRecurringInvoiceStore = createMemoryRecurringInvoiceStore();
 const memoryNumberAllocator = createMemoryNumberAllocator();
 const memoryMediaStore = createMemoryMediaStore();
 const memoryObjectStorage = createMemoryObjectStorage();
@@ -98,6 +99,7 @@ export interface ServerStores {
   customerRepository: CustomerRepository;
   ticketStore: TicketStore;
   invoiceStore: InvoiceStore;
+  recurringInvoiceStore: RecurringInvoiceStore;
   numberAllocator: NumberAllocator;
   mediaStore: MediaStore;
   objectStorage: ObjectStorage;
@@ -134,6 +136,7 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     customerRepository: db ? createD1CustomerRepository(db) : memoryCustomerRepository,
     ticketStore: db ? createD1TicketStore(db) : memoryTicketStore,
     invoiceStore: db ? createD1InvoiceStore(db) : memoryInvoiceStore,
+    recurringInvoiceStore: db ? createD1RecurringInvoiceStore(db) : memoryRecurringInvoiceStore,
     numberAllocator: db ? createD1NumberAllocator(db) : memoryNumberAllocator,
     mediaStore: db ? createD1MediaStore(db) : memoryMediaStore,
     objectStorage: bucket ? createR2ObjectStorage(bucket) : memoryObjectStorage,
@@ -162,6 +165,7 @@ export const memoryStores = {
   customerRepository: memoryCustomerRepository,
   ticketStore: memoryTicketStore,
   invoiceStore: memoryInvoiceStore,
+  recurringInvoiceStore: memoryRecurringInvoiceStore,
   numberAllocator: memoryNumberAllocator,
   productCatalogStore: memoryProductCatalogStore,
   inventoryStore: memoryInventoryStore,

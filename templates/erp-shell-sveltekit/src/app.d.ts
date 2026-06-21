@@ -4,7 +4,7 @@ import type { AuditEventStore } from "@microservices-sh/audit-log/ports";
 import type { SigningKeyStore } from "@microservices-sh/auth/ports";
 import type { CustomerRepository } from "@microservices-sh/customer/ports";
 import type { TicketStore } from "@microservices-sh/support-ticket/ports";
-import type { InvoicePaymentLinkProvider, InvoiceStore, NumberAllocator } from "@microservices-sh/invoice/ports";
+import type { InvoicePaymentLinkProvider, InvoiceStore, NumberAllocator, RecurringInvoiceStore } from "@microservices-sh/invoice/ports";
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
 import type { NotificationStore } from "@microservices-sh/notifications-inapp/ports";
 import type { JobStore, QueueProducer, ScheduleStore } from "@microservices-sh/jobs-workflows/ports";
@@ -58,6 +58,7 @@ declare global {
       customerRepository: CustomerRepository;
       ticketStore: TicketStore;
       invoiceStore: InvoiceStore;
+      recurringInvoiceStore: RecurringInvoiceStore;
       numberAllocator: NumberAllocator;
       invoicePaymentLinkProvider: InvoicePaymentLinkProvider;
       mediaStore: MediaStore;

@@ -38,6 +38,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.customerRepository = stores.customerRepository;
   event.locals.ticketStore = stores.ticketStore;
   event.locals.invoiceStore = stores.invoiceStore;
+  event.locals.recurringInvoiceStore = stores.recurringInvoiceStore;
   event.locals.numberAllocator = stores.numberAllocator;
   event.locals.mediaStore = stores.mediaStore;
   event.locals.objectStorage = stores.objectStorage;

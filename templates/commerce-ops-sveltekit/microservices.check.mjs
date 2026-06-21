@@ -35,6 +35,16 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Template keeps recurring invoice tables and occurrence dedupe index aligned with the invoice module."
   );
   assertFileIncludesAll(
+    "src/lib/server/stores.ts",
+    ["createD1RecurringInvoiceStore", "createMemoryRecurringInvoiceStore", "recurringInvoiceStore"],
+    "Template wires the invoice recurring template store through the server store resolver."
+  );
+  assertFileIncludes(
+    "src/hooks.server.ts",
+    "event.locals.recurringInvoiceStore = stores.recurringInvoiceStore",
+    "Request locals expose the recurring invoice store to route adapters."
+  );
+  assertFileIncludesAll(
     "src/routes/app/files/+page.server.ts",
     ["@microservices-sh/file-media", "listFiles"],
     "Files route uses the file-media module list use case."
