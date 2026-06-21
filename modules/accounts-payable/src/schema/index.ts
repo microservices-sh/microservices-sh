@@ -15,6 +15,7 @@ export {
   listVendorsInputSchema,
   markBillPayableInputSchema,
   recordBillPaymentInputSchema,
+  recurringBillTemplateIdentitySchema,
   recurringBillFrequencySchema,
   recurringBillStatusSchema,
   updateRecurringBillTemplateStatusInputSchema

@@ -6,6 +6,7 @@ import {
   createVendor,
   generateDueRecurringBills,
   getAgingReport,
+  getRecurringBillTemplate,
   listBills,
   listRecurringBillTemplates,
   listVendors,
@@ -328,6 +329,59 @@ describe("accounts-payable: recurring bill templates", () => {
     });
     expect(listed.data.templates[0].lineItems).toHaveLength(1);
     expect(listed.data.templates[0].lineItems[0]).toMatchObject({ description: "Hosting", totalCents: 8_000 });
+  });
+
+  it("gets one recurring template by tenant and includes line items", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const vendor = await seedVendor(store, "tenant-1");
+    const otherTenantVendor = await seedVendor(store, "tenant-2");
+
+    const created = await createRecurringBillTemplate(
+      {
+        tenantId: "tenant-1",
+        vendorId: vendor.id,
+        name: "Monthly hosting",
+        frequency: "monthly",
+        startDate: "2026-01-01T00:00:00.000Z",
+        lineItems: [{ description: "Hosting", quantity: 1, unitAmountCents: 8_000, taxCents: 0 }]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0) }
+    );
+    if (!created.ok) throw new Error(created.error.message);
+
+    const otherTenant = await createRecurringBillTemplate(
+      {
+        tenantId: "tenant-2",
+        vendorId: otherTenantVendor.id,
+        name: "Other tenant",
+        frequency: "monthly",
+        startDate: "2026-01-01T00:00:00.000Z",
+        lineItems: [{ description: "Other", quantity: 1, unitAmountCents: 1_000, taxCents: 0 }]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0 + 1) }
+    );
+    if (!otherTenant.ok) throw new Error(otherTenant.error.message);
+
+    const found = await getRecurringBillTemplate(
+      { tenantId: "tenant-1", templateId: created.data.template.id },
+      { accountsPayableStore: store }
+    );
+    expect(found.ok).toBe(true);
+    if (!found.ok) throw new Error(found.error.message);
+    expect(found.data.template).toMatchObject({
+      id: created.data.template.id,
+      tenantId: "tenant-1",
+      name: "Monthly hosting",
+      totalCents: 8_000
+    });
+    expect(found.data.template.lineItems).toHaveLength(1);
+
+    const foreign = await getRecurringBillTemplate(
+      { tenantId: "tenant-1", templateId: otherTenant.data.template.id },
+      { accountsPayableStore: store }
+    );
+    expect(foreign.ok).toBe(false);
+    if (!foreign.ok) expect(foreign.status).toBe(404);
   });
 
   it("updates recurring template status with terminal-state protection", async () => {

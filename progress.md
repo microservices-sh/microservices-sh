@@ -1916,3 +1916,20 @@
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
 Note: an initial `create-microservices-app` test run overlapped with `create-microservices-app build` and reported transient shim drift. `pnpm sync:shims` made no file changes, and the sequential test rerun passed.
+
+### Phase 89 accounting AP recurring bill detail route proof
+
+- **Status:** complete.
+- Goal: close the AP recurring bill detail route gap by first exposing a small module read use case, then adding a read-only template detail route.
+- Added `getRecurringBillTemplate` to `modules/accounts-payable`, backed by the existing tenant-scoped store method and covered by tenant isolation/line item tests.
+- Added `/app/payables/recurring/[id]` with schedule summary, totals, memo, generated count, next/last bill dates, and line items.
+- Linked the Payables recurring bill table to the detail route and added accounting template checks that keep generation/status side effects on the Payables ledger route.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounts-payable tests | New recurring-template lookup remains tenant-scoped and includes line items | `pnpm --filter @microservices-sh/accounts-payable test` passed, 12/12 | Pass |
+| Accounting template spec | Policy catches recurring bill detail route and read-only boundary | `pnpm --dir templates/accounting-erp-sveltekit check:spec` passed | Pass |
+| Accounting template build | SvelteKit/Cloudflare build compiles after route additions | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Packaged accounting template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and sequential `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

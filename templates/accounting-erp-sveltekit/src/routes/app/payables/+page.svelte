@@ -170,7 +170,7 @@
             <tbody>
               {#each data.recurringBillTemplates as template (template.id)}
                 <tr>
-                  <td>{template.name}</td>
+                  <td><a href={`/app/payables/recurring/${template.id}`}>{template.name}</a></td>
                   <td>{data.vendors.find((vendor) => vendor.id === template.vendorId)?.name ?? template.vendorId}</td>
                   <td>{template.nextBillDate.slice(0, 10)}</td>
                   <td>{money(template.totalCents, template.currency)}</td>

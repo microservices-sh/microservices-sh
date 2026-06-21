@@ -688,6 +688,14 @@ Phase 85
 - [x] Verify commerce template spec/build, sales-order tests, commerce integration tests, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 
+### Phase 89: Accounting AP Recurring Bill Detail Route Proof
+- [x] Add `getRecurringBillTemplate` as a public accounts-payable use case over the existing tenant-scoped store method.
+- [x] Add read-only `/app/payables/recurring/[id]` backed by `getRecurringBillTemplate`, schedule summary, totals, and line items.
+- [x] Link the Payables recurring schedule table to the detail route.
+- [x] Add accounting template policy checks for detail load and read-only side-effect boundary.
+- [x] Verify accounts-payable tests, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

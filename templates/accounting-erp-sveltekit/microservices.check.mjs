@@ -2,6 +2,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const accountsPayableMigration = readText("migrations/0024_accounts_payable.sql");
   const accountsReceivableMigration = readText("migrations/0025_accounts_receivable.sql");
   const bankReconciliationMigration = readText("migrations/0026_bank_reconciliation.sql");
+  const recurringBillDetailServer = readText("src/routes/app/payables/recurring/[id]/+page.server.ts");
 
   assertFileIncludesAll(
     "docs/api-boundary.md",
@@ -345,8 +346,25 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/payables/+page.svelte",
-    ["Recurring bills", "Create recurring bill", "?/createRecurringBillTemplate", "?/generateDueRecurringBills", "?/updateRecurringBillStatus"],
+    ["Recurring bills", "Create recurring bill", "?/createRecurringBillTemplate", "?/generateDueRecurringBills", "?/updateRecurringBillStatus", "/app/payables/recurring/${template.id}"],
     "Payables page exposes AP recurring bill route proof for schedule creation, status changes, and due generation."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/payables/recurring/[id]/+page.server.ts",
+    ["getRecurringBillTemplate", "requireModule(\"accounts-payable\"", "requireOrgPermission", "\"org.read\""],
+    "Recurring bill detail route loads one tenant-scoped schedule through the accounts-payable module under route-level read permission."
+  );
+  assert(
+    !recurringBillDetailServer.includes("export const actions") &&
+      !recurringBillDetailServer.includes("generateDueRecurringBills") &&
+      !recurringBillDetailServer.includes("updateRecurringBillTemplateStatus"),
+    "Recurring bill detail route remains read-only; generation and status changes stay on the Payables route.",
+    "policy:accounting-recurring-bill-detail-read-only"
+  );
+  assertFileIncludesAll(
+    "src/routes/app/payables/recurring/[id]/+page.svelte",
+    ["Open payables actions", "Line items", "Next bill", "Generated", "Auto mark payable"],
+    "Recurring bill detail page exposes read-only schedule, totals, and line item review."
   );
   assertFileIncludesAll(
     "microservices.lock.json",
