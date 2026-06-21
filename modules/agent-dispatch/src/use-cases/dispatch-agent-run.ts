@@ -4,7 +4,7 @@ import type { AgentRunStore, CapabilityGrantStore } from "../ports";
 import { dispatchAgentRunInputSchema } from "../schemas";
 import { createResumeToken, hashResumeToken } from "../token";
 import type { AgentRun, AgentRuntime, CapabilityGrant, DomainEvent } from "../types";
-import { agentRunEventPayload } from "./agent-run-helpers";
+import { agentRunEventPayload, isTerminalAgentRunStatus } from "./agent-run-helpers";
 
 export async function dispatchAgentRun(
   input: unknown,
@@ -79,7 +79,7 @@ export async function dispatchAgentRun(
     agentRun.output = result?.output ?? null;
     agentRun.error = result?.error ?? null;
     agentRun.updatedAt = updatedAt;
-    if (agentRun.status === "succeeded" || agentRun.status === "failed") {
+    if (isTerminalAgentRunStatus(agentRun.status)) {
       agentRun.finishedAt = updatedAt;
     }
     await deps.agentRunStore.update(agentRun);
@@ -90,6 +90,11 @@ export async function dispatchAgentRun(
     agentRun.updatedAt = updatedAt;
     agentRun.finishedAt = updatedAt;
     await deps.agentRunStore.update(agentRun);
+  }
+
+  if (agentRun.finishedAt && isTerminalAgentRunStatus(agentRun.status)) {
+    await deps.capabilityGrantStore.revoke(agentRun.ownerId, grant.id, agentRun.finishedAt);
+    grant.revokedAt = agentRun.finishedAt;
   }
 
   const eventName: DomainEvent["name"] = agentRun.status === "failed" ? "agent_dispatch.failed" : "agent_dispatch.dispatched";

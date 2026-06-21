@@ -53,6 +53,49 @@ describe("agent-dispatch", () => {
     expect(dispatched.data.event.correlationId).toBe("corr_1");
   });
 
+  it("revokes the capability grant when dispatch finishes immediately", async () => {
+    const deps = stores();
+    const dispatched = await dispatchAgentRun(
+      {
+        ownerId: "org_1",
+        workflowRunId: "wfr_1",
+        stepRunId: "wfsr_1",
+        agentTemplateId: "researcher",
+        runtimeKind: "custom"
+      },
+      { async start() { return { status: "succeeded", output: { ok: true } }; } },
+      { ...deps, now: fixedNow(T0) }
+    );
+
+    expect(dispatched.ok).toBe(true);
+    if (!dispatched.ok) throw new Error("expected ok");
+    expect(dispatched.data.agentRun.status).toBe("succeeded");
+    expect(dispatched.data.capabilityGrant.revokedAt).toBe(new Date(T0).toISOString());
+
+    const grant = await deps.capabilityGrantStore.getForAgentRun("org_1", dispatched.data.agentRun.id);
+    expect(grant?.revokedAt).toBe(new Date(T0).toISOString());
+  });
+
+  it("revokes the capability grant when runtime start throws", async () => {
+    const deps = stores();
+    const dispatched = await dispatchAgentRun(
+      {
+        ownerId: "org_1",
+        workflowRunId: "wfr_1",
+        stepRunId: "wfsr_1",
+        agentTemplateId: "researcher",
+        runtimeKind: "custom"
+      },
+      { async start() { throw new Error("runtime failed"); } },
+      { ...deps, now: fixedNow(T0) }
+    );
+
+    expect(dispatched.ok).toBe(true);
+    if (!dispatched.ok) throw new Error("expected ok");
+    expect(dispatched.data.agentRun.status).toBe("failed");
+    expect(dispatched.data.capabilityGrant.revokedAt).toBe(new Date(T0).toISOString());
+  });
+
   it("resumes an agent run and returns a workflow resume payload", async () => {
     const deps = stores();
     const dispatched = await dispatchAgentRun(
