@@ -1164,14 +1164,13 @@ fn validate_field(name: &str, value: &str, line_total: Option<f64>) -> FieldOutc
     let key = name.to_ascii_lowercase();
 
     if key.contains("date") {
+        // Dates are inherently ambiguous (19/6, 6/19/26, "Jun 19 2026"), so a
+        // failed parse is NOT proof the value is wrong — flag it for a glance,
+        // don't claim it is invalid.
         return if looks_like_date(trimmed) {
-            FieldOutcome { confidence: 0.95, needs_review: false, warning: None }
+            FieldOutcome { confidence: 0.9, needs_review: false, warning: None }
         } else {
-            FieldOutcome {
-                confidence: 0.4,
-                needs_review: true,
-                warning: Some(format!("Field '{name}' value '{trimmed}' is not a recognizable date.")),
-            }
+            FieldOutcome { confidence: 0.6, needs_review: true, warning: None }
         };
     }
 
@@ -1234,16 +1233,33 @@ fn parse_amount(value: &str) -> Option<f64> {
     cleaned.parse::<f64>().ok()
 }
 
-/// True for `YYYY-MM-DD`, `MM/DD/YYYY`, `DD.MM.YYYY` style numeric dates.
+/// Lenient date detector: accepts numeric dates with 2–3 groups (`19/6`,
+/// `2026-06-20`, `6/19/26`) and month-name dates (`Jun 19 2026`,
+/// `19 June 2026`). Errs toward "yes" — the goal is to avoid false "not a date"
+/// flags, not to fully validate the calendar.
 fn looks_like_date(value: &str) -> bool {
-    let parts: Vec<&str> = value
-        .trim()
-        .split(|c| c == '-' || c == '/' || c == '.')
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+
+    let lower = trimmed.to_ascii_lowercase();
+    const MONTHS: [&str; 12] = [
+        "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec",
+    ];
+    let has_month = MONTHS.iter().any(|month| lower.contains(month));
+
+    let digit_groups: Vec<&str> = trimmed
+        .split(|c: char| !c.is_ascii_digit())
+        .filter(|group| !group.is_empty())
         .collect();
-    parts.len() == 3
-        && parts
-            .iter()
-            .all(|part| !part.is_empty() && part.len() <= 4 && part.chars().all(|c| c.is_ascii_digit()))
+
+    if has_month && !digit_groups.is_empty() {
+        return true;
+    }
+
+    let has_separator = trimmed.contains('/') || trimmed.contains('-') || trimmed.contains('.');
+    has_separator && (2..=3).contains(&digit_groups.len())
 }
 
 fn line_items_total(items: &[GemmaLineItem]) -> Option<f64> {
@@ -2792,8 +2808,11 @@ mod tests {
     fn looks_like_date_accepts_common_formats() {
         assert!(looks_like_date("2026-06-20"));
         assert!(looks_like_date("06/20/2026"));
-        assert!(!looks_like_date("June 20"));
-        assert!(!looks_like_date("2026"));
+        assert!(looks_like_date("19/6"), "partial day/month dates are valid");
+        assert!(looks_like_date("Jun 19 2026"), "month-name dates are valid");
+        assert!(looks_like_date("19 June 2026"));
+        assert!(!looks_like_date("2026"), "a bare year is not a date");
+        assert!(!looks_like_date("hello"));
     }
 
     #[test]
@@ -2808,8 +2827,13 @@ mod tests {
         assert_eq!(empty.confidence, 0.0);
         assert!(empty.needs_review);
 
-        let bad_date = validate_field("date", "sometime", None);
-        assert!(bad_date.needs_review && bad_date.warning.is_some());
+        // An unparseable date is flagged for review but NOT claimed invalid.
+        let unclear_date = validate_field("date", "sometime", None);
+        assert!(unclear_date.needs_review && unclear_date.warning.is_none());
+
+        // A plausible partial date passes cleanly (regression for '19/6').
+        let partial_date = validate_field("date", "19/6", None);
+        assert!(!partial_date.needs_review && partial_date.warning.is_none());
     }
 
     #[test]
