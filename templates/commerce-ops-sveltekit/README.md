@@ -50,6 +50,7 @@ and sync review.
 | `/app/sales-orders` | Draft sales order intake and order ledger |
 | `/app/shipments` | Fulfillment batches and shipment line review |
 | `/app/commerce-sync` | Provider connection, sync-run, mapping, and webhook contract review |
+| `/api/commerce-sync/woocommerce/[tenantId]/[connectionId]` | Raw WooCommerce webhook endpoint; verifies `WOOCOMMERCE_WEBHOOK_SECRET`, records receipts, and imports order webhooks as draft sales orders |
 | `/app/invoices` | Invoice ledger |
 | `/app/payments` | Payment review |
 | `/app/files` | Stored files |
@@ -81,4 +82,5 @@ pnpm check:spec
 This app ships with a self-hosted Cloudflare deploy workflow in
 `.github/workflows/deploy.yml`. Before a real deploy, replace resource
 placeholders in `wrangler.jsonc`, create the matching D1/R2/KV/Queue resources,
-and set Cloudflare credentials as repository secrets.
+set Cloudflare credentials as repository secrets, and configure
+`WOOCOMMERCE_WEBHOOK_SECRET` as the shared WooCommerce webhook signing secret.

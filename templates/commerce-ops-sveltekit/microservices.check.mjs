@@ -63,6 +63,29 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Commerce sync route exposes operator actions through commerce-sync use cases and records audit events."
   );
   assertFileIncludesAll(
+    "src/routes/api/commerce-sync/woocommerce/[tenantId]/[connectionId]/+server.ts",
+    [
+      "request.text()",
+      "verifyWooCommerceWebhookSignature",
+      "recordWebhookReceipt",
+      "normalizeCommercePayload",
+      "importWooCommerceOrderEnvelope",
+      "WOOCOMMERCE_WEBHOOK_SECRET"
+    ],
+    "WooCommerce webhook API verifies the raw payload before parsing, records receipt idempotency, and imports orders through the template bridge."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/commerce-order-import.ts",
+    [
+      "createDraftOrder",
+      "upsertCustomer",
+      "findProductBySku",
+      "recordProviderMapping",
+      "woocommerce:"
+    ],
+    "Commerce order import helper maps normalized WooCommerce orders into customer, product, sales-order, and provider-mapping modules."
+  );
+  assertFileIncludesAll(
     "src/routes/app/sales-orders/+page.server.ts",
     ["inventoryReservationPort", "reserveStock", "getStockBalance", "confirmOrder"],
     "Sales order confirmation reserves stock through the inventory module before moving orders to confirmed."
