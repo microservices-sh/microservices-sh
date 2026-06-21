@@ -301,6 +301,28 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  modules/code-memory:
+    dependencies:
+      '@microservices-sh/connection-contract':
+        specifier: workspace:*
+        version: link:../../packages/connection-contract
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250109.0
+        version: 4.20260613.1
+      '@microservices-sh/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@25.9.3)(lightningcss@1.32.0)
+
   modules/commerce-sync:
     dependencies:
       '@microservices-sh/connection-contract':

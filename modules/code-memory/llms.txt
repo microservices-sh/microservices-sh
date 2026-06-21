@@ -1,0 +1,21 @@
+# Code Memory
+
+Module ID: code-memory
+Status: draft
+Purpose: Trusted Sources, source versions, Logic Capsules, and audit events for private reusable code memory.
+Entrypoint: src/index.ts
+Check: pnpm --filter @microservices-sh/code-memory check:spec
+Build: pnpm --filter @microservices-sh/code-memory build
+Test: pnpm --filter @microservices-sh/code-memory test
+
+Key files:
+- migrations/0001_initial.sql owns code_memory_sources, code_memory_source_versions, code_memory_capsules, and code_memory_events.
+- src/service/index.ts validates source and capsule mutations.
+- src/adapters/d1.ts stores JSON fields as text for D1.
+- src/adapters/memory.ts supports fast unit tests and local development.
+
+Rules:
+- Do not execute untrusted repo code.
+- Do not expose private repo credentials through this module.
+- Approved capsule search is the default retrieval path.
+- Keep source provenance and constraints with every capsule.

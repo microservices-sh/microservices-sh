@@ -119,6 +119,42 @@ describe("module version selectors", () => {
     });
   });
 
+  it("models Code Memory as approval-gated Trusted Source and Logic Capsule metadata", () => {
+    const module = inspectModule("code-memory@0.1.0");
+
+    expect(module).toMatchObject({
+      id: "code-memory",
+      status: "draft",
+      category: "core",
+      requires: ["identity"],
+      optional: ["audit-log", "jobs-workflows"],
+      runtime: { mount: "/code-memory" },
+      permissions: expect.arrayContaining(["code-memory.read", "code-memory.approve"]),
+      rpc: expect.arrayContaining([
+        { method: "addTrustedSource", scope: "code-memory.write", public: false },
+        { method: "searchLogicCapsules", scope: "code-memory.read", public: false },
+        { method: "approveLogicCapsule", scope: "code-memory.approve", public: false },
+      ]),
+      eventsEmitted: expect.arrayContaining([
+        "code-memory.source.added",
+        "code-memory.capsule.approved",
+        "code-memory.capsule.retrieved",
+      ]),
+    });
+    expect(module.surfaces.agentic).toMatchObject({
+      applicable: true,
+      tools: expect.arrayContaining([
+        "code-memory.searchLogicCapsules",
+        "code-memory.getLogicCapsule",
+        "code-memory.approveLogicCapsule",
+      ]),
+      approvalRequired: expect.arrayContaining([
+        "code-memory.addTrustedSource",
+        "code-memory.approveLogicCapsule",
+      ]),
+    });
+  });
+
   it("records pinned versions in the composition lock", () => {
     const composition = composeApp({ templateId: "booking-business", modules: ["payment@0.1.0"] });
     expect(composition.lock.modules.find((module) => module.id === "payment")).toMatchObject({

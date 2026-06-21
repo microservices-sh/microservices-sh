@@ -19,6 +19,7 @@ export const BUNDLED_MODULES = [
   "billing-subscriptions",
   "booking",
   "calendar-google",
+  "code-memory",
   "commerce-sync",
   "customer",
   "email",

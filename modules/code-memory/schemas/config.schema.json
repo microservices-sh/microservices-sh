@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "enabled": { "type": "boolean" },
+    "defaultProvider": { "type": "string" },
+    "maxAllowedPaths": { "type": "integer", "minimum": 1 }
+  }
+}
