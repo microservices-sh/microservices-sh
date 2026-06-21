@@ -24,6 +24,23 @@ Workflow:
 - **Login, portal, and admin screens** → still hardcoded in their `.svelte`
   components. Not externalized yet; edit in place if needed, carefully.
 
+## Expose modules as governed agent tools (MCP)
+
+This app can serve its modules to an AI agent as **governed tools** — each rpc
+method becomes a scoped, approval-gated, audited MCP tool (auth, identity,
+customer, file-media).
+
+- `generated/tool-manifest.ts` + `generated/mcp-server.mjs` are generated from the
+  module contracts (`npm run generate:mcp`); do not hand-edit them.
+- `src/lib/server/mcp-wiring.ts` is the **edit seam**: it binds each tool to its
+  module use-case + deps (memory adapters by default; swap to D1/R2 for a real
+  backend), supplies the audit sink, and resolves the agent's actor + scopes
+  (`MCP_AGENT_ID` / `MCP_AGENT_SCOPES`).
+
+Run the stdio server (after install): `npm run mcp`. Mutations (e.g. creating an
+upload ticket) are held at an approval gate until the caller confirms; reads with
+the right scope flow through; every call is written to the audit log.
+
 ## Don't
 
 - Don't edit `src/content.types.ts` — it's generated from the schema.

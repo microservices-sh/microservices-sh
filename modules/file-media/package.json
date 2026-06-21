@@ -21,6 +21,7 @@
     "./keys": "./src/keys.ts",
     "./adapters/d1": "./src/adapters/d1-media-store.ts",
     "./adapters/memory": "./src/adapters/memory-media-store.ts",
+    "./adapters/memory-storage": "./src/adapters/memory-object-storage.ts",
     "./adapters/r2": "./src/adapters/r2-object-storage.ts"
   },
   "scripts": {
