@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import "../app.css";
   import { page } from "$app/stores";
   import { Button, Logo } from "$lib/ui";

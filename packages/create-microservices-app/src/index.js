@@ -74,6 +74,27 @@ function rewriteBundledPackageDeps(dependencies, prefix = "./packages", protocol
   }
 }
 
+function repoTemplatePackages(files) {
+  const packageIds = [];
+  for (const file of files) {
+    const match = file.path.match(/^packages\/([^/]+)\/package\.json$/);
+    if (match) packageIds.push(match[1]);
+  }
+  return packageIds.sort();
+}
+
+function addBundledPackageRootDeps(dependencies, packageIds, prefix = "./packages", protocol = "link:") {
+  if (!dependencies || typeof dependencies !== "object") return;
+
+  const packageNamesByPath = new Map([...BUNDLED_PACKAGES].map(([name, packagePath]) => [packagePath, name]));
+  for (const packageId of packageIds) {
+    const name = packageNamesByPath.get(packageId);
+    if (name && !dependencies[name]) {
+      dependencies[name] = `${protocol}${prefix}/${packageId}`;
+    }
+  }
+}
+
 async function readRepoTemplateFiles(templateId) {
   const base = resolve(TEMPLATES_DIR, templateId);
   if (!existsSync(base)) {
@@ -117,6 +138,8 @@ function applyRepoTemplateConfig(files, appName, configOverride) {
         // packages — edits to vendored module source are picked up live instead of
         // going stale in pnpm's content-addressed store. Intra-module deps (below)
         // stay file: so each copied module remains self-contained.
+        pkg.dependencies ||= {};
+        addBundledPackageRootDeps(pkg.dependencies, repoTemplatePackages(files));
         rewriteBundledModuleDeps(pkg.dependencies, "./modules", "link:");
         rewriteBundledPackageDeps(pkg.dependencies, "./packages", "link:");
         if (pkg.scripts?.["check:spec"]) {

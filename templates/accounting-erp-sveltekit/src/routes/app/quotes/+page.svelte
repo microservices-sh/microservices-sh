@@ -1,15 +1,14 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { money } from "$lib/format";
   import { Alert, Badge, Button, Card, EmptyState, Field, MetricStrip, PageHeader, ResourceTable } from "$lib/ui";
-  import type { Metric, Tone } from "$lib/ui/types";
 
   let { data, form } = $props();
 
   const selected = $derived(data.selectedQuote);
   const invoiceDraft = $derived(data.invoiceDraft);
   const conversionRate = $derived(`${(data.stats.conversionRateBasisPoints / 100).toFixed(1)}%`);
-  const metrics = $derived<Metric[]>([
+  const metrics = $derived([
     { label: "Draft quotes", value: data.stats.draft, tone: data.stats.draft > 0 ? "neutral" : "good", hint: money(data.stats.totalValueCents) },
     { label: "Pending", value: money(data.stats.pendingValueCents), tone: data.stats.pendingValueCents > 0 ? "warn" : "neutral", hint: `${data.stats.sent} sent/viewed` },
     { label: "Accepted", value: money(data.stats.acceptedValueCents), tone: data.stats.acceptedValueCents > 0 ? "good" : "neutral", hint: `${data.stats.accepted} quotes` },
@@ -23,7 +22,7 @@
     { id: "accepted", label: "Accepted", href: "/app/quotes?status=accepted" }
   ];
 
-  function tone(status: string): Tone {
+  function tone(status) {
     switch (status) {
       case "accepted":
       case "converted":
@@ -40,7 +39,7 @@
     }
   }
 
-  function dateLabel(value: string | null): string {
+  function dateLabel(value) {
     if (!value) return "No expiry";
     return new Date(value).toLocaleDateString();
   }

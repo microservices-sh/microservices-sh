@@ -1,12 +1,11 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { MetricStrip, PageHeader, Card, Badge, Alert, Button, Field } from "$lib/ui";
-  import type { Metric } from "$lib/ui/types";
 
   let { data, form } = $props();
 
   const wooConnections = $derived(data.connections.filter((connection) => connection.provider === "woocommerce" && connection.active));
-  const metrics = $derived<Metric[]>([
+  const metrics = $derived([
     { label: "Connections", value: data.connections.length, tone: data.connections.length > 0 ? "good" : "neutral", hint: "provider links" },
     { label: "Processed", value: data.run?.processedCount ?? 0, tone: "info", hint: "last sync run" },
     { label: "Failures", value: data.run?.failedCount ?? 0, tone: data.run?.failedCount ? "bad" : "good", hint: data.status.status }

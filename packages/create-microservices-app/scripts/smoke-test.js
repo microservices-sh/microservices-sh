@@ -14,6 +14,8 @@ process.env.MICROSERVICES_TELEMETRY = "0";
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const tempRoot = await mkdtemp(join(tmpdir(), "microservices-create-smoke-"));
 const SKIP_BUILD = process.argv.includes("--skip-build") || process.env.MICROSERVICES_CREATE_SMOKE_SKIP_BUILD === "1";
+const DEEP_STACKSUITE =
+  process.argv.includes("--deep-stacksuite") || process.env.MICROSERVICES_CREATE_SMOKE_DEEP_STACKSUITE === "1";
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -80,10 +82,29 @@ function assertRepoTemplateScaffold(root, templateId, expectedModules) {
   if (!existsSync(join(root, "packages", "connection-contract", "package.json"))) {
     throw new Error(`${templateId} create command did not include the connection-contract package source.`);
   }
+  const packageRoot = join(root, "packages");
+  if (existsSync(packageRoot)) {
+    for (const entry of readdirSync(packageRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const packageJsonPath = join(packageRoot, entry.name, "package.json");
+      if (!existsSync(packageJsonPath)) continue;
+      const bundledPackage = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+      if (pkg.dependencies?.[bundledPackage.name] !== `link:./packages/${entry.name}`) {
+        throw new Error(`${templateId} generated app should depend on local ${entry.name} package source.`);
+      }
+    }
+  }
   assertNoWorkspaceRuntimeDeps(root, templateId);
 
   run("node", ["--check", "scripts/microservices.js"], { cwd: root, stdio: "inherit" });
   run("node", ["scripts/microservices.js", "check", "--json"], { cwd: root, stdio: "inherit" });
+}
+
+function assertGeneratedAppInstallBuild(root, templateId) {
+  run("pnpm", ["install", "--ignore-scripts"], { cwd: root, stdio: "inherit" });
+  run("pnpm", ["build"], { cwd: root, stdio: "inherit" });
+  run("node", ["scripts/microservices.js", "check", "--json"], { cwd: root, stdio: "inherit" });
+  process.stdout.write(`${templateId} generated app install/build smoke passed\n`);
 }
 
 function assertNoWorkspaceRuntimeDeps(root, label) {
@@ -251,6 +272,9 @@ try {
   assert.strictEqual(accountingOutput.data.template, "accounting-erp-sveltekit");
   assert.ok(accountingOutput.data.modules.includes("identity"));
   assert.ok(accountingOutput.data.modules.includes("notifications-inapp"));
+  if (DEEP_STACKSUITE) {
+    assertGeneratedAppInstallBuild(accountingRoot, "accounting-erp-sveltekit");
+  }
 
   const commerceRoot = join(tempRoot, "commerce-ops-smoke");
   const commerceModules = [
@@ -280,6 +304,9 @@ try {
   assert.strictEqual(commerceOutput.data.template, "commerce-ops-sveltekit");
   assert.ok(commerceOutput.data.modules.includes("identity"));
   assert.ok(commerceOutput.data.modules.includes("webhook-delivery"));
+  if (DEEP_STACKSUITE) {
+    assertGeneratedAppInstallBuild(commerceRoot, "commerce-ops-sveltekit");
+  }
 
   const defaultRoot = join(tempRoot, "default-smoke");
   if (!existsSync(join(defaultRoot, "svelte.config.js"))) {

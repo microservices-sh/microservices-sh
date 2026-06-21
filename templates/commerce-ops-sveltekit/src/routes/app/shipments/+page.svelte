@@ -1,29 +1,28 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { relativeTime } from "$lib/format";
-  import { printShipmentPackingSlip, printShipmentPickList, type ShipmentPrintData } from "$lib/packing-slip";
+  import { printShipmentPackingSlip, printShipmentPickList } from "$lib/packing-slip";
   import { Alert, Badge, Button, Card, Field, MetricStrip, PageHeader } from "$lib/ui";
-  import type { Metric } from "$lib/ui/types";
 
   let { data, form } = $props();
 
   const shipmentDocuments = $derived(new Map(data.shipmentDocuments.map((doc) => [doc.shipmentId, doc])));
   const openShipments = $derived(data.shipments.filter((shipment) => shipment.status !== "completed" && shipment.status !== "cancelled"));
   const itemCount = $derived(data.shipments.reduce((total, shipment) => total + shipment.items.length, 0));
-  const metrics = $derived<Metric[]>([
+  const metrics = $derived([
     { label: "Open shipments", value: openShipments.length, tone: openShipments.length > 0 ? "warn" : "good", hint: "draft or processing" },
     { label: "Shipment items", value: itemCount, tone: "info", hint: "last 100 batches" },
     { label: "Completed", value: data.shipments.filter((shipment) => shipment.status === "completed").length, tone: "good", hint: "closed batches" }
   ]);
 
-  function shipmentTone(status: string): "good" | "warn" | "bad" | "neutral" {
+  function shipmentTone(status) {
     if (status === "completed") return "good";
     if (status === "processing") return "warn";
     if (status === "cancelled") return "bad";
     return "neutral";
   }
 
-  function printData(shipment: (typeof data.shipments)[number]): ShipmentPrintData {
+  function printData(shipment) {
     const doc = shipmentDocuments.get(shipment.id);
     return {
       shipmentId: shipment.id,

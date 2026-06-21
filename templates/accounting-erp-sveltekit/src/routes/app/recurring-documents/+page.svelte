@@ -1,14 +1,13 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { money } from "$lib/format";
   import { Alert, Badge, Button, Card, EmptyState, Field, MetricStrip, PageHeader, ResourceTable } from "$lib/ui";
-  import type { Metric, Tone } from "$lib/ui/types";
 
   let { data, form } = $props();
 
   const selected = $derived(data.selectedTemplate);
   const generatedDrafts = $derived(form?.generatedDrafts ?? []);
-  const metrics = $derived<Metric[]>([
+  const metrics = $derived([
     { label: "Active", value: data.stats.active, tone: data.stats.active > 0 ? "good" : "neutral", hint: `${data.stats.paused} paused` },
     { label: "Due value", value: money(data.stats.dueValueCents), tone: data.stats.dueValueCents > 0 ? "warn" : "neutral", hint: "Ready to draft" },
     { label: "Portfolio", value: money(data.stats.totalValueCents), tone: "info", hint: `${data.templates.length} schedules` },
@@ -27,7 +26,7 @@
     { id: "completed", label: "Completed", href: "/app/recurring-documents?status=completed" }
   ];
 
-  function tone(status: string): Tone {
+  function tone(status) {
     switch (status) {
       case "active":
         return "good";
@@ -40,7 +39,7 @@
     }
   }
 
-  function dateLabel(value: string | null): string {
+  function dateLabel(value) {
     if (!value) return "No date";
     return new Date(value).toLocaleDateString();
   }

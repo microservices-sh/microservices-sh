@@ -1,14 +1,13 @@
-<script lang="ts">
+<script>
   import { money } from "$lib/format";
   import { Badge, Button, Card, Field, MetricStrip, PageHeader } from "$lib/ui";
-  import type { Metric } from "$lib/ui/types";
 
   let { data } = $props();
 
   const arOpen = $derived(data.arAging?.totalOpenCents ?? 0);
   const apOpen = $derived(data.apAging?.totals.totalCents ?? 0);
   const totalOverdue = $derived((data.arAging?.overdueCents ?? 0) + (data.apAging?.overdueCents ?? 0));
-  const metrics = $derived<Metric[]>([
+  const metrics = $derived([
     { label: "Open AR", value: money(arOpen), tone: arOpen > 0 ? "warn" : "good", hint: `${data.openReceivables.length} invoices` },
     { label: "Open AP", value: money(apOpen), tone: apOpen > 0 ? "warn" : "good", hint: `${data.apAging?.vendors.length ?? 0} vendors` },
     { label: "Overdue", value: money(totalOverdue), tone: totalOverdue > 0 ? "bad" : "good", hint: data.asOfDay }
@@ -20,9 +19,9 @@
     ["31-60", "days31To60Cents"],
     ["61-90", "days61To90Cents"],
     ["90+", "days90PlusCents"]
-  ] as const;
+  ];
 
-  function bucketTone(label: string): "good" | "warn" | "bad" | "neutral" {
+  function bucketTone(label) {
     if (label === "Current") return "good";
     if (label === "90+" || label === "61-90") return "bad";
     return "warn";

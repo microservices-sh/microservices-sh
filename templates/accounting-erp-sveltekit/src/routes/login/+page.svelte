@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import { goto } from "$app/navigation";
   import { Button, Field, Card, Alert, Eyebrow } from "$lib/ui";
 
@@ -6,7 +6,7 @@
 
   let email = $state("");
   let code = $state("");
-  let step = $state<"email" | "code">("email");
+  let step = $state("email");
   let error = $state("");
   let busy = $state(false);
   let devCode = $state("");
@@ -14,7 +14,7 @@
 
   const blockedEmail = $derived(accessBlockedEmail || data.signedInEmail);
 
-  async function post(payload: Record<string, unknown>) {
+  async function post(payload) {
     busy = true;
     error = "";
     try {
@@ -32,7 +32,7 @@
     }
   }
 
-  async function requestCode(e: SubmitEvent) {
+  async function requestCode(e) {
     e.preventDefault();
     const data = await post({ action: "request", email });
     if (data.ok) {
@@ -43,7 +43,7 @@
     }
   }
 
-  async function verifyCode(e: SubmitEvent) {
+  async function verifyCode(e) {
     e.preventDefault();
     const data = await post({ action: "verify", email, code });
     if (data.ok) {

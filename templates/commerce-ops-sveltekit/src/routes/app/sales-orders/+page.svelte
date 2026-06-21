@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import {
     downloadCsv,
@@ -7,31 +7,28 @@
     generateSalesOrderPrintHtml,
     printDocumentHtml,
     safeDocumentFilename,
-    type SalesOrderDocumentData
   } from "$lib/document-export";
   import { money, relativeTime } from "$lib/format";
   import { Alert, Badge, Button, Card, Field, MetricStrip, PageHeader } from "$lib/ui";
-  import type { Metric } from "$lib/ui/types";
 
   let { data, form } = $props();
-  type SalesOrderRow = (typeof data.orders)[number];
 
   const openOrders = $derived(data.orders.filter((order) => order.status === "draft" || order.status === "confirmed"));
   const orderValue = $derived(openOrders.reduce((total, order) => total + order.totalCents, 0));
-  const metrics = $derived<Metric[]>([
+  const metrics = $derived([
     { label: "Open orders", value: openOrders.length, tone: openOrders.length > 0 ? "warn" : "good", hint: "draft or confirmed" },
     { label: "Order value", value: money(orderValue), tone: "info", hint: "open total" },
     { label: "All orders", value: data.orders.length, tone: "neutral", hint: "last 100" }
   ]);
 
-  function orderTone(status: string): "good" | "warn" | "bad" | "neutral" {
+  function orderTone(status) {
     if (status === "invoiced") return "good";
     if (status === "cancelled") return "bad";
     if (status === "confirmed") return "warn";
     return "neutral";
   }
 
-  function salesOrderDocument(order: SalesOrderRow): SalesOrderDocumentData {
+  function salesOrderDocument(order) {
     return {
       orderNumber: order.orderNumber ?? order.id,
       status: order.status,
@@ -54,11 +51,11 @@
     };
   }
 
-  function printSalesOrder(order: SalesOrderRow) {
+  function printSalesOrder(order) {
     printDocumentHtml(generateSalesOrderPrintHtml(salesOrderDocument(order)), "Please allow pop-ups to print sales orders.");
   }
 
-  function exportSalesOrder(order: SalesOrderRow) {
+  function exportSalesOrder(order) {
     const doc = salesOrderDocument(order);
     downloadCsv(
       safeDocumentFilename({

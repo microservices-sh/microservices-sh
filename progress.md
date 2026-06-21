@@ -1704,3 +1704,22 @@
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Drift scan | Targeted modules and packaged copies have no legacy event-column writer or migration matches | `rg -n "INSERT INTO domain_events \\(id, event_type|event_type TEXT NOT NULL|aggregate_id TEXT" ...` returned no matches | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 77 generated StackSuite install/build smoke
+
+- **Status:** complete.
+- Goal: add a generated-app gate that catches dependency-resolution and parser/toolchain differences between the source templates and freshly scaffolded StackSuite apps.
+- Added `smoke:stacksuite` to `create-microservices-app`; the deep path scaffolds accounting and commerce repo templates, installs dependencies, runs `pnpm build`, and runs generated `scripts/microservices.js check --json`.
+- Added generated-root dependency linking for copied support packages such as `@microservices-sh/connection-contract`, so linked copied modules resolve local support packages from generated apps.
+- Added scaffold assertions that every copied support package is represented as a root `link:./packages/...` dependency.
+- Enabled Svelte preprocessing across SvelteKit templates and converted focused accounting/commerce route scripts to plain JavaScript so generated apps build under fresh installs where route-level TypeScript annotations are not stripped.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Focused template builds | Root accounting and commerce templates compile after route script conversion | `pnpm --dir templates/accounting-erp-sveltekit build` and `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
+| Create package build | Packaged repo templates include smoke harness and dependency linking changes | `pnpm --filter create-microservices-app build` passed | Pass |
+| Create package tests | Unit tests and shim drift test remain green | `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Deep generated smoke | Fresh accounting and commerce generated apps install, build, and pass generated checks | `pnpm --filter create-microservices-app smoke:stacksuite` passed | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Shim sync | Canonical and packaged microservices shims remain in sync | `pnpm check:shims` passed, 13 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

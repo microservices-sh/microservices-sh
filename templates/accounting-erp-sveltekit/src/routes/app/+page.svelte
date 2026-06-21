@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import {
     PageHeader,
     MetricStrip,
@@ -9,12 +9,11 @@
     ActionRail,
     EmptyState
   } from "$lib/ui";
-  import type { Metric, RailAction } from "$lib/ui/types";
 
   let { data } = $props();
   const m = $derived(data.metrics);
 
-  const metrics = $derived<Metric[]>([
+  const metrics = $derived([
     {
       label: "Outstanding",
       value: m.outstanding,
@@ -52,7 +51,7 @@
     }
   ]);
 
-  const actions = $derived<RailAction[]>(
+  const actions = $derived(
     [
       m.overdueCount > 0
         ? {
@@ -67,10 +66,10 @@
         ? { label: "Triage support tickets", description: `${m.openTicketCount} open`, href: "/app/support" }
         : null,
       { label: "Add a customer", description: "Start a new relationship", href: "/app/customers" }
-    ].filter(Boolean) as RailAction[]
+    ].filter(Boolean)
   );
 
-  const priorityTone = (p: string) => (p === "urgent" || p === "high" ? "bad" : p === "low" ? "neutral" : "warn");
+  const priorityTone = (p) => (p === "urgent" || p === "high" ? "bad" : p === "low" ? "neutral" : "warn");
 </script>
 
 <svelte:head>

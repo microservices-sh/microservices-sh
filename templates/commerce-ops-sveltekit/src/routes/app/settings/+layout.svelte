@@ -1,10 +1,10 @@
-<script lang="ts">
+<script>
   import { page } from "$app/stores";
 
   let { data, children } = $props();
 
   const path = $derived($page.url.pathname);
-  function isActive(href: string): boolean {
+  function isActive(href) {
     // Organization is the index — exact match only, so it isn't active on every
     // sub-page; the rest match their own subtree.
     if (href === "/app/settings") return path === "/app/settings";

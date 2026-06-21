@@ -1,11 +1,11 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { Alert, Button, Card, EmptyState, Field, PageHeader } from "$lib/ui";
 
   let { data, form } = $props();
 
-  const when = (iso?: string | null) => iso ? new Date(iso).toLocaleString() : "n/a";
-  const interval = (ms: number) => {
+  const when = (iso) => iso ? new Date(iso).toLocaleString() : "n/a";
+  const interval = (ms) => {
     const minutes = Math.round(ms / 60_000);
     if (minutes < 60) return `${minutes}m`;
     const hours = minutes / 60;

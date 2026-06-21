@@ -1,24 +1,23 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { Alert, Badge, Button, Card, Field, PageHeader, MetricStrip } from "$lib/ui";
-  import type { Metric } from "$lib/ui/types";
 
   let { data, form } = $props();
 
-  const when = (iso: string) => new Date(iso).toLocaleString();
-  const endpointUrl = (id: string) => data.endpoints.find((endpoint) => endpoint.id === id)?.url ?? id;
+  const when = (iso) => new Date(iso).toLocaleString();
+  const endpointUrl = (id) => data.endpoints.find((endpoint) => endpoint.id === id)?.url ?? id;
 
   const activeEndpoints = $derived(data.endpoints.filter((endpoint) => endpoint.active).length);
   const failedDeliveries = $derived(data.deliveries.filter((delivery) => delivery.status === "failed").length);
 
-  const metrics = $derived<Metric[]>([
+  const metrics = $derived([
     { label: "Endpoints", value: data.endpoints.length, tone: "neutral", hint: "registered" },
     { label: "Active", value: activeEndpoints, tone: activeEndpoints > 0 ? "good" : "neutral", hint: "receiving" },
     { label: "Deliveries", value: data.deliveries.length, tone: "neutral", hint: "logged" },
     { label: "Failures", value: failedDeliveries, tone: failedDeliveries > 0 ? "bad" : "good", hint: failedDeliveries > 0 ? "needs review" : "all delivered" }
   ]);
 
-  function statusTone(status: string): "good" | "bad" | "neutral" {
+  function statusTone(status) {
     if (status === "delivered") return "good";
     if (status === "failed") return "bad";
     return "neutral";

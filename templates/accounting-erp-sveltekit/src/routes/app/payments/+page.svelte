@@ -1,13 +1,13 @@
-<script lang="ts">
+<script>
   import { PageHeader, Card, Badge, ResourceTable, EmptyState } from "$lib/ui";
 
   let { data } = $props();
 
-  const money = (cents: number, currency = "USD") =>
+  const money = (cents, currency = "USD") =>
     new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
-  const when = (iso: string) => new Date(iso).toLocaleDateString();
+  const when = (iso) => new Date(iso).toLocaleDateString();
 
-  function tone(status: string): "good" | "warn" | "bad" | "neutral" {
+  function tone(status) {
     switch (status) {
       case "succeeded":
       case "paid":

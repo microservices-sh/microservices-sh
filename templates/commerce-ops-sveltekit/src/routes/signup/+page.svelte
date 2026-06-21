@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import { enhance, applyAction } from "$app/forms";
   import { goto } from "$app/navigation";
   import { Button, Field, Card, Alert, Eyebrow } from "$lib/ui";
@@ -17,11 +17,9 @@
   let orgName = $state(initialValues.orgName ?? "");
   let slug = $state(initialValues.slug ?? "");
   let slugEdited = $state(Boolean(initialValues.slug));
+  let invites = $state([]);
 
-  type Invite = { email: string; role: "admin" | "member" };
-  let invites = $state<Invite[]>([]);
-
-  function slugify(v: string): string {
+  function slugify(v) {
     return v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 63);
   }
   // Live-derive the slug from the company name until the user edits it directly.
@@ -29,14 +27,14 @@
     if (!slugEdited) slug = slugify(orgName);
   });
 
-  const emailOk = (e: string) => /.+@.+\..+/.test(e.trim());
+  const emailOk = (e) => /.+@.+\..+/.test(e.trim());
   const step1Valid = $derived(emailOk(email) && orgName.trim().length > 0 && slug.length > 0);
   const validInvites = $derived(invites.filter((i) => emailOk(i.email)));
 
   function addInvite() {
     invites = [...invites, { email: "", role: "member" }];
   }
-  function removeInvite(i: number) {
+  function removeInvite(i) {
     invites = invites.filter((_, n) => n !== i);
   }
   function goNext() {

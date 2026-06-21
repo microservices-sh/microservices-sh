@@ -1,16 +1,16 @@
-<script lang="ts">
+<script>
   import { Button, Field, Alert, PageHeader, Badge, CustomSelect, ResourceTable } from "$lib/ui";
 
   let { data, form } = $props();
 
-  const roleName = (roleId: string) => data.roles.find((role) => role.id === roleId)?.name ?? roleId;
-  const roleDetails: Record<string, string> = {
+  const roleName = (roleId) => data.roles.find((role) => role.id === roleId)?.name ?? roleId;
+  const roleDetails = {
     owner: "Full company control",
     admin: "Manage team and operations",
     member: "Read workspace data"
   };
-  const roleDetail = (name: string) => roleDetails[name] ?? "Scoped workspace role";
-  const domId = (value: string) => value.replace(/[^A-Za-z0-9_-]/g, "-");
+  const roleDetail = (name) => roleDetails[name] ?? "Scoped workspace role";
+  const domId = (value) => value.replace(/[^A-Za-z0-9_-]/g, "-");
   const roleOptions = $derived(
     data.roles.map((role) => ({
       value: role.id,

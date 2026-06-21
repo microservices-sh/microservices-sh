@@ -1,8 +1,7 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { relativeTime } from "$lib/format";
   import { Alert, Badge, Button, Card, Field, MetricStrip, PageHeader } from "$lib/ui";
-  import type { Metric } from "$lib/ui/types";
 
   let { data, form } = $props();
 
@@ -12,13 +11,13 @@
   const available = $derived(
     data.balances.reduce((total, item) => total + item.balance.available, 0)
   );
-  const metrics = $derived<Metric[]>([
+  const metrics = $derived([
     { label: "Tracked SKUs", value: data.balances.length, tone: "neutral", hint: "default location" },
     { label: "Available", value: available, tone: available > 0 ? "good" : "neutral", hint: "units on hand" },
     { label: "Below reorder", value: lowStock, tone: lowStock > 0 ? "warn" : "good", hint: lowStock > 0 ? "review purchasing" : "all clear" }
   ]);
 
-  function movementTone(type: string): "good" | "warn" | "bad" | "neutral" {
+  function movementTone(type) {
     if (type === "stock_in" || type === "release") return "good";
     if (type === "reservation") return "warn";
     if (type === "deduction") return "bad";
@@ -120,7 +119,7 @@
             <Field label="Product" id="stock-product">
               <select id="stock-product" name="productId" required>
                 <option value="">Choose product</option>
-                {#each data.products.filter((product) => product.trackStock) as product (product.id)}
+                {#each data.products.filter((product) => product.trackStock) (product.id)}
                   <option value={product.id}>{product.sku} · {product.name}</option>
                 {/each}
               </select>

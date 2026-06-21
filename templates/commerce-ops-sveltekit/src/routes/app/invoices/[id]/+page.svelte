@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import {
     downloadCsv,
@@ -6,14 +6,13 @@
     generateInvoicePrintHtml,
     printDocumentHtml,
     safeDocumentFilename,
-    type InvoiceDocumentData
   } from "$lib/document-export";
   import { PageHeader, Card, Badge, Button, Field, Alert, FormActions, WorkflowTimeline } from "$lib/ui";
 
   let { data, form } = $props();
   const inv = $derived(data.invoice);
   const paymentLinkHref = $derived(form?.paymentLinkUrl ?? inv.paymentLinkUrl);
-  const invoiceDocument = $derived<InvoiceDocumentData>({
+  const invoiceDocument = $derived({
     number: inv.number,
     status: inv.status,
     currency: inv.currency,
@@ -38,7 +37,7 @@
 
   function payEnhance() {
     submitting = true;
-    return async ({ update }: { update: () => Promise<void> }) => {
+    return async ({ update }) => {
       submitting = false;
       await update();
     };

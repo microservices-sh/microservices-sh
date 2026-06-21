@@ -1,9 +1,9 @@
-<script lang="ts">
+<script>
   import { Card, Eyebrow, Badge, Button, Field, Alert } from "$lib/ui";
 
   let { data, form } = $props();
 
-  const kb = (bytes: number) => `${(bytes / 1024).toFixed(1)} KB`;
+  const kb = (bytes) => `${(bytes / 1024).toFixed(1)} KB`;
 </script>
 
 <svelte:head>

@@ -1,9 +1,9 @@
-<script lang="ts">
+<script>
   import { Button, Field, Card, Eyebrow, ResourceTable } from "$lib/ui";
 
   let { data } = $props();
 
-  const cell = (row: Record<string, unknown>, name: string) => {
+  const cell = (row, name) => {
     const value = row[name];
     return value === null || value === undefined ? "—" : String(value);
   };

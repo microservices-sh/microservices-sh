@@ -1,9 +1,9 @@
-<script lang="ts">
+<script>
   import { PageHeader, Card, Badge, ResourceTable, EmptyState } from "$lib/ui";
 
   let { data } = $props();
 
-  const tone = (status: string): "good" | "warn" | "bad" | "neutral" => {
+  const tone = (status) => {
     switch (status) {
       case "open":
         return "warn";

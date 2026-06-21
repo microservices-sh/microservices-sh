@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { PageHeader, Card, Badge, Button, Alert, FormActions, WorkflowTimeline } from "$lib/ui";
 
@@ -9,7 +9,7 @@
 
   function refundEnhance() {
     submitting = true;
-    return async ({ update }: { update: () => Promise<void> }) => {
+    return async ({ update }) => {
       submitting = false;
       await update();
     };

@@ -1,14 +1,13 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { page } from "$app/stores";
   import { Alert, Badge, Button, Card, EmptyState, MetricStrip, PageHeader, ResourceTable } from "$lib/ui";
-  import type { Metric } from "$lib/ui/types";
 
   let { data, form } = $props();
 
-  const money = (cents: number, currency = "USD") =>
+  const money = (cents, currency = "USD") =>
     new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
-  const when = (iso?: string | null) => iso ? new Date(iso).toLocaleDateString() : "n/a";
+  const when = (iso) => iso ? new Date(iso).toLocaleDateString() : "n/a";
   const created = $derived($page.url.searchParams.get("created"));
   const nowIso = new Date().toISOString();
 
@@ -16,13 +15,13 @@
   const dueCount = $derived(
     data.templates.filter((template) => template.status === "active" && template.nextInvoiceAt && template.nextInvoiceAt <= nowIso).length
   );
-  const metrics = $derived<Metric[]>([
+  const metrics = $derived([
     { label: "Active", value: activeCount, tone: activeCount > 0 ? "good" : "neutral", hint: "templates" },
     { label: "Due", value: dueCount, tone: dueCount > 0 ? "warn" : "good", hint: "ready to generate" },
     { label: "Total", value: data.templates.length, tone: "neutral", hint: "recurring templates" }
   ]);
 
-  function statusTone(status: string): "good" | "warn" | "bad" | "neutral" {
+  function statusTone(status) {
     switch (status) {
       case "active":
         return "good";
@@ -35,7 +34,7 @@
     }
   }
 
-  function frequencyLabel(template: { frequency: string; customDays: number | null }) {
+  function frequencyLabel(template) {
     return template.frequency === "custom" && template.customDays ? `Every ${template.customDays} days` : template.frequency;
   }
 </script>

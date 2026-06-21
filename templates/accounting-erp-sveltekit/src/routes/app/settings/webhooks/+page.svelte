@@ -1,9 +1,9 @@
-<script lang="ts">
+<script>
   import { Alert, Badge, Button, Card, Field, PageHeader, EmptyState } from "$lib/ui";
 
   let { data, form } = $props();
 
-  const endpointEvents = (events: string[]) => events.length === 0 ? "All events" : events.join(", ");
+  const endpointEvents = (events) => events.length === 0 ? "All events" : events.join(", ");
 </script>
 
 <svelte:head>

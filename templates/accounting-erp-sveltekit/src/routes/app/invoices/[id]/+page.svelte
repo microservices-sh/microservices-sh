@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { PageHeader, Card, Badge, Button, Field, Alert, FormActions, WorkflowTimeline } from "$lib/ui";
 
@@ -15,7 +15,7 @@
 
   function payEnhance() {
     submitting = true;
-    return async ({ update }: { update: () => Promise<void> }) => {
+    return async ({ update }) => {
       submitting = false;
       await update();
     };

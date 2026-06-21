@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import {
     PageHeader,
@@ -12,7 +12,6 @@
     WorkflowTimeline,
     EmptyState
   } from "$lib/ui";
-  import type { SummaryRow } from "$lib/ui/types";
 
   let { data, form } = $props();
   const c = $derived(data.customer);
@@ -23,14 +22,14 @@
 
   function editEnhance() {
     submitting = true;
-    return async ({ result, update }: { result: { type: string }; update: () => Promise<void> }) => {
+    return async ({ result, update }) => {
       submitting = false;
       if (result.type === "success") editing = false;
       await update();
     };
   }
 
-  const rows = $derived<SummaryRow[]>([
+  const rows = $derived([
     { label: "Email", value: c.email },
     { label: "Phone", value: c.phone ?? "—" },
     { label: "Customer", value: c.since ? `joined ${c.since}` : "—" },

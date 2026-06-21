@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import { page } from "$app/stores";
   import { Card, Eyebrow } from "$lib/ui";
 

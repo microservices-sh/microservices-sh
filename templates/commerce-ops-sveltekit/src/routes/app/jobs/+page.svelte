@@ -1,23 +1,22 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { Alert, Badge, Button, Card, Field, PageHeader, MetricStrip } from "$lib/ui";
-  import type { Metric } from "$lib/ui/types";
 
   let { data, form } = $props();
 
-  const when = (iso?: string | null) => iso ? new Date(iso).toLocaleString() : "n/a";
-  const asJson = (value: Record<string, unknown>) => JSON.stringify(value);
+  const when = (iso) => iso ? new Date(iso).toLocaleString() : "n/a";
+  const asJson = (value) => JSON.stringify(value);
 
   const pending = $derived(data.jobs.filter((job) => job.status === "pending").length);
   const dead = $derived(data.jobs.filter((job) => job.status === "dead").length);
 
-  const metrics = $derived<Metric[]>([
+  const metrics = $derived([
     { label: "Queued", value: pending, tone: pending > 0 ? "warn" : "good", hint: "pending jobs" },
     { label: "Dead-letter", value: dead, tone: dead > 0 ? "bad" : "good", hint: dead > 0 ? "needs attention" : "all clear" },
     { label: "Total", value: data.jobs.length, tone: "neutral", hint: "in queue" }
   ]);
 
-  function jobTone(status: string): "good" | "warn" | "bad" | "neutral" {
+  function jobTone(status) {
     switch (status) {
       case "succeeded":
         return "good";

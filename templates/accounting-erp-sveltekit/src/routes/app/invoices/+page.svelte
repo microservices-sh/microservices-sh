@@ -1,14 +1,14 @@
-<script lang="ts">
+<script>
   import { page } from "$app/stores";
   import { PageHeader, Card, Badge, Button, Alert, ResourceTable, EmptyState } from "$lib/ui";
 
   let { data } = $props();
 
-  const money = (cents: number, currency = "USD") =>
+  const money = (cents, currency = "USD") =>
     new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
 
   // Invoice status → Badge tone. paid = good, open = warn, void = bad, draft = neutral.
-  function tone(status: string): "good" | "warn" | "bad" | "neutral" {
+  function tone(status) {
     switch (status) {
       case "paid":
         return "good";

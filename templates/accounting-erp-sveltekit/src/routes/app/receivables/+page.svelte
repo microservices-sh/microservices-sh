@@ -1,24 +1,23 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { money } from "$lib/format";
   import { Alert, Badge, Button, Card, Field, MetricStrip, PageHeader } from "$lib/ui";
-  import type { Metric } from "$lib/ui/types";
 
   let { data, form } = $props();
 
   const totalOpen = $derived(data.aging?.totalOpenCents ?? 0);
   const overdue = $derived((data.aging?.days1To30Cents ?? 0) + (data.aging?.days31To60Cents ?? 0) + (data.aging?.days61To90Cents ?? 0) + (data.aging?.days90PlusCents ?? 0));
-  const metrics = $derived<Metric[]>([
+  const metrics = $derived([
     { label: "Open AR", value: money(totalOpen), tone: totalOpen > 0 ? "warn" : "good", hint: `${data.receivables.length} invoices` },
     { label: "Overdue", value: money(overdue), tone: overdue > 0 ? "bad" : "good", hint: "past due buckets" },
     { label: "Current", value: money(data.aging?.currentCents ?? 0), tone: "good", hint: data.status.status }
   ]);
 
-  function inputId(prefix: string, invoiceId: string): string {
+  function inputId(prefix, invoiceId) {
     return `${prefix}-${invoiceId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
   }
 
-  function amountInputValue(amountDueCents: number): string {
+  function amountInputValue(amountDueCents) {
     return (amountDueCents / 100).toFixed(2);
   }
 </script>

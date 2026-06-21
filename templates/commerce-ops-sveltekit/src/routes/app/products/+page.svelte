@@ -1,8 +1,7 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { money } from "$lib/format";
   import { Alert, Badge, Button, Card, Field, MetricStrip, PageHeader } from "$lib/ui";
-  import type { Metric } from "$lib/ui/types";
 
   let { data, form } = $props();
 
@@ -11,7 +10,7 @@
   const catalogValue = $derived(
     data.products.reduce((total, product) => total + product.priceCents, 0)
   );
-  const metrics = $derived<Metric[]>([
+  const metrics = $derived([
     { label: "Products", value: data.products.length, tone: "neutral", hint: `${activeCount} active` },
     { label: "Stock tracked", value: trackedCount, tone: trackedCount > 0 ? "good" : "neutral", hint: "inventory-ready SKUs" },
     { label: "Catalog value", value: money(catalogValue), tone: "info", hint: "sum of list prices" }

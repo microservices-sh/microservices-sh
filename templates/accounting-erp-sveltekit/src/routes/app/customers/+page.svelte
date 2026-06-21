@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import { PageHeader, Card, Button, Badge, ResourceTable, EmptyState } from "$lib/ui";
 
   let { data } = $props();

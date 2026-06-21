@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import { page } from "$app/stores";
   import { AppShell, Button } from "$lib/ui";
 

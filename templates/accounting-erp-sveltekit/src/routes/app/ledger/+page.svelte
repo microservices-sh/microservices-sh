@@ -1,8 +1,7 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { money } from "$lib/format";
   import { Alert, Badge, Button, Card, Field, MetricStrip, PageHeader } from "$lib/ui";
-  import type { Metric } from "$lib/ui/types";
 
   let { data, form } = $props();
 
@@ -12,7 +11,7 @@
   const activePeriod = $derived(data.fiscalPeriods.find((period) => period.id === data.activePeriodId) ?? null);
   const postingAccounts = $derived(data.accounts.filter((account) => account.active && !account.isHeader));
   const trialBalanceLines = $derived(data.trialBalance?.lines ?? []);
-  const metrics = $derived<Metric[]>([
+  const metrics = $derived([
     { label: "Accounts", value: data.accounts.length, tone: "neutral", hint: `${activeCount} active` },
     { label: "Periods", value: data.fiscalPeriods.length, tone: activePeriod ? "good" : "warn", hint: activePeriod?.name ?? "none open" },
     {
@@ -23,7 +22,7 @@
     }
   ]);
 
-  function statusTone(status: string): "good" | "warn" | "bad" | "neutral" {
+  function statusTone(status) {
     if (status === "open") return "good";
     if (status === "closed") return "warn";
     if (status === "locked") return "bad";

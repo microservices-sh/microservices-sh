@@ -596,6 +596,13 @@ Phase 74
 - [x] Verify module checks/builds/tests, SQLite migration smokes, commerce template checks/build/smoke, packaged template checks, full workspace specs, drift scans, and whitespace checks.
 - **Status:** complete
 
+### Phase 77: Generated StackSuite Install/Build Smoke
+- [x] Add an opt-in deep create-app smoke gate that installs, builds, and checks generated accounting and commerce apps.
+- [x] Link copied support packages from generated repo-template app roots so linked modules resolve local package dependencies.
+- [x] Make SvelteKit template config and focused accounting/commerce route scripts robust under fresh generated-app dependency installs.
+- [x] Verify focused template builds, create-app build/tests, generated accounting/commerce install-build smoke, full workspace specs, shim sync, and whitespace checks.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

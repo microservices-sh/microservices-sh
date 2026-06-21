@@ -1,12 +1,11 @@
-<script lang="ts">
+<script>
   // Home page content is data — edit src/content.json (see content.schema.json
   // for the contract and CLAUDE.md for the playbook). Shape is enforced by
   // `npm run validate`, which gates `npm run build`, so this assertion is sound.
   import content from "../content.json";
-  import type { SiteContent } from "../content.types";
   import { Button, Card, Eyebrow } from "$lib/ui";
 
-  const c = content as SiteContent;
+  const c = content;
 </script>
 
 <svelte:head>

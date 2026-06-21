@@ -1,8 +1,7 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { money } from "$lib/format";
   import { Alert, Badge, Button, Card, Field, MetricStrip, PageHeader } from "$lib/ui";
-  import type { Metric } from "$lib/ui/types";
 
   let { data, form } = $props();
 
@@ -15,7 +14,7 @@
   const suggestionsByTransaction = $derived(
     new Map(data.matchSuggestions.map((group) => [group.transactionId, group.suggestions]))
   );
-  const metrics = $derived<Metric[]>([
+  const metrics = $derived([
     { label: "Bank accounts", value: data.accounts.length, tone: data.accounts.length > 0 ? "good" : "neutral", hint: "connected ledgers" },
     {
       label: "Imports",
@@ -106,7 +105,7 @@
       {/if}
       {#if data.reconciliations.length > 0}
         <div class="session-list">
-          {#each data.reconciliations.slice(0, 4) as session (session.id)}
+          {#each data.reconciliations.slice(0, 4) (session.id)}
             <div>
               <span>{session.statementDate}</span>
               <strong>{money(session.statementBalanceCents)}</strong>

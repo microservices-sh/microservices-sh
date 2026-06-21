@@ -1,11 +1,10 @@
-<script lang="ts">
+<script>
   import { PageHeader, MetricStrip, Card, Badge, Button, WorkflowTimeline, EmptyState } from "$lib/ui";
-  import type { Metric } from "$lib/ui/types";
 
   let { data } = $props();
   const s = $derived(data.stats);
 
-  const metrics = $derived<Metric[]>([
+  const metrics = $derived([
     { label: "Connected modules", value: s.moduleCount, tone: "info", hint: "tools the agent can call" },
     { label: "Tools available", value: s.toolCount, tone: "neutral", hint: `${s.writeCount} writes gated` },
     { label: "Writes gated", value: s.writeCount, tone: "warn", hint: "need an approver" },

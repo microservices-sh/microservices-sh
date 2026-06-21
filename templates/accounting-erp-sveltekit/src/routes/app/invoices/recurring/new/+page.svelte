@@ -1,15 +1,13 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { Alert, Button, Card, EmptyState, Field, FormActions, PageHeader } from "$lib/ui";
 
   let { data, form } = $props();
 
   const today = new Date().toISOString().slice(0, 10);
-  const money = (cents: number, currency = "USD") =>
+  const money = (cents, currency = "USD") =>
     new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
-
-  type Line = { description: string; qty: number; unit: string; taxPct: number };
-  const blankLine = (): Line => ({ description: "", qty: 1, unit: "", taxPct: 0 });
+  const blankLine = () => ({ description: "", qty: 1, unit: "", taxPct: 0 });
 
   let name = $state("");
   let customerId = $state("");
@@ -22,17 +20,17 @@
   let maxOccurrences = $state("");
   let autoIssue = $state(true);
   let notes = $state("");
-  let lines = $state<Line[]>([blankLine()]);
+  let lines = $state([blankLine()]);
   let submitting = $state(false);
 
   function addLine() {
     lines = [...lines, blankLine()];
   }
-  function removeLine(i: number) {
+  function removeLine(i) {
     lines = lines.length > 1 ? lines.filter((_, n) => n !== i) : lines;
   }
 
-  const dollars = (value: string) => {
+  const dollars = (value) => {
     const parsed = Number.parseFloat(value);
     return Number.isFinite(parsed) ? parsed : NaN;
   };

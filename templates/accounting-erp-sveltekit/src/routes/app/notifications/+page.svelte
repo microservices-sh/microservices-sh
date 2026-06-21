@@ -1,10 +1,10 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { PageHeader, Card, Badge, Button, ResourceTable, EmptyState } from "$lib/ui";
 
   let { data } = $props();
 
-  const when = (iso: string) => new Date(iso).toLocaleString();
+  const when = (iso) => new Date(iso).toLocaleString();
 </script>
 
 <svelte:head>

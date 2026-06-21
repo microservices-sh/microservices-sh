@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import { Eyebrow } from "$lib/ui";
 
   let { data } = $props();

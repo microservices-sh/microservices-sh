@@ -1,8 +1,7 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { money, relativeTime } from "$lib/format";
   import { Alert, Badge, Button, Card, Field, MetricStrip, PageHeader } from "$lib/ui";
-  import type { Metric } from "$lib/ui/types";
 
   let { data, form } = $props();
 
@@ -12,13 +11,13 @@
   const expenseAccounts = $derived(data.accounts.filter((account) => account.type === "expense" && !account.isHeader));
   const liabilityAccounts = $derived(data.accounts.filter((account) => account.type === "liability" && !account.isHeader));
   const paymentAccounts = $derived(data.accounts.filter((account) => account.type === "asset" && !account.isHeader));
-  const metrics = $derived<Metric[]>([
+  const metrics = $derived([
     { label: "Open bills", value: openBills.length, tone: openBills.length > 0 ? "warn" : "good", hint: money(openAmount) },
     { label: "Overdue", value: money(overdueAmount), tone: overdueAmount > 0 ? "bad" : "good", hint: "aging buckets" },
     { label: "Vendors", value: data.vendors.length, tone: "neutral", hint: "payables master data" }
   ]);
 
-  function billTone(status: string): "good" | "warn" | "bad" | "neutral" {
+  function billTone(status) {
     if (status === "paid") return "good";
     if (status === "void") return "bad";
     if (status === "pending_approval" || status === "payable" || status === "partial") return "warn";

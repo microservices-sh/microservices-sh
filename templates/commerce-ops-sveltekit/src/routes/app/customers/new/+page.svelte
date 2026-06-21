@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import { enhance } from "$app/forms";
   import { PageHeader, Card, Button, Field, Alert, FormActions } from "$lib/ui";
 
@@ -7,7 +7,7 @@
 
   function onEnhance() {
     submitting = true;
-    return async ({ update }: { update: () => Promise<void> }) => {
+    return async ({ update }) => {
       submitting = false;
       await update();
     };
