@@ -34,11 +34,10 @@ The desktop template reuses the `document-extraction` module shape for local
 drafts but does not make the desktop app the canonical document extraction
 module. The native app may:
 
-- rasterize PDF pages to images with poppler `pdftoppm` so they can be OCR'd;
-- run Tesseract for scanned image and rasterized PDF OCR when installed locally;
-- call a configured local Ollama Gemma model when it is already installed,
-  either to normalize OCR text or to extract directly from scanned page images;
-- save selected OCR language and Gemma model in the local app settings table;
+- rasterize PDF pages to images with poppler `pdftoppm` so the model can read them;
+- read scanned image and rasterized PDF pages directly with a configured local
+  Ollama Gemma vision model (the single extraction engine) when it is installed;
+- save the selected language hint and Gemma model in the local app settings table;
 - install a selected Gemma model only after the user clicks the install action;
 - run an explicit selected-model readiness probe against local Ollama before
   extraction is attempted;

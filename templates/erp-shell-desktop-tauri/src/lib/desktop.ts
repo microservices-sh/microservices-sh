@@ -18,7 +18,6 @@ export type RuntimeSettings = {
   installedModels: string[];
   selectedModelInstalled: boolean;
   ollamaInstalled: boolean;
-  tesseractInstalled: boolean;
 };
 
 export type ModelInstallResult = {
@@ -134,7 +133,7 @@ export async function getRuntimeStatus() {
     llm: "missing",
     model: "Gemma local adapter pending",
     mode: "browser-preview",
-    ocrEngine: "tesseract",
+    ocrEngine: "gemma vision",
     llmEngine: "ollama"
   });
 }
@@ -395,7 +394,7 @@ function sampleDraft(job: QueueJob): ExtractionDraft {
     ],
     tables: [],
     rawText: `${job.name}\nTotal $1,240.00`,
-    summary: "Browser preview extraction draft. Desktop mode uses local OCR and optional Gemma normalization.",
+    summary: "Browser preview extraction draft. Desktop mode reads the document with the local Gemma vision model.",
     confidence: 0.8,
     runtime: "sidecar",
     model: "gemma4:e4b",
@@ -410,8 +409,7 @@ function sampleRuntimeSettings(): RuntimeSettings {
     suggestedModels: ["gemma4:e2b", "gemma4:e4b", "gemma4:12b", "gemma4:26b", "gemma4:31b"],
     installedModels: ["gemma4:e4b"],
     selectedModelInstalled: true,
-    ollamaInstalled: true,
-    tesseractInstalled: true
+    ollamaInstalled: true
   };
 }
 

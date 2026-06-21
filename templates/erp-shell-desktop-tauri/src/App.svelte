@@ -52,7 +52,7 @@
     llm: "checking",
     model: "Checking",
     mode: "browser-preview",
-    ocrEngine: "tesseract",
+    ocrEngine: "gemma vision",
     llmEngine: "ollama"
   };
   let runtimeSettings: RuntimeSettings = {
@@ -61,8 +61,7 @@
     suggestedModels: ["gemma4:e2b", "gemma4:e4b", "gemma4:12b", "gemma4:26b", "gemma4:31b"],
     installedModels: [],
     selectedModelInstalled: false,
-    ollamaInstalled: false,
-    tesseractInstalled: false
+    ollamaInstalled: false
   };
   let erpImport: ImportStatus = {
     baseUrl: "http://localhost:5173",
@@ -276,9 +275,8 @@
   }
 
   function runtimeOcrDetail() {
-    if (runtimeSettings.tesseractInstalled) return "Tesseract pre-pass";
-    if (selectedModelInstalled) return "Gemma vision fallback";
-    return "Tesseract optional; install Gemma model";
+    if (selectedModelInstalled) return "Gemma vision";
+    return "Install the Gemma model to enable extraction";
   }
 
   async function chooseFolder() {
@@ -1063,7 +1061,6 @@
             </div>
 
             <div class="runtime-checks" aria-label="Runtime checks">
-              <span><Badge tone={runtimeSettings.tesseractInstalled ? "good" : "warn"}>{runtimeSettings.tesseractInstalled ? "Ready" : "Optional"}</Badge> Tesseract OCR</span>
               <span><Badge tone={runtimeSettings.ollamaInstalled ? "good" : "bad"}>{runtimeSettings.ollamaInstalled ? "Ready" : "Missing"}</Badge> Ollama</span>
               <span><Badge tone={selectedModelInstalled ? "good" : "warn"}>{selectedModelInstalled ? "Installed" : "Not Installed"}</Badge> {settingsDraftModel}</span>
             </div>

@@ -67,14 +67,17 @@ State: in progress.
 
 Built:
 
-- Local scanned image OCR adapter through installed Tesseract.
-- PDF rasterization (poppler `pdftoppm`) so multi-page PDFs are OCR'd page by
+- Single local extraction engine: the selected Gemma 4 vision model reads each
+  page image directly through Ollama. Tesseract has been removed — Gemma 4 is
+  natively multimodal (OCR/handwriting/document parsing) and handles
+  phone-camera photos better than a flatbed-tuned OCR engine.
+- PDF rasterization (poppler `pdftoppm`) so multi-page PDFs are read page by
   page, not just single images.
 - SQLite `draft_json` persistence for document-extraction-shaped drafts.
-- Optional Gemma 4 normalization through a configured local Ollama model.
-- Gemma vision fallback for scanned image extraction when Tesseract is not
-  installed and the selected Ollama model is ready.
-- Settings panel for selected Gemma model, OCR language, local runtime checks,
+- Headless `extract` subcommand + an `--ignored` live integration test, so the
+  real model pipeline can be exercised without launching the GUI (no display
+  server needed) — used to verify the local model on a Mac or in CI.
+- Settings panel for selected Gemma model, language hint, local runtime checks,
   explicit Ollama model install, and selected-model readiness testing.
 - Deterministic fallback draft when OCR/model runtime is missing.
 - Queue action and draft review panel in the desktop UI.
@@ -112,8 +115,7 @@ Scope:
 
 Started:
 
-- Runtime status checks for optional Tesseract OCR and the configured Ollama
-  Gemma model.
+- Runtime status checks for the configured Ollama Gemma vision model.
 - A selected-model probe that sends a tiny local Ollama generation request and
   reports response latency/output to the operator.
 - Local SQLite runtime settings for model/language selection, with env vars as

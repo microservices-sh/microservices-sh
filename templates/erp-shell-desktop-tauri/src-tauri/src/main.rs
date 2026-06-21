@@ -45,7 +45,6 @@ struct RuntimeSettings {
     installed_models: Vec<String>,
     selected_model_installed: bool,
     ollama_installed: bool,
-    tesseract_installed: bool,
 }
 
 #[derive(Serialize)]
@@ -194,28 +193,26 @@ struct ExtractionResult {
 #[tauri::command]
 fn runtime_status(app: tauri::AppHandle) -> Result<RuntimeStatus, String> {
     let settings = open_queue(&app)?.runtime_settings()?;
-    let tesseract_ready = tesseract_available();
+    // Gemma vision is the single OCR + extraction engine: the selected local
+    // Ollama model reads the page image directly, so OCR readiness == model
+    // readiness. No separate OCR binary is involved.
     let llm_ready = ollama_model_available(&settings.gemma_model);
-    let ocr_ready = tesseract_ready || llm_ready;
 
     Ok(RuntimeStatus {
-        ocr: if ocr_ready { "ready" } else { "missing" },
+        ocr: if llm_ready { "ready" } else { "missing" },
         llm: if llm_ready { "ready" } else { "missing" },
         model: settings.gemma_model,
         mode: "tauri",
-        ocr_engine: ocr_engine_label(tesseract_ready, llm_ready).to_string(),
+        ocr_engine: ocr_engine_label(llm_ready).to_string(),
         llm_engine: "ollama".to_string(),
     })
 }
 
-fn ocr_engine_label(tesseract_ready: bool, llm_ready: bool) -> &'static str {
-    if tesseract_ready {
-        return "tesseract pre-pass";
-    }
+fn ocr_engine_label(llm_ready: bool) -> &'static str {
     if llm_ready {
-        return "gemma vision fallback";
+        return "gemma vision";
     }
-    "tesseract optional; gemma model needed"
+    "install the gemma model to enable extraction"
 }
 
 #[tauri::command]
@@ -399,29 +396,28 @@ fn extract_document(app: tauri::AppHandle, job_id: String) -> Result<ExtractionR
 
     queue.update_status(&job.id, "extracting", job.confidence)?;
 
-    let (raw_text, mut warnings) =
-        extract_document_text(Path::new(&job.path), &settings.ocr_language);
-    let mut draft = normalize_document_draft(&job, &raw_text, Vec::new());
-
-    if !raw_text.trim().is_empty() {
-        match normalize_with_gemma(&job, &raw_text, &settings.gemma_model) {
-            Ok(Some(gemma_draft)) => draft = gemma_draft,
-            Ok(None) => warnings.push(format!(
-                "Gemma normalization skipped because Ollama model {} is not ready.",
+    // Single engine: hand the page image(s) straight to the local Gemma vision
+    // model. When the model is not installed (or the call fails) we fall back to
+    // a deterministic empty draft so the job stays reviewable instead of lost.
+    let mut warnings = Vec::new();
+    let mut draft = match normalize_with_gemma_images(
+        &job,
+        Path::new(&job.path),
+        &settings.gemma_model,
+    ) {
+        Ok(Some(gemma_draft)) => gemma_draft,
+        Ok(None) => {
+            warnings.push(format!(
+                "Gemma vision extraction skipped because Ollama model {} is not installed. Install it from Runtime Settings.",
                 settings.gemma_model
-            )),
-            Err(error) => warnings.push(format!("Gemma normalization failed: {error}")),
+            ));
+            normalize_document_draft(&job, "", Vec::new())
         }
-    } else {
-        match normalize_with_gemma_images(&job, Path::new(&job.path), &settings.gemma_model) {
-            Ok(Some(gemma_draft)) => draft = gemma_draft,
-            Ok(None) => warnings.push(format!(
-                "Gemma vision extraction skipped because Ollama model {} is not ready.",
-                settings.gemma_model
-            )),
-            Err(error) => warnings.push(format!("Gemma vision extraction failed: {error}")),
+        Err(error) => {
+            warnings.push(format!("Gemma vision extraction failed: {error}"));
+            normalize_document_draft(&job, "", Vec::new())
         }
-    }
+    };
 
     if !warnings.is_empty() {
         draft.warnings.extend(warnings);
@@ -708,8 +704,8 @@ fn pdftoppm_available() -> bool {
         .is_ok_and(|status| status.success())
 }
 
-/// Rasterize each PDF page to a PNG in `out_dir` so the local Tesseract path can
-/// OCR it. Pages are returned in page order.
+/// Rasterize each PDF page to a PNG in `out_dir` so the local Gemma vision model
+/// can read it. Pages are returned in page order.
 fn rasterize_pdf(path: &Path, out_dir: &Path) -> Result<Vec<PathBuf>, String> {
     let prefix = out_dir.join("page");
     let output = Command::new("pdftoppm")
@@ -799,53 +795,6 @@ fn document_image_pages(path: &Path) -> Result<(Vec<PathBuf>, Option<tempfile::T
     }
 }
 
-fn extract_document_text(path: &Path, ocr_language: &str) -> (String, Vec<String>) {
-    let mut warnings = Vec::new();
-
-    // Resolve the document to one or more page images. Scanned images are used
-    // directly; PDFs are rasterized to PNG pages first. The scratch directory is
-    // held until OCR finishes, then dropped (auto-cleaned).
-    let (image_pages, _scratch) = match document_image_pages(path) {
-        Ok(result) => result,
-        Err(error) => {
-            return (String::new(), vec![error]);
-        }
-    };
-
-    if !tesseract_available() {
-        return (
-            String::new(),
-            vec![
-                "Tesseract OCR is not installed or is not on PATH. Gemma vision can still extract scanned documents when the selected Ollama model is installed."
-                    .to_string(),
-            ],
-        );
-    }
-
-    let multi_page = image_pages.len() > 1;
-    let mut page_texts = Vec::new();
-    for (index, page) in image_pages.iter().enumerate() {
-        match run_tesseract(page, ocr_language) {
-            Ok(text) if !text.trim().is_empty() => page_texts.push(text.trim().to_string()),
-            Ok(_) => {
-                if multi_page {
-                    warnings.push(format!("Page {} returned no OCR text.", index + 1));
-                }
-            }
-            Err(error) => warnings.push(error),
-        }
-    }
-
-    let combined = page_texts.join("\n\n");
-    if combined.trim().is_empty() {
-        warnings.push(
-            "OCR completed but returned no text; this document needs manual review.".to_string(),
-        );
-    }
-
-    (combined, warnings)
-}
-
 fn is_ocr_image(path: &Path) -> bool {
     let Some(extension) = path.extension().and_then(|value| value.to_str()) else {
         return false;
@@ -855,43 +804,6 @@ fn is_ocr_image(path: &Path) -> bool {
         extension.to_ascii_lowercase().as_str(),
         "png" | "jpg" | "jpeg" | "webp" | "tif" | "tiff" | "bmp"
     )
-}
-
-fn tesseract_available() -> bool {
-    Command::new("tesseract")
-        .arg("--version")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .is_ok_and(|status| status.success())
-}
-
-fn run_tesseract(path: &Path, ocr_language: &str) -> Result<String, String> {
-    let language = normalize_ocr_language(ocr_language);
-    let output = Command::new("tesseract")
-        .arg(path)
-        .arg("stdout")
-        .arg("-l")
-        .arg(language)
-        .arg("--dpi")
-        .arg("300")
-        .output()
-        .map_err(|error| format!("Failed to run Tesseract OCR: {error}"))?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        return Err(format!(
-            "Tesseract OCR failed for {}{}",
-            path.display(),
-            if stderr.is_empty() {
-                ".".to_string()
-            } else {
-                format!(": {stderr}")
-            }
-        ));
-    }
-
-    Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
 
 fn normalize_document_draft(
@@ -1103,20 +1015,6 @@ fn last_amount_like_token(line: &str) -> Option<String> {
             digits > 0 && (token.contains('.') || token.contains('$'))
         })
         .map(str::to_string)
-}
-
-fn normalize_with_gemma(
-    job: &QueueJob,
-    raw_text: &str,
-    model: &str,
-) -> Result<Option<ExtractionDraft>, String> {
-    if !ollama_model_available(model) {
-        return Ok(None);
-    }
-
-    let response = ollama_chat(model, job, raw_text)?;
-    let parsed = parse_json_object(&response)?;
-    finalize_gemma_draft(job, model, parsed, Some(raw_text.trim().to_string())).map(Some)
 }
 
 fn normalize_with_gemma_images(
@@ -1338,51 +1236,6 @@ fn ollama_generate_probe(model: &str) -> Result<String, String> {
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
         .ok_or_else(|| "Ollama test response did not include generated content.".to_string())
-}
-
-fn ollama_chat(model: &str, job: &QueueJob, raw_text: &str) -> Result<String, String> {
-    let system_prompt = [
-        "You convert OCR text from scanned business documents into strict JSON.",
-        "Return only JSON with: schemaId, targetType, fields, tables, rawText, summary, confidence, runtime, model, warnings.",
-        "Every field must include name, value, confidence, and needsReview when uncertain.",
-        "Do not invent values; use null with low confidence when the source is unclear.",
-    ]
-    .join(" ");
-    let body = json!({
-        "model": model,
-        "stream": false,
-        "options": { "temperature": 0 },
-        "messages": [
-            {
-                "role": "system",
-                "content": system_prompt
-            },
-            {
-                "role": "user",
-                "content": format!(
-                    "Schema: {}\nTarget type: {}\nRuntime: sidecar\nDocument: {}\n\nOCR text:\n{}",
-                    schema_id_for_job(job),
-                    target_type_for_job(job),
-                    job.name,
-                    raw_text
-                )
-            }
-        ]
-    });
-    let response = ollama_http(
-        "POST",
-        "/api/chat",
-        Some(&body.to_string()),
-        Duration::from_secs(60),
-    )?;
-    let json = serde_json::from_str::<Value>(&response)
-        .map_err(|error| format!("Ollama returned invalid JSON: {error}"))?;
-
-    json.pointer("/message/content")
-        .and_then(Value::as_str)
-        .map(str::to_string)
-        .filter(|value| !value.trim().is_empty())
-        .ok_or_else(|| "Ollama response did not include message content.".to_string())
 }
 
 fn ollama_generate_with_images(
@@ -1954,7 +1807,6 @@ impl DraftQueue {
                 .collect(),
             installed_models,
             ollama_installed: ollama_installed(),
-            tesseract_installed: tesseract_available(),
         })
     }
 
@@ -2143,7 +1995,95 @@ fn sample_draft(
     }
 }
 
+/// Run the Gemma vision extraction pipeline for a single document without
+/// launching the Tauri GUI. This is the core of the headless `extract`
+/// subcommand and the `--ignored` integration test, so the same code path the
+/// desktop app uses can be exercised on a machine that has no display server.
+fn extract_path_headless(path: &Path, model: &str) -> Result<ExtractionDraft, String> {
+    let hash = hash_file(path)?;
+    let job = build_job(path, hash)?;
+    match normalize_with_gemma_images(&job, path, model)? {
+        Some(draft) => Ok(draft),
+        None => Err(format!(
+            "Gemma model '{model}' is not available. Start Ollama and run `ollama pull {model}` before extracting."
+        )),
+    }
+}
+
+/// Headless `extract` subcommand: `erp-shell-desktop extract <file> [--model <tag>]`.
+/// Prints the extraction draft as JSON to stdout. Returns the process exit code.
+fn run_extract_cli(args: &[String]) -> i32 {
+    let mut path: Option<&str> = None;
+    let mut model: Option<String> = None;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--model" => {
+                index += 1;
+                match args.get(index) {
+                    Some(value) => model = Some(value.clone()),
+                    None => {
+                        eprintln!("--model requires a model tag, e.g. --model gemma4:e4b");
+                        return 2;
+                    }
+                }
+            }
+            "-h" | "--help" => {
+                println!(
+                    "Usage: erp-shell-desktop extract <document> [--model <ollama-tag>]\n\
+                     Reads a scanned image or PDF with the local Gemma vision model and prints the draft JSON.\n\
+                     Requires Ollama running with the selected model installed (and poppler for PDFs)."
+                );
+                return 0;
+            }
+            other if other.starts_with('-') => {
+                eprintln!("Unknown flag: {other}");
+                return 2;
+            }
+            other => {
+                if path.is_none() {
+                    path = Some(other);
+                } else {
+                    eprintln!("Unexpected extra argument: {other}");
+                    return 2;
+                }
+            }
+        }
+        index += 1;
+    }
+
+    let Some(path) = path else {
+        eprintln!("Usage: erp-shell-desktop extract <document> [--model <ollama-tag>]");
+        return 2;
+    };
+
+    let model = model.unwrap_or_else(configured_gemma_model);
+    match extract_path_headless(Path::new(path), &model) {
+        Ok(draft) => match serde_json::to_string_pretty(&draft) {
+            Ok(json) => {
+                println!("{json}");
+                0
+            }
+            Err(error) => {
+                eprintln!("Failed to serialize extraction draft: {error}");
+                1
+            }
+        },
+        Err(error) => {
+            eprintln!("Extraction failed: {error}");
+            1
+        }
+    }
+}
+
 fn main() {
+    // Headless mode: `erp-shell-desktop extract <file>` runs the Gemma vision
+    // pipeline and exits without starting Tauri (no display server needed).
+    let args: Vec<String> = std::env::args().collect();
+    if args.get(1).map(String::as_str) == Some("extract") {
+        std::process::exit(run_extract_cli(&args[2..]));
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
@@ -2430,15 +2370,34 @@ mod tests {
     }
 
     #[test]
-    fn extract_document_text_rejects_unsupported_type() {
+    fn document_image_pages_rejects_unsupported_type() {
         let workspace = tempdir().expect("temp workspace");
         let path = workspace.path().join("notes.txt");
         fs::write(&path, b"plain text").expect("note fixture");
 
-        let (text, warnings) = extract_document_text(&path, "eng");
-        assert!(text.is_empty());
-        assert!(warnings
-            .iter()
-            .any(|warning| warning.contains("not a supported document type")));
+        let error = document_image_pages(&path).expect_err("unsupported type rejected");
+        assert!(error.contains("not a supported document type"));
+    }
+
+    // Live end-to-end check against a real local Gemma vision model. Skipped by
+    // default because it needs Ollama running with the model installed and a real
+    // document image. On a configured machine (e.g. a Mac):
+    //   MICROSERVICES_DESKTOP_TEST_IMAGE=/path/to/phone-photo.jpg \
+    //     cargo test --manifest-path src-tauri/Cargo.toml -- --ignored
+    #[test]
+    #[ignore = "requires a running local Ollama + gemma vision model and a real document image"]
+    fn headless_extract_reads_document_with_local_model() {
+        let image = std::env::var("MICROSERVICES_DESKTOP_TEST_IMAGE")
+            .expect("set MICROSERVICES_DESKTOP_TEST_IMAGE to a real document image or PDF path");
+        let model = configured_gemma_model();
+
+        let draft =
+            extract_path_headless(Path::new(&image), &model).expect("headless extraction succeeds");
+
+        assert_eq!(draft.model.as_deref(), Some(model.as_str()));
+        assert!(
+            !draft.fields.is_empty(),
+            "expected the model to extract at least one field"
+        );
     }
 }

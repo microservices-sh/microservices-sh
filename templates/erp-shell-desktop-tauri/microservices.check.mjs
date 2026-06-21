@@ -61,8 +61,8 @@ export default function check({ assertFileIncludesAll }) {
   );
   assertFileIncludesAll(
     "src-tauri/src/main.rs",
-    ["tesseract", "MICROSERVICES_DESKTOP_GEMMA_MODEL", "ollama", "normalize_with_gemma", "normalize_with_gemma_images", "install_gemma_model", "test_gemma_model"],
-    "Desktop extraction uses optional local OCR and an explicit local Gemma/Ollama adapter boundary."
+    ["MICROSERVICES_DESKTOP_GEMMA_MODEL", "ollama", "normalize_with_gemma_images", "install_gemma_model", "test_gemma_model", "run_extract_cli", "extract_path_headless"],
+    "Desktop extraction uses a single local Gemma vision engine through an explicit Ollama adapter boundary, with a headless extract harness."
   );
   assertFileIncludesAll(
     "src-tauri/src/main.rs",

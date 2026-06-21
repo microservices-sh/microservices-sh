@@ -40,37 +40,54 @@ dev:desktop` use Rust `1.88.0` when run from this directory. If Cargo reports
 that crates such as `darling`, `plist`, `serde_with`, or `time` require Rust
 `1.88.0`, update the Mac's Rust toolchain with the commands above.
 
-## Local OCR and Gemma
+## Local extraction with Gemma vision
 
-The desktop template now includes the first local extraction adapter:
+The desktop template uses a single local extraction engine: the selected Gemma 4
+vision model reads each page image directly through Ollama — no separate OCR
+binary. Gemma 4 is natively multimodal (OCR, handwriting, document/PDF parsing),
+which also handles phone-camera photos better than a flatbed-tuned OCR engine.
 
-- scanned image OCR runs through a local `tesseract` command when installed;
-- scanned image text is saved as a local `document-extraction` shaped draft;
-- when Tesseract is not installed, an installed Gemma vision-capable Ollama
-  model can extract directly from scanned page images;
-- Gemma normalization is attempted only when a configured local Ollama model is
-  already present and reachable;
-- the Runtime Settings page can save the selected Gemma model/OCR language,
-  run an explicit Ollama model install, and test the selected model before
-  extraction;
+- scanned images are read directly by the local Gemma vision model;
+- multi-page PDFs are rasterized with poppler `pdftoppm`, then each page image is
+  read by the model;
+- extraction runs only when a configured local Ollama model is present and
+  reachable; otherwise the file still queues with a deterministic review draft and
+  a setup warning;
+- the Runtime Settings page can save the selected Gemma model/language, run an
+  explicit Ollama model install, and test the selected model before extraction;
 - the app never downloads model weights silently and does not bundle LLM weights
   in the default installer.
 
 For a Mac pilot:
 
 ```bash
-brew install tesseract
 brew install --cask ollama
+brew install poppler   # only needed for PDF intake
 pnpm dev:desktop
 ```
 
-Then open Runtime Settings, select a Gemma model and OCR language, and click
-`Install Model`. Use `Test Model` to confirm the selected Ollama model responds
-before running extraction. If your Ollama library uses a different Gemma 4 tag,
-enter it in the custom model field before installing. Without Tesseract, the app
-uses Gemma vision when the selected model is installed and responds. Without
-Ollama/Gemma, OCR still works through Tesseract and the app falls back to
-deterministic review fields.
+Then open Runtime Settings, select a Gemma model, and click `Install Model`. Use
+`Test Model` to confirm the selected Ollama model responds before running
+extraction. If your Ollama library uses a different Gemma 4 tag, enter it in the
+custom model field before installing.
+
+### Headless extract harness
+
+Run the full extraction pipeline against a real document without launching the
+GUI — useful for verifying the local model on a Mac, or in CI:
+
+```bash
+# one-shot CLI: prints the extraction draft JSON
+cargo run --manifest-path src-tauri/Cargo.toml -- extract /path/to/phone-photo.jpg
+cargo run --manifest-path src-tauri/Cargo.toml -- extract /path/to/invoice.pdf --model gemma4:e4b
+
+# or the live integration test (skipped unless an image is provided)
+MICROSERVICES_DESKTOP_TEST_IMAGE=/path/to/phone-photo.jpg \
+  cargo test --manifest-path src-tauri/Cargo.toml -- --ignored
+```
+
+Both require Ollama running with the selected model installed (and poppler for
+PDFs). They reuse the exact code path the desktop app runs.
 
 ## Linux Docker Check
 
@@ -94,13 +111,12 @@ before installing dependencies, so host `node_modules`, `dist`, and Cargo
   `src/lib/ui`, including the canonical `AppShell` sidebar and `Logo`.
 - Tauri shell for macOS and Windows bundles.
 - Rust commands for file/folder selection, drag/drop path import, SQLite queue
-  persistence, runtime status, PDF rasterization + local OCR extraction, optional
-  local Gemma vision/normalization, runtime settings, explicit model install,
-  selected-model readiness tests, audited field correction / approve / reject,
-  and remote ERP import status.
-- PDF intake: multi-page PDFs are rasterized with poppler `pdftoppm` and OCR'd
-  page by page (the first document-heavy vertical is invoices, which are mostly
-  PDF).
+  persistence, runtime status, PDF rasterization + local Gemma vision extraction,
+  runtime settings, explicit model install, selected-model readiness tests,
+  audited field correction / approve / reject, and remote ERP import status.
+- PDF intake: multi-page PDFs are rasterized with poppler `pdftoppm` and read by
+  the Gemma vision model page by page (the first document-heavy vertical is
+  invoices, which are mostly PDF).
 - Human-in-the-loop review: edit extracted field values inline, then approve or
   reject a draft. Edits and decisions are written to a local `draft_edits` audit
   table, and only approved drafts can be submitted to the ERP Worker.
@@ -110,9 +126,9 @@ before installing dependencies, so host `node_modules`, `dist`, and Cargo
 - Browser preview fallback so the interface can be reviewed without launching
   Tauri.
 
-Requires poppler (`pdftoppm`, `pdfinfo`) on PATH for PDF intake. Tesseract is
-optional when a vision-capable Gemma model is installed; without both Tesseract
-and Gemma, files still queue and the draft carries a setup warning.
+Requires poppler (`pdftoppm`, `pdfinfo`) on PATH for PDF intake, and a local
+Ollama install with a Gemma 4 vision model for extraction. Without a reachable
+model, files still queue and the draft carries a setup warning.
 
 ## Roadmap
 
