@@ -15,6 +15,7 @@ import {
   createMemoryCommerceSyncStore,
   normalizeCommerceProviderPayload,
   parseWooCommerceCredentials,
+  syncWooCommercePage,
   verifyWooCommerceWebhookSignature,
   WooCommerceClient
 } from "@microservices-sh/commerce-sync";
@@ -44,6 +45,11 @@ before recording webhook receipts or normalizing payloads.
 products, orders, and categories. It handles Basic Auth, WooCommerce pagination
 headers, and order date filters, but it does not write local customers, products,
 or orders by itself.
+
+`syncWooCommercePage()` composes the client and durable service to fetch one
+WooCommerce page, normalize each item into envelopes, optionally record provider
+mappings, and complete or fail a sync run with counters. Host apps still resolve
+secrets and decide how normalized payloads map to local modules.
 
 ## Ownership Boundary
 

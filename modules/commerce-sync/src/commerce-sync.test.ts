@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createMemoryCommerceSyncStore } from "./adapters/memory-commerce-sync-store";
 import { parseWooCommerceCredentials, WooCommerceClient } from "./providers/woocommerce";
 import { createCommerceSyncMemoryService, createCommerceSyncService, verifyWooCommerceWebhookSignature } from "./service";
+import { syncWooCommercePage } from "./use-cases/sync-woocommerce-page";
 
 const ctx = { tenantId: "tenant_1", now: "2026-06-21T00:00:00.000Z" };
 
@@ -341,5 +342,139 @@ describe("commerce-sync", () => {
       consumerSecret: "cs"
     });
     expect(parseWooCommerceCredentials("{}")).toBeNull();
+  });
+
+  it("syncs one WooCommerce product page into envelopes, mappings, and run counters", async () => {
+    const service = createCommerceSyncService({
+      store: createMemoryCommerceSyncStore(),
+      idGenerator: sequenceIds()
+    });
+    const connection = await service.createCommerceConnection(ctx, {
+      provider: "woocommerce",
+      name: "Woo Store",
+      baseUrl: "https://store.example.test",
+      secretRef: "secret://commerce/woo"
+    });
+    expect(connection.ok).toBe(true);
+
+    const requests: Array<{ url: string; authorization?: string }> = [];
+    const fetcher: typeof fetch = async (input, init) => {
+      const headers = init?.headers as Record<string, string>;
+      requests.push({ url: String(input), authorization: headers.Authorization });
+      return new Response(
+        JSON.stringify([
+          { id: 44, name: "Coffee Beans", sku: "COFFEE", price: "12.50", status: "publish" },
+          { id: 45, name: "Tea", sku: "TEA", price: "8.00", status: "publish" },
+          { name: "Bad row" }
+        ]),
+        {
+          status: 200,
+          headers: { "x-wp-totalpages": "2", "x-wp-total": "3" }
+        }
+      );
+    };
+    const client = new WooCommerceClient({
+      storeUrl: "https://store.example.test/",
+      consumerKey: "ck_test",
+      consumerSecret: "cs_test",
+      fetcher
+    });
+
+    const result = await syncWooCommercePage(
+      ctx,
+      {
+        connectionId: connection.data!.id,
+        resourceType: "product",
+        page: 1,
+        perPage: 2,
+        modifiedAfter: "2026-06-01T00:00:00",
+        resolveInternalId: (payload) => {
+          if (typeof payload !== "object" || payload === null || Array.isArray(payload)) return undefined;
+          const sku = (payload as { sku?: unknown }).sku;
+          return typeof sku === "string" && sku ? `prod_${sku}` : undefined;
+        }
+      },
+      { service, client }
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.data).toMatchObject({
+      resourceType: "product",
+      page: 1,
+      perPage: 2,
+      totalPages: 2,
+      totalItems: 3,
+      hasMore: true,
+      processedCount: 3,
+      normalizedCount: 2,
+      mappedCount: 2,
+      failedCount: 1
+    });
+    expect(result.data!.errors).toEqual(["product: missing WooCommerce id"]);
+
+    expect(requests).toHaveLength(1);
+    const requestUrl = new URL(requests[0]!.url);
+    expect(requestUrl.pathname).toBe("/wp-json/wc/v3/products");
+    expect(requestUrl.searchParams.get("page")).toBe("1");
+    expect(requestUrl.searchParams.get("per_page")).toBe("2");
+    expect(requestUrl.searchParams.get("modified_after")).toBe("2026-06-01T00:00:00");
+    expect(requests[0]!.authorization).toBe(`Basic ${btoa("ck_test:cs_test")}`);
+
+    const mappings = await service.listProviderMappings(ctx);
+    expect(mappings.data?.map((mapping) => mapping.internalId).sort()).toEqual(["prod_COFFEE", "prod_TEA"]);
+
+    const runs = await service.listSyncRuns(ctx);
+    expect(runs.data![0]).toMatchObject({
+      status: "completed",
+      resourceType: "product",
+      processedCount: 3,
+      createdCount: 2,
+      updatedCount: 2,
+      failedCount: 1
+    });
+  });
+
+  it("marks the WooCommerce sync run failed when the provider page request fails", async () => {
+    const service = createCommerceSyncService({
+      store: createMemoryCommerceSyncStore(),
+      idGenerator: sequenceIds()
+    });
+    const connection = await service.createCommerceConnection(ctx, {
+      provider: "woocommerce",
+      name: "Woo Store",
+      baseUrl: "https://store.example.test",
+      secretRef: "secret://commerce/woo"
+    });
+    expect(connection.ok).toBe(true);
+
+    const client = new WooCommerceClient({
+      storeUrl: "https://store.example.test/",
+      consumerKey: "ck_test",
+      consumerSecret: "cs_test",
+      fetcher: async () => new Response("bad provider", { status: 500 })
+    });
+
+    const result = await syncWooCommercePage(
+      ctx,
+      {
+        connectionId: connection.data!.id,
+        resourceType: "order",
+        page: 3,
+        perPage: 50
+      },
+      { service, client }
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { code: "woocommerce_sync_failed", message: "WooCommerce API error: 500 - bad provider" }
+    });
+
+    const runs = await service.listSyncRuns(ctx);
+    expect(runs.data![0]).toMatchObject({
+      status: "failed",
+      resourceType: "order",
+      errorMessage: "WooCommerce API error: 500 - bad provider"
+    });
   });
 });

@@ -17,6 +17,7 @@
     "./resources": "./src/resources/index.ts",
     "./adapters/d1": "./src/adapters/d1-commerce-sync-store.ts",
     "./providers/woocommerce": "./src/providers/woocommerce.ts",
+    "./use-cases/sync-woocommerce-page": "./src/use-cases/sync-woocommerce-page.ts",
     "./service": "./src/service/index.ts",
     "./ports": "./src/ports/index.ts"
   },

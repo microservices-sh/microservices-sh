@@ -105,7 +105,8 @@
         "commerce-sync.startSyncRun",
         "commerce-sync.completeSyncRun",
         "commerce-sync.recordWebhookReceipt",
-        "commerce-sync.normalizeCommercePayload"
+        "commerce-sync.normalizeCommercePayload",
+        "commerce-sync.syncWooCommercePage"
       ],
       "skillPaths": [
         "skills/commerce-sync-operator/SKILL.md"
@@ -116,7 +117,8 @@
         "commerce-sync.startSyncRun",
         "commerce-sync.completeSyncRun",
         "commerce-sync.recordWebhookReceipt",
-        "commerce-sync.normalizeCommercePayload"
+        "commerce-sync.normalizeCommercePayload",
+        "commerce-sync.syncWooCommercePage"
       ]
     }
   },

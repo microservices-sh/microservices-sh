@@ -5,6 +5,12 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/woocommerce/sync-page": {
+      "post": {
+        "summary": "Sync one WooCommerce resource page into commerce sync state",
+        "operationId": "syncWooCommercePage"
+      }
+    },
     "/payloads/normalize": {
       "post": {
         "summary": "Normalize a provider commerce payload",

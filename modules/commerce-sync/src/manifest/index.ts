@@ -100,14 +100,25 @@ export const manifest = {
     "agentic": {
       "applicable": true,
       "tools": [
-        "commerce-sync.read",
-        "commerce-sync.write"
+        "commerce-sync.createCommerceConnection",
+        "commerce-sync.recordProviderMapping",
+        "commerce-sync.startSyncRun",
+        "commerce-sync.completeSyncRun",
+        "commerce-sync.recordWebhookReceipt",
+        "commerce-sync.normalizeCommercePayload",
+        "commerce-sync.syncWooCommercePage"
       ],
       "skillPaths": [
         "skills/commerce-sync-operator/SKILL.md"
       ],
       "approvalRequiredFor": [
-        "commerce-sync.write"
+        "commerce-sync.createCommerceConnection",
+        "commerce-sync.recordProviderMapping",
+        "commerce-sync.startSyncRun",
+        "commerce-sync.completeSyncRun",
+        "commerce-sync.recordWebhookReceipt",
+        "commerce-sync.normalizeCommercePayload",
+        "commerce-sync.syncWooCommercePage"
       ]
     }
   },

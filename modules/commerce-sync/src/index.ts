@@ -7,6 +7,7 @@ export { commerceSyncResources } from "./resources";
 export { createD1CommerceSyncStore } from "./adapters/d1-commerce-sync-store";
 export { createMemoryCommerceSyncStore } from "./adapters/memory-commerce-sync-store";
 export { parseWooCommerceCredentials, WooCommerceClient } from "./providers/woocommerce";
+export { syncWooCommercePage } from "./use-cases/sync-woocommerce-page";
 export {
   createCommerceSyncMemoryService,
   createCommerceSyncService,
@@ -23,6 +24,12 @@ export type {
   WooCommercePaginatedResponse,
   WooCommerceProduct
 } from "./providers/woocommerce";
+export type {
+  SyncWooCommercePageDeps,
+  SyncWooCommercePageInput,
+  SyncWooCommercePageResult,
+  WooCommerceSyncPageResourceType
+} from "./use-cases/sync-woocommerce-page";
 export type { CommerceSyncStore } from "./ports";
 export type {
   CommerceConnection,
