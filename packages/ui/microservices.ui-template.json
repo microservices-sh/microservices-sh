@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "ui-web-portal-svelte",
+  "kind": "ui",
+  "version": "0.1.0",
+  "status": "available",
+  "displayName": "Web Portal UI (Svelte)",
+  "category": "ui-template",
+  "summary": "Copy-in Svelte component kit for the microservices.sh web-portal look: tokens, AppShell, buttons, cards, badges, fields, metrics, loaders, and navigation primitives.",
+  "runtime": {
+    "languages": [
+      "typescript",
+      "svelte"
+    ],
+    "framework": "svelte",
+    "adapter": "copy-in",
+    "platform": "browser"
+  },
+  "localization": {
+    "defaultLanguage": "en",
+    "languages": [
+      "en"
+    ],
+    "strategy": "host-app-owned"
+  },
+  "ui": {
+    "package": "@microservices-sh/ui",
+    "style": "web-portal",
+    "target": "src/lib/ui",
+    "registry": "packages/ui/registry.json",
+    "installCommand": "node packages/ui/bin/ui.mjs add Button Card Badge Field PageHeader AppShell",
+    "components": [
+      "Alert",
+      "AppShell",
+      "Badge",
+      "Button",
+      "Card",
+      "Eyebrow",
+      "Field",
+      "Loader",
+      "Logo",
+      "Metric",
+      "NavProgress",
+      "PageHeader",
+      "UsageBar"
+    ],
+    "surfaces": [
+      "dashboard shell",
+      "forms",
+      "status panels",
+      "metrics"
+    ]
+  },
+  "sourcePolicy": {
+    "templateOwns": [
+      "components",
+      "tokens",
+      "copy-in CLI"
+    ],
+    "hostOwns": [
+      "routes",
+      "content",
+      "localization",
+      "authorization"
+    ]
+  }
+}

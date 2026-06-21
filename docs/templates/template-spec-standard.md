@@ -18,6 +18,8 @@ A microservices.sh template is a versioned starter repository that combines:
 
 The template must be useful immediately, but flexible enough for an agent to adapt without forking everything.
 
+UI templates are lighter-weight: they are copy-in component or surface kits, not full app scaffolds. A UI template should include `microservices.ui-template.json` in its package directory and set `kind: "ui"`. The registry treats app templates and UI templates as template rows, but UI templates do not require `microservices.lock.json`, module slots, migrations, or deploy bindings.
+
 ## Required Manifest
 
 Each template should include `microservices.template.json`.
@@ -56,6 +58,44 @@ Each template should include `microservices.template.json`.
   }
 }
 ```
+
+## UI Template Manifest
+
+Use `microservices.ui-template.json` for copy-in UI templates such as `packages/ui` or the module reference preview harness.
+
+```json
+{
+  "schemaVersion": "2026-06-13",
+  "id": "ui-web-portal-svelte",
+  "kind": "ui",
+  "version": "0.1.0",
+  "status": "available",
+  "displayName": "Web Portal UI (Svelte)",
+  "category": "ui-template",
+  "runtime": {
+    "languages": ["typescript", "svelte"],
+    "framework": "svelte",
+    "adapter": "copy-in",
+    "platform": "browser"
+  },
+  "localization": {
+    "defaultLanguage": "en",
+    "languages": ["en"],
+    "strategy": "host-app-owned"
+  },
+  "ui": {
+    "package": "@microservices-sh/ui",
+    "style": "web-portal",
+    "target": "src/lib/ui",
+    "registry": "packages/ui/registry.json",
+    "installCommand": "node packages/ui/bin/ui.mjs add Button Card Badge",
+    "components": ["Button", "Card", "Badge"],
+    "surfaces": ["dashboard shell", "forms"]
+  }
+}
+```
+
+Use `runtime.languages[]` and `localization.languages[]` even when there is only one language today. That keeps registry consumers, landing pages, and agent tooling from assuming a singular language field when a template later adds Svelte plus TypeScript, Rust, or multiple content locales.
 
 ## Required Sections
 

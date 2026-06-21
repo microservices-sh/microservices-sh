@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { mkdir, readdir, writeFile } from "node:fs/promises";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const IGNORED_DIRS = new Set([".git", ".svelte-kit", ".wrangler", "dist", "node_modules"]);
@@ -419,8 +419,64 @@ function stringList(value) {
   return Array.isArray(value) ? value.filter((item) => typeof item === "string" && item.trim().length > 0) : [];
 }
 
+function oneOrManyStringList(value) {
+  if (typeof value === "string" && value.trim().length > 0) return [value.trim()];
+  return stringList(value).map((item) => item.trim());
+}
+
+function uniqueStrings(values) {
+  const seen = new Set();
+  const out = [];
+  for (const value of values.flat()) {
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    out.push(trimmed);
+  }
+  return out;
+}
+
 function safePathList(value) {
   return stringList(value).filter(isSafeRelativePath);
+}
+
+export function normalizeRuntimeMetadata(value) {
+  const runtime = value && typeof value === "object" && !Array.isArray(value) ? { ...value } : {};
+  const languages = uniqueStrings([
+    oneOrManyStringList(runtime.languages),
+    oneOrManyStringList(runtime.language)
+  ]);
+  if (languages.length > 0) runtime.languages = languages;
+  return runtime;
+}
+
+export function normalizeLocalizationMetadata(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const languages = uniqueStrings([
+    oneOrManyStringList(value.languages),
+    oneOrManyStringList(value.language)
+  ]);
+  const output = {};
+  if (typeof value.defaultLanguage === "string" && value.defaultLanguage.trim()) output.defaultLanguage = value.defaultLanguage.trim();
+  if (languages.length > 0) output.languages = languages;
+  if (typeof value.strategy === "string" && value.strategy.trim()) output.strategy = value.strategy.trim();
+  const notes = stringList(value.notes);
+  if (notes.length > 0) output.notes = notes;
+  return Object.keys(output).length > 0 ? output : null;
+}
+
+export function normalizeUiTemplateMetadata(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const output = {};
+  for (const key of ["package", "style", "target", "registry", "preview", "installCommand"]) {
+    if (typeof value[key] === "string" && value[key].trim()) output[key] = value[key].trim();
+  }
+  const components = stringList(value.components);
+  const surfaces = stringList(value.surfaces);
+  if (components.length > 0) output.components = components;
+  if (surfaces.length > 0) output.surfaces = surfaces;
+  return Object.keys(output).length > 0 ? output : null;
 }
 
 function normalizeNavigationItems(value) {
@@ -758,6 +814,7 @@ function localModulePackageName(rootPath, moduleId) {
 function findRawTenantUsecaseImports(text) {
   const offenders = [];
   const importRe = /import\s*(?:type\s+)?\{([\s\S]*?)\}\s*from\s*["']@microservices-sh\/(invoice|support-ticket|file-media|forms-intake)["']/g;
+  const namespaceImportRe = /import\s+\*\s+as\s+([A-Za-z_$][\w$]*)\s+from\s*["']@microservices-sh\/(invoice|support-ticket|file-media|forms-intake)["']/g;
   let match;
   while ((match = importRe.exec(text)) !== null) {
     const moduleId = match[2];
@@ -770,22 +827,78 @@ function findRawTenantUsecaseImports(text) {
       if (forbidden.includes(name)) offenders.push(`${name} from @microservices-sh/${moduleId}`);
     }
   }
+  while ((match = namespaceImportRe.exec(text)) !== null) {
+    offenders.push(`namespace ${match[1]} from @microservices-sh/${match[2]}`);
+  }
+  return offenders;
+}
+
+function localImportSpecifiers(text) {
+  const specs = [];
+  const fromRe = /import\s+(?:type\s+)?[\s\S]*?\s+from\s*["']([^"']+)["']/g;
+  const sideEffectRe = /import\s*["']([^"']+)["']/g;
+  let match;
+  while ((match = fromRe.exec(text)) !== null) specs.push(match[1]);
+  while ((match = sideEffectRe.exec(text)) !== null) specs.push(match[1]);
+  return specs;
+}
+
+function resolveLocalSourceImport(targetPath, importerFile, specifier) {
+  if (specifier.endsWith("$types")) return null;
+  const srcRoot = resolve(targetPath, "src");
+  let base = null;
+  if (specifier.startsWith(".")) {
+    base = resolve(dirname(importerFile), specifier);
+  } else if (specifier.startsWith("$lib/")) {
+    base = resolve(targetPath, "src/lib", specifier.slice("$lib/".length));
+  }
+  if (!base) return null;
+
+  const candidates = [base, `${base}.ts`, `${base}.js`, join(base, "index.ts"), join(base, "index.js")];
+  for (const candidate of candidates) {
+    const resolved = resolve(candidate);
+    if (resolved !== srcRoot && !resolved.startsWith(srcRoot + sep)) continue;
+    if (existsSync(resolved) && statSync(resolved).isFile()) return resolved;
+  }
+  return null;
+}
+
+function isTenantBoundaryIgnoredDependency(file) {
+  return /\/src\/lib\/server\/demo\.(ts|js)$/.test(file);
+}
+
+function findRouteReachableRawTenantUsecaseImports(file, targetPath, seen = new Set()) {
+  if (seen.has(file)) return [];
+  seen.add(file);
+  if (isTenantBoundaryIgnoredDependency(file)) return [];
+
+  const text = readText(file);
+  const offenders = findRawTenantUsecaseImports(text).map((offender) => ({ file, offender }));
+  for (const specifier of localImportSpecifiers(text)) {
+    const importedFile = resolveLocalSourceImport(targetPath, file, specifier);
+    if (!importedFile) continue;
+    offenders.push(...findRouteReachableRawTenantUsecaseImports(importedFile, targetPath, seen));
+  }
   return offenders;
 }
 
 // plans/33 L5 guard. A template's request paths (`src/routes`) must call the
-// enforced `*Scoped` use-cases, never the raw input-trusting ones. Seed/demo code
-// (`src/lib`) and the public `submitForm` are out of scope by design.
+// enforced `*Scoped` use-cases, never the raw input-trusting ones. Route-local
+// wrappers are followed; seed/demo code is out of scope unless a route imports it.
 async function assertEnforcedTenantBoundary(checks, targetPath) {
   const routesDir = join(targetPath, "src/routes");
   if (!existsSync(routesDir)) return;
   const files = (await listFiles(routesDir)).filter((file) => file.endsWith(".ts") || file.endsWith(".js"));
   const offenders = [];
   for (const file of files) {
-    const found = findRawTenantUsecaseImports(readText(file));
+    const found = findRouteReachableRawTenantUsecaseImports(file, targetPath);
     if (found.length > 0) {
       const rel = file.split("/src/routes/")[1] ?? file;
-      offenders.push(`${rel} (${found.join(", ")})`);
+      const details = found.map((item) => {
+        const sourceRel = item.file === file ? null : relative(targetPath, item.file);
+        return sourceRel ? `${item.offender} via ${sourceRel}` : item.offender;
+      });
+      offenders.push(`${rel} (${details.join(", ")})`);
     }
   }
   const message =
@@ -1475,9 +1588,12 @@ async function templateRegistryEntry(rootPath, templatePath) {
   const manifest = readJson(join(templatePath, "microservices.template.json"));
   const lock = readJsonOptional(join(templatePath, "microservices.lock.json"), { modules: [] });
   const packageJson = readJsonOptional(join(templatePath, "package.json"), {});
+  const localization = normalizeLocalizationMetadata(manifest.localization);
+  const ui = normalizeUiTemplateMetadata(manifest.ui);
 
-  return {
+  const entry = {
     id: manifest.id,
+    kind: "app",
     name: manifest.displayName || manifest.name || titleCase(manifest.id),
     version: manifest.version || "0.0.0",
     status: manifest.status || "draft",
@@ -1486,7 +1602,7 @@ async function templateRegistryEntry(rootPath, templatePath) {
     package: packageJson.name || `@microservices-sh/template-${manifest.id}`,
     path: relativeToRoot(rootPath, templatePath),
     manifestPath: relativeToRoot(rootPath, join(templatePath, "microservices.template.json")),
-    runtime: manifest.runtime || {},
+    runtime: normalizeRuntimeMetadata(manifest.runtime),
     deployment: manifest.deployment || {},
     requiredModules: manifest.modules?.required || [],
     optionalModules: manifest.modules?.optional || [],
@@ -1504,11 +1620,45 @@ async function templateRegistryEntry(rootPath, templatePath) {
     },
     migrations: await listRelativeFiles(templatePath, "migrations", ".sql")
   };
+  if (localization) entry.localization = localization;
+  if (ui) entry.ui = ui;
+  return entry;
+}
+
+async function uiTemplateRegistryEntry(rootPath, templatePath) {
+  const manifest = readJson(join(templatePath, "microservices.ui-template.json"));
+  const packageJson = readJsonOptional(join(templatePath, "package.json"), {});
+  const localization = normalizeLocalizationMetadata(manifest.localization);
+  const ui = normalizeUiTemplateMetadata(manifest.ui);
+
+  const entry = {
+    id: manifest.id,
+    kind: "ui",
+    name: manifest.displayName || manifest.name || titleCase(manifest.id),
+    version: manifest.version || packageJson.version || "0.0.0",
+    status: manifest.status || "draft",
+    category: manifest.category || "ui-template",
+    summary: manifest.summary || packageJson.description || "",
+    package: packageJson.name || manifest.package || null,
+    path: relativeToRoot(rootPath, templatePath),
+    manifestPath: relativeToRoot(rootPath, join(templatePath, "microservices.ui-template.json")),
+    runtime: normalizeRuntimeMetadata(manifest.runtime),
+    docs: {
+      readme: existsSync(join(templatePath, "README.md")) ? "README.md" : null,
+      agent: existsSync(join(templatePath, "README.agent.md")) ? "README.agent.md" : null,
+      llms: existsSync(join(templatePath, "docs/llms.txt")) ? "docs/llms.txt" : null
+    }
+  };
+  if (localization) entry.localization = localization;
+  if (ui) entry.ui = ui;
+  if (manifest.sourcePolicy) entry.sourcePolicy = manifest.sourcePolicy;
+  return entry;
 }
 
 async function discoverWorkspace(rootPath) {
   const moduleDirectories = await listDirectories(join(rootPath, "modules"));
   const templateDirectories = await listDirectories(join(rootPath, "templates"));
+  const packageDirectories = await listDirectories(join(rootPath, "packages"));
   const modules = [];
   const templates = [];
 
@@ -1521,6 +1671,12 @@ async function discoverWorkspace(rootPath) {
   for (const templatePath of templateDirectories) {
     if (existsSync(join(templatePath, "microservices.template.json"))) {
       templates.push(await templateRegistryEntry(rootPath, templatePath));
+    }
+  }
+
+  for (const packagePath of packageDirectories) {
+    if (existsSync(join(packagePath, "microservices.ui-template.json"))) {
+      templates.push(await uiTemplateRegistryEntry(rootPath, packagePath));
     }
   }
 
@@ -1544,7 +1700,9 @@ function registryCatalog(workspace) {
     },
     counts: {
       modules: workspace.modules.length,
-      templates: workspace.templates.length
+      templates: workspace.templates.length,
+      appTemplates: workspace.templates.filter((template) => template.kind !== "ui").length,
+      uiTemplates: workspace.templates.filter((template) => template.kind === "ui").length
     },
     modules: workspace.modules,
     templates: workspace.templates

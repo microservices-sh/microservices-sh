@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "module-reference-ui-svelte",
+  "kind": "ui",
+  "version": "0.1.0",
+  "status": "available",
+  "displayName": "Module Reference UI (Svelte)",
+  "category": "ui-template",
+  "summary": "Svelte reference-surface harness for inspecting module UI one module at a time: metadata fallback, optional rich Preview.svelte surfaces, and wrappers for demo data or live dev handlers.",
+  "runtime": {
+    "languages": [
+      "typescript",
+      "svelte"
+    ],
+    "framework": "svelte",
+    "adapter": "vite",
+    "platform": "browser"
+  },
+  "localization": {
+    "defaultLanguage": "en",
+    "languages": [
+      "en"
+    ],
+    "strategy": "host-app-owned"
+  },
+  "ui": {
+    "package": "@microservices-sh/module-preview",
+    "style": "web-portal",
+    "target": "packages/module-preview/src",
+    "registry": "modules/*/reference-ui",
+    "preview": "packages/module-preview/src/App.svelte",
+    "installCommand": "pnpm --filter @microservices-sh/module-preview dev",
+    "components": [
+      "AppShell",
+      "GenericPreview",
+      "Preview.svelte wrappers"
+    ],
+    "surfaces": [
+      "admin",
+      "visitor",
+      "agentic"
+    ]
+  },
+  "sourcePolicy": {
+    "templateOwns": [
+      "preview harness",
+      "metadata fallback",
+      "demo wrappers"
+    ],
+    "modulesOwn": [
+      "reference-ui/Preview.svelte",
+      "reference-ui/README.md"
+    ],
+    "hostOwns": [
+      "production routes",
+      "authorization",
+      "localized content"
+    ]
+  }
+}

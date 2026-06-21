@@ -4,9 +4,12 @@ import {
   moduleReleaseTagPlan,
   moduleReleaseTagReport,
   normalizeInteractiveMetadata,
+  normalizeLocalizationMetadata,
   normalizeManifestConnections,
+  normalizeRuntimeMetadata,
   normalizeSkillMetadata,
-  normalizeSurfaceMetadata
+  normalizeSurfaceMetadata,
+  normalizeUiTemplateMetadata
 } from "../src/index.js";
 
 describe("normalizeManifestConnections", () => {
@@ -123,6 +126,53 @@ describe("setup metadata normalizers", () => {
       }
     });
   });
+
+  it("normalizes runtime language metadata from one or more languages", () => {
+    expect(normalizeRuntimeMetadata({ language: "typescript", platform: "cloudflare-workers" })).toEqual({
+      language: "typescript",
+      platform: "cloudflare-workers",
+      languages: ["typescript"]
+    });
+
+    expect(normalizeRuntimeMetadata({ languages: ["typescript", "svelte", "typescript"], language: "typescript" })).toEqual({
+      languages: ["typescript", "svelte"],
+      language: "typescript"
+    });
+  });
+
+  it("normalizes localization metadata without assuming a single locale", () => {
+    expect(normalizeLocalizationMetadata({
+      defaultLanguage: "en",
+      languages: ["en", "zh-TW", "en"],
+      strategy: "url",
+      notes: ["host-owned"]
+    })).toEqual({
+      defaultLanguage: "en",
+      languages: ["en", "zh-TW"],
+      strategy: "url",
+      notes: ["host-owned"]
+    });
+  });
+
+  it("normalizes UI template metadata", () => {
+    expect(normalizeUiTemplateMetadata({
+      package: "@microservices-sh/ui",
+      style: "web-portal",
+      target: "src/lib/ui",
+      registry: "packages/ui/registry.json",
+      installCommand: "msh-ui add Button",
+      components: ["Button", "Card"],
+      surfaces: ["dashboard"]
+    })).toEqual({
+      package: "@microservices-sh/ui",
+      style: "web-portal",
+      target: "src/lib/ui",
+      registry: "packages/ui/registry.json",
+      installCommand: "msh-ui add Button",
+      components: ["Button", "Card"],
+      surfaces: ["dashboard"]
+    });
+  });
 });
 
 describe("checked-in module surface metadata", () => {
@@ -143,6 +193,28 @@ describe("checked-in module surface metadata", () => {
     }
 
     expect(missing).toEqual([]);
+  });
+});
+
+describe("checked-in UI template metadata", () => {
+  it("declares package UI templates with flexible language metadata", () => {
+    const packagesRoot = new URL("../../../packages/", import.meta.url);
+    const found = [];
+
+    for (const entry of readdirSync(packagesRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const manifestPath = new URL(`${entry.name}/microservices.ui-template.json`, packagesRoot);
+      if (!existsSync(manifestPath)) continue;
+
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+      found.push(manifest.id);
+      expect(manifest.kind).toBe("ui");
+      expect(normalizeRuntimeMetadata(manifest.runtime).languages.length).toBeGreaterThan(0);
+      expect(normalizeLocalizationMetadata(manifest.localization)?.languages.length).toBeGreaterThan(0);
+      expect(normalizeUiTemplateMetadata(manifest.ui)?.components.length).toBeGreaterThan(0);
+    }
+
+    expect(found.sort()).toEqual(["module-reference-ui-svelte", "ui-web-portal-svelte"]);
   });
 });
 
