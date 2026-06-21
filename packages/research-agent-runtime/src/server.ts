@@ -3,7 +3,7 @@
 // tiny HTTP surface (health + research). Run with a TS-capable runtime (the
 // Dockerfile bundles this with esbuild). Provider key comes from a Fly secret.
 import { createServer } from "node:http";
-import { readFileSync, realpathSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { resolve, sep, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
@@ -14,6 +14,7 @@ import { createOpenRouterProvider } from "@microservices-sh/ai-gateway/adapters/
 import { createOperateHttpClient } from "@microservices-sh/research/adapters/operate-http";
 import { loadWorkspaceConfig } from "@microservices-sh/research";
 import { bootResearchRuntime } from "./runtime.js";
+import { resolveUploadPath } from "./file-write.js";
 import { createBuildTrigger } from "./graph-build-trigger.js";
 // Migrations bundled as text (esbuild --loader:.sql=text) so they survive into
 // the image — no runtime file reads / node_modules symlink dependency.
@@ -175,6 +176,53 @@ createServer(async (req, res) => {
     const result = await runtime.assist({ question: String(body.question ?? "") }, actor);
     res.writeHead(result.ok ? 200 : 422, { "content-type": "application/json" });
     return res.end(JSON.stringify(result));
+  }
+  // Workspace/corpus file management over HTTP (no SSH). Confined to /data/sources
+  // and /data/workspace by resolveUploadPath. POST writes; GET lists an area.
+  if (req.url?.startsWith("/files/")) {
+    if (!authorized(req.headers.authorization)) {
+      res.writeHead(401, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ ok: false, error: { code: "UNAUTHORIZED" } }));
+    }
+    const rel = decodeURIComponent(new URL(req.url, "http://x").pathname.slice("/files/".length));
+    const slash = rel.indexOf("/");
+    const area = slash === -1 ? rel : rel.slice(0, slash);
+    const name = slash === -1 ? "" : rel.slice(slash + 1);
+    const dirs = { sourcesDir: SOURCES_DIR, workspaceDir: WORKSPACE_DIR };
+
+    if (req.method === "GET") {
+      const base = area === "sources" ? SOURCES_DIR : area === "workspace" ? WORKSPACE_DIR : null;
+      if (!base) {
+        res.writeHead(400, { "content-type": "application/json" });
+        return res.end(JSON.stringify({ ok: false, error: { code: "BAD_AREA" } }));
+      }
+      let files: string[] = [];
+      try { files = readdirSync(base); } catch { files = []; }
+      res.writeHead(200, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ ok: true, area, files }));
+    }
+    if (req.method === "POST" || req.method === "PUT") {
+      const resolved = resolveUploadPath({ area, name, ...dirs });
+      if (!resolved.ok) {
+        res.writeHead(400, { "content-type": "application/json" });
+        return res.end(JSON.stringify({ ok: false, error: { code: resolved.code } }));
+      }
+      const chunks: Buffer[] = [];
+      let size = 0;
+      for await (const c of req) {
+        size += (c as Buffer).length;
+        if (size > 10 * 1024 * 1024) {
+          res.writeHead(413, { "content-type": "application/json" });
+          return res.end(JSON.stringify({ ok: false, error: { code: "FILE_TOO_LARGE" } }));
+        }
+        chunks.push(c as Buffer);
+      }
+      const data = Buffer.concat(chunks);
+      mkdirSync(dirname(resolved.path), { recursive: true });
+      writeFileSync(resolved.path, data);
+      res.writeHead(200, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ ok: true, path: `${area}/${name}`, bytes: data.length }));
+    }
   }
   res.writeHead(404);
   res.end();
