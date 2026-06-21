@@ -24,17 +24,25 @@ export type {
 } from "./service";
 export type {
   BankAccount,
+  BankMatchTargetType,
+  BankMatchType,
   BankReconciliationConfig,
   BankReconciliationRecord,
   BankStatementImport,
   BankStatementImportFieldMapping,
   BankStatementImportSource,
   BankStatementImportStatus,
+  BankTransactionMatch,
   BankTransaction,
   BankTransactionMatchStatus,
+  CreateMatchInput,
+  CreateMatchResult,
+  MatchCandidate,
+  MatchSuggestion,
   ModuleResult,
   ReconciliationSession,
   ReconciliationStatus,
+  SuggestMatchesInput,
   StatementImportResult,
   TenantContext
 } from "./types";

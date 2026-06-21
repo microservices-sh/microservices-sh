@@ -1,4 +1,4 @@
-import type { BankAccount, BankStatementImport, BankTransaction, ReconciliationSession } from "../types";
+import type { BankAccount, BankStatementImport, BankTransaction, BankTransactionMatch, ReconciliationSession } from "../types";
 
 export interface BankReconciliationStore {
   insertBankAccount(account: BankAccount): Promise<void>;
@@ -20,6 +20,8 @@ export interface BankReconciliationStore {
   listTransactionsForReconciliation(tenantId: string, bankAccountId: string, statementDate: string): Promise<BankTransaction[]>;
   updateTransaction(transaction: BankTransaction): Promise<void>;
   updateTransactions(transactions: BankTransaction[]): Promise<void>;
+  upsertMatch(match: BankTransactionMatch): Promise<void>;
+  listMatchesForTransaction(tenantId: string, transactionId: string): Promise<BankTransactionMatch[]>;
 
   insertReconciliation(session: ReconciliationSession): Promise<void>;
   getReconciliation(tenantId: string, reconciliationId: string): Promise<ReconciliationSession | null>;

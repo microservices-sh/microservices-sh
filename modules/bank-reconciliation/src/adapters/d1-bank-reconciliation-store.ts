@@ -6,7 +6,10 @@ import type {
   BankStatementImportSource,
   BankStatementImportStatus,
   BankTransaction,
+  BankTransactionMatch,
   BankTransactionMatchStatus,
+  BankMatchTargetType,
+  BankMatchType,
   ReconciliationSession,
   ReconciliationStatus
 } from "../types";
@@ -74,6 +77,25 @@ const RECONCILIATION_COLS = `
   completed_at,
   created_at,
   updated_at
+`;
+const MATCH_COLS = `
+  id,
+  tenant_id,
+  bank_transaction_id,
+  target_type,
+  target_id,
+  target_ref,
+  target_date,
+  target_amount_cents,
+  description,
+  match_type,
+  confidence,
+  amount_matched_cents,
+  confirmed,
+  confirmed_at,
+  confirmed_by_id,
+  reconciliation_id,
+  created_at
 `;
 
 function optionalString(value: unknown): string | undefined {
@@ -156,6 +178,28 @@ function toBankTransaction(row: Record<string, unknown>): BankTransaction {
   };
 }
 
+function toMatch(row: Record<string, unknown>): BankTransactionMatch {
+  return {
+    id: String(row.id),
+    tenantId: String(row.tenant_id),
+    bankTransactionId: String(row.bank_transaction_id),
+    targetType: String(row.target_type) as BankMatchTargetType,
+    targetId: String(row.target_id),
+    targetRef: optionalString(row.target_ref) ?? null,
+    targetDate: optionalString(row.target_date) ?? null,
+    targetAmountCents: Number(row.target_amount_cents),
+    description: optionalString(row.description) ?? null,
+    matchType: String(row.match_type) as BankMatchType,
+    confidence: row.confidence == null ? null : Number(row.confidence),
+    amountMatchedCents: Number(row.amount_matched_cents),
+    confirmed: Number(row.confirmed ?? 0) === 1,
+    confirmedAt: optionalString(row.confirmed_at) ?? null,
+    confirmedById: optionalString(row.confirmed_by_id) ?? null,
+    reconciliationId: optionalString(row.reconciliation_id) ?? null,
+    createdAt: String(row.created_at)
+  };
+}
+
 function toReconciliation(row: Record<string, unknown>): ReconciliationSession {
   return {
     id: String(row.id),
@@ -181,19 +225,6 @@ function toReconciliation(row: Record<string, unknown>): ReconciliationSession {
 
 function isUniqueConstraintError(error: unknown): boolean {
   return error instanceof Error && /unique constraint/i.test(error.message);
-}
-
-function stableHash(input: string): string {
-  let hash = 2166136261;
-  for (let index = 0; index < input.length; index += 1) {
-    hash ^= input.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0).toString(36);
-}
-
-function manualMatchId(transaction: BankTransaction): string {
-  return `match_${transaction.id}_${stableHash(transaction.ledgerReferenceId ?? "")}`;
 }
 
 function reconciliationDefaults(session: ReconciliationSession) {
@@ -449,39 +480,6 @@ export function createD1BankReconciliationStore(db: D1Database): BankReconciliat
         )
         .run();
 
-      if (!transaction.ledgerReferenceId) return;
-
-      await db
-        .prepare("DELETE FROM bank_reconciliation_matches WHERE tenant_id = ? AND bank_transaction_id = ? AND target_type = 'ledger_line'")
-        .bind(transaction.tenantId, transaction.id)
-        .run();
-      await db
-        .prepare(
-          `INSERT INTO bank_reconciliation_matches (
-            id,
-            tenant_id,
-            bank_transaction_id,
-            target_type,
-            target_id,
-            target_amount_cents,
-            match_type,
-            amount_matched_cents,
-            confirmed,
-            confirmed_at,
-            created_at
-          ) VALUES (?, ?, ?, 'ledger_line', ?, ?, 'manual', ?, 1, ?, ?)`
-        )
-        .bind(
-          manualMatchId(transaction),
-          transaction.tenantId,
-          transaction.id,
-          transaction.ledgerReferenceId,
-          transaction.amountCents,
-          transaction.amountCents,
-          updatedAt,
-          updatedAt
-        )
-        .run();
     },
 
     async updateTransactions(transactions) {
@@ -504,6 +502,60 @@ export function createD1BankReconciliationStore(db: D1Database): BankReconciliat
           )
           .run();
       }
+    },
+
+    async upsertMatch(match) {
+      await db
+        .prepare(
+          `INSERT INTO bank_reconciliation_matches (${MATCH_COLS})
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(tenant_id, bank_transaction_id, target_type, target_id)
+           DO UPDATE SET
+             target_ref = excluded.target_ref,
+             target_date = excluded.target_date,
+             target_amount_cents = excluded.target_amount_cents,
+             description = excluded.description,
+             match_type = excluded.match_type,
+             confidence = excluded.confidence,
+             amount_matched_cents = excluded.amount_matched_cents,
+             confirmed = excluded.confirmed,
+             confirmed_at = excluded.confirmed_at,
+             confirmed_by_id = excluded.confirmed_by_id,
+             reconciliation_id = excluded.reconciliation_id`
+        )
+        .bind(
+          match.id,
+          match.tenantId,
+          match.bankTransactionId,
+          match.targetType,
+          match.targetId,
+          match.targetRef ?? null,
+          match.targetDate ?? null,
+          match.targetAmountCents,
+          match.description ?? null,
+          match.matchType,
+          match.confidence ?? null,
+          match.amountMatchedCents,
+          match.confirmed ? 1 : 0,
+          match.confirmedAt ?? null,
+          match.confirmedById ?? null,
+          match.reconciliationId ?? null,
+          match.createdAt
+        )
+        .run();
+    },
+
+    async listMatchesForTransaction(tenantId, transactionId) {
+      const result = await db
+        .prepare(
+          `SELECT ${MATCH_COLS}
+           FROM bank_reconciliation_matches
+           WHERE tenant_id = ? AND bank_transaction_id = ?
+           ORDER BY created_at ASC`
+        )
+        .bind(tenantId, transactionId)
+        .all<Record<string, unknown>>();
+      return (result.results ?? []).map(toMatch);
     },
 
     async insertReconciliation(session) {

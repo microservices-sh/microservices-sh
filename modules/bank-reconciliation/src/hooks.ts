@@ -3,7 +3,7 @@ import type { BankAccount, BankTransaction, ReconciliationSession } from "./type
 export interface BankReconciliationHooks {
   beforeBankAccountCreate?: (input: unknown) => Promise<unknown> | unknown;
   beforeStatementImport?: (input: unknown) => Promise<unknown> | unknown;
-  beforeTransactionMatch?: (input: unknown) => Promise<unknown> | unknown;
+  beforeMatchCreate?: (input: unknown) => Promise<unknown> | unknown;
   beforeReconciliationComplete?: (input: unknown) => Promise<unknown> | unknown;
   afterBankAccountChanged?: (account: BankAccount) => Promise<void> | void;
   afterStatementTransactionsImported?: (transactions: BankTransaction[]) => Promise<void> | void;
@@ -17,7 +17,7 @@ export const defaultBankReconciliationHooks: Required<BankReconciliationHooks> =
   beforeStatementImport(input) {
     return input;
   },
-  beforeTransactionMatch(input) {
+  beforeMatchCreate(input) {
     return input;
   },
   beforeReconciliationComplete(input) {

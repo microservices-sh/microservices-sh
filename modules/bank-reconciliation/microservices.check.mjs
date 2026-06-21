@@ -24,4 +24,19 @@ export default function check({ assertFileIncludes }) {
     "unmatched_transactions",
     "Bank Reconciliation blocks completion while unmatched transactions remain."
   );
+  assertFileIncludes(
+    "src/service/index.ts",
+    "suggestMatches",
+    "Bank Reconciliation implements advertised match suggestions."
+  );
+  assertFileIncludes(
+    "src/service/index.ts",
+    "createMatch",
+    "Bank Reconciliation implements advertised explicit match creation."
+  );
+  assertFileIncludes(
+    "src/hooks.ts",
+    "beforeMatchCreate",
+    "Bank Reconciliation hook names align with the module contract."
+  );
 }

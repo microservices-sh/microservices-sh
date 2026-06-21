@@ -41,13 +41,52 @@
     "/matches/suggest": {
       "post": {
         "summary": "Suggest matches against ledger or payment candidates",
-        "operationId": "suggestMatches"
+        "operationId": "suggestMatches",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SuggestMatchesRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ranked match suggestions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/MatchSuggestion" }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/matches": {
       "post": {
         "summary": "Create a reconciliation match",
-        "operationId": "createMatch"
+        "operationId": "createMatch",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateMatchRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created match",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreateMatchResult" }
+              }
+            }
+          }
+        }
       }
     },
     "/reconciliations": {
@@ -72,6 +111,98 @@
       "MoneyCents": {
         "type": "integer",
         "description": "Signed integer cents. Deposits are positive and withdrawals are negative."
+      },
+      "MatchTargetType": {
+        "type": "string",
+        "enum": ["ledger_entry", "ledger_line", "payment", "external_ref"]
+      },
+      "MatchCandidate": {
+        "type": "object",
+        "required": ["targetType", "targetId", "amountCents"],
+        "properties": {
+          "targetType": { "$ref": "#/components/schemas/MatchTargetType" },
+          "targetId": { "type": "string" },
+          "targetRef": { "type": ["string", "null"] },
+          "targetDate": { "type": ["string", "null"], "format": "date" },
+          "amountCents": { "$ref": "#/components/schemas/MoneyCents" },
+          "description": { "type": ["string", "null"] },
+          "source": { "type": ["string", "null"] },
+          "metadata": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "MatchSuggestion": {
+        "allOf": [
+          { "$ref": "#/components/schemas/MatchCandidate" },
+          {
+            "type": "object",
+            "required": ["amountDeltaCents", "confidence", "reasons"],
+            "properties": {
+              "amountDeltaCents": { "$ref": "#/components/schemas/MoneyCents" },
+              "dateDeltaDays": { "type": ["integer", "null"] },
+              "confidence": { "type": "integer", "minimum": 0, "maximum": 100 },
+              "reasons": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        ]
+      },
+      "SuggestMatchesRequest": {
+        "type": "object",
+        "required": ["tenantId", "transactionId"],
+        "properties": {
+          "tenantId": { "type": "string" },
+          "transactionId": { "type": "string" },
+          "candidates": { "type": "array", "items": { "$ref": "#/components/schemas/MatchCandidate" } },
+          "dateToleranceDays": { "type": "integer", "minimum": 0, "maximum": 30, "default": 3 },
+          "amountToleranceCents": { "$ref": "#/components/schemas/MoneyCents" },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 }
+        }
+      },
+      "CreateMatchRequest": {
+        "type": "object",
+        "required": ["tenantId", "transactionId", "targetType", "targetId", "targetAmountCents"],
+        "properties": {
+          "tenantId": { "type": "string" },
+          "transactionId": { "type": "string" },
+          "targetType": { "$ref": "#/components/schemas/MatchTargetType" },
+          "targetId": { "type": "string" },
+          "targetRef": { "type": ["string", "null"] },
+          "targetDate": { "type": ["string", "null"], "format": "date" },
+          "targetAmountCents": { "$ref": "#/components/schemas/MoneyCents" },
+          "description": { "type": ["string", "null"] },
+          "matchType": { "type": "string", "enum": ["auto", "manual", "rule"], "default": "manual" },
+          "confidence": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+          "reconciliationId": { "type": ["string", "null"] }
+        }
+      },
+      "BankTransactionMatch": {
+        "type": "object",
+        "required": ["id", "tenantId", "bankTransactionId", "targetType", "targetId", "targetAmountCents", "matchType", "amountMatchedCents", "confirmed", "createdAt"],
+        "properties": {
+          "id": { "type": "string" },
+          "tenantId": { "type": "string" },
+          "bankTransactionId": { "type": "string" },
+          "targetType": { "$ref": "#/components/schemas/MatchTargetType" },
+          "targetId": { "type": "string" },
+          "targetRef": { "type": ["string", "null"] },
+          "targetDate": { "type": ["string", "null"], "format": "date" },
+          "targetAmountCents": { "$ref": "#/components/schemas/MoneyCents" },
+          "description": { "type": ["string", "null"] },
+          "matchType": { "type": "string", "enum": ["auto", "manual", "rule"] },
+          "confidence": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+          "amountMatchedCents": { "$ref": "#/components/schemas/MoneyCents" },
+          "confirmed": { "type": "boolean" },
+          "confirmedAt": { "type": ["string", "null"] },
+          "confirmedById": { "type": ["string", "null"] },
+          "reconciliationId": { "type": ["string", "null"] },
+          "createdAt": { "type": "string" }
+        }
+      },
+      "CreateMatchResult": {
+        "type": "object",
+        "required": ["match"],
+        "properties": {
+          "match": { "$ref": "#/components/schemas/BankTransactionMatch" }
+        }
       }
     }
   }

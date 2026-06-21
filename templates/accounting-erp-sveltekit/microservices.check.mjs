@@ -192,7 +192,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/banking/+page.server.ts",
-    ["createBankAccount", "importStatementCsv", "matchTransaction", "startReconciliation", "listReconciliations", "completeReconciliation", "recordEvent"],
+    ["createBankAccount", "importStatementCsv", "suggestMatches", "createMatch", "matchTransaction", "startReconciliation", "listReconciliations", "completeReconciliation", "recordEvent"],
     "Banking route exposes operator actions and persisted reconciliation sessions through bank-reconciliation service methods."
   );
   assertFileIncludesAll(

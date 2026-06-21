@@ -37,8 +37,9 @@ describe("bank-reconciliation", () => {
   });
 
   it("runs the reconciliation workflow through the async store-backed service", async () => {
+    const store = createMemoryBankReconciliationStore();
     const service = createBankReconciliationService({
-      store: createMemoryBankReconciliationStore(),
+      store,
       createId: createSequentialBankReconciliationIdFactory()
     });
     const account = await service.createBankAccount(ctx, { name: "Operating", openingBalanceCents: 1000 });
@@ -74,6 +75,67 @@ describe("bank-reconciliation", () => {
     const transactions = await service.listStatementTransactions(ctx, account.data!.id);
     expect(transactions.data![0].reconciled).toBe(true);
     expect(transactions.data![0].reconciliationId).toBe(reconciliation.data!.id);
+
+    const matches = await store.listMatchesForTransaction(ctx.tenantId, tx.id);
+    expect(matches).toMatchObject([{ targetType: "ledger_line", targetId: "journal_line_1", amountMatchedCents: 500 }]);
+  });
+
+  it("suggests candidate matches and creates explicit match records", async () => {
+    const store = createMemoryBankReconciliationStore();
+    const service = createBankReconciliationService({
+      store,
+      createId: createSequentialBankReconciliationIdFactory()
+    });
+    const account = await service.createBankAccount(ctx, { name: "Operating" });
+    const imported = await service.importStatementTransactions(ctx, account.data!.id, [
+      { transactionDate: "2026-06-20", description: "Stripe payout", amountCents: 84_000, transactionHash: "hash-suggest-1" }
+    ]);
+    const tx = imported.data!.imported[0];
+
+    const suggestions = await service.suggestMatches(ctx, {
+      transactionId: tx.id,
+      amountToleranceCents: 500,
+      dateToleranceDays: 2,
+      candidates: [
+        {
+          targetType: "ledger_line",
+          targetId: "jel_1",
+          targetRef: "JE-1",
+          targetDate: "2026-06-20",
+          amountCents: 84_000,
+          description: "Stripe payout",
+          source: "accounting-core"
+        },
+        {
+          targetType: "payment",
+          targetId: "pay_1",
+          targetDate: "2026-06-12",
+          amountCents: 84_000,
+          description: "Old payment",
+          source: "payment"
+        }
+      ]
+    });
+    expect(suggestions.ok).toBe(true);
+    expect(suggestions.data).toHaveLength(1);
+    expect(suggestions.data![0]).toMatchObject({ targetId: "jel_1", confidence: 100 });
+
+    const matched = await service.createMatch(ctx, {
+      transactionId: tx.id,
+      targetType: "ledger_line",
+      targetId: suggestions.data![0].targetId,
+      targetRef: suggestions.data![0].targetRef,
+      targetDate: suggestions.data![0].targetDate,
+      targetAmountCents: suggestions.data![0].amountCents,
+      description: suggestions.data![0].description,
+      matchType: "manual",
+      confidence: suggestions.data![0].confidence
+    });
+    expect(matched.ok).toBe(true);
+    expect(matched.data!.transaction).toMatchObject({ id: tx.id, matchStatus: "manual_matched", ledgerReferenceId: "jel_1" });
+    await expect(store.listMatchesForTransaction(ctx.tenantId, tx.id)).resolves.toMatchObject([
+      { targetType: "ledger_line", targetId: "jel_1", confidence: 100, confirmed: true }
+    ]);
   });
 
   it("imports mapped CSV statements and records import session history", async () => {

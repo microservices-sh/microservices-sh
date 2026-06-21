@@ -21,6 +21,8 @@ export interface BankAccount {
 }
 
 export type BankTransactionMatchStatus = "unmatched" | "auto_matched" | "manual_matched" | "excluded";
+export type BankMatchTargetType = "ledger_entry" | "ledger_line" | "payment" | "external_ref";
+export type BankMatchType = "auto" | "manual" | "rule";
 
 export interface BankTransaction {
   id: string;
@@ -36,6 +38,70 @@ export interface BankTransaction {
   reconciled: boolean;
   reconciledAt?: string;
   reconciliationId?: string;
+  createdAt: string;
+}
+
+export interface MatchCandidate {
+  targetType: BankMatchTargetType;
+  targetId: string;
+  targetRef?: string | null;
+  targetDate?: string | null;
+  amountCents: number;
+  description?: string | null;
+  source?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+export interface MatchSuggestion extends MatchCandidate {
+  amountDeltaCents: number;
+  dateDeltaDays?: number | null;
+  confidence: number;
+  reasons: string[];
+}
+
+export interface CreateMatchInput {
+  transactionId: string;
+  targetType: BankMatchTargetType;
+  targetId: string;
+  targetRef?: string | null;
+  targetDate?: string | null;
+  targetAmountCents: number;
+  description?: string | null;
+  matchType?: BankMatchType;
+  confidence?: number | null;
+  reconciliationId?: string | null;
+}
+
+export interface CreateMatchResult {
+  transaction: BankTransaction;
+  match: BankTransactionMatch;
+}
+
+export interface SuggestMatchesInput {
+  transactionId: string;
+  candidates?: MatchCandidate[];
+  dateToleranceDays?: number;
+  amountToleranceCents?: number;
+  limit?: number;
+}
+
+export interface BankTransactionMatch {
+  id: string;
+  tenantId: string;
+  bankTransactionId: string;
+  targetType: BankMatchTargetType;
+  targetId: string;
+  targetRef?: string | null;
+  targetDate?: string | null;
+  targetAmountCents: number;
+  description?: string | null;
+  matchType: BankMatchType;
+  confidence?: number | null;
+  amountMatchedCents: number;
+  confirmed: boolean;
+  confirmedAt?: string | null;
+  confirmedById?: string | null;
+  reconciliationId?: string | null;
   createdAt: string;
 }
 
@@ -106,4 +172,9 @@ export interface ModuleResult<T> {
   error?: { code: string; message: string };
 }
 
-export type BankReconciliationRecord = BankAccount | BankStatementImport | BankTransaction | ReconciliationSession;
+export type BankReconciliationRecord =
+  | BankAccount
+  | BankStatementImport
+  | BankTransaction
+  | BankTransactionMatch
+  | ReconciliationSession;

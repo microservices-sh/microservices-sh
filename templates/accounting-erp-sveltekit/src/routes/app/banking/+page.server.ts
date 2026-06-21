@@ -2,6 +2,7 @@ import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { getBankReconciliationModuleStatus } from "@microservices-sh/bank-reconciliation";
+import type { BankTransaction, MatchCandidate } from "@microservices-sh/bank-reconciliation";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 
@@ -17,6 +18,46 @@ function moneyToCents(value: string, fallback = 0): number | null {
 
 function dateOnly(value: string): string | null {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+}
+
+function integer(value: string): number | null {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) ? parsed : null;
+}
+
+function targetType(value: string): MatchCandidate["targetType"] | null {
+  return ["ledger_entry", "ledger_line", "payment", "external_ref"].includes(value) ? (value as MatchCandidate["targetType"]) : null;
+}
+
+function localCandidates(transaction: BankTransaction): MatchCandidate[] {
+  const description = transaction.description.toLowerCase();
+  if (description.includes("stripe")) {
+    return [
+      {
+        targetType: "ledger_line",
+        targetId: "demo-ledger-line-stripe-payout",
+        targetRef: "JE-DEMO-STRIPE",
+        targetDate: transaction.transactionDate,
+        amountCents: transaction.amountCents,
+        description: "Stripe payout clearing entry",
+        source: "demo-ledger"
+      }
+    ];
+  }
+  if (description.includes("cloud hosting")) {
+    return [
+      {
+        targetType: "ledger_line",
+        targetId: "demo-ledger-line-cloud-hosting",
+        targetRef: "JE-DEMO-CLOUD",
+        targetDate: transaction.transactionDate,
+        amountCents: transaction.amountCents,
+        description: "Cloud hosting expense entry",
+        source: "demo-ledger"
+      }
+    ];
+  }
+  return [];
 }
 
 export const load: PageServerLoad = async ({ locals, cookies, parent, platform }) => {
@@ -60,12 +101,28 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
   const transactions = bankAccount ? await service.listStatementTransactions(ctx, bankAccount.id) : null;
   const statementImports = bankAccount ? await service.listStatementImports(ctx, bankAccount.id) : null;
   const reconciliations = bankAccount ? await service.listReconciliations(ctx, bankAccount.id) : null;
+  const transactionRows = transactions?.ok ? transactions.data : [];
+  const matchSuggestions = await Promise.all(
+    transactionRows
+      .filter((transaction) => transaction.matchStatus === "unmatched" && !transaction.reconciled)
+      .map(async (transaction) => {
+        const suggested = await service.suggestMatches(ctx, {
+          transactionId: transaction.id,
+          candidates: localCandidates(transaction),
+          amountToleranceCents: 0,
+          dateToleranceDays: 3,
+          limit: 3
+        });
+        return { transactionId: transaction.id, suggestions: suggested.ok ? suggested.data : [] };
+      })
+  );
 
   return {
     canManage: permissions.includes("*") || permissions.includes("member.manage"),
     status: getBankReconciliationModuleStatus(),
     accounts: accounts.ok ? accounts.data : [],
-    transactions: transactions?.ok ? transactions.data : [],
+    transactions: transactionRows,
+    matchSuggestions,
     statementImports: statementImports?.ok ? statementImports.data : [],
     reconciliations: reconciliations?.ok ? reconciliations.data : [],
     imported: imported?.ok ? imported.data : null,
@@ -186,27 +243,57 @@ export const actions: Actions = {
     const form = await request.formData();
     const values = {
       transactionId: text(form.get("transactionId")),
-      ledgerReferenceId: text(form.get("ledgerReferenceId"))
+      ledgerReferenceId: text(form.get("ledgerReferenceId")),
+      targetType: text(form.get("targetType")),
+      targetId: text(form.get("targetId")),
+      targetRef: text(form.get("targetRef")),
+      targetDate: text(form.get("targetDate")),
+      targetAmountCents: text(form.get("targetAmountCents")),
+      description: text(form.get("description")),
+      confidence: text(form.get("confidence"))
     };
-    if (!values.transactionId || !values.ledgerReferenceId) {
-      return fail(400, { error: "Choose a transaction and enter a ledger reference.", values });
+    const selectedTargetType = targetType(values.targetType);
+    const targetAmountCents = integer(values.targetAmountCents);
+    const confidence = values.confidence ? integer(values.confidence) : null;
+    const hasCandidate = Boolean(selectedTargetType && values.targetId && targetAmountCents != null);
+    if (!values.transactionId || (!hasCandidate && !values.ledgerReferenceId)) {
+      return fail(400, { error: "Choose a transaction and select a match candidate or enter a ledger reference.", values });
     }
 
-    const matched = await locals.bankReconciliationService.matchTransaction(
-      { tenantId: org.id, actorId: locals.user.id },
-      values.transactionId,
-      values.ledgerReferenceId
-    );
+    const ctx = { tenantId: org.id, actorId: locals.user.id };
+    const matched = hasCandidate
+      ? await locals.bankReconciliationService.createMatch(ctx, {
+          transactionId: values.transactionId,
+          targetType: selectedTargetType!,
+          targetId: values.targetId,
+          targetRef: values.targetRef || null,
+          targetDate: dateOnly(values.targetDate) ?? null,
+          targetAmountCents: targetAmountCents!,
+          description: values.description || null,
+          matchType: "manual",
+          confidence
+        })
+      : await locals.bankReconciliationService.matchTransaction(ctx, values.transactionId, values.ledgerReferenceId);
     if (!matched.ok || !matched.data) return fail(400, { error: matched.error?.message ?? "Could not match transaction.", values });
+
+    const transaction = "transaction" in matched.data ? matched.data.transaction : matched.data;
+    const match = "match" in matched.data ? matched.data.match : null;
 
     await recordEvent(
       {
         eventName: "bank-reconciliation.match_created",
         actorId: locals.user.id,
         entityType: "bank_transaction",
-        entityId: matched.data.id,
+        entityId: transaction.id,
         source: "app/banking",
-        payload: { ledgerReferenceId: matched.data.ledgerReferenceId, amountCents: matched.data.amountCents }
+        payload: {
+          ledgerReferenceId: transaction.ledgerReferenceId,
+          amountCents: transaction.amountCents,
+          targetType: match?.targetType ?? "ledger_line",
+          targetId: match?.targetId ?? values.ledgerReferenceId,
+          matchId: match?.id ?? null,
+          confidence: match?.confidence ?? null
+        }
       },
       { auditStore: locals.auditStore }
     );

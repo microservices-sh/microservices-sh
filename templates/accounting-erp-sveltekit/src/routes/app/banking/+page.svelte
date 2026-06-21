@@ -12,6 +12,9 @@
   const latestImport = $derived(data.statementImports.at(-1));
   const inProgressReconciliations = $derived(data.reconciliations.filter((session) => session.status === "in_progress"));
   const displayedReconciliation = $derived(form?.reconciliation ?? data.reconciliation);
+  const suggestionsByTransaction = $derived(
+    new Map(data.matchSuggestions.map((group) => [group.transactionId, group.suggestions]))
+  );
   const metrics = $derived<Metric[]>([
     { label: "Bank accounts", value: data.accounts.length, tone: data.accounts.length > 0 ? "good" : "neutral", hint: "connected ledgers" },
     {
@@ -60,6 +63,25 @@
               <div>
                 <strong>{tx.description}</strong>
                 <p>{tx.transactionDate} · {tx.transactionHash}</p>
+                {#if tx.matchStatus === "unmatched" && suggestionsByTransaction.get(tx.id)?.length}
+                  <div class="candidate-list">
+                    {#each suggestionsByTransaction.get(tx.id) ?? [] as suggestion (suggestion.targetId)}
+                      <form method="POST" action="?/matchTransaction" use:enhance>
+                        <input type="hidden" name="transactionId" value={tx.id} />
+                        <input type="hidden" name="targetType" value={suggestion.targetType} />
+                        <input type="hidden" name="targetId" value={suggestion.targetId} />
+                        <input type="hidden" name="targetRef" value={suggestion.targetRef ?? ""} />
+                        <input type="hidden" name="targetDate" value={suggestion.targetDate ?? ""} />
+                        <input type="hidden" name="targetAmountCents" value={suggestion.amountCents} />
+                        <input type="hidden" name="description" value={suggestion.description ?? ""} />
+                        <input type="hidden" name="confidence" value={suggestion.confidence} />
+                        <span>{suggestion.targetRef ?? suggestion.targetId}</span>
+                        <small>{suggestion.source ?? suggestion.targetType} · {suggestion.confidence}% · {suggestion.reasons.join(", ")}</small>
+                        <Button type="submit" variant="ghost" size="sm">Match</Button>
+                      </form>
+                    {/each}
+                  </div>
+                {/if}
               </div>
               <Badge tone={tx.matchStatus === "unmatched" ? "warn" : "good"}>{money(tx.amountCents)}</Badge>
             </li>
@@ -283,6 +305,28 @@
     font-family: var(--font-mono);
     font-size: 0.72rem;
   }
+  .candidate-list {
+    display: grid;
+    gap: 8px;
+    margin-block-start: 10px;
+  }
+  .candidate-list form {
+    display: grid;
+    grid-template-columns: minmax(120px, 0.8fr) minmax(180px, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    padding: 8px;
+  }
+  .candidate-list span {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+  }
+  .candidate-list small {
+    color: var(--color-ink-faint);
+    font-size: 0.76rem;
+  }
   .operator-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -311,6 +355,7 @@
   @media (max-width: 860px) {
     .grid,
     .operator-grid,
+    .candidate-list form,
     .form-row,
     .mapping-row {
       grid-template-columns: 1fr;

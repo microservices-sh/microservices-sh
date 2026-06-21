@@ -4,8 +4,14 @@ import type {
   BankStatementImportFieldMapping,
   BankStatementImportSource,
   BankTransaction,
+  BankTransactionMatch,
+  CreateMatchInput,
+  CreateMatchResult,
+  MatchCandidate,
+  MatchSuggestion,
   ModuleResult,
   ReconciliationSession,
+  SuggestMatchesInput,
   StatementImportResult,
   TenantContext
 } from "../types";
@@ -34,7 +40,7 @@ export interface ImportStatementCsvInput {
   importedById?: string;
 }
 
-export type BankReconciliationIdPrefix = "bank" | "bimp" | "btx" | "recon";
+export type BankReconciliationIdPrefix = "bank" | "bimp" | "btx" | "bmatch" | "recon";
 export type BankReconciliationIdFactory = (prefix: BankReconciliationIdPrefix) => string;
 
 export interface BankReconciliationServiceDeps {
@@ -57,6 +63,8 @@ export interface BankReconciliationService {
   ): Promise<ModuleResult<StatementImportResult>>;
   listStatementImports(ctx: TenantContext, bankAccountId?: string): Promise<ModuleResult<BankStatementImport[]>>;
   listStatementTransactions(ctx: TenantContext, bankAccountId: string): Promise<ModuleResult<BankTransaction[]>>;
+  suggestMatches(ctx: TenantContext, input: SuggestMatchesInput): Promise<ModuleResult<MatchSuggestion[]>>;
+  createMatch(ctx: TenantContext, input: CreateMatchInput): Promise<ModuleResult<CreateMatchResult>>;
   matchTransaction(ctx: TenantContext, transactionId: string, ledgerReferenceId: string): Promise<ModuleResult<BankTransaction>>;
   startReconciliation(
     ctx: TenantContext,
@@ -85,7 +93,7 @@ function id(prefix: string, sequence: number): string {
 }
 
 export function createSequentialBankReconciliationIdFactory(): BankReconciliationIdFactory {
-  const sequences: Record<BankReconciliationIdPrefix, number> = { bank: 0, bimp: 0, btx: 0, recon: 0 };
+  const sequences: Record<BankReconciliationIdPrefix, number> = { bank: 0, bimp: 0, btx: 0, bmatch: 0, recon: 0 };
   return (prefix) => id(prefix, ++sequences[prefix]);
 }
 
@@ -125,6 +133,84 @@ function stableHash(input: string): string {
     hash = Math.imul(hash, 16777619);
   }
   return (hash >>> 0).toString(36);
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function dateDeltaDays(transactionDate: string, targetDate?: string | null): number | null {
+  if (!targetDate) return null;
+  const transactionTime = Date.parse(`${transactionDate}T00:00:00.000Z`);
+  const targetTime = Date.parse(`${targetDate}T00:00:00.000Z`);
+  if (!Number.isFinite(transactionTime) || !Number.isFinite(targetTime)) return null;
+  return Math.round(Math.abs(transactionTime - targetTime) / 86_400_000);
+}
+
+function scoreCandidate(
+  transaction: BankTransaction,
+  candidate: MatchCandidate,
+  input: Pick<SuggestMatchesInput, "amountToleranceCents" | "dateToleranceDays">
+): MatchSuggestion | null {
+  const amountToleranceCents = input.amountToleranceCents ?? 0;
+  const dateTolerance = input.dateToleranceDays ?? 3;
+  const amountDeltaCents = candidate.amountCents - transaction.amountCents;
+  if (Math.abs(amountDeltaCents) > amountToleranceCents) return null;
+
+  const deltaDays = dateDeltaDays(transaction.transactionDate, candidate.targetDate);
+  if (deltaDays != null && deltaDays > dateTolerance) return null;
+
+  const reasons: string[] = [];
+  let confidence = 55;
+  if (amountDeltaCents === 0) {
+    confidence += 30;
+    reasons.push("exact amount");
+  } else {
+    const amountPenalty = amountToleranceCents === 0 ? 30 : Math.round((Math.abs(amountDeltaCents) / amountToleranceCents) * 30);
+    confidence += clamp(30 - amountPenalty, 0, 25);
+    reasons.push("amount within tolerance");
+  }
+  if (deltaDays === 0) {
+    confidence += 10;
+    reasons.push("same date");
+  } else if (deltaDays != null) {
+    confidence += clamp(10 - deltaDays * 2, 0, 8);
+    reasons.push("date within tolerance");
+  }
+  const normalizedDescription = transaction.description.toLowerCase();
+  if (candidate.description && normalizedDescription.includes(candidate.description.toLowerCase().slice(0, 18))) {
+    confidence += 5;
+    reasons.push("description overlap");
+  }
+  if (candidate.targetRef && normalizedDescription.includes(candidate.targetRef.toLowerCase())) {
+    confidence += 5;
+    reasons.push("reference overlap");
+  }
+
+  return {
+    ...candidate,
+    amountDeltaCents,
+    dateDeltaDays: deltaDays,
+    confidence: clamp(confidence, 0, 100),
+    reasons
+  };
+}
+
+function suggestForTransaction(transaction: BankTransaction, input: SuggestMatchesInput): MatchSuggestion[] {
+  const limit = clamp(input.limit ?? 10, 1, 100);
+  return (input.candidates ?? [])
+    .map((candidate) => scoreCandidate(transaction, candidate, input))
+    .filter((candidate): candidate is MatchSuggestion => candidate !== null)
+    .sort((left, right) => right.confidence - left.confidence || Math.abs(left.amountDeltaCents) - Math.abs(right.amountDeltaCents))
+    .slice(0, limit);
+}
+
+function matchStatus(matchType: CreateMatchInput["matchType"]): BankTransaction["matchStatus"] {
+  return matchType === "auto" || matchType === "rule" ? "auto_matched" : "manual_matched";
+}
+
+function ledgerReferenceId(input: CreateMatchInput): string | undefined {
+  return input.targetType === "ledger_line" || input.targetType === "ledger_entry" ? input.targetId : undefined;
 }
 
 function normalizeHeader(value: string): string {
@@ -282,6 +368,43 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
     return { imported, importedCount: imported.length, skippedDuplicateCount };
   }
 
+  async function createStoreMatch(ctx: TenantContext, input: CreateMatchInput): Promise<ModuleResult<CreateMatchResult>> {
+    const transaction = await deps.store.getTransaction(ctx.tenantId, input.transactionId);
+    if (!transaction) return fail("transaction_not_found", "Bank transaction not found.");
+    if (transaction.reconciled) return fail("transaction_reconciled", "Reconciled transactions cannot be rematched.");
+
+    const createdAt = now(ctx);
+    const type = input.matchType ?? "manual";
+    const match: BankTransactionMatch = {
+      id: createId("bmatch"),
+      tenantId: ctx.tenantId,
+      bankTransactionId: transaction.id,
+      targetType: input.targetType,
+      targetId: input.targetId,
+      targetRef: input.targetRef ?? null,
+      targetDate: input.targetDate ?? null,
+      targetAmountCents: input.targetAmountCents,
+      description: input.description ?? null,
+      matchType: type,
+      confidence: input.confidence ?? null,
+      amountMatchedCents: transaction.amountCents,
+      confirmed: true,
+      confirmedAt: createdAt,
+      confirmedById: ctx.actorId ?? null,
+      reconciliationId: input.reconciliationId ?? null,
+      createdAt
+    };
+    const updated: BankTransaction = {
+      ...transaction,
+      ledgerReferenceId: ledgerReferenceId(input),
+      matchStatus: matchStatus(type)
+    };
+
+    await deps.store.upsertMatch(match);
+    await deps.store.updateTransaction(updated);
+    return ok({ transaction: updated, match });
+  }
+
   return {
     async createBankAccount(ctx, input) {
       const createdAt = now(ctx);
@@ -371,13 +494,31 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
       return ok(await deps.store.listStatementTransactions(ctx.tenantId, bankAccountId));
     },
 
+    async suggestMatches(ctx, input) {
+      const transaction = await deps.store.getTransaction(ctx.tenantId, input.transactionId);
+      if (!transaction) return fail("transaction_not_found", "Bank transaction not found.");
+      if (transaction.reconciled) return fail("transaction_reconciled", "Reconciled transactions cannot be rematched.");
+      return ok(suggestForTransaction(transaction, input));
+    },
+
+    async createMatch(ctx, input) {
+      return createStoreMatch(ctx, input);
+    },
+
     async matchTransaction(ctx, transactionId, ledgerReferenceId) {
       const transaction = await deps.store.getTransaction(ctx.tenantId, transactionId);
       if (!transaction) return fail("transaction_not_found", "Bank transaction not found.");
-      if (transaction.reconciled) return fail("transaction_reconciled", "Reconciled transactions cannot be rematched.");
-      const updated: BankTransaction = { ...transaction, ledgerReferenceId, matchStatus: "manual_matched" };
-      await deps.store.updateTransaction(updated);
-      return ok(updated);
+      const matched = await createStoreMatch(ctx, {
+        transactionId,
+        targetType: "ledger_line",
+        targetId: ledgerReferenceId,
+        targetRef: ledgerReferenceId,
+        targetAmountCents: transaction.amountCents,
+        description: "Manual ledger reference",
+        matchType: "manual",
+        confidence: 100
+      });
+      return matched.ok && matched.data ? ok(matched.data.transaction) : fail(matched.error?.code ?? "match_failed", matched.error?.message ?? "Could not match transaction.");
     },
 
     async startReconciliation(ctx, bankAccountId, statementDate, statementBalanceCents) {
@@ -459,11 +600,13 @@ export function createBankReconciliationMemoryService() {
   const accounts = new Map<string, BankAccount>();
   const statementImports = new Map<string, BankStatementImport>();
   const transactions = new Map<string, BankTransaction>();
+  const matches = new Map<string, BankTransactionMatch>();
   const transactionHashes = new Set<string>();
   const reconciliations = new Map<string, ReconciliationSession>();
   let accountSequence = 0;
   let statementImportSequence = 0;
   let transactionSequence = 0;
+  let matchSequence = 0;
   let reconciliationSequence = 0;
 
   function importMemoryStatementRows(
@@ -499,6 +642,51 @@ export function createBankReconciliationMemoryService() {
       imported.push(transaction);
     }
     return ok({ imported, importedCount: imported.length, skippedDuplicateCount });
+  }
+
+  function createMemoryMatch(ctx: TenantContext, input: CreateMatchInput): ModuleResult<CreateMatchResult> {
+    const transaction = transactions.get(input.transactionId);
+    if (!transaction || transaction.tenantId !== ctx.tenantId) return fail("transaction_not_found", "Bank transaction not found.");
+    if (transaction.reconciled) return fail("transaction_reconciled", "Reconciled transactions cannot be rematched.");
+
+    const createdAt = now(ctx);
+    const type = input.matchType ?? "manual";
+    const existing = [...matches.values()].find(
+      (candidate) =>
+        candidate.tenantId === ctx.tenantId &&
+        candidate.bankTransactionId === transaction.id &&
+        candidate.targetType === input.targetType &&
+        candidate.targetId === input.targetId
+    );
+    if (existing) matches.delete(existing.id);
+
+    const match: BankTransactionMatch = {
+      id: id("bmatch", ++matchSequence),
+      tenantId: ctx.tenantId,
+      bankTransactionId: transaction.id,
+      targetType: input.targetType,
+      targetId: input.targetId,
+      targetRef: input.targetRef ?? null,
+      targetDate: input.targetDate ?? null,
+      targetAmountCents: input.targetAmountCents,
+      description: input.description ?? null,
+      matchType: type,
+      confidence: input.confidence ?? null,
+      amountMatchedCents: transaction.amountCents,
+      confirmed: true,
+      confirmedAt: createdAt,
+      confirmedById: ctx.actorId ?? null,
+      reconciliationId: input.reconciliationId ?? null,
+      createdAt
+    };
+    const updated: BankTransaction = {
+      ...transaction,
+      ledgerReferenceId: ledgerReferenceId(input),
+      matchStatus: matchStatus(type)
+    };
+    matches.set(match.id, match);
+    transactions.set(updated.id, updated);
+    return ok({ transaction: updated, match });
   }
 
   return {
@@ -597,13 +785,31 @@ export function createBankReconciliationMemoryService() {
       return ok([...transactions.values()].filter((tx) => tx.tenantId === ctx.tenantId && tx.bankAccountId === bankAccountId));
     },
 
+    suggestMatches(ctx: TenantContext, input: SuggestMatchesInput): ModuleResult<MatchSuggestion[]> {
+      const transaction = transactions.get(input.transactionId);
+      if (!transaction || transaction.tenantId !== ctx.tenantId) return fail("transaction_not_found", "Bank transaction not found.");
+      if (transaction.reconciled) return fail("transaction_reconciled", "Reconciled transactions cannot be rematched.");
+      return ok(suggestForTransaction(transaction, input));
+    },
+
+    createMatch(ctx: TenantContext, input: CreateMatchInput): ModuleResult<CreateMatchResult> {
+      return createMemoryMatch(ctx, input);
+    },
+
     matchTransaction(ctx: TenantContext, transactionId: string, ledgerReferenceId: string): ModuleResult<BankTransaction> {
       const transaction = transactions.get(transactionId);
       if (!transaction || transaction.tenantId !== ctx.tenantId) return fail("transaction_not_found", "Bank transaction not found.");
-      if (transaction.reconciled) return fail("transaction_reconciled", "Reconciled transactions cannot be rematched.");
-      const updated: BankTransaction = { ...transaction, ledgerReferenceId, matchStatus: "manual_matched" };
-      transactions.set(updated.id, updated);
-      return ok(updated);
+      const matched = createMemoryMatch(ctx, {
+        transactionId,
+        targetType: "ledger_line",
+        targetId: ledgerReferenceId,
+        targetRef: ledgerReferenceId,
+        targetAmountCents: transaction.amountCents,
+        description: "Manual ledger reference",
+        matchType: "manual",
+        confidence: 100
+      });
+      return matched.ok && matched.data ? ok(matched.data.transaction) : fail(matched.error?.code ?? "match_failed", matched.error?.message ?? "Could not match transaction.");
     },
 
     startReconciliation(ctx: TenantContext, bankAccountId: string, statementDate: string, statementBalanceCents: number): ModuleResult<ReconciliationSession> {

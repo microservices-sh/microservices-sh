@@ -1,5 +1,5 @@
 import type { BankReconciliationStore } from "../ports";
-import type { BankAccount, BankStatementImport, BankTransaction, ReconciliationSession } from "../types";
+import type { BankAccount, BankStatementImport, BankTransaction, BankTransactionMatch, ReconciliationSession } from "../types";
 
 function transactionHashKey(transaction: Pick<BankTransaction, "tenantId" | "bankAccountId" | "transactionHash">): string {
   return `${transaction.tenantId}:${transaction.bankAccountId}:${transaction.transactionHash}`;
@@ -11,6 +11,10 @@ function copyAccount(account: BankAccount): BankAccount {
 
 function copyTransaction(transaction: BankTransaction): BankTransaction {
   return { ...transaction };
+}
+
+function copyMatch(match: BankTransactionMatch): BankTransactionMatch {
+  return { ...match };
 }
 
 function copyStatementImport(statementImport: BankStatementImport): BankStatementImport {
@@ -26,6 +30,7 @@ export function createMemoryBankReconciliationStore(): BankReconciliationStore {
   const statementImports = new Map<string, BankStatementImport>();
   const transactions = new Map<string, BankTransaction>();
   const transactionHashes = new Map<string, string>();
+  const matches = new Map<string, BankTransactionMatch>();
   const reconciliations = new Map<string, ReconciliationSession>();
 
   return {
@@ -109,6 +114,25 @@ export function createMemoryBankReconciliationStore(): BankReconciliationStore {
       for (const transaction of nextTransactions) {
         await this.updateTransaction(transaction);
       }
+    },
+
+    async upsertMatch(match) {
+      const existing = [...matches.values()].find(
+        (candidate) =>
+          candidate.tenantId === match.tenantId &&
+          candidate.bankTransactionId === match.bankTransactionId &&
+          candidate.targetType === match.targetType &&
+          candidate.targetId === match.targetId
+      );
+      if (existing) matches.delete(existing.id);
+      matches.set(match.id, copyMatch(match));
+    },
+
+    async listMatchesForTransaction(tenantId, transactionId) {
+      return [...matches.values()]
+        .filter((match) => match.tenantId === tenantId && match.bankTransactionId === transactionId)
+        .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+        .map(copyMatch);
     },
 
     async insertReconciliation(session) {
