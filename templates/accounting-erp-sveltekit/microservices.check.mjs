@@ -191,6 +191,18 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Receivables payment actions use the invoice module as lifecycle authority before refreshing AR snapshots."
   );
   assertFileIncludesAll(
+    "src/routes/app/ledger/+page.server.ts",
+    [
+      "createFiscalPeriod",
+      "updateFiscalPeriodStatus",
+      "createJournalEntry",
+      "postJournalEntry",
+      "voidJournalEntry",
+      "getTrialBalance"
+    ],
+    "Ledger route exposes fiscal period, journal lifecycle, and trial balance adapters over accounting-core use cases."
+  );
+  assertFileIncludesAll(
     "src/routes/app/banking/+page.server.ts",
     ["createBankAccount", "importStatementCsv", "suggestMatches", "createMatch", "matchTransaction", "startReconciliation", "listReconciliations", "completeReconciliation", "recordEvent"],
     "Banking route exposes operator actions and persisted reconciliation sessions through bank-reconciliation service methods."
