@@ -3,6 +3,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const accountsReceivableMigration = readText("migrations/0025_accounts_receivable.sql");
   const bankReconciliationMigration = readText("migrations/0026_bank_reconciliation.sql");
   const recurringBillDetailServer = readText("src/routes/app/payables/recurring/[id]/+page.server.ts");
+  const bankingImportDetailServer = readText("src/routes/app/banking/imports/[id]/+page.server.ts");
+  const bankingImportDetailPage = readText("src/routes/app/banking/imports/[id]/+page.svelte");
 
   assertFileIncludesAll(
     "docs/api-boundary.md",
@@ -333,6 +335,65 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "src/routes/app/banking/+page.server.ts",
     ["createBankAccount", "importStatementCsv", "suggestMatches", "createMatch", "matchTransaction", "startReconciliation", "listReconciliations", "completeReconciliation", "recordEvent"],
     "Banking route exposes operator actions and persisted reconciliation sessions through bank-reconciliation service methods."
+  );
+  assertFileIncludes(
+    "src/routes/app/banking/+page.svelte",
+    "/app/banking/imports/${statementImport.id}",
+    "Banking import history links to the read-only statement import detail route."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/banking/imports/[id]/+page.server.ts",
+    [
+      "requireModule(\"bank-reconciliation\"",
+      "requireOrgPermission",
+      "\"org.read\"",
+      "listBankAccounts(ctx)",
+      "service.listStatementImports(ctx, account.id)",
+      "listStatementTransactions(ctx, statementImport.bankAccountId)",
+      "transaction.statementImportId === statementImport.id",
+      "transaction.bankAccountId === statementImport.bankAccountId",
+      "transaction.tenantId === activeOrgId"
+    ],
+    "Banking import detail proves the bank account scope before loading transactions and then filters by statement import, account, and tenant."
+  );
+  assert(
+    !bankingImportDetailServer.includes("export const actions") &&
+      !bankingImportDetailServer.includes("BankReconciliationStore") &&
+      !bankingImportDetailServer.includes("createD1BankReconciliationStore") &&
+      !bankingImportDetailServer.includes("platform.env.DB") &&
+      !bankingImportDetailServer.includes(".prepare(") &&
+      !bankingImportDetailServer.includes("createBankAccount") &&
+      !bankingImportDetailServer.includes("importStatementCsv") &&
+      !bankingImportDetailServer.includes("importStatementTransactions") &&
+      !bankingImportDetailServer.includes("suggestMatches") &&
+      !bankingImportDetailServer.includes("createMatch") &&
+      !bankingImportDetailServer.includes("matchTransaction") &&
+      !bankingImportDetailServer.includes("startReconciliation") &&
+      !bankingImportDetailServer.includes("completeReconciliation") &&
+      !bankingImportDetailServer.includes("recordEvent") &&
+      !bankingImportDetailServer.includes("enqueueJob") &&
+      !bankingImportDetailServer.includes("sendEmail") &&
+      !bankingImportDetailServer.includes("postJournalEntry") &&
+      !bankingImportDetailServer.includes("syncInvoiceToReceivables") &&
+      !bankingImportDetailServer.includes("insert") &&
+      !bankingImportDetailServer.includes("update") &&
+      !bankingImportDetailServer.includes("upsert") &&
+      !bankingImportDetailServer.includes("delete"),
+    "Banking import detail route remains read-only; import, match, reconciliation, event, job, email, journal, sync, and direct store writes stay off the detail route.",
+    "policy:accounting-banking-import-detail-read-only"
+  );
+  assert(
+    !bankingImportDetailPage.includes("<form") &&
+      !bankingImportDetailPage.includes("method=\"POST\"") &&
+      !bankingImportDetailPage.includes("use:enhance") &&
+      !bankingImportDetailPage.includes("?/"),
+    "Banking import detail page does not render write-capable forms or SvelteKit action targets.",
+    "policy:accounting-banking-import-detail-ui-read-only"
+  );
+  assertFileIncludesAll(
+    "src/routes/app/banking/imports/[id]/+page.svelte",
+    ["Imported transactions", "CSV mapping", "Open banking actions", "Reconciliation context"],
+    "Banking import detail page exposes transaction review, mapping, and related reconciliation context."
   );
   assertFileIncludesAll(
     "microservices.lock.json",

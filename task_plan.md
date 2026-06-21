@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 85
+Phase 90
 
 ## Phases
 
@@ -694,6 +694,13 @@ Phase 85
 - [x] Link the Payables recurring schedule table to the detail route.
 - [x] Add accounting template policy checks for detail load and read-only side-effect boundary.
 - [x] Verify accounts-payable tests, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 90: Accounting Banking Import Detail Route Proof
+- [x] Add read-only `/app/banking/imports/[id]` over tenant-scoped bank-reconciliation import and transaction list APIs.
+- [x] Link the Banking import history table to the import detail route.
+- [x] Add accounting template policy checks for tenant scoping and read-only side-effect boundary.
+- [x] Verify bank-reconciliation tests, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

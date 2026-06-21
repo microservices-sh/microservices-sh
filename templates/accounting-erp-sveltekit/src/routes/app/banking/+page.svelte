@@ -122,7 +122,7 @@
           {#each data.statementImports as statementImport (statementImport.id)}
             <li class="list-item row-item">
               <div>
-                <strong>{statementImport.fileName ?? statementImport.source}</strong>
+                <strong><a href={`/app/banking/imports/${statementImport.id}`}>{statementImport.fileName ?? statementImport.source}</a></strong>
                 <p>{statementImport.importedAt ?? statementImport.createdAt} · {statementImport.totalRows} rows</p>
               </div>
               <Badge tone={statementImport.status === "completed" ? "good" : "warn"}>

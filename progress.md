@@ -1933,3 +1933,19 @@ Note: an initial `create-microservices-app` test run overlapped with `create-mic
 | Create app package | Packaged accounting template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and sequential `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 90 accounting banking import detail route proof
+
+- **Status:** complete.
+- Goal: close the Banking import detail route gap without adding side effects outside the existing Banking operator page.
+- Added `/app/banking/imports/[id]` backed by account-first `listBankAccounts(ctx)`, account-scoped `listStatementImports(ctx, account.id)`, `listStatementTransactions(ctx, statementImport.bankAccountId)`, and `listReconciliations(ctx, statementImport.bankAccountId)`.
+- The route narrows transactions with import id, bank account id, and tenant id checks, links from the Banking import history, and keeps matching/import/reconciliation actions on `/app/banking`.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Bank-reconciliation tests | Existing import, matching, and reconciliation behavior remains green | `pnpm --dir modules/bank-reconciliation test` passed, 4/4 | Pass |
+| Accounting template spec | Policy catches banking import detail route and read-only boundary | `pnpm --dir templates/accounting-erp-sveltekit check:spec` passed | Pass |
+| Accounting template build | SvelteKit/Cloudflare build compiles after route additions | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Packaged accounting template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and sequential `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
