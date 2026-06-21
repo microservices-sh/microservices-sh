@@ -59,6 +59,14 @@ describe("sms-campaigns", () => {
       name: "Flash sale",
       content: "Reply YES to confirm your appointment."
     });
+    const contacts = await service.listSmsContacts(ctx);
+    const groups = await service.listSmsGroups(ctx);
+    const templates = await service.listSmsTemplates(ctx);
+    const providers = await service.listSmsProviderConfigs(ctx);
+    expect(contacts.data).toHaveLength(2);
+    expect(groups.data).toEqual([expect.objectContaining({ id: group.data!.id })]);
+    expect(templates.data).toEqual([expect.objectContaining({ id: template.data!.id, charCount: 38 })]);
+    expect(providers.data).toEqual([expect.objectContaining({ vendor: "memory", isEnabled: true })]);
 
     const created = await service.createSmsCampaign(ctx, {
       name: "Appointment confirmations",
@@ -73,6 +81,8 @@ describe("sms-campaigns", () => {
     expect(created.data!.recipients).toEqual([
       expect.objectContaining({ contactId: optedIn.data!.id, status: "pending" })
     ]);
+    const campaigns = await service.listSmsCampaigns(ctx);
+    expect(campaigns.data).toEqual([expect.objectContaining({ id: created.data!.campaign.id, status: "scheduled" })]);
 
     const notDue = await service.listDueSmsCampaigns(ctx, "2026-06-21T00:05:00.000Z");
     expect(notDue.data).toEqual([]);

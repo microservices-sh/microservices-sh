@@ -29,10 +29,15 @@ export interface SmsCampaignsServiceDeps {
 
 export interface SmsCampaignsService {
   upsertSmsContact(ctx: TenantContext, input: UpsertSmsContactInput): Promise<ModuleResult<SmsContact>>;
+  listSmsContacts(ctx: TenantContext): Promise<ModuleResult<SmsContact[]>>;
   createSmsGroup(ctx: TenantContext, input: CreateSmsGroupInput): Promise<ModuleResult<SmsContactGroup>>;
+  listSmsGroups(ctx: TenantContext): Promise<ModuleResult<SmsContactGroup[]>>;
   createSmsTemplate(ctx: TenantContext, input: CreateSmsTemplateInput): Promise<ModuleResult<SmsTemplate>>;
+  listSmsTemplates(ctx: TenantContext): Promise<ModuleResult<SmsTemplate[]>>;
   configureSmsProvider(ctx: TenantContext, input: ConfigureSmsProviderInput): Promise<ModuleResult<SmsProviderConfig>>;
+  listSmsProviderConfigs(ctx: TenantContext): Promise<ModuleResult<SmsProviderConfig[]>>;
   createSmsCampaign(ctx: TenantContext, input: CreateSmsCampaignInput): Promise<ModuleResult<{ campaign: SmsCampaign; recipients: SmsCampaignRecipient[] }>>;
+  listSmsCampaigns(ctx: TenantContext): Promise<ModuleResult<SmsCampaign[]>>;
   scheduleSmsCampaign(ctx: TenantContext, input: ScheduleSmsCampaignInput): Promise<ModuleResult<SmsCampaign>>;
   listDueSmsCampaigns(ctx: TenantContext, dueAt: string, limit?: number): Promise<ModuleResult<SmsCampaign[]>>;
   dispatchSmsCampaign(ctx: TenantContext, input: DispatchSmsCampaignInput, provider: SmsProvider): Promise<ModuleResult<SmsCampaignReport>>;
@@ -176,6 +181,10 @@ export function createSmsCampaignsService(deps: SmsCampaignsServiceDeps): SmsCam
       return ok(contact);
     },
 
+    async listSmsContacts(ctx) {
+      return ok(await deps.store.listContacts(ctx.tenantId));
+    },
+
     async createSmsGroup(ctx, input) {
       if (!input.name.trim()) return fail("group_name_required", "SMS group name is required.");
       const timestamp = now(ctx);
@@ -195,6 +204,10 @@ export function createSmsCampaignsService(deps: SmsCampaignsServiceDeps): SmsCam
       return ok(group);
     },
 
+    async listSmsGroups(ctx) {
+      return ok(await deps.store.listGroups(ctx.tenantId));
+    },
+
     async createSmsTemplate(ctx, input) {
       const content = input.content.trim();
       if (!input.name.trim()) return fail("template_name_required", "SMS template name is required.");
@@ -212,6 +225,10 @@ export function createSmsCampaignsService(deps: SmsCampaignsServiceDeps): SmsCam
       };
       await deps.store.createTemplate(template);
       return ok(template);
+    },
+
+    async listSmsTemplates(ctx) {
+      return ok(await deps.store.listTemplates(ctx.tenantId));
     },
 
     async configureSmsProvider(ctx, input) {
@@ -234,6 +251,10 @@ export function createSmsCampaignsService(deps: SmsCampaignsServiceDeps): SmsCam
       };
       await deps.store.upsertProviderConfig(config);
       return ok(config);
+    },
+
+    async listSmsProviderConfigs(ctx) {
+      return ok(await deps.store.listProviderConfigs(ctx.tenantId));
     },
 
     async createSmsCampaign(ctx, input) {
@@ -292,6 +313,10 @@ export function createSmsCampaignsService(deps: SmsCampaignsServiceDeps): SmsCam
         await store.insertRecipients(recipients);
       });
       return ok({ campaign, recipients });
+    },
+
+    async listSmsCampaigns(ctx) {
+      return ok(await deps.store.listCampaigns(ctx.tenantId));
     },
 
     async scheduleSmsCampaign(ctx, input) {

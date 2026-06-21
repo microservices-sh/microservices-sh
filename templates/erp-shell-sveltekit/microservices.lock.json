@@ -424,6 +424,24 @@
       }
     },
     {
+      "id": "sms-campaigns",
+      "version": "0.1.0",
+      "source": "registry:sms-campaigns@0.1.0",
+      "checksum": "sha256:preview-sms-campaigns-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/sms-campaigns",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["sms-campaigns.read", "sms-campaigns.write", "sms-campaigns.dispatch", "sms-campaigns.admin", "sms-campaigns.extend", "sms-campaigns.observe"],
+        "rpc": [],
+        "hooks": ["beforeSmsCampaignsCreate", "afterSmsCampaignsUpdated"],
+        "events": ["sms-campaigns.contact_upserted", "sms-campaigns.group_created", "sms-campaigns.template_created", "sms-campaigns.provider_configured", "sms-campaigns.campaign_created", "sms-campaigns.campaign_scheduled", "sms-campaigns.campaign_dispatched", "sms-campaigns.delivery_recorded"],
+        "requires": []
+      }
+    },
+    {
       "id": "booking",
       "version": "0.1.0",
       "source": "registry:booking@0.1.0",

@@ -41,6 +41,7 @@ const MODULE_NAV: Record<string, NavItem> = {
   "notifications-inapp": { label: "Notifications", href: "/app/notifications", icon: "bell" },
   "image-generation": { label: "Images", href: "/app/images", icon: "image" },
   "ads-manager": { label: "Ads", href: "/app/ads", icon: "megaphone" },
+  "sms-campaigns": { label: "SMS", href: "/app/sms", icon: "message-square" },
   "forms-intake": { label: "Forms", href: "/app/forms", icon: "clipboard" },
   "jobs-workflows": { label: "Jobs", href: "/app/jobs", icon: "workflow" },
   "webhook-delivery": { label: "Webhooks", href: "/app/webhooks", icon: "webhook" },
@@ -52,7 +53,7 @@ const MODULE_NAV: Record<string, NavItem> = {
 const GROUPS: { section: string; modules: string[] }[] = [
   { section: "Customers", modules: ["customer", "booking", "support-ticket"] },
   { section: "Billing", modules: ["invoice", "payment", "billing-subscriptions"] },
-  { section: "Marketing", modules: ["forms-intake", "image-generation", "ads-manager"] },
+  { section: "Marketing", modules: ["forms-intake", "image-generation", "ads-manager", "sms-campaigns"] },
   { section: "Automation", modules: ["jobs-workflows", "webhook-delivery"] },
   { section: "Workspace", modules: ["file-media"] }
 ];

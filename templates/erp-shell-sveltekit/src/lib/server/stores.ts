@@ -54,6 +54,9 @@ import type { ImageStore } from "@microservices-sh/image-generation/ports";
 import { createD1AdsStore } from "@microservices-sh/ads-manager/adapters/d1";
 import { createMemoryAdsStore } from "@microservices-sh/ads-manager/adapters/memory";
 import type { AdsStore } from "@microservices-sh/ads-manager/ports";
+import { createD1SmsCampaignsStore } from "@microservices-sh/sms-campaigns/adapters/d1";
+import { createSmsCampaignsMemoryStore } from "@microservices-sh/sms-campaigns/adapters/memory";
+import type { SmsCampaignsStore } from "@microservices-sh/sms-campaigns/ports";
 import { createD1FormStore } from "@microservices-sh/forms-intake/adapters/d1";
 import { createMemoryFormStore } from "@microservices-sh/forms-intake/adapters/memory";
 import type { FormStore } from "@microservices-sh/forms-intake/ports";
@@ -100,6 +103,7 @@ const memoryPaymentRepository = createMemoryPaymentRepository();
 const memoryBillingStore = createMemoryBillingStore();
 const memoryImageStore = createMemoryImageStore();
 const memoryAdsStore = createMemoryAdsStore();
+const memorySmsCampaignsStore = createSmsCampaignsMemoryStore();
 const memoryFormStore = createMemoryFormStore();
 const memoryBookingRepository = createMemoryBookingRepository();
 
@@ -128,6 +132,7 @@ export interface ServerStores {
   billingStore: BillingStore;
   imageStore: ImageStore;
   adsStore: AdsStore;
+  smsCampaignsStore: SmsCampaignsStore;
   formStore: FormStore;
   bookingRepository: BookingRepository;
 }
@@ -166,6 +171,7 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     billingStore: db ? createD1BillingStore(db) : memoryBillingStore,
     imageStore: db ? createD1ImageStore(db) : memoryImageStore,
     adsStore: db ? createD1AdsStore(db) : memoryAdsStore,
+    smsCampaignsStore: db ? createD1SmsCampaignsStore(db) : memorySmsCampaignsStore,
     formStore: db ? createD1FormStore(db) : memoryFormStore,
     bookingRepository: db ? createD1BookingRepository(db) : memoryBookingRepository
   };

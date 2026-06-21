@@ -16,6 +16,7 @@ import type { BillingStore } from "@microservices-sh/billing-subscriptions/ports
 import type { ImageStore, ObjectStorage as ImageObjectStorage } from "@microservices-sh/image-generation/ports";
 import type { ProviderRegistry } from "@microservices-sh/image-generation";
 import type { AdsStore } from "@microservices-sh/ads-manager/ports";
+import type { SmsCampaignsStore } from "@microservices-sh/sms-campaigns/ports";
 import type { FormStore } from "@microservices-sh/forms-intake/ports";
 import type { BookingRepository } from "@microservices-sh/booking/ports";
 
@@ -86,6 +87,7 @@ declare global {
       imageStorage: ImageObjectStorage;
       imageProviders: ProviderRegistry;
       adsStore: AdsStore;
+      smsCampaignsStore: SmsCampaignsStore;
       formStore: FormStore;
       bookingRepository: BookingRepository;
       // The signed-in principal, resolved from the session store each request.
