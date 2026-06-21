@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Support Inbox API",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "widgetConfig": {
+      "description": "Visitor widget bootstrap surface"
+    },
+    "quickActions": {
+      "description": "Admin-managed widget shortcuts"
+    },
+    "conversations": {
+      "description": "Inbox thread lifecycle surfaces"
+    },
+    "messages": {
+      "description": "Visitor, assistant, agent, and system message surfaces"
+    },
+    "channelConnections": {
+      "description": "Provider metadata using secret references"
+    }
+  }
+}

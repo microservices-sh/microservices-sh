@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Support Inbox Hooks",
+  "type": "object",
+  "properties": {
+    "beforeSupportInboxCreate": {
+      "description": "Optional filter hook before widget, quick action, conversation, or channel creation",
+      "type": "string"
+    },
+    "afterSupportInboxUpdated": {
+      "description": "Optional observer hook after inbox state changes",
+      "type": "string"
+    }
+  }
+}

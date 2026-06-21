@@ -1,0 +1,19 @@
+# Support Inbox Module
+
+Module ID: support-inbox
+Status: draft
+Purpose: Widget settings, quick actions, conversations, messages, channel metadata, and agent takeover for support inbox workflows.
+Entrypoint: src/index.ts
+Check: pnpm check:spec
+Build: pnpm build
+Test: pnpm test
+Important files:
+- src/service/index.ts: widget, conversation, message, takeover, and channel use cases
+- src/ports/index.ts: storage port
+- src/adapters/memory.ts: in-memory store
+- src/adapters/d1.ts: D1 store
+- migrations/0001_initial.sql: D1 tables
+Related modules:
+- support-ticket owns durable ticket CRUD and escalation.
+- knowledge-base-rag owns grounded answers.
+Do not store raw channel provider credentials in D1.

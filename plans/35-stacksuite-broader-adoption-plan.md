@@ -37,7 +37,7 @@ Remaining gaps are mostly add-on business workflows, not more full-app cloning.
 | Priority | Candidate | Source Evidence | Recommendation |
 |---|---|---|---|
 | P0 | `sms-campaigns` module | `sms-crm` contacts, groups, templates, vendor configs, campaigns, recipients, SMS logs | Implemented as a contract-checked module; add an `sms-crm-sveltekit` template only when route proof is needed. |
-| P0 | Support inbox/widget hardening | HelpGrid widget settings, quick actions, conversations, messages, ticket comments, attachments, sequences | Extend `support-ticket` and `knowledge-base-rag`, or add `support-inbox` if conversation/widget scope is too large for ticket CRUD. |
+| P0 | Support inbox/widget hardening | HelpGrid widget settings, quick actions, conversations, messages, channel metadata, agent takeover | Implemented as `support-inbox` to avoid bloating ticket CRUD; ticket comments/attachments/share tokens remain a `support-ticket` follow-up. |
 | P1 | Membership and customer credits | Booking membership tiers, customer memberships, credits, credit transactions, membership history | Add `membership-credits` as a booking/customer/payment add-on module. |
 | P1 | Estimates/quotes and recurring invoice templates | Accounting Chiangs estimates, accepted/converted lifecycle, recurring invoices, recurring items, send/post/void schemas | Add `estimate-quote`; add recurring invoice generation either to `invoice` or a separate `recurring-documents` module. |
 | P1 | Storage entitlements and expiring share links | DashDrive files, short IDs, expiry, download count, storage packages, purchases | Extend `file-media` or add `storage-entitlements`; useful for client portals and file-heavy templates. |
@@ -281,10 +281,10 @@ Recommended order:
 - Add `sms-crm-sveltekit` or routes in a broader CRM template only when the template surface is needed.
 
 ### Phase C: Support Inbox Split
-- Extend `support-ticket` with comments, attachments, public share token, and sequence numbers.
-- Add `support-inbox` for widget/conversation behavior if needed.
-- Wire `knowledge-base-rag` as the grounded-answer provider, not as ticket-internal logic.
-- Add route proof in `client-portal-sveltekit` or a focused support template.
+- Completed `support-inbox` for widget settings, quick actions, conversations, messages, channel metadata, and agent takeover.
+- Kept `knowledge-base-rag` as the grounded-answer provider, not as ticket-internal logic.
+- Remaining follow-up: extend `support-ticket` with comments, attachments, public share token, and sequence numbers after the current dirty `support-ticket` edits settle.
+- Add route proof in `client-portal-sveltekit` or a focused support template when the module is needed in a demo path.
 
 ### Phase D: Membership Credits
 - Add tier/membership/credit ledger module.
@@ -315,9 +315,9 @@ Recommended order:
 ## Decision
 The next valuable StackSuite adoption is not another accounting pass. After completing the `sms-campaigns` module, it is:
 
-1. Support inbox/widget hardening across `support-ticket`, `knowledge-base-rag`, and possibly a new `support-inbox`.
-2. Membership credits as the next booking add-on.
-3. Estimates/quotes and recurring documents as the next accounting add-on.
-4. A focused `sms-crm-sveltekit` route/template proof only if SMS becomes part of the public demo path.
+1. Membership credits as the next booking add-on.
+2. Estimates/quotes and recurring documents as the next accounting add-on.
+3. Ticket comments/attachments/share-token hardening once `support-ticket` concurrent edits settle.
+4. A focused `sms-crm-sveltekit` or support route/template proof only if those workflows become part of the public demo path.
 
 Everything else should stay P2 until the System Harness launch proof and existing focused templates are cleaner.

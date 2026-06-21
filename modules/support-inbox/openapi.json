@@ -1,0 +1,109 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Support Inbox Module",
+    "version": "0.1.0",
+    "description": "Route contract examples for widget settings, quick actions, conversations, messages, agent takeover, and channel metadata."
+  },
+  "paths": {
+    "/support-inbox/widget-config/{projectId}": {
+      "get": {
+        "summary": "Read widget settings and quick actions",
+        "operationId": "getWidgetConfig",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Widget config"
+          }
+        }
+      }
+    },
+    "/support-inbox/widget-settings": {
+      "put": {
+        "summary": "Create or update widget settings",
+        "operationId": "upsertWidgetSettings",
+        "responses": {
+          "200": {
+            "description": "Widget settings updated"
+          }
+        }
+      }
+    },
+    "/support-inbox/quick-actions": {
+      "post": {
+        "summary": "Create a widget quick action",
+        "operationId": "createQuickAction",
+        "responses": {
+          "201": {
+            "description": "Quick action created"
+          }
+        }
+      }
+    },
+    "/support-inbox/conversations": {
+      "get": {
+        "summary": "List inbox conversations",
+        "operationId": "listConversations",
+        "responses": {
+          "200": {
+            "description": "Conversation list"
+          }
+        }
+      },
+      "post": {
+        "summary": "Start or reuse an active conversation",
+        "operationId": "startConversation",
+        "responses": {
+          "200": {
+            "description": "Active conversation"
+          }
+        }
+      }
+    },
+    "/support-inbox/conversations/{conversationId}/messages": {
+      "post": {
+        "summary": "Add a message to a conversation",
+        "operationId": "addMessage",
+        "responses": {
+          "201": {
+            "description": "Message added"
+          },
+          "409": {
+            "description": "Assistant reply blocked by agent takeover or closed conversation"
+          }
+        }
+      }
+    },
+    "/support-inbox/conversations/{conversationId}/agent-takeover": {
+      "post": {
+        "summary": "Enable or disable human agent takeover",
+        "operationId": "setAgentTakeover",
+        "responses": {
+          "200": {
+            "description": "Agent takeover updated"
+          }
+        }
+      }
+    },
+    "/support-inbox/channel-connections": {
+      "put": {
+        "summary": "Configure channel metadata with secret references",
+        "operationId": "configureChannelConnection",
+        "responses": {
+          "200": {
+            "description": "Channel connection configured"
+          }
+        }
+      }
+    }
+  }
+}

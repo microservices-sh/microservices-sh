@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 52
+Phase 53
 
 ## Phases
 
@@ -403,6 +403,14 @@ Phase 52
 - [x] Add memory and D1 stores, provider port, module schemas, resources, permissions, events, migration, and exports.
 - [x] Add tests for opt-in filtering, scheduled due selection, dispatch, idempotent delivery callbacks, and no-opt-in rejection.
 - [x] Verify build, tests, module spec, migration smoke, and whitespace checks for the module slice.
+- **Status:** complete
+
+### Phase 53: StackSuite Support Inbox Module
+- [x] Avoid concurrent `support-ticket` and `knowledge-base-rag` edits by splitting HelpGrid widget/conversation behavior into `support-inbox`.
+- [x] Implement project-scoped widget settings, quick actions, conversations, messages, channel connection metadata, and agent takeover state.
+- [x] Add memory and D1 stores, migration, schemas, module metadata, OpenAPI/docs, permissions, events, resources, and exports.
+- [x] Add tests for widget config, sorted quick actions, conversation reuse, message threads, agent takeover guard, and WhatsApp channel secret refs.
+- [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
 - **Status:** complete
 
 ## Key Questions

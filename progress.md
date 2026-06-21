@@ -1297,3 +1297,19 @@
 | SMS module tests | Campaign lifecycle and guard tests pass | `pnpm --filter @microservices-sh/sms-campaigns test` passed, 3/3 | Pass |
 | SMS module spec | Module contract check passes | `pnpm --filter @microservices-sh/sms-campaigns check:spec` passed | Pass |
 | D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/sms-campaigns/migrations/0001_initial.sql"` passed | Pass |
+
+### Phase 53 StackSuite Support Inbox module
+
+- **Status:** complete.
+- Goal: port the HelpGrid widget/conversation workflow without colliding with active `support-ticket` and `knowledge-base-rag` edits.
+- Added `modules/support-inbox` for project-scoped widget settings, quick actions, conversations, messages, channel connection metadata, and agent takeover state.
+- Kept ticket escalation and grounded answers out of this module; those remain integration boundaries for `support-ticket` and `knowledge-base-rag`.
+- Stored channel provider credentials as secret refs (`accessTokenRef`, `webhookVerifyTokenRef`), not raw tokens.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Support Inbox build | TypeScript typecheck passes | `pnpm --filter @microservices-sh/support-inbox build` passed | Pass |
+| Support Inbox tests | Widget, conversation, takeover, and channel workflows pass | `pnpm --filter @microservices-sh/support-inbox test` passed, 3/3 | Pass |
+| Support Inbox spec | Module contract check passes | `pnpm --filter @microservices-sh/support-inbox check:spec` passed | Pass |
+| D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/support-inbox/migrations/0001_initial.sql"` passed | Pass |
+| JSON docs | OpenAPI and JSON schema stubs parse | Node JSON parse check passed | Pass |

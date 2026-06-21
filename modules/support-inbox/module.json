@@ -1,0 +1,151 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "support-inbox",
+  "name": "Support Inbox",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Tenant-scoped support widget and inbox module for widget settings, quick actions, conversations, messages, channel metadata, and agent takeover.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": [
+      "hono-later",
+      "sveltekit-later"
+    ]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "support_inbox_widget_settings",
+        "support_inbox_quick_actions",
+        "support_inbox_conversations",
+        "support_inbox_messages",
+        "support_inbox_channel_connections",
+        "domain_events"
+      ]
+    }
+  ],
+  "permissions": [
+    "support-inbox.read",
+    "support-inbox.write",
+    "support-inbox.agent",
+    "support-inbox.channel-admin",
+    "support-inbox.admin",
+    "support-inbox.extend",
+    "support-inbox.observe"
+  ],
+  "connections": {
+    "requires": [],
+    "optional": [
+      "auth",
+      "audit-log",
+      "support-ticket",
+      "knowledge-base-rag",
+      "gateway"
+    ],
+    "rpc": {
+      "exposes": [],
+      "calls": []
+    },
+    "events": {
+      "emits": [
+        "support-inbox.widget_settings_updated",
+        "support-inbox.quick_action_created",
+        "support-inbox.quick_action_deleted",
+        "support-inbox.conversation_started",
+        "support-inbox.message_added",
+        "support-inbox.conversation_status_updated",
+        "support-inbox.agent_takeover_updated",
+        "support-inbox.channel_connection_configured"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeSupportInboxCreate": {
+        "kind": "filter",
+        "scope": "support-inbox.extend"
+      },
+      "afterSupportInboxUpdated": {
+        "kind": "observer",
+        "scope": "support-inbox.observe"
+      }
+    },
+    "provides": {
+      "hooks": []
+    }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": [
+      "config",
+      "hooks",
+      "overlay",
+      "fork"
+    ]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [
+        {
+          "label": "Support Inbox",
+          "path": "/support-inbox",
+          "permission": "support-inbox.read"
+        }
+      ],
+      "referenceUi": [
+        "reference-ui/admin/README.md"
+      ]
+    },
+    "visitor": {
+      "applicable": true,
+      "referenceUi": [
+        "reference-ui/visitor/README.md"
+      ]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": [
+        "support-inbox.read",
+        "support-inbox.write",
+        "support-inbox.agent",
+        "support-inbox.channel-admin"
+      ],
+      "skillPaths": [
+        "skills/support-inbox-operator/SKILL.md"
+      ],
+      "approvalRequiredFor": [
+        "support-inbox.write",
+        "support-inbox.agent",
+        "support-inbox.channel-admin"
+      ]
+    }
+  },
+  "skills": [
+    {
+      "id": "support-inbox-operator",
+      "path": "skills/support-inbox-operator/SKILL.md",
+      "recommendedFor": [
+        "admin-operations",
+        "agentic-tools",
+        "support-operations"
+      ]
+    }
+  ],
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": [
+      "migrations",
+      "pii-fields",
+      "production-deploy",
+      "external-side-effects",
+      "agent-takeover",
+      "channel-provider-configuration"
+    ]
+  }
+}
