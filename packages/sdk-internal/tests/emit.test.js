@@ -29,6 +29,30 @@ describe("emitArtifacts", () => {
     expect(paths).not.toContain("generated/forms-intake.entrypoint.ts");
   });
 
+  it("emits the governed tool manifest + stdio MCP server when a module exposes tools", () => {
+    const written = {};
+    const paths = emitArtifacts({ result: { ok: true, wiring }, modules, appId: "studio", write: (p, c) => { written[p] = c; } });
+
+    // one governed tool per exposed rpc method, named module_method
+    expect(paths).toContain("generated/tool-manifest.ts");
+    expect(written["generated/tool-manifest.ts"]).toContain("payment_createPaymentIntent");
+    expect(written["generated/tool-manifest.ts"]).toContain("requiresConfirmation"); // governance carried
+
+    // the stdio transport bootstrap, wired to the app's mcp-wiring seam
+    expect(paths).toContain("generated/mcp-server.mjs");
+    expect(written["generated/mcp-server.mjs"]).toContain('name: "studio-tools"');
+    expect(written["generated/mcp-server.mjs"]).toContain('from "./mcp-wiring.js"');
+    expect(written["generated/mcp-server.mjs"]).toContain("confirmed: confirm === true");
+  });
+
+  it("emits no MCP artifacts when no module exposes a tool", () => {
+    const written = {};
+    const bare = [{ id: "forms-intake", connections: { rpc: { exposes: [] } } }];
+    const paths = emitArtifacts({ result: { ok: true, wiring: { modules: [], rpc: [], events: [], hooks: {} } }, modules: bare, write: (p, c) => { written[p] = c; } });
+    expect(paths).not.toContain("generated/tool-manifest.ts");
+    expect(paths).not.toContain("generated/mcp-server.mjs");
+  });
+
   it("throws and writes nothing when compose failed", () => {
     const written = {};
     expect(() =>
