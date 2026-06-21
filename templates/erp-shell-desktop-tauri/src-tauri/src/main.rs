@@ -13,20 +13,24 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
 
-const DEFAULT_GEMMA_MODEL: &str = "gemma4:e4b";
+// Default to the QAT (quantization-aware-trained) E4B build: ~e4b quality with
+// ~72% less memory than the plain checkpoint. e2b-it-qat is the faster option.
+const DEFAULT_GEMMA_MODEL: &str = "gemma4:e4b-it-qat";
 const OLLAMA_HOST: &str = "127.0.0.1:11434";
 const DEFAULT_OCR_LANGUAGE: &str = "eng";
 const MAX_GEMMA_IMAGE_PAGES: usize = 4;
+// Keep the model resident between documents so doc 2..N skip the cold load.
+const OLLAMA_KEEP_ALIVE: &str = "10m";
 // Phone photos are ~15-20 MP; the vision model downscales internally, so a full
 // upload just wastes transfer + inference time. Cap the longest edge before send.
 const MAX_VISION_EDGE: u32 = 1568;
 const PREVIEW_MAX_EDGE: u32 = 1400;
 const SUGGESTED_GEMMA_MODELS: [&str; 5] = [
+    "gemma4:e2b-it-qat",
+    "gemma4:e4b-it-qat",
     "gemma4:e2b",
     "gemma4:e4b",
     "gemma4:12b",
-    "gemma4:26b",
-    "gemma4:31b",
 ];
 
 #[derive(Serialize)]
@@ -1082,9 +1086,13 @@ fn normalize_with_gemma_images(
 
     let response = ollama_generate_with_images(model, job, &encoded_pages)?;
     let parsed = parse_json_object(&response)?;
-    let extraction: GemmaExtraction = serde_json::from_value(parsed)
-        .map_err(|error| format!("Gemma response did not match the extraction schema: {error}"))?;
+    let extraction = extraction_from_object(parsed);
     let mut draft = build_validated_draft(job, model, None, extraction);
+    llm_log(format!(
+        "extracted {} field(s), {} line item(s)",
+        draft.fields.len(),
+        draft.tables.iter().map(|table| table.rows.len()).sum::<usize>()
+    ));
     if image_pages.len() > encoded_pages.len() {
         draft.warnings.push(format!(
             "Gemma vision used the first {} pages out of {}.",
@@ -1156,58 +1164,79 @@ fn preview_jpeg(bytes: &[u8]) -> Option<Vec<u8>> {
 }
 
 // ── Structured output: what the local model returns ──────────────────
-// The model is constrained to this shape by `extraction_schema()` (Ollama's
-// `format` field). It does NOT return confidence — we compute that ourselves
-// from deterministic validators, so the review signal is verifiable rather than
-// a number the model guessed.
-#[derive(Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
+// The model is constrained to a per-document-type JSON Schema (extraction_schema)
+// via Ollama's `format`, so it fills a real named template instead of a free
+// {name,value} bag. It does NOT return confidence — we compute that from
+// deterministic validators, so the review signal is verifiable.
+#[derive(Default)]
 struct GemmaExtraction {
-    #[serde(default)]
     fields: Vec<GemmaField>,
-    #[serde(default)]
     line_items: Vec<GemmaLineItem>,
-    #[serde(default)]
     summary: Option<String>,
 }
 
-#[derive(Deserialize)]
 struct GemmaField {
     name: String,
-    #[serde(default)]
     value: Value,
 }
 
-#[derive(Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
 struct GemmaLineItem {
-    #[serde(default)]
     description: Value,
-    #[serde(default)]
     quantity: Value,
-    #[serde(default)]
     amount: Value,
 }
 
-/// JSON Schema sent as Ollama's `format`, constraining the model to emit exactly
-/// this document shape — eliminates the "invent the schema" brittleness and the
-/// whole class of unparseable / mismatched responses.
-fn extraction_schema() -> Value {
-    json!({
-        "type": "object",
-        "properties": {
-            "fields": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "name": { "type": "string" },
-                        "value": { "type": "string" }
-                    },
-                    "required": ["name", "value"]
-                }
-            },
-            "lineItems": {
+/// Fields we ask the model to fill per document type, which are required (forcing
+/// the model to at least attempt them), and whether the doc has a line-item table.
+struct DocumentSchema {
+    fields: &'static [&'static str],
+    required: &'static [&'static str],
+    line_items: bool,
+}
+
+fn document_schema_def(kind: &str) -> DocumentSchema {
+    match kind {
+        "invoice" => DocumentSchema {
+            fields: &[
+                "documentNumber",
+                "documentDate",
+                "dueDate",
+                "vendor",
+                "billTo",
+                "currency",
+                "subtotal",
+                "tax",
+                "total",
+            ],
+            required: &["documentNumber", "documentDate", "total"],
+            line_items: true,
+        },
+        "intake" => DocumentSchema {
+            fields: &["fullName", "email", "phone", "company", "address", "date", "notes"],
+            required: &["fullName"],
+            line_items: false,
+        },
+        _ => DocumentSchema {
+            fields: &["subject", "reference", "date", "customer", "description"],
+            required: &["subject", "description"],
+            line_items: false,
+        },
+    }
+}
+
+/// Per-document-type JSON Schema sent as Ollama's `format`. Named properties (and
+/// a few required ones) push the small model to fill a complete template rather
+/// than returning a single field — and kill the "invent the schema" brittleness.
+fn extraction_schema(kind: &str) -> Value {
+    let def = document_schema_def(kind);
+    let mut properties = serde_json::Map::new();
+    for field in def.fields {
+        properties.insert((*field).to_string(), json!({ "type": "string" }));
+    }
+    if def.line_items {
+        properties.insert(
+            "lineItems".to_string(),
+            json!({
                 "type": "array",
                 "items": {
                     "type": "object",
@@ -1218,11 +1247,69 @@ fn extraction_schema() -> Value {
                     },
                     "required": ["description", "amount"]
                 }
-            },
-            "summary": { "type": "string" }
-        },
-        "required": ["fields", "summary"]
+            }),
+        );
+    }
+    properties.insert("summary".to_string(), json!({ "type": "string" }));
+
+    let mut required: Vec<Value> = def
+        .required
+        .iter()
+        .map(|field| Value::String((*field).to_string()))
+        .collect();
+    required.push(Value::String("summary".to_string()));
+
+    json!({
+        "type": "object",
+        "properties": Value::Object(properties),
+        "required": Value::Array(required)
     })
+}
+
+/// Convert the model's named-field object into our generic extraction shape:
+/// every scalar property becomes a field, `lineItems` becomes the table, and
+/// `summary` is pulled out separately.
+fn extraction_from_object(value: Value) -> GemmaExtraction {
+    let Value::Object(map) = value else {
+        return GemmaExtraction::default();
+    };
+
+    let mut fields = Vec::new();
+    let mut line_items = Vec::new();
+    let mut summary = None;
+
+    for (key, val) in map {
+        match key.as_str() {
+            "lineItems" | "line_items" => {
+                if let Value::Array(items) = val {
+                    for item in items {
+                        if let Value::Object(row) = item {
+                            line_items.push(GemmaLineItem {
+                                description: row.get("description").cloned().unwrap_or(Value::Null),
+                                quantity: row.get("quantity").cloned().unwrap_or(Value::Null),
+                                amount: row
+                                    .get("amount")
+                                    .or_else(|| row.get("unitPrice"))
+                                    .cloned()
+                                    .unwrap_or(Value::Null),
+                            });
+                        }
+                    }
+                }
+            }
+            "summary" => summary = val.as_str().map(str::to_string),
+            _ => fields.push(GemmaField {
+                name: key,
+                value: Value::String(value_to_plain_string(&val)),
+            }),
+        }
+    }
+
+    GemmaExtraction {
+        fields,
+        line_items,
+        summary,
+    }
 }
 
 struct FieldOutcome {
@@ -1649,7 +1736,8 @@ fn ollama_generate_with_images(
         "prompt": prompt,
         "images": images,
         "stream": false,
-        "format": extraction_schema(),
+        "format": extraction_schema(&job.kind),
+        "keep_alive": OLLAMA_KEEP_ALIVE,
         "options": { "temperature": 0 }
     });
     let started = Instant::now();
@@ -1678,18 +1766,23 @@ fn ollama_generate_with_images(
 }
 
 fn gemma_image_prompt(job: &QueueJob) -> String {
-    let kind_line = format!(
-        "This document is a {}. Use field names that suit it (for example documentNumber, date, vendor, total, currency).",
-        target_type_for_job(job)
-    );
+    let def = document_schema_def(&job.kind);
+    let field_list = def.fields.join(", ");
+    let line_items_line = if def.line_items {
+        " Also return `lineItems`: one {description, quantity, amount} object for every row in the document's table."
+    } else {
+        ""
+    };
 
-    [
-        "Read the attached scanned business document image(s) and extract the key data.",
-        "Respond with `fields` (an array of {name, value} where value is the text exactly as printed), an optional `lineItems` array of {description, quantity, amount}, and a short `summary`.",
-        "Copy values exactly as printed. If a value is unreadable or absent, use an empty string. Do not invent values.",
-        kind_line.as_str(),
-    ]
-    .join(" ")
+    format!(
+        "Read the attached scanned business document image(s) — a {kind} — and extract every value you can read. \
+Fill each of these fields when it appears in the document: {field_list}. \
+Copy values exactly as printed; use an empty string for any field that is absent, and do not invent values.{line_items_line} \
+Also write a short `summary`.",
+        kind = target_type_for_job(job),
+        field_list = field_list,
+        line_items_line = line_items_line,
+    )
 }
 
 fn base64_encode(bytes: &[u8]) -> String {
@@ -2979,6 +3072,46 @@ mod tests {
             draft.warnings.is_empty(),
             "a clean invoice should produce no validator warnings, got: {:?}",
             draft.warnings
+        );
+    }
+
+    #[test]
+    fn extraction_from_object_reads_named_fields_and_line_items() {
+        let value = json!({
+            "documentNumber": "INV-42",
+            "total": "$30.00",
+            "lineItems": [
+                { "description": "A", "quantity": "1", "amount": "$10.00" },
+                { "description": "B", "quantity": "2", "amount": "$20.00" }
+            ],
+            "summary": "Invoice"
+        });
+
+        let extraction = extraction_from_object(value);
+        assert_eq!(extraction.fields.len(), 2, "summary + lineItems are not fields");
+        assert_eq!(extraction.line_items.len(), 2);
+        assert_eq!(extraction.summary.as_deref(), Some("Invoice"));
+    }
+
+    #[test]
+    fn schema_is_typed_per_document_kind() {
+        let invoice = extraction_schema("invoice");
+        let required: Vec<&str> = invoice["required"]
+            .as_array()
+            .expect("required array")
+            .iter()
+            .filter_map(Value::as_str)
+            .collect();
+        assert!(required.contains(&"total"));
+        assert!(required.contains(&"summary"));
+        assert!(invoice["properties"].get("vendor").is_some());
+        assert!(invoice["properties"].get("lineItems").is_some());
+
+        let intake = extraction_schema("intake");
+        assert!(intake["properties"].get("fullName").is_some());
+        assert!(
+            intake["properties"].get("lineItems").is_none(),
+            "intake forms have no line-item table"
         );
     }
 

@@ -46,6 +46,8 @@ The desktop template uses a single local extraction engine: the selected Gemma 4
 vision model reads each page image directly through Ollama — no separate OCR
 binary. Gemma 4 is natively multimodal (OCR, handwriting, document/PDF parsing),
 which also handles phone-camera photos better than a flatbed-tuned OCR engine.
+The default model tag is `gemma4:e4b-it-qat`, with `gemma4:e2b-it-qat` available
+as the faster low-memory pilot option.
 
 - scanned images are read directly by the local Gemma vision model;
 - multi-page PDFs are rasterized with poppler `pdftoppm`, then each page image is
@@ -79,7 +81,7 @@ GUI — useful for verifying the local model on a Mac, or in CI:
 ```bash
 # one-shot CLI: prints the extraction draft JSON
 cargo run --manifest-path src-tauri/Cargo.toml -- extract /path/to/phone-photo.jpg
-cargo run --manifest-path src-tauri/Cargo.toml -- extract /path/to/invoice.pdf --model gemma4:e4b
+cargo run --manifest-path src-tauri/Cargo.toml -- extract /path/to/invoice.pdf --model gemma4:e4b-it-qat
 
 # or the live integration test (skipped unless an image is provided)
 MICROSERVICES_DESKTOP_TEST_IMAGE=/path/to/phone-photo.jpg \
@@ -114,6 +116,8 @@ before installing dependencies, so host `node_modules`, `dist`, and Cargo
   persistence, runtime status, PDF rasterization + local Gemma vision extraction,
   runtime settings, explicit model install, selected-model readiness tests,
   audited field correction / approve / reject, and remote ERP import status.
+- Gemma extraction uses per-document JSON schemas and converts the named response
+  back into the review draft model, including invoice line items.
 - PDF intake: multi-page PDFs are rasterized with poppler `pdftoppm` and read by
   the Gemma vision model page by page (the first document-heavy vertical is
   invoices, which are mostly PDF).
@@ -137,8 +141,6 @@ acceptance criteria, and the next engineering slice.
 
 ## Next
 
-- Add line-item table extraction and deterministic field validators (replace
-  fabricated heuristic confidence as the review signal).
 - Add source-region bounding boxes and a document-image preview in review.
 - Add watched folder configuration.
 - Add richer document-extraction module import processors for approved drafts.
