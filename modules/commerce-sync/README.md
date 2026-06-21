@@ -13,7 +13,8 @@ import {
   createCommerceSyncService,
   createCommerceSyncMemoryService,
   createMemoryCommerceSyncStore,
-  normalizeCommerceProviderPayload
+  normalizeCommerceProviderPayload,
+  verifyWooCommerceWebhookSignature
 } from "@microservices-sh/commerce-sync";
 ```
 
@@ -33,6 +34,9 @@ WooCommerce customer, product, and order payloads are normalized into stable cus
 catalog, and order envelope shapes. The normalizer mirrors the StackSuite WooCommerce
 sync behavior for billing/shipping contact snapshots, SKU fallbacks, category refs,
 order status mapping, and cent-based totals.
+
+WooCommerce webhook signatures can be verified with `verifyWooCommerceWebhookSignature()`
+before recording webhook receipts or normalizing payloads.
 
 ## Ownership Boundary
 

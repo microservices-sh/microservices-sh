@@ -54,6 +54,40 @@ function uniqueConstraintFailed(error: unknown): boolean {
   return error instanceof Error && error.message.includes("UNIQUE constraint failed");
 }
 
+function base64Encode(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let index = 0; index < bytes.length; index += 8192) {
+    binary += String.fromCharCode(...bytes.slice(index, index + 8192));
+  }
+  return btoa(binary);
+}
+
+function timingSafeEqual(left: string, right: string): boolean {
+  if (left.length !== right.length) return false;
+  let result = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    result |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  }
+  return result === 0;
+}
+
+export async function verifyWooCommerceWebhookSignature(
+  payload: string,
+  signature: string | null | undefined,
+  secret: string
+): Promise<boolean> {
+  if (!signature || !secret) return false;
+  try {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const expected = base64Encode(await crypto.subtle.sign("HMAC", key, encoder.encode(payload)));
+    return timingSafeEqual(expected, signature);
+  } catch {
+    return false;
+  }
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -1,12 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { createMemoryCommerceSyncStore } from "./adapters/memory-commerce-sync-store";
-import { createCommerceSyncMemoryService, createCommerceSyncService } from "./service";
+import { createCommerceSyncMemoryService, createCommerceSyncService, verifyWooCommerceWebhookSignature } from "./service";
 
 const ctx = { tenantId: "tenant_1", now: "2026-06-21T00:00:00.000Z" };
 
 function sequenceIds() {
   let sequence = 0;
   return (prefix: string) => `${prefix}_${(++sequence).toString().padStart(6, "0")}`;
+}
+
+async function signWebhookPayload(payload: string, secret: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const bytes = new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(payload)));
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
 }
 
 describe("commerce-sync", () => {
@@ -285,5 +294,15 @@ describe("commerce-sync", () => {
       shippingAddress: { email: "buyer@example.test" },
       createdAt: "2026-06-21T09:00:00.000Z"
     });
+  });
+
+  it("verifies WooCommerce webhook signatures", async () => {
+    const payload = JSON.stringify({ id: 1001, status: "processing" });
+    const secret = "webhook-secret";
+    const signature = await signWebhookPayload(payload, secret);
+
+    await expect(verifyWooCommerceWebhookSignature(payload, signature, secret)).resolves.toBe(true);
+    await expect(verifyWooCommerceWebhookSignature(`${payload}\n`, signature, secret)).resolves.toBe(false);
+    await expect(verifyWooCommerceWebhookSignature(payload, null, secret)).resolves.toBe(false);
   });
 });

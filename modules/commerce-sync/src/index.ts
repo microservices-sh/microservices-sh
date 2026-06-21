@@ -10,7 +10,8 @@ export {
   createCommerceSyncMemoryService,
   createCommerceSyncService,
   getCommerceSyncModuleStatus,
-  normalizeCommerceProviderPayload
+  normalizeCommerceProviderPayload,
+  verifyWooCommerceWebhookSignature
 } from "./service";
 export type { CreateCommerceSyncServiceOptions } from "./service";
 export type { CommerceSyncStore } from "./ports";
