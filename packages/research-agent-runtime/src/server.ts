@@ -191,7 +191,7 @@ createServer(async (req, res) => {
     const dirs = { sourcesDir: SOURCES_DIR, workspaceDir: WORKSPACE_DIR };
 
     if (req.method === "GET") {
-      const base = area === "sources" ? SOURCES_DIR : area === "workspace" ? WORKSPACE_DIR : null;
+      const base = ({ sources: SOURCES_DIR, workspace: WORKSPACE_DIR } as Record<string, string>)[area];
       if (!base) {
         res.writeHead(400, { "content-type": "application/json" });
         return res.end(JSON.stringify({ ok: false, error: { code: "BAD_AREA" } }));

@@ -17,8 +17,8 @@ export function resolveUploadPath(opts: {
   sourcesDir: string;
   workspaceDir: string;
 }): ResolveResult {
-  const base =
-    opts.area === "sources" ? opts.sourcesDir : opts.area === "workspace" ? opts.workspaceDir : null;
+  const baseByArea: Record<string, string> = { sources: opts.sourcesDir, workspace: opts.workspaceDir };
+  const base = baseByArea[opts.area];
   if (!base) return { ok: false, code: "BAD_AREA" };
 
   const name = opts.name;

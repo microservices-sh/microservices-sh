@@ -54,14 +54,11 @@ export function bootResearchRuntime(opts: {
   // drop ops.* scopes whose tool isn't listed. Non-ops scopes are untouched, and
   // a tool the box was never granted can't be added (opsRead's scope check is the
   // backstop). Absent ⇒ unchanged.
-  const allowedOpsScopes: Set<string> | null = opts.workspace?.settings.opsTools
-    ? new Set<string>(
-        opts.workspace.settings.opsTools
-          .map((tool) => OPS_TOOL_SCOPES[tool as keyof typeof OPS_TOOL_SCOPES] as string | undefined)
-          .filter((scope) => Boolean(scope)) as string[]
-      )
-    : null;
+  const toolToScope = OPS_TOOL_SCOPES as Record<string, string>;
   const allOpsScopes = new Set<string>(Object.values(OPS_TOOL_SCOPES));
+  const allowedOpsScopes: Set<string> | null = opts.workspace?.settings.opsTools
+    ? new Set<string>(opts.workspace.settings.opsTools.map((tool) => toolToScope[tool]).filter(Boolean))
+    : null;
   const narrowOps = (actor: RuntimeActor): RuntimeActor =>
     allowedOpsScopes
       ? { ...actor, scopes: actor.scopes.filter((s) => !allOpsScopes.has(s) || allowedOpsScopes.has(s)) }
