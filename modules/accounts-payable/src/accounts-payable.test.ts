@@ -6,6 +6,7 @@ import {
   createVendor,
   generateDueRecurringBills,
   getAgingReport,
+  listBills,
   listRecurringBillTemplates,
   listVendors,
   markBillPayable,
@@ -405,6 +406,8 @@ describe("accounts-payable: recurring bill templates", () => {
     expect(generated.ok).toBe(true);
     if (!generated.ok) throw new Error(generated.error.message);
     expect(generated.data.count).toBe(1);
+    expect(generated.data.createdCount).toBe(1);
+    expect(generated.data.dedupedCount).toBe(0);
     expect(generated.data.bills[0]).toMatchObject({
       tenantId: "tenant-1",
       vendorId: vendor.id,
@@ -437,5 +440,67 @@ describe("accounts-payable: recurring bill templates", () => {
     );
     expect(replay.ok).toBe(true);
     if (replay.ok) expect(replay.data.count).toBe(0);
+  });
+
+  it("recovers an existing recurring occurrence without duplicating bills", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const vendor = await seedVendor(store, "tenant-1");
+    const template = await createRecurringBillTemplate(
+      {
+        tenantId: "tenant-1",
+        vendorId: vendor.id,
+        name: "Monthly hosting",
+        frequency: "monthly",
+        startDate: "2026-01-01T00:00:00.000Z",
+        paymentTermsDays: 10,
+        maxOccurrences: 1,
+        lineItems: [{ description: "Hosting", quantity: 1, unitAmountCents: 8_000, taxCents: 0 }]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0) }
+    );
+    if (!template.ok) throw new Error(template.error.message);
+
+    const existing = await createBill(
+      {
+        tenantId: "tenant-1",
+        vendorId: vendor.id,
+        billNumber: "RB-EXISTING-20260201",
+        billDate: template.data.template.nextBillDate,
+        dueDate: "2026-02-11T00:00:00.000Z",
+        recurringTemplateId: template.data.template.id,
+        lineItems: [{ description: "Hosting", quantity: 1, unitAmountCents: 8_000, taxCents: 0 }]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0 + 1) }
+    );
+    if (!existing.ok) throw new Error(existing.error.message);
+
+    const recovered = await generateDueRecurringBills(
+      { tenantId: "tenant-1", asOfDate: "2026-02-01T00:00:00.000Z" },
+      { accountsPayableStore: store, now: fixedNow(T0 + 2) }
+    );
+
+    expect(recovered.ok).toBe(true);
+    if (!recovered.ok) throw new Error(recovered.error.message);
+    expect(recovered.status).toBe(200);
+    expect(recovered.data).toMatchObject({ count: 1, createdCount: 0, dedupedCount: 1 });
+    expect(recovered.data.bills[0].id).toBe(existing.data.bill.id);
+
+    const bills = await listBills({ tenantId: "tenant-1" }, { accountsPayableStore: store });
+    expect(bills.ok).toBe(true);
+    if (!bills.ok) throw new Error(bills.error.message);
+    expect(bills.data.bills.filter((bill) => bill.recurringTemplateId === template.data.template.id)).toHaveLength(1);
+
+    const templates = await listRecurringBillTemplates(
+      { tenantId: "tenant-1", statuses: ["completed"] },
+      { accountsPayableStore: store }
+    );
+    expect(templates.ok).toBe(true);
+    if (!templates.ok) throw new Error(templates.error.message);
+    expect(templates.data.templates[0]).toMatchObject({
+      id: template.data.template.id,
+      status: "completed",
+      lastBillDate: "2026-02-01T00:00:00.000Z",
+      billsGenerated: 1
+    });
   });
 });

@@ -27,6 +27,11 @@ export interface AccountsPayableStore {
   insertBill(bill: Bill, lineItems: BillLineItem[]): Promise<void>;
   updateBill(bill: Bill): Promise<void>;
   getBill(tenantId: string, billId: string): Promise<BillWithLineItems | null>;
+  findBillByRecurringOccurrence(
+    tenantId: string,
+    recurringTemplateId: string,
+    billDate: string
+  ): Promise<BillWithLineItems | null>;
   listBills(filter: BillFilter): Promise<BillWithLineItems[]>;
   listOpenBills(tenantId: string, vendorId?: string): Promise<BillWithLineItems[]>;
 

@@ -161,6 +161,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_ap_vendors_tenant_external
   WHERE external_source IS NOT NULL AND external_id IS NOT NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ap_bills_tenant_number ON accounts_payable_bills(tenant_id, bill_number);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ap_bills_recurring_occurrence
+  ON accounts_payable_bills(tenant_id, recurring_template_id, bill_date)
+  WHERE recurring_template_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_ap_bills_tenant_vendor ON accounts_payable_bills(tenant_id, vendor_id);
 CREATE INDEX IF NOT EXISTS idx_ap_bills_tenant_status ON accounts_payable_bills(tenant_id, status);
 CREATE INDEX IF NOT EXISTS idx_ap_bills_due_date ON accounts_payable_bills(tenant_id, due_date);

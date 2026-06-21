@@ -9,9 +9,13 @@ export {
   createRecurringBillTemplateInputSchema,
   createVendorInputSchema,
   currencySchema,
+  generateDueRecurringBillsInputSchema,
   listBillsInputSchema,
+  listRecurringBillTemplatesInputSchema,
   listVendorsInputSchema,
   markBillPayableInputSchema,
   recordBillPaymentInputSchema,
-  recurringBillFrequencySchema
+  recurringBillFrequencySchema,
+  recurringBillStatusSchema,
+  updateRecurringBillTemplateStatusInputSchema
 } from "../schemas";

@@ -141,6 +141,16 @@ export function createMemoryAccountsPayableStore(): AccountsPayableStore {
       return withLineItems(bill, linesByBill.get(bill.id) ?? []);
     },
 
+    async findBillByRecurringOccurrence(tenantId, recurringTemplateId, billDate) {
+      const bill = [...bills.values()].find(
+        (candidate) =>
+          candidate.tenantId === tenantId &&
+          candidate.recurringTemplateId === recurringTemplateId &&
+          candidate.billDate === billDate
+      );
+      return bill ? withLineItems(bill, linesByBill.get(bill.id) ?? []) : null;
+    },
+
     async listBills(filter) {
       return [...bills.values()]
         .filter((bill) => matchesBillFilter(bill, filter))

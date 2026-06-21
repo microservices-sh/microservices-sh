@@ -17,6 +17,25 @@ function occurrenceBillNumber(template: RecurringBillTemplateWithLineItems): str
   return `RB-${shortId}-${yyyymmdd}`;
 }
 
+function advanceTemplate(
+  template: RecurringBillTemplateWithLineItems,
+  asOfDate: string
+): { updated: RecurringBillTemplateWithLineItems; completed: boolean } {
+  const billsGenerated = template.billsGenerated + 1;
+  const completed = template.maxOccurrences !== null && billsGenerated >= template.maxOccurrences;
+  return {
+    updated: {
+      ...template,
+      status: completed ? "completed" : template.status,
+      lastBillDate: template.nextBillDate,
+      nextBillDate: nextRecurringBillDate(template.nextBillDate, template.frequency, template.customDays, null),
+      billsGenerated,
+      updatedAt: asOfDate
+    },
+    completed
+  };
+}
+
 export async function generateDueRecurringBills(input: unknown, deps: AccountsPayableDeps) {
   const parsed = generateDueRecurringBillsInputSchema.safeParse(input);
   if (!parsed.success) {
@@ -38,31 +57,70 @@ export async function generateDueRecurringBills(input: unknown, deps: AccountsPa
   });
 
   const generated: BillWithLineItems[] = [];
+  let createdCount = 0;
+  let dedupedCount = 0;
   for (const template of templates) {
-    const created = await createBill(
-      {
-        tenantId: template.tenantId,
-        vendorId: template.vendorId,
-        billNumber: occurrenceBillNumber(template),
-        billDate: template.nextBillDate,
-        dueDate: addDaysIso(template.nextBillDate, template.paymentTermsDays),
-        currency: template.currency,
-        memo: template.memo,
-        recurringTemplateId: template.id,
-        lineItems: template.lineItems.map((line) => ({
-          expenseAccountId: line.expenseAccountId,
-          description: line.description,
-          quantity: line.quantity,
-          unitAmountCents: line.unitAmountCents,
-          taxCents: line.taxCents
-        }))
-      },
-      deps
-    );
-    if (!created.ok) return created;
+    if (template.maxOccurrences !== null && template.billsGenerated >= template.maxOccurrences) {
+      await deps.accountsPayableStore.updateRecurringBillTemplate({
+        ...template,
+        status: "completed",
+        updatedAt: asOfDate
+      });
+      continue;
+    }
 
-    let bill = created.data.bill;
-    if (template.autoMarkPayable) {
+    let deduped = false;
+    let bill = await deps.accountsPayableStore.findBillByRecurringOccurrence(
+      template.tenantId,
+      template.id,
+      template.nextBillDate
+    );
+
+    if (bill) {
+      deduped = true;
+      dedupedCount += 1;
+    } else {
+      try {
+        const created = await createBill(
+          {
+            tenantId: template.tenantId,
+            vendorId: template.vendorId,
+            billNumber: occurrenceBillNumber(template),
+            billDate: template.nextBillDate,
+            dueDate: addDaysIso(template.nextBillDate, template.paymentTermsDays),
+            currency: template.currency,
+            memo: template.memo,
+            recurringTemplateId: template.id,
+            lineItems: template.lineItems.map((line) => ({
+              expenseAccountId: line.expenseAccountId,
+              description: line.description,
+              quantity: line.quantity,
+              unitAmountCents: line.unitAmountCents,
+              taxCents: line.taxCents
+            }))
+          },
+          deps
+        );
+        if (!created.ok) return created;
+        bill = created.data.bill;
+        createdCount += 1;
+      } catch (error) {
+        const existing = await deps.accountsPayableStore.findBillByRecurringOccurrence(
+          template.tenantId,
+          template.id,
+          template.nextBillDate
+        );
+        if (!existing) throw error;
+        bill = existing;
+        deduped = true;
+        dedupedCount += 1;
+      }
+    }
+
+    if (
+      template.autoMarkPayable &&
+      (bill.status === "draft" || bill.status === "pending_approval" || bill.status === "payable")
+    ) {
       const payable = await markBillPayable(
         {
           tenantId: bill.tenantId,
@@ -76,16 +134,7 @@ export async function generateDueRecurringBills(input: unknown, deps: AccountsPa
     }
     generated.push(bill);
 
-    const billsGenerated = template.billsGenerated + 1;
-    const completed = template.maxOccurrences !== null && billsGenerated >= template.maxOccurrences;
-    const updated = {
-      ...template,
-      status: completed ? ("completed" as const) : template.status,
-      lastBillDate: template.nextBillDate,
-      nextBillDate: nextRecurringBillDate(template.nextBillDate, template.frequency, template.customDays, null),
-      billsGenerated,
-      updatedAt: asOfDate
-    };
+    const { updated, completed } = advanceTemplate(template, asOfDate);
     await deps.accountsPayableStore.updateRecurringBillTemplate(updated);
     await deps.accountsPayableStore.writeEvent({
       eventName: "accounts-payable.recurring_bill_generated",
@@ -96,10 +145,15 @@ export async function generateDueRecurringBills(input: unknown, deps: AccountsPa
         templateId: template.id,
         billId: bill.id,
         occurrenceDate: template.nextBillDate,
-        completed
+        completed,
+        deduped
       }
     });
   }
 
-  return ok(generated.length > 0 ? 201 : 200, { bills: generated, count: generated.length, asOfDate }, deps);
+  return ok(
+    createdCount > 0 ? 201 : 200,
+    { bills: generated, count: generated.length, createdCount, dedupedCount, asOfDate },
+    deps
+  );
 }

@@ -447,6 +447,20 @@ export function createD1AccountsPayableStore(db: D1Database): AccountsPayableSto
       return row ? withLineItems(rowToBill(row)) : null;
     },
 
+    async findBillByRecurringOccurrence(tenantId, recurringTemplateId, billDate) {
+      const row = await db
+        .prepare(
+          `SELECT ${BILL_COLS}
+           FROM accounts_payable_bills
+           WHERE tenant_id = ? AND recurring_template_id = ? AND bill_date = ?
+           ORDER BY created_at DESC
+           LIMIT 1`
+        )
+        .bind(tenantId, recurringTemplateId, billDate)
+        .first<Record<string, unknown>>();
+      return row ? withLineItems(rowToBill(row)) : null;
+    },
+
     async listBills(filter: BillFilter) {
       const clauses = ["tenant_id = ?"];
       const binds: unknown[] = [filter.tenantId];

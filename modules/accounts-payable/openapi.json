@@ -63,7 +63,11 @@
     "/recurring-bill-templates/generate-due": {
       "post": {
         "summary": "Generate bills for active due recurring bill templates",
-        "responses": { "201": { "description": "Due recurring bills generated" }, "400": { "description": "Invalid generation input" } }
+        "responses": {
+          "200": { "description": "No due templates or idempotent replay handled" },
+          "201": { "description": "Due recurring bills generated" },
+          "400": { "description": "Invalid generation input" }
+        }
       }
     }
   }
