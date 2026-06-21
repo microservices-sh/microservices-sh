@@ -53,23 +53,23 @@ function modulePackageName(moduleId) {
   return `@microservices-sh/${moduleId}`;
 }
 
-function rewriteBundledModuleDeps(dependencies, prefix = "./modules") {
+function rewriteBundledModuleDeps(dependencies, prefix = "./modules", protocol = "file:") {
   if (!dependencies || typeof dependencies !== "object") return;
 
   for (const moduleId of BUNDLED_MODULES) {
     const name = modulePackageName(moduleId);
     if (dependencies[name]) {
-      dependencies[name] = `file:${prefix}/${moduleId}`;
+      dependencies[name] = `${protocol}${prefix}/${moduleId}`;
     }
   }
 }
 
-function rewriteBundledPackageDeps(dependencies, prefix = "./packages") {
+function rewriteBundledPackageDeps(dependencies, prefix = "./packages", protocol = "file:") {
   if (!dependencies || typeof dependencies !== "object") return;
 
   for (const [name, packagePath] of BUNDLED_PACKAGES) {
     if (dependencies[name]) {
-      dependencies[name] = `file:${prefix}/${packagePath}`;
+      dependencies[name] = `${protocol}${prefix}/${packagePath}`;
     }
   }
 }
@@ -113,8 +113,12 @@ function applyRepoTemplateConfig(files, appName, configOverride) {
       try {
         const pkg = JSON.parse(file.contents);
         pkg.name = appName;
-        rewriteBundledModuleDeps(pkg.dependencies);
-        rewriteBundledPackageDeps(pkg.dependencies);
+        // link: (not file:) so the generated app symlinks its bundled modules and
+        // packages — edits to vendored module source are picked up live instead of
+        // going stale in pnpm's content-addressed store. Intra-module deps (below)
+        // stay file: so each copied module remains self-contained.
+        rewriteBundledModuleDeps(pkg.dependencies, "./modules", "link:");
+        rewriteBundledPackageDeps(pkg.dependencies, "./packages", "link:");
         if (pkg.scripts?.["check:spec"]) {
           pkg.scripts["check:spec"] = "node scripts/microservices.js check --json";
         }

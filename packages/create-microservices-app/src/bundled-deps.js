@@ -1,6 +1,7 @@
 // Single source of truth for which workspace modules/packages the scaffolder
-// vendors into a generated app. index.js rewrites these deps to file: paths so a
-// generated app is standalone; the closure test (tests/template-bundle-closure.
+// vendors into a generated app. index.js rewrites these deps to link: paths at
+// the app root (live symlinks so edits to vendored modules are picked up) and
+// file: paths intra-module (self-contained copies); the closure test (tests/template-bundle-closure.
 // test.mjs) asserts every template's @microservices-sh dependency (transitively)
 // is covered here — so a template can never reference a workspace package the
 // scaffolder won't bundle, which is what breaks `pnpm install` in the standalone
@@ -38,6 +39,7 @@ export const BUNDLED_MODULES = [
   "org-team-rbac",
   "payment",
   "product-catalog",
+  "recurring-documents",
   "research",
   "sales-order",
   "shipment",
@@ -80,7 +82,7 @@ export const REPO_TEMPLATES = [
 
 const ERP_SHELL_MODULES = ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "product-catalog", "inventory", "sales-order", "shipment", "commerce-sync", "accounting-core", "accounts-payable", "accounts-receivable", "bank-reconciliation", "invoice", "payment", "billing-subscriptions", "image-generation", "ads-manager", "forms-intake", "booking", "file-media", "jobs-workflows", "notifications-inapp", "sms-campaigns", "support-inbox", "support-ticket", "webhook-delivery"];
 const COMMERCE_OPS_MODULES = ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "product-catalog", "inventory", "sales-order", "shipment", "commerce-sync", "invoice", "payment", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket", "webhook-delivery"];
-const ACCOUNTING_ERP_MODULES = ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "accounting-core", "accounts-payable", "accounts-receivable", "bank-reconciliation", "estimate-quote", "invoice", "payment", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket", "webhook-delivery"];
+const ACCOUNTING_ERP_MODULES = ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "accounting-core", "accounts-payable", "accounts-receivable", "bank-reconciliation", "estimate-quote", "recurring-documents", "invoice", "payment", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket", "webhook-delivery"];
 
 export const REPO_TEMPLATE_MODULES = {
   "booking-sveltekit": ["gateway", "auth", "customer", "booking", "audit-log", "email", "payment", "identity", "membership-credits", "research"],

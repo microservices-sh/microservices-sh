@@ -81,6 +81,17 @@ describe("template bundle closure (generated apps install standalone)", () => {
     ).toEqual([]);
   });
 
+  // A template that ships a `vitest` test script must declare the dependency, or
+  // a scaffolded app's first `pnpm test` fails with "vitest: not found".
+  it.each(templates)("%s ships vitest if it has a vitest test script", (tpl) => {
+    const pkg = JSON.parse(readFileSync(resolve(templatesDir, tpl, "package.json"), "utf8"));
+    if (!pkg.scripts?.test?.includes("vitest")) return;
+    expect(
+      pkg.devDependencies?.vitest,
+      `${tpl}: has a "vitest" test script but no vitest devDependency`
+    ).toBeTruthy();
+  });
+
   // Half 2 — "copied": every module/package in a scaffoldable template's closure
   // is in its copy list, so the file: dep the scaffolder writes points at source
   // that actually got bundled (not a missing dir).
