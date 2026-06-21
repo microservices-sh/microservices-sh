@@ -1,14 +1,14 @@
 # Email Module
 
-Status: `planned`
+Status: `available`
 
-Class: `provider-capable core`
+Class: `provider`
 
 Mount: `/emails`
 
 ## Purpose
 
-The Email module provides transactional email templates, send jobs, provider adapters, delivery status tracking, and email-related events. Provider implementations can use Cloudflare Email Sending, Resend, Postmark, SendGrid, or another approved provider.
+The Email module provides transactional email delivery ports, provider adapters, delivery tracking, and email-related events. Current provider adapters include Resend and the StackSuite email service backed by AWS SES over HTTP.
 
 ## When To Use
 
@@ -25,29 +25,28 @@ The Email module provides transactional email templates, send jobs, provider ada
 | Dependency | Required | Reason |
 |------------|----------|--------|
 | D1 binding `DB` | Yes | Stores email jobs and delivery events. |
-| Queue `EMAIL_QUEUE` | Recommended | Async email sending. |
 | `audit-log` | Optional | Detailed delivery/audit trail. |
-| Provider module/config | Yes | Cloudflare Email, Resend, Postmark, or similar. |
+| Provider module/config | Yes | Resend or StackSuite email service configuration. |
 
 ## Runtime And Resources
 
 | Resource | Name | Required | Notes |
 |----------|------|----------|-------|
-| D1 table | `email_templates` | Yes | Stores template definitions or references. |
-| D1 table | `email_messages` | Yes | Tracks sent/pending/failed emails. |
-| Queue | `EMAIL_QUEUE` | Recommended | Sends outside request path. |
-| Binding | `EMAIL` | Provider-specific | Cloudflare Email Sending binding if used. |
+| D1 table | `email_deliveries` | Yes | Tracks queued/sent/failed delivery attempts. |
+| D1 table | `domain_events` | Yes | Records email lifecycle events. |
+| Outbound fetch | `api.resend.com` | Provider-specific | Required only for the Resend adapter. |
+| Outbound fetch | `*.execute-api.amazonaws.com` | Provider-specific | Required only for the StackSuite email service adapter. |
 
 ## Secrets And Environment
 
 | Name | Type | Scope | Required | Notes |
 |------|------|-------|----------|-------|
-| `EMAIL_PROVIDER` | Var | module/env | Yes | Example: `cloudflare-email`, `resend`, `postmark`. |
+| `EMAIL_PROVIDER` | Var | module/env | Yes | Example: `resend` or `stacksuite`. |
 | `EMAIL_FROM` | Var | module/env | Yes | Verified sender address. |
 | `RESEND_API_KEY` | Secret | module/env | Provider-specific | Required only for Resend provider. |
-| `POSTMARK_SERVER_TOKEN` | Secret | module/env | Provider-specific | Required only for Postmark provider. |
+| `EMAIL_SERVICE_API_KEY` | Secret | module/env | Provider-specific | Required only for the StackSuite email service provider. |
 
-Cloudflare Email Sending can use a Worker binding instead of an API key. Sender domain onboarding remains a production gate.
+Sender domain onboarding remains a production gate.
 
 ## Permissions And Approval Gates
 
@@ -57,7 +56,7 @@ Cloudflare Email Sending can use a Worker binding instead of an API key. Sender 
 | `email.write` | Enqueue and send transactional emails. |
 | `email.admin` | Change providers, senders, and templates. |
 
-Risk level: `high`
+Risk level: `medium`
 
 Approval required for:
 
@@ -119,33 +118,29 @@ Response:
 
 ### Consumes
 
-| Event | Action |
-|-------|--------|
-| `booking.confirmed` | Send confirmation email. |
-| `booking.cancelled` | Send cancellation email. |
-| `payment.succeeded` | Send receipt email. |
+None by default. Templates or app adapters can call the email module in response to booking, payment, invoice, or auth events.
 
 ## Hooks
 
 | Hook | Timing | Input | Output | Purpose |
 |------|--------|-------|--------|---------|
-| `renderTemplate` | Compute | template id and data | subject, text, html | Customize email rendering. |
 | `beforeEmailSend` | Pre | email message | modified message or validation error | Enforce sender and recipient rules. |
+| `afterEmailQueued` | Post | queued delivery event | side effects only | Observe accepted delivery attempts. |
 | `afterEmailFailed` | Post | failure event | side effects only | Notify admin or queue retry. |
 
 ## Database Tables
 
 | Table | Purpose |
 |-------|---------|
-| `email_templates` | Stores template metadata or custom templates. |
-| `email_messages` | Stores email job and delivery status. |
+| `email_deliveries` | Stores provider, recipients, subject, idempotency key, status, provider message id, metadata, and error details. |
+| `domain_events` | Stores email lifecycle events using the shared event schema. |
 
 ## Customization
 
 Preferred order:
 
 1. Config: provider, sender, templates, reply-to.
-2. Hooks: render template, validate recipient, failure handling.
+2. Hooks: validate recipient, observe queued sends, handle failures.
 3. Overlay: custom email routes.
 4. Fork: custom provider implementation.
 
@@ -170,5 +165,4 @@ Preferred order:
 - Confirm sender/domain verification.
 - Confirm required secrets or bindings exist.
 - Confirm transactional templates.
-- Run email queue/send tests in preview before production.
-
+- Run email send and delivery-record tests in preview before production.

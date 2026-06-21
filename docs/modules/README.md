@@ -58,11 +58,22 @@ Future MCP/CLI tools should expose the same content through:
 | [`identity`](./identity.md) | Available | Passwordless email-code login, server-side sessions, and scoped service-token bridging through auth. |
 | [`gateway`](./gateway.md) | Available | Public trust boundary: API-key auth, rate limiting, scope narrowing, token exchange via auth. |
 | [`customer`](./customer.md) | Available | Customer profiles, tags, consent fields, and customer events. |
+| [`product-catalog`](./product-catalog.md) | Draft | Product/category catalog, SKU uniqueness, external mappings, and combo products. |
+| [`inventory`](./inventory.md) | Draft | Tenant-scoped stock movements, reservations, deductions, reconciliation, and balances. |
+| [`sales-order`](./sales-order.md) | Draft | Sales orders, line items, status transitions, reservation handoff, and invoice draft handoff. |
+| [`shipment`](./shipment.md) | Draft | Shipment batches, fulfillment workflow, idempotent completion, and shipment events. |
+| [`commerce-sync`](./commerce-sync.md) | Draft | Commerce connections, mappings, sync runs, webhook receipts, and normalized payload envelopes. |
+| [`accounting-core`](./accounting-core.md) | Draft | Double-entry accounting foundation, chart of accounts, fiscal periods, posting, voiding, and trial balance. |
+| [`accounts-payable`](./accounts-payable.md) | Draft | Vendors, bills, payable lifecycle, recurring bill templates, payment application, and aging. |
+| [`accounts-receivable`](./accounts-receivable.md) | Draft | Customer payment application, open receivables, aging, and statement workflows. |
+| [`bank-reconciliation`](./bank-reconciliation.md) | Draft | Bank accounts, imported transactions, statement lines, matching, and reconciliation state. |
+| [`estimate-quote`](./estimate-quote.md) | Draft | Estimate/quote documents, lifecycle transitions, conversion metadata, and invoice draft handoff. |
+| [`recurring-documents`](./recurring-documents.md) | Draft | Recurring invoice/bill templates, due-cycle generation, lifecycle state, and draft document handoff. |
 | [`knowledge-base-rag`](./knowledge-base-rag.md) | Draft | Tenant-scoped knowledge articles, grounded answers, and draft-only support replies. |
 | [`booking`](./booking.md) | Available | Service booking, availability, cancellation, and booking events. |
 | [`payment`](./payment.md) | Available | Stripe-backed payment provider: payment intents, payment records, and signed webhook verification. |
 | [`idempotency`](./idempotency.md) | Available | Scoped idempotency records for safe retry, replay, and duplicate side-effect prevention. |
-| [`email`](./email.md) | Planned | Transactional email sending, templates, jobs, and delivery events. |
+| [`email`](./email.md) | Available | Transactional email delivery ports, provider adapters, and delivery events. |
 | [`audit-log`](./audit-log.md) | Available | Append-only audit trail; pure event sink with signed-envelope verification. |
 | [`marketing-research`](./marketing-research.md) | Available | Cite-or-refuse market research briefs with swappable signal/synthesis ports and approval-gated external fetches. |
 | [`webhook-delivery`](./webhook-delivery.md) | Available | Outbound mirror of the event bus: HMAC-signed event delivery to external endpoints with delivery logging. |

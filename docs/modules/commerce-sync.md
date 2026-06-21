@@ -23,7 +23,9 @@ Provider-neutral commerce integration records, external resource mappings, sync 
 - D1
 
 ## Secrets
-- COMMERCE_SYNC_ENCRYPTION_KEY
+- none
+
+Provider credentials must remain opaque secret references, not plaintext D1 values. Template adapters may require provider-specific runtime secrets such as `WOOCOMMERCE_WEBHOOK_SECRET` or `WOOCOMMERCE_CREDENTIALS_JSON`, and individual connections may point at `secretRef` / `env:<KEY>` values.
 
 ## Hooks
 - beforeCommerceConnectionCreate

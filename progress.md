@@ -1723,3 +1723,21 @@
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Shim sync | Canonical and packaged microservices shims remain in sync | `pnpm check:shims` passed, 13 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 78 StackSuite public docs catalog closure
+
+- **Status:** complete.
+- Goal: close the public docs/catalog gaps left after quote and recurring document modules became part of the focused accounting template route proof.
+- Added `estimate-quote` and `recurring-documents` rows to `docs/modules/catalog.json`.
+- Added public module reference pages for `estimate-quote` and `recurring-documents`.
+- Refreshed `docs/modules/README.md` and `docs/llms.txt` so StackSuite commerce/accounting module docs are discoverable.
+- Corrected stale `commerce-sync` secret wording and `email` status/provider-secret wording.
+- Updated StackSuite planning docs so quote/recurring route proof is no longer listed as pending.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Catalog JSON | Docs module catalog includes quote and recurring modules and remains valid JSON | `jq -e '.modules | length' docs/modules/catalog.json` returned 23 | Pass |
+| Catalog spot check | Commerce sync has no module-owned secret; email is available with current provider secrets | `jq -r ... docs/modules/catalog.json` showed expected rows | Pass |
+| Docs presence | Public module docs exist and are linked from the index and LLM guide | `rg` checks passed for new docs/index references | Pass |
+| Workspace specs | All module/template specs remain green after docs updates | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

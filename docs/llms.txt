@@ -15,12 +15,27 @@ Use these files before installing or modifying modules:
 - `docs/modules/module-package-structure.md` - module folder layout and entrypoint standard
 - `docs/modules/catalog.json` - compact machine-readable module catalog
 - `docs/modules/auth.md` - Auth module reference
+- `docs/modules/identity.md` - Identity/session module reference
+- `docs/modules/gateway.md` - Gateway module reference
 - `docs/modules/customer.md` - Customer module reference
+- `docs/modules/product-catalog.md` - Product catalog module reference
+- `docs/modules/inventory.md` - Inventory module reference
+- `docs/modules/sales-order.md` - Sales order module reference
+- `docs/modules/shipment.md` - Shipment module reference
+- `docs/modules/commerce-sync.md` - Commerce sync module reference
+- `docs/modules/accounting-core.md` - Accounting core module reference
+- `docs/modules/accounts-payable.md` - Accounts payable module reference
+- `docs/modules/accounts-receivable.md` - Accounts receivable module reference
+- `docs/modules/bank-reconciliation.md` - Bank reconciliation module reference
+- `docs/modules/estimate-quote.md` - Estimate quote module reference
+- `docs/modules/recurring-documents.md` - Recurring documents module reference
 - `docs/modules/booking.md` - Booking module reference
 - `docs/modules/idempotency.md` - Idempotency module reference
-- `docs/modules/payment-stripe.md` - planned Stripe payment provider module reference
-- `docs/modules/email.md` - planned transactional email module reference
-- `docs/modules/audit-log.md` - planned audit log module reference
+- `docs/modules/payment.md` - Stripe-backed payment module reference
+- `docs/modules/email.md` - transactional email module reference
+- `docs/modules/audit-log.md` - audit log module reference
+- `docs/modules/marketing-research.md` - marketing research module reference
+- `docs/modules/webhook-delivery.md` - webhook delivery module reference
 - `docs/system-harness.md` - product definition and public workflow boundary
 - `docs/quickstart-proof.md` - latest clean quickstart commands and verification result
 - `docs/operator-pilot-boundary.md` - private-pilot boundary for Agent Center, Hermes, and Ads Manager, plus Marketing Research approval gates

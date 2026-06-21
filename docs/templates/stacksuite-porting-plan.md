@@ -333,8 +333,8 @@ Mostly done for the first StackSuite parity milestone:
 
 Still pending:
 
-- estimates and invoice-document extension contracts.
-- AP recurring bill generation and lifecycle APIs.
+- invoice-document extension contracts beyond the current invoice, quote, and recurring draft handoffs.
+- AP recurring bill route proof for final bill approval/posting flows.
 - accounting setup packs, full statements, and fiscal close/reopen/lock contracts.
 - inventory receive/adjust/reconcile documents and alert read models.
 
@@ -347,7 +347,7 @@ Done for the first accounting/commerce operator surface:
 
 Remaining routes should be added only after the backing module API exists:
 
-- accounting setup, chart, fiscal periods, reports, recurring AP/AR, estimates, banking import/reconciliation detail.
+- accounting setup, chart, fiscal periods, AP recurring bill detail, banking import/reconciliation detail.
 - commerce sales-order detail/create/send, shipment detail/packing slip, inventory receive/adjust/reconcile, sync logs, MCP settings.
 
 ### Phase 3: External Operations

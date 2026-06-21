@@ -329,7 +329,8 @@ Recommended order:
 ### Phase E: Quotes And Recurring Documents
 - Completed `estimate-quote` for quote/estimate documents, lifecycle transitions, and invoice-conversion handoff.
 - Completed `recurring-documents` for recurring invoice/bill templates, due-cycle generation, and draft document payload handoff.
-- Remaining follow-up: add accounting template routes after the current template route queue settles.
+- Completed accounting template route proof for quote operations and recurring document review/generation.
+- Remaining follow-up: keep public docs/catalog, generated-app smoke, and promotion gates aligned before marking these modules available.
 
 ### Phase F: HR And Utility Modules
 - Completed `hr-people-ops` for employee directory, org structure, leave balances/requests, and attendance.

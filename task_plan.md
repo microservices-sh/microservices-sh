@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 74
+Phase 78
 
 ## Phases
 
@@ -601,6 +601,14 @@ Phase 74
 - [x] Link copied support packages from generated repo-template app roots so linked modules resolve local package dependencies.
 - [x] Make SvelteKit template config and focused accounting/commerce route scripts robust under fresh generated-app dependency installs.
 - [x] Verify focused template builds, create-app build/tests, generated accounting/commerce install-build smoke, full workspace specs, shim sync, and whitespace checks.
+- **Status:** complete
+
+### Phase 78: StackSuite Public Docs Catalog Closure
+- [x] Add public catalog rows and Markdown references for `estimate-quote` and `recurring-documents`.
+- [x] Refresh the module docs index and LLM guide so StackSuite accounting/commerce docs are discoverable.
+- [x] Correct stale commerce-sync and email secret/status wording.
+- [x] Update StackSuite planning docs so quote/recurring route proof is complete and remaining work is catalog/promotion guardrail work.
+- [x] Verify catalog JSON, docs presence, workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

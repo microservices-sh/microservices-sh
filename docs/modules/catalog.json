@@ -323,6 +323,82 @@
       ]
     },
     {
+      "id": "estimate-quote",
+      "name": "Estimate Quote",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/estimate-quote",
+      "docPath": "docs/modules/estimate-quote.md",
+      "summary": "Estimate and quote documents with draft editing, lifecycle transitions, accepted conversion, and invoice draft handoff.",
+      "requires": [],
+      "permissions": [
+        "estimate-quote.read",
+        "estimate-quote.write",
+        "estimate-quote.admin",
+        "estimate-quote.extend",
+        "estimate-quote.observe"
+      ],
+      "rpc": [],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeEstimateQuoteCreate",
+        "afterEstimateQuoteUpdated"
+      ],
+      "events": [
+        "estimate-quote.created",
+        "estimate-quote.updated",
+        "estimate-quote.sent",
+        "estimate-quote.viewed",
+        "estimate-quote.accepted",
+        "estimate-quote.declined",
+        "estimate-quote.expired",
+        "estimate-quote.converted",
+        "estimate-quote.voided"
+      ]
+    },
+    {
+      "id": "recurring-documents",
+      "name": "Recurring Documents",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/recurring-documents",
+      "docPath": "docs/modules/recurring-documents.md",
+      "summary": "Recurring invoice and bill templates with due-cycle generation, lifecycle state, and draft document handoff.",
+      "requires": [],
+      "permissions": [
+        "recurring-documents.read",
+        "recurring-documents.write",
+        "recurring-documents.admin",
+        "recurring-documents.extend",
+        "recurring-documents.observe"
+      ],
+      "rpc": [],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeRecurringDocumentsCreate",
+        "afterRecurringDocumentsUpdated"
+      ],
+      "events": [
+        "recurring-documents.created",
+        "recurring-documents.updated",
+        "recurring-documents.paused",
+        "recurring-documents.resumed",
+        "recurring-documents.cancelled",
+        "recurring-documents.completed",
+        "recurring-documents.generated"
+      ]
+    },
+    {
       "id": "knowledge-base-rag",
       "name": "Knowledge Base RAG",
       "version": "0.1.0",
