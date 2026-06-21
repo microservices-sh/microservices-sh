@@ -26,10 +26,10 @@
       "org-team-rbac",
       "billing-subscriptions",
       "admin-shell",
-      "audit-log"
+      "audit-log",
+      "payment"
     ],
     "optional": [
-      "payment",
       "webhook-delivery",
       "notifications-inapp"
     ]
@@ -72,7 +72,7 @@
       "approvalRisk": "medium"
     },
     "payment": {
-      "activeModule": null,
+      "activeModule": "payment",
       "allowedModules": [
         "payment"
       ],

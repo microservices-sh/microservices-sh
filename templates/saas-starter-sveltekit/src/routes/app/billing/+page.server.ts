@@ -3,6 +3,7 @@ import { fail, redirect } from "@sveltejs/kit";
 import { listPlans, listSubscriptions, startSubscription, changePlan, grantsAccess } from "@microservices-sh/billing-subscriptions";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { authorize } from "@microservices-sh/org-team-rbac";
+import { createPaymentIntent } from "@microservices-sh/payment";
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
   const { activeOrgId, permissions } = await parent();
@@ -59,5 +60,34 @@ export const actions: Actions = {
       { auditStore: locals.auditStore }
     );
     return { ok: true, started: true };
+  },
+
+  // Create a Stripe payment intent for a paid plan. Uses the memory gateway in
+  // dev (no STRIPE_SECRET_KEY) and the real Stripe gateway in production. Returns
+  // the client secret for a Stripe Elements / Checkout flow on the client.
+  checkout: async ({ request, locals }) => {
+    const form = await request.formData();
+    const orgId = String(form.get("orgId") ?? "");
+    const planId = String(form.get("planId") ?? "");
+    if (!locals.user || !(await gateBilling(locals, orgId)).ok) {
+      return fail(403, { error: "You do not have permission to manage billing." });
+    }
+
+    const plans = await listPlans({ store: locals.billingStore });
+    const plan = plans.data.plans.find((p) => p.id === planId);
+    if (!plan) return fail(404, { error: "Unknown plan." });
+    if (plan.priceCents <= 0) return fail(400, { error: "Free plans do not require payment." });
+
+    const result = await createPaymentIntent(
+      { customerId: orgId, amount: plan.priceCents, currency: (plan.currency ?? "usd").toLowerCase(), description: `${plan.name} plan` },
+      { paymentRepository: locals.paymentRepository, paymentGateway: locals.paymentGateway }
+    );
+    if (!result.ok) return fail(result.status, { error: result.error?.message ?? "Could not start checkout." });
+
+    await recordEvent(
+      { eventName: "payment.checkout_created", actorId: locals.user.id, entityType: "payment", entityId: result.data.payment.id, source: "billing", payload: { planId, intentId: result.data.payment.intentId } },
+      { auditStore: locals.auditStore }
+    );
+    return { ok: true, clientSecret: result.data.clientSecret, paymentId: result.data.payment.id, intentId: result.data.payment.intentId };
   }
 };

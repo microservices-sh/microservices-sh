@@ -293,6 +293,39 @@
         ],
         "requires": []
       }
+    },
+    {
+      "id": "payment",
+      "version": "0.1.0",
+      "source": "registry:payment@0.1.0",
+      "checksum": "sha256:preview-payment-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/payments",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "payment.read",
+          "payment.write",
+          "payment.admin",
+          "payment.extend",
+          "payment.observe"
+        ],
+        "rpc": [],
+        "hooks": [],
+        "events": [
+          "payment.checkout_created",
+          "payment.succeeded",
+          "payment.refunded",
+          "payment.failed"
+        ],
+        "requires": []
+      }
     }
   ],
   "customizations": {
