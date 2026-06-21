@@ -1313,3 +1313,19 @@
 | Support Inbox spec | Module contract check passes | `pnpm --filter @microservices-sh/support-inbox check:spec` passed | Pass |
 | D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/support-inbox/migrations/0001_initial.sql"` passed | Pass |
 | JSON docs | OpenAPI and JSON schema stubs parse | Node JSON parse check passed | Pass |
+
+### Phase 54 StackSuite Membership Credits module
+
+- **Status:** complete.
+- Goal: port the booking-system membership tier and customer credit ledger domain into a reusable module.
+- Added `modules/membership-credits` for membership tiers, active customer memberships, credit balances, credit ledger transactions, and membership history.
+- Stored all monetary amounts as integer cents instead of the donor app's floating-point `real` amounts.
+- Added idempotent reference handling for booking credit applications/refunds, plus overdraft prevention.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Membership Credits build | TypeScript typecheck passes | `pnpm --filter @microservices-sh/membership-credits build` passed | Pass |
+| Membership Credits tests | Tier, membership, credit, idempotency, and expiry flows pass | `pnpm --filter @microservices-sh/membership-credits test` passed, 3/3 | Pass |
+| Membership Credits spec | Module contract check passes | `pnpm --filter @microservices-sh/membership-credits check:spec` passed | Pass |
+| D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/membership-credits/migrations/0001_initial.sql"` passed | Pass |
+| JSON docs | OpenAPI and JSON schema stubs parse | Node JSON parse check passed | Pass |

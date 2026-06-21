@@ -1,0 +1,150 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "membership-credits",
+  "name": "Membership Credits",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Tenant-scoped membership tiers, active customer memberships, customer credit balances, credit ledger transactions, and membership history.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": [
+      "hono-later",
+      "sveltekit-later"
+    ]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "membership_credit_tiers",
+        "customer_memberships",
+        "customer_credit_balances",
+        "credit_transactions",
+        "membership_history",
+        "domain_events"
+      ]
+    }
+  ],
+  "permissions": [
+    "membership-credits.read",
+    "membership-credits.write",
+    "membership-credits.credit-admin",
+    "membership-credits.membership-admin",
+    "membership-credits.admin",
+    "membership-credits.extend",
+    "membership-credits.observe"
+  ],
+  "connections": {
+    "requires": [],
+    "optional": [
+      "auth",
+      "audit-log",
+      "booking",
+      "customer",
+      "payment",
+      "billing-subscriptions"
+    ],
+    "rpc": {
+      "exposes": [],
+      "calls": []
+    },
+    "events": {
+      "emits": [
+        "membership-credits.tier_created",
+        "membership-credits.membership_assigned",
+        "membership-credits.membership_changed",
+        "membership-credits.membership_cancelled",
+        "membership-credits.membership_expired",
+        "membership-credits.credit_recorded"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeMembershipCreditsCreate": {
+        "kind": "filter",
+        "scope": "membership-credits.extend"
+      },
+      "afterMembershipCreditsUpdated": {
+        "kind": "observer",
+        "scope": "membership-credits.observe"
+      }
+    },
+    "provides": {
+      "hooks": []
+    }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": [
+      "config",
+      "hooks",
+      "overlay",
+      "fork"
+    ]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [
+        {
+          "label": "Membership Credits",
+          "path": "/membership-credits",
+          "permission": "membership-credits.read"
+        }
+      ],
+      "referenceUi": [
+        "reference-ui/admin/README.md"
+      ]
+    },
+    "visitor": {
+      "applicable": true,
+      "referenceUi": [
+        "reference-ui/visitor/README.md"
+      ]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": [
+        "membership-credits.read",
+        "membership-credits.write",
+        "membership-credits.credit-admin",
+        "membership-credits.membership-admin"
+      ],
+      "skillPaths": [
+        "skills/membership-credits-operator/SKILL.md"
+      ],
+      "approvalRequiredFor": [
+        "membership-credits.write",
+        "membership-credits.credit-admin",
+        "membership-credits.membership-admin"
+      ]
+    }
+  },
+  "skills": [
+    {
+      "id": "membership-credits-operator",
+      "path": "skills/membership-credits-operator/SKILL.md",
+      "recommendedFor": [
+        "admin-operations",
+        "agentic-tools",
+        "booking-operations"
+      ]
+    }
+  ],
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": [
+      "migrations",
+      "pii-fields",
+      "production-deploy",
+      "external-side-effects",
+      "credit-balance-changes",
+      "membership-tier-changes"
+    ]
+  }
+}

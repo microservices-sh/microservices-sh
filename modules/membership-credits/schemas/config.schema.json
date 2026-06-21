@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Membership Credits Config",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "defaultCurrency": {
+      "type": "string",
+      "default": "usd"
+    }
+  }
+}

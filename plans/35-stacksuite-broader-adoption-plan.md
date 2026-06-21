@@ -38,7 +38,7 @@ Remaining gaps are mostly add-on business workflows, not more full-app cloning.
 |---|---|---|---|
 | P0 | `sms-campaigns` module | `sms-crm` contacts, groups, templates, vendor configs, campaigns, recipients, SMS logs | Implemented as a contract-checked module; add an `sms-crm-sveltekit` template only when route proof is needed. |
 | P0 | Support inbox/widget hardening | HelpGrid widget settings, quick actions, conversations, messages, channel metadata, agent takeover | Implemented as `support-inbox` to avoid bloating ticket CRUD; ticket comments/attachments/share tokens remain a `support-ticket` follow-up. |
-| P1 | Membership and customer credits | Booking membership tiers, customer memberships, credits, credit transactions, membership history | Add `membership-credits` as a booking/customer/payment add-on module. |
+| P1 | Membership and customer credits | Booking membership tiers, customer memberships, credits, credit transactions, membership history | Implemented as `membership-credits`; route proof can extend `booking-sveltekit` later. |
 | P1 | Estimates/quotes and recurring invoice templates | Accounting Chiangs estimates, accepted/converted lifecycle, recurring invoices, recurring items, send/post/void schemas | Add `estimate-quote`; add recurring invoice generation either to `invoice` or a separate `recurring-documents` module. |
 | P1 | Storage entitlements and expiring share links | DashDrive files, short IDs, expiry, download count, storage packages, purchases | Extend `file-media` or add `storage-entitlements`; useful for client portals and file-heavy templates. |
 | P1 | HR people ops | HR employees, departments, positions, leave balances/requests, attendance | Add `hr-people-ops`; template later, not before P0 modules. |
@@ -287,9 +287,9 @@ Recommended order:
 - Add route proof in `client-portal-sveltekit` or a focused support template when the module is needed in a demo path.
 
 ### Phase D: Membership Credits
-- Add tier/membership/credit ledger module.
-- Add booking integration port for eligibility and credit payment/refund.
-- Add route proof in booking template.
+- Completed tier/membership/credit ledger module.
+- Completed booking credit payment/refund use cases with reference idempotency.
+- Remaining follow-up: add route proof in booking template and a formal booking eligibility integration port.
 
 ### Phase E: Quotes And Recurring Documents
 - Add `estimate-quote` module.
@@ -315,9 +315,9 @@ Recommended order:
 ## Decision
 The next valuable StackSuite adoption is not another accounting pass. After completing the `sms-campaigns` module, it is:
 
-1. Membership credits as the next booking add-on.
-2. Estimates/quotes and recurring documents as the next accounting add-on.
-3. Ticket comments/attachments/share-token hardening once `support-ticket` concurrent edits settle.
+1. Estimates/quotes and recurring documents as the next accounting add-on.
+2. Ticket comments/attachments/share-token hardening once `support-ticket` concurrent edits settle.
+3. Route proof for `membership-credits` in booking template when booking membership becomes part of a demo path.
 4. A focused `sms-crm-sveltekit` or support route/template proof only if those workflows become part of the public demo path.
 
 Everything else should stay P2 until the System Harness launch proof and existing focused templates are cleaner.

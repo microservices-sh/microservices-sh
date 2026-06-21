@@ -1,0 +1,80 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Membership Credits Module",
+    "version": "0.1.0",
+    "description": "Route contract examples for membership tiers, customer memberships, credit balances, credit ledger entries, and membership history."
+  },
+  "paths": {
+    "/membership-credits/tiers": {
+      "get": {
+        "summary": "List membership tiers",
+        "operationId": "listMembershipTiers",
+        "responses": {
+          "200": {
+            "description": "Membership tiers"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a membership tier",
+        "operationId": "createMembershipTier",
+        "responses": {
+          "201": {
+            "description": "Tier created"
+          }
+        }
+      }
+    },
+    "/membership-credits/memberships": {
+      "post": {
+        "summary": "Assign a customer membership",
+        "operationId": "assignMembership",
+        "responses": {
+          "201": {
+            "description": "Membership assigned"
+          },
+          "409": {
+            "description": "Customer already has an active membership"
+          }
+        }
+      }
+    },
+    "/membership-credits/customers/{customerId}/snapshot": {
+      "get": {
+        "summary": "Read active membership and credit snapshot",
+        "operationId": "getCustomerMembershipSnapshot",
+        "responses": {
+          "200": {
+            "description": "Membership and credit snapshot"
+          }
+        }
+      }
+    },
+    "/membership-credits/customers/{customerId}/credits/grant": {
+      "post": {
+        "summary": "Grant customer credits in integer cents",
+        "operationId": "grantCustomerCredit",
+        "responses": {
+          "200": {
+            "description": "Credit granted and ledger entry recorded"
+          }
+        }
+      }
+    },
+    "/membership-credits/customers/{customerId}/credits/debit": {
+      "post": {
+        "summary": "Debit customer credits in integer cents",
+        "operationId": "debitCustomerCredit",
+        "responses": {
+          "200": {
+            "description": "Credit debited and ledger entry recorded"
+          },
+          "409": {
+            "description": "Insufficient credit balance"
+          }
+        }
+      }
+    }
+  }
+}

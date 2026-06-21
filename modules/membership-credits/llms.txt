@@ -1,0 +1,10 @@
+# Membership Credits Module
+
+Module ID: membership-credits
+Status: draft
+Purpose: Membership tiers, active customer memberships, customer credit balances, credit ledger transactions, and membership history.
+Entrypoint: src/index.ts
+Check: pnpm check:spec
+Build: pnpm build
+Test: pnpm test
+Important: money uses integer cents, not floats.

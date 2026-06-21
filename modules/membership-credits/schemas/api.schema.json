@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Membership Credits API",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "tiers": {
+      "description": "Membership tier management"
+    },
+    "memberships": {
+      "description": "Customer membership lifecycle"
+    },
+    "credits": {
+      "description": "Customer credit balance and ledger operations in integer cents"
+    },
+    "history": {
+      "description": "Membership history audit trail"
+    }
+  }
+}

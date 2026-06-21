@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 53
+Phase 54
 
 ## Phases
 
@@ -410,6 +410,15 @@ Phase 53
 - [x] Implement project-scoped widget settings, quick actions, conversations, messages, channel connection metadata, and agent takeover state.
 - [x] Add memory and D1 stores, migration, schemas, module metadata, OpenAPI/docs, permissions, events, resources, and exports.
 - [x] Add tests for widget config, sorted quick actions, conversation reuse, message threads, agent takeover guard, and WhatsApp channel secret refs.
+- [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
+- **Status:** complete
+
+### Phase 54: StackSuite Membership Credits Module
+- [x] Inspect booking-system membership/credits schema and workflows.
+- [x] Scaffold `modules/membership-credits` from the standard module layout.
+- [x] Implement membership tiers, active customer memberships, customer credit balances, credit transactions, and membership history.
+- [x] Store money as integer cents, not floating-point values.
+- [x] Add memory and D1 stores, migration, schemas, docs, module metadata, permissions, events, resources, exports, and tests.
 - [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
 - **Status:** complete
 
