@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createMcpToolServer } from "../src/mcp-tool-server.js";
+import { createMcpToolServer, generateMcpServerEntry } from "../src/mcp-tool-server.js";
 import { createToolGateway } from "../src/tool-gateway.js";
 import { generateToolManifest } from "../src/tool-codegen.js";
 
@@ -106,6 +106,26 @@ describe("handleRequest — MCP method routing", () => {
     expect(called.isError).toBe(false);
 
     await expect(server.handleRequest({ method: "resources/list" }, {})).rejects.toThrow(/unsupported/);
+  });
+});
+
+describe("generateMcpServerEntry", () => {
+  it("emits a stdio bootstrap wired to the gateway, with the confirm→gate mapping", () => {
+    const src = generateMcpServerEntry({ id: "studio-booking" });
+    expect(src.startsWith("#!/usr/bin/env node")).toBe(true);
+    expect(src).toContain('from "@modelcontextprotocol/sdk/server/stdio.js"');
+    expect(src).toContain("ListToolsRequestSchema");
+    expect(src).toContain("CallToolRequestSchema");
+    expect(src).toContain("createToolGateway");
+    expect(src).toContain("createMcpToolServer");
+    expect(src).toContain("confirmed: confirm === true"); // the approval-gate mapping
+    expect(src).toContain('name: "studio-booking-tools"');
+    expect(src).toContain('from "./mcp-wiring.js"');
+  });
+  it("honors a custom server name and wiring module path", () => {
+    const src = generateMcpServerEntry({ id: "x", name: "acme-mcp", wiringModule: "./wire.js" });
+    expect(src).toContain('name: "acme-mcp"');
+    expect(src).toContain('from "./wire.js"');
   });
 });
 
