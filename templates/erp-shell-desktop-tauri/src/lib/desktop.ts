@@ -412,7 +412,7 @@ function sampleDraft(job: QueueJob): ExtractionDraft {
       }
     ],
     tables: [],
-    rawText: `${job.name}\nTotal $1,240.00`,
+    rawText: `# ${job.name}\n\n**Vendor:** Acme Supplies\n**Invoice #:** INV-0426\n**Date:** 2026-04-26\n\n| Item | Qty | Amount |\n| --- | --- | --- |\n| Widget A | 2 | $620.00 |\n| Service B | 1 | $620.00 |\n\n**Total:** $1,240.00`,
     summary: "Browser preview extraction draft. Desktop mode reads the document with the local Gemma vision model.",
     confidence: 0.8,
     runtime: "sidecar",

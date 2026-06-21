@@ -1175,6 +1175,9 @@ struct GemmaExtraction {
     fields: Vec<GemmaField>,
     line_items: Vec<GemmaLineItem>,
     summary: Option<String>,
+    // A faithful Markdown transcription of the whole document — the verification
+    // view (read against the image) and the searchable source text.
+    markdown: Option<String>,
 }
 
 #[derive(Debug)]
@@ -1257,6 +1260,7 @@ fn extraction_schema(kind: &str) -> Value {
         );
     }
     properties.insert("summary".to_string(), json!({ "type": "string" }));
+    properties.insert("markdown".to_string(), json!({ "type": "string" }));
 
     let mut required: Vec<Value> = def
         .required
@@ -1264,6 +1268,7 @@ fn extraction_schema(kind: &str) -> Value {
         .map(|field| Value::String((*field).to_string()))
         .collect();
     required.push(Value::String("summary".to_string()));
+    required.push(Value::String("markdown".to_string()));
 
     json!({
         "type": "object",
@@ -1283,12 +1288,16 @@ fn extraction_from_object(value: Value) -> Result<GemmaExtraction, String> {
     let mut fields = Vec::new();
     let mut line_items = Vec::new();
     let mut summary = None;
+    let mut markdown = None;
 
     for (key, val) in map {
         match key.as_str() {
             "fields" => append_legacy_fields(val, &mut fields)?,
             "lineItems" | "line_items" => append_line_items(val, &mut line_items)?,
             "summary" => summary = Some(value_to_plain_string(&val)),
+            // Pulled out here so the full transcript never lands in `fields` as a
+            // giant value via the catch-all arm below.
+            "markdown" | "transcript" => markdown = Some(value_to_plain_string(&val)),
             _ => fields.push(GemmaField {
                 name: key,
                 value: Value::String(value_to_plain_string(&val)),
@@ -1300,6 +1309,7 @@ fn extraction_from_object(value: Value) -> Result<GemmaExtraction, String> {
         fields,
         line_items,
         summary,
+        markdown,
     })
 }
 
@@ -1575,12 +1585,20 @@ fn build_validated_draft(
     let tables = build_line_item_table(&extraction.line_items);
     let confidence = average_confidence(&fields);
 
+    // Prefer the model's Markdown transcription as the stored source text; fall
+    // back to whatever raw_text the caller supplied.
+    let transcript = extraction
+        .markdown
+        .take()
+        .filter(|value| !value.trim().is_empty())
+        .or(raw_text);
+
     ExtractionDraft {
         schema_id: schema_id_for_job(job).to_string(),
         target_type: target_type_for_job(job).to_string(),
         fields,
         tables,
-        raw_text,
+        raw_text: transcript,
         summary: extraction
             .summary
             .filter(|value| !value.trim().is_empty())
@@ -1861,8 +1879,9 @@ fn gemma_image_prompt(job: &QueueJob) -> String {
     };
 
     format!(
-        "Read the attached scanned business document image(s) — a {kind} — and extract every value you can read. \
-Fill each of these fields when it appears in the document: {field_list}. \
+        "Read the attached scanned business document image(s) — a {kind}. \
+First, transcribe the ENTIRE document into `markdown`: a faithful, readable Markdown copy (headings, paragraphs, and any tables as Markdown tables), preserving the wording and order as printed. \
+Then extract every value you can read. Fill each of these fields when it appears in the document: {field_list}. \
 Copy values exactly as printed; use an empty string for any field that is absent, and do not invent values.{line_items_line} \
 Also write a short `summary`.",
         kind = target_type_for_job(job),
@@ -3150,6 +3169,7 @@ mod tests {
                 },
             ],
             summary: Some("Invoice".to_string()),
+            markdown: Some("# Invoice\n\nTotal: $30.00".to_string()),
         };
 
         let draft = build_validated_draft(&job, "gemma4:e4b", None, extraction);
@@ -3166,6 +3186,11 @@ mod tests {
         assert_eq!(total.needs_review, Some(false));
         assert_eq!(draft.tables.len(), 1);
         assert_eq!(draft.tables[0].rows.len(), 2);
+        assert_eq!(
+            draft.raw_text.as_deref(),
+            Some("# Invoice\n\nTotal: $30.00"),
+            "the Markdown transcript becomes the draft's source text"
+        );
         assert!(
             draft.warnings.is_empty(),
             "a clean invoice should produce no validator warnings, got: {:?}",
@@ -3174,10 +3199,31 @@ mod tests {
     }
 
     #[test]
+    fn extraction_pulls_markdown_out_of_fields() {
+        let value = json!({
+            "total": "$30.00",
+            "markdown": "# Invoice\n\n| Item | Amt |\n|---|---|\n| A | $30 |",
+            "summary": "Invoice"
+        });
+        let extraction = extraction_from_object(value).expect("named response parses");
+        assert_eq!(
+            extraction.fields.len(),
+            1,
+            "markdown + summary are not fields"
+        );
+        assert!(extraction
+            .markdown
+            .as_deref()
+            .expect("markdown present")
+            .contains("# Invoice"));
+    }
+
+    #[test]
     fn extraction_from_object_reads_named_fields_and_line_items() {
         let value = json!({
             "documentNumber": "INV-42",
             "total": "$30.00",
+            "markdown": "# Invoice\n\nTotal: $30.00",
             "lineItems": [
                 { "description": "A", "quantity": "1", "amount": "$10.00" },
                 { "description": "B", "quantity": "2", "amount": "$20.00" }
@@ -3193,6 +3239,10 @@ mod tests {
         );
         assert_eq!(extraction.line_items.len(), 2);
         assert_eq!(extraction.summary.as_deref(), Some("Invoice"));
+        assert_eq!(
+            extraction.markdown.as_deref(),
+            Some("# Invoice\n\nTotal: $30.00")
+        );
     }
 
     #[test]
@@ -3234,6 +3284,7 @@ mod tests {
         let extraction = extraction_from_object(json!({
             "documentNumber": "INV-42",
             "total": "$30.00",
+            "markdown": "Invoice transcript",
             "summary": "Invoice"
         }))
         .expect("named response parses");
@@ -3247,6 +3298,7 @@ mod tests {
 
         assert_eq!(due_date.value, Value::String(String::new()));
         assert_eq!(due_date.needs_review, Some(true));
+        assert_eq!(draft.raw_text.as_deref(), Some("Invoice transcript"));
     }
 
     #[test]
@@ -3260,8 +3312,10 @@ mod tests {
             .collect();
         assert!(required.contains(&"total"));
         assert!(required.contains(&"summary"));
+        assert!(required.contains(&"markdown"));
         assert!(invoice["properties"].get("vendor").is_some());
         assert!(invoice["properties"].get("lineItems").is_some());
+        assert!(invoice["properties"].get("markdown").is_some());
 
         let intake = extraction_schema("intake");
         assert!(intake["properties"].get("fullName").is_some());

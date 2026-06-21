@@ -1040,8 +1040,8 @@
             </div>
 
             {#if activeDraft.rawText}
-              <details class="raw-text">
-                <summary>Raw OCR text</summary>
+              <details class="raw-text" open>
+                <summary>Document transcript (Markdown) · check against the source</summary>
                 <pre>{activeDraft.rawText}</pre>
               </details>
             {/if}

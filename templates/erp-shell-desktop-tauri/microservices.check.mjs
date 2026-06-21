@@ -69,6 +69,7 @@ export default function check({ assertFileIncludesAll }) {
       "normalize_with_gemma_images",
       "extraction_schema(&job.kind)",
       "extraction_from_object",
+      "markdown",
       "keep_alive",
       "install_gemma_model",
       "test_gemma_model",
@@ -98,7 +99,14 @@ export default function check({ assertFileIncludesAll }) {
   );
   assertFileIncludesAll(
     "src/App.svelte",
-    ["saveField", "approveDraft", "rejectDraft", "submitApprovedToErp", "field-input"],
+    [
+      "saveField",
+      "approveDraft",
+      "rejectDraft",
+      "submitApprovedToErp",
+      "field-input",
+      "Document transcript (Markdown)"
+    ],
     "Desktop review UI allows editing extracted fields, approving or rejecting drafts, and submitting approved drafts."
   );
   assertFileIncludesAll(
