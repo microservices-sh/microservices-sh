@@ -1,0 +1,9 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Inventory",
+    "version": "0.1.0",
+    "description": "Framework-neutral inventory module surface. Route adapters are intentionally owned by templates."
+  },
+  "paths": {}
+}

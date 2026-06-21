@@ -1,0 +1,12 @@
+# Accounting Core Module
+
+Module ID: accounting-core
+Status: draft
+Purpose: Tenant-scoped double-entry accounting foundation with chart of accounts, fiscal periods, balanced posting, voiding, and trial balance.
+Entrypoint: src/index.ts
+Check: pnpm check:spec
+Build: pnpm build
+Test: pnpm test
+Owned tables: accounting_accounts, accounting_fiscal_periods, accounting_journal_entries, accounting_journal_lines, domain_events
+Primary use cases: createAccount, listAccounts, createFiscalPeriod, updateFiscalPeriodStatus, createJournalEntry, updateJournalEntry, postJournalEntry, voidJournalEntry, getTrialBalance
+Invariants: tenant-scoped records, integer cents, balanced journals, immutable posted entries, closed/locked periods reject posting, posted sourceRef uniqueness, voids create reversal metadata and a posted reversal entry instead of deleting lines.

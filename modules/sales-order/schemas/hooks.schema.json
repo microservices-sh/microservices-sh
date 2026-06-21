@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sales Order Hooks",
+  "type": "object",
+  "properties": {
+    "beforeSalesOrderCreate": {
+      "type": "string"
+    },
+    "beforeSalesOrderConfirm": {
+      "type": "string"
+    },
+    "beforeSalesOrderCancel": {
+      "type": "string"
+    },
+    "beforeSalesOrderInvoice": {
+      "type": "string"
+    },
+    "afterSalesOrderUpdated": {
+      "type": "string"
+    }
+  }
+}

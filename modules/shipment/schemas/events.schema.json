@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Shipment Events",
+  "type": "object",
+  "enum": [
+    "shipment.created",
+    "shipment.completed",
+    "shipment.cancelled"
+  ]
+}

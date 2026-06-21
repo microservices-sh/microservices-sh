@@ -1,0 +1,162 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "accounting-core",
+  "name": "Accounting Core",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Tenant-scoped double-entry accounting foundation with chart of accounts, fiscal periods, balanced posting, voiding, and trial balance.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": [
+      "hono-later",
+      "sveltekit-later"
+    ]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "accounting_accounts",
+        "accounting_fiscal_periods",
+        "accounting_journal_entries",
+        "accounting_journal_lines",
+        "domain_events"
+      ]
+    }
+  ],
+  "permissions": [
+    "accounting-core.read",
+    "accounting-core.write",
+    "accounting-core.admin",
+    "accounting-core.extend",
+    "accounting-core.observe"
+  ],
+  "connections": {
+    "requires": [],
+    "optional": [
+      "auth",
+      "audit-log"
+    ],
+    "rpc": {
+      "exposes": [],
+      "calls": []
+    },
+    "events": {
+      "emits": [
+        "accounting-core.account_created",
+        "accounting-core.fiscal_period_created",
+        "accounting-core.fiscal_period_status_changed",
+        "accounting-core.journal_entry_created",
+        "accounting-core.journal_entry_updated",
+        "accounting-core.journal_entry_posted",
+        "accounting-core.journal_entry_voided"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeAccountCreate": {
+        "kind": "filter",
+        "scope": "accounting-core.extend"
+      },
+      "beforeFiscalPeriodCreate": {
+        "kind": "filter",
+        "scope": "accounting-core.extend"
+      },
+      "beforeJournalEntryCreate": {
+        "kind": "filter",
+        "scope": "accounting-core.extend"
+      },
+      "beforeJournalEntryPost": {
+        "kind": "filter",
+        "scope": "accounting-core.extend"
+      },
+      "beforeJournalEntryVoid": {
+        "kind": "filter",
+        "scope": "accounting-core.extend"
+      },
+      "afterJournalEntryChanged": {
+        "kind": "observer",
+        "scope": "accounting-core.observe"
+      }
+    },
+    "provides": {
+      "hooks": []
+    }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": [
+      "config",
+      "hooks",
+      "overlay",
+      "fork"
+    ]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [
+        {
+          "label": "Accounting",
+          "path": "/accounting",
+          "permission": "accounting-core.read",
+          "icon": "Landmark"
+        }
+      ],
+      "referenceUi": [
+        "reference-ui/admin/README.md"
+      ]
+    },
+    "visitor": {
+      "applicable": false,
+      "referenceUi": [
+        "reference-ui/visitor/README.md"
+      ]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": [
+        "accounting-core.listAccounts",
+        "accounting-core.createAccount",
+        "accounting-core.createFiscalPeriod",
+        "accounting-core.createJournalEntry",
+        "accounting-core.postJournalEntry",
+        "accounting-core.voidJournalEntry",
+        "accounting-core.getTrialBalance"
+      ],
+      "skillPaths": [
+        "skills/accounting-core-operator/SKILL.md"
+      ],
+      "approvalRequiredFor": [
+        "accounting-core.createAccount",
+        "accounting-core.createFiscalPeriod",
+        "accounting-core.postJournalEntry",
+        "accounting-core.voidJournalEntry"
+      ]
+    }
+  },
+  "skills": [
+    {
+      "id": "accounting-core-operator",
+      "path": "skills/accounting-core-operator/SKILL.md",
+      "recommendedFor": [
+        "admin-operations",
+        "agentic-tools"
+      ]
+    }
+  ],
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": [
+      "migrations",
+      "pii-fields",
+      "production-deploy",
+      "external-side-effects"
+    ]
+  }
+}

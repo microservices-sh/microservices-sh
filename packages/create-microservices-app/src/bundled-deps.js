@@ -9,6 +9,7 @@
 export const BUNDLED_MODULES = [
   "admin-shell",
   "ads-manager",
+  "accounting-core",
   "audit-log",
   "auth",
   "billing-subscriptions",
@@ -22,13 +23,17 @@ export const BUNDLED_MODULES = [
   "identity",
   "image-generation",
   "invoice",
+  "inventory",
   "jobs-workflows",
   "marketing-research",
   "notifications-inapp",
   "operator-work",
   "org-team-rbac",
   "payment",
+  "product-catalog",
   "research",
+  "sales-order",
+  "shipment",
   "support-ticket",
   "webhook-delivery",
 ];
@@ -70,7 +75,7 @@ export const REPO_TEMPLATE_MODULES = {
   "saas-growth-sveltekit": ["auth", "identity", "email", "gateway", "org-team-rbac", "billing-subscriptions", "admin-shell", "audit-log", "payment", "image-generation", "ads-manager", "marketing-research"],
   "client-portal-sveltekit": ["auth", "identity", "email", "gateway", "customer", "invoice", "file-media", "audit-log"],
   "dot-ai-os": ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "invoice", "file-media", "jobs-workflows", "notifications-inapp", "operator-work", "support-ticket"],
-  "erp-shell-sveltekit": ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "invoice", "payment", "billing-subscriptions", "image-generation", "ads-manager", "forms-intake", "booking", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket", "webhook-delivery"],
+  "erp-shell-sveltekit": ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "product-catalog", "inventory", "sales-order", "shipment", "accounting-core", "invoice", "payment", "billing-subscriptions", "image-generation", "ads-manager", "forms-intake", "booking", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket", "webhook-delivery"],
 };
 
 export const REPO_TEMPLATE_PACKAGES = {

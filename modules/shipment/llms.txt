@@ -1,0 +1,11 @@
+# Shipment Module
+
+Module ID: shipment
+Status: draft
+Purpose: Shipment batches and fulfillment workflow with idempotent completion and shipment events.
+Entrypoint: src/index.ts
+Check: pnpm check:spec
+Build: pnpm build
+Owned tables: shipment_batches, shipment_items, domain_events
+Primary use cases: createShipment, getShipment, listShipments, completeShipment, cancelShipment
+Invariants: external references are unique per tenant/source, completion references are unique per tenant, completed shipments replay safely, completed shipments cannot be cancelled, cancelled shipments cannot be completed.

@@ -1,0 +1,11 @@
+# Product Catalog Module
+
+Module ID: product-catalog
+Status: draft
+Purpose: Product and category catalog with SKU uniqueness, external mappings, combo products, and catalog events.
+Entrypoint: src/index.ts
+Check: pnpm check:spec
+Build: pnpm build
+Owned tables: catalog_categories, products, product_category_assignments, combo_products, domain_events
+Primary use cases: createCategory, listCategories, createProduct, updateProduct, getProduct, listProducts, expandProductComponents
+Invariants: SKU is unique per tenant, external references are unique per tenant/source, money is integer cents, simple products cannot own combo components, combo components cannot reference missing products or themselves.

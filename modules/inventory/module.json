@@ -1,0 +1,143 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "inventory",
+  "name": "Inventory",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Tenant-scoped inventory ledger with stock movements, reservations, deductions, reconciliation, and derived balances.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": [
+      "hono-later",
+      "sveltekit-later"
+    ]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "inventory_stock_movements",
+        "inventory_events"
+      ]
+    }
+  ],
+  "permissions": [
+    "inventory.read",
+    "inventory.write",
+    "inventory.admin",
+    "inventory.extend",
+    "inventory.observe"
+  ],
+  "connections": {
+    "requires": [
+      "product-catalog"
+    ],
+    "optional": [
+      "auth",
+      "audit-log"
+    ],
+    "rpc": {
+      "exposes": [],
+      "calls": [
+        "product-catalog.getProduct"
+      ]
+    },
+    "events": {
+      "emits": [
+        "inventory.stock_received",
+        "inventory.stock_reserved",
+        "inventory.stock_released",
+        "inventory.stock_deducted",
+        "inventory.stock_reconciled"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeStockIn": {
+        "kind": "filter",
+        "scope": "inventory.extend"
+      },
+      "beforeReservationCreate": {
+        "kind": "filter",
+        "scope": "inventory.extend"
+      },
+      "beforeReleaseCreate": {
+        "kind": "filter",
+        "scope": "inventory.extend"
+      },
+      "beforeDeductionCreate": {
+        "kind": "filter",
+        "scope": "inventory.extend"
+      },
+      "beforeReconciliation": {
+        "kind": "filter",
+        "scope": "inventory.extend"
+      },
+      "afterStockMovementRecorded": {
+        "kind": "observer",
+        "scope": "inventory.observe"
+      }
+    },
+    "provides": {
+      "hooks": []
+    }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": [
+      "config",
+      "hooks",
+      "overlay",
+      "fork"
+    ]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [
+        {
+          "label": "Inventory",
+          "path": "/inventory",
+          "permission": "inventory.read",
+          "icon": "Warehouse"
+        }
+      ]
+    },
+    "visitor": {
+      "applicable": false
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": [
+        "inventory.getStockBalance",
+        "inventory.listStockMovements",
+        "inventory.stockIn",
+        "inventory.reserveStock",
+        "inventory.releaseReservation",
+        "inventory.deductStock",
+        "inventory.reconcileStock"
+      ],
+      "approvalRequiredFor": [
+        "inventory.stockIn",
+        "inventory.reserveStock",
+        "inventory.releaseReservation",
+        "inventory.deductStock",
+        "inventory.reconcileStock"
+      ]
+    }
+  },
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": [
+      "migrations",
+      "production-deploy",
+      "stock-adjustments",
+      "external-side-effects"
+    ]
+  }
+}

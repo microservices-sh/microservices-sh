@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Accounting Core Hooks",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "beforeAccountCreate": {
+      "type": "string"
+    },
+    "beforeFiscalPeriodCreate": {
+      "type": "string"
+    },
+    "beforeJournalEntryCreate": {
+      "type": "string"
+    },
+    "beforeJournalEntryPost": {
+      "type": "string"
+    },
+    "beforeJournalEntryVoid": {
+      "type": "string"
+    },
+    "afterJournalEntryChanged": {
+      "type": "string"
+    }
+  }
+}

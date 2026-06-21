@@ -33,6 +33,25 @@ importers:
         specifier: ^3.2.4
         version: 3.2.6(@types/debug@4.1.13)(@types/node@25.9.3)(lightningcss@1.32.0)
 
+  modules/accounting-core:
+    dependencies:
+      '@microservices-sh/connection-contract':
+        specifier: workspace:*
+        version: link:../../packages/connection-contract
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250109.0
+        version: 4.20260613.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@25.9.3)(lightningcss@1.32.0)
+
   modules/admin-shell:
     dependencies:
       '@microservices-sh/connection-contract':
@@ -427,6 +446,22 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  modules/inventory:
+    dependencies:
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250109.0
+        version: 4.20260613.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@25.9.3)(lightningcss@1.32.0)
+
   modules/invoice:
     dependencies:
       '@microservices-sh/connection-contract':
@@ -597,6 +632,25 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  modules/product-catalog:
+    dependencies:
+      '@microservices-sh/connection-contract':
+        specifier: workspace:*
+        version: link:../../packages/connection-contract
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250109.0
+        version: 4.20260613.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@25.9.3)(lightningcss@1.32.0)
+
   modules/research:
     dependencies:
       '@microservices-sh/ops-token':
@@ -618,6 +672,44 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+
+  modules/sales-order:
+    dependencies:
+      '@microservices-sh/connection-contract':
+        specifier: workspace:*
+        version: link:../../packages/connection-contract
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250109.0
+        version: 4.20260613.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@25.9.3)(lightningcss@1.32.0)
+
+  modules/shipment:
+    dependencies:
+      '@microservices-sh/connection-contract':
+        specifier: workspace:*
+        version: link:../../packages/connection-contract
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250109.0
+        version: 4.20260613.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@25.9.3)(lightningcss@1.32.0)
 
   modules/support-ticket:
     dependencies:
@@ -1075,6 +1167,9 @@ importers:
 
   templates/erp-shell-sveltekit:
     dependencies:
+      '@microservices-sh/accounting-core':
+        specifier: workspace:*
+        version: link:../../modules/accounting-core
       '@microservices-sh/admin-shell':
         specifier: workspace:*
         version: link:../../modules/admin-shell
@@ -1114,6 +1209,9 @@ importers:
       '@microservices-sh/image-generation':
         specifier: workspace:*
         version: link:../../modules/image-generation
+      '@microservices-sh/inventory':
+        specifier: workspace:*
+        version: link:../../modules/inventory
       '@microservices-sh/invoice':
         specifier: workspace:*
         version: link:../../modules/invoice
@@ -1129,6 +1227,15 @@ importers:
       '@microservices-sh/payment':
         specifier: workspace:*
         version: link:../../modules/payment
+      '@microservices-sh/product-catalog':
+        specifier: workspace:*
+        version: link:../../modules/product-catalog
+      '@microservices-sh/sales-order':
+        specifier: workspace:*
+        version: link:../../modules/sales-order
+      '@microservices-sh/shipment':
+        specifier: workspace:*
+        version: link:../../modules/shipment
       '@microservices-sh/support-ticket':
         specifier: workspace:*
         version: link:../../modules/support-ticket

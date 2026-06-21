@@ -34,7 +34,12 @@
       "jobs-workflows",
       "notifications-inapp",
       "email",
-      "webhook-delivery"
+      "webhook-delivery",
+      "product-catalog",
+      "inventory",
+      "sales-order",
+      "shipment",
+      "accounting-core"
     ]
   },
   "slots": {
@@ -85,6 +90,41 @@
       "activeModule": "invoice",
       "allowedModules": [
         "invoice"
+      ],
+      "approvalRisk": "medium"
+    },
+    "catalog": {
+      "activeModule": "product-catalog",
+      "allowedModules": [
+        "product-catalog"
+      ],
+      "approvalRisk": "medium"
+    },
+    "inventory": {
+      "activeModule": "inventory",
+      "allowedModules": [
+        "inventory"
+      ],
+      "approvalRisk": "medium"
+    },
+    "salesOrders": {
+      "activeModule": "sales-order",
+      "allowedModules": [
+        "sales-order"
+      ],
+      "approvalRisk": "medium"
+    },
+    "fulfillment": {
+      "activeModule": "shipment",
+      "allowedModules": [
+        "shipment"
+      ],
+      "approvalRisk": "medium"
+    },
+    "accounting": {
+      "activeModule": "accounting-core",
+      "allowedModules": [
+        "accounting-core"
       ],
       "approvalRisk": "medium"
     },

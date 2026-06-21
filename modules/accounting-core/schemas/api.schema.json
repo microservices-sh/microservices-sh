@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Accounting Core API",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "accountTypes": {
+      "type": "array",
+      "items": {
+        "enum": ["asset", "liability", "equity", "revenue", "expense"]
+      }
+    },
+    "journalEntryStatuses": {
+      "type": "array",
+      "items": {
+        "enum": ["draft", "posted", "void"]
+      }
+    },
+    "fiscalPeriodStatuses": {
+      "type": "array",
+      "items": {
+        "enum": ["open", "closed", "locked"]
+      }
+    }
+  }
+}

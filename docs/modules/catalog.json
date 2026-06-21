@@ -208,6 +208,296 @@
       ]
     },
     {
+      "id": "product-catalog",
+      "name": "Product Catalog",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/products",
+      "docPath": "docs/modules/product-catalog.md",
+      "summary": "Product and category catalog with tenant-scoped SKU uniqueness, external source mappings, combo products, and catalog events.",
+      "requires": [],
+      "permissions": [
+        "product-catalog.read",
+        "product-catalog.write",
+        "product-catalog.admin",
+        "product-catalog.extend",
+        "product-catalog.observe"
+      ],
+      "rpc": [
+        {
+          "method": "listProducts",
+          "scope": "product-catalog.read",
+          "public": false
+        },
+        {
+          "method": "getProduct",
+          "scope": "product-catalog.read",
+          "public": false
+        },
+        {
+          "method": "createProduct",
+          "scope": "product-catalog.write",
+          "public": false
+        },
+        {
+          "method": "updateProduct",
+          "scope": "product-catalog.write",
+          "public": false
+        },
+        {
+          "method": "expandProductComponents",
+          "scope": "product-catalog.read",
+          "public": false
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeCategoryCreate",
+        "beforeProductCreate",
+        "afterCategoryUpdated",
+        "afterProductUpdated"
+      ],
+      "events": [
+        "product-catalog.category_created",
+        "product-catalog.category_updated",
+        "product-catalog.product_created",
+        "product-catalog.product_updated",
+        "product-catalog.combo_updated"
+      ]
+    },
+    {
+      "id": "inventory",
+      "name": "Inventory",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/inventory",
+      "docPath": "docs/modules/inventory.md",
+      "summary": "Tenant-scoped inventory ledger with stock movements, reservations, deductions, reconciliation, and derived balances.",
+      "requires": [
+        "product-catalog"
+      ],
+      "permissions": [
+        "inventory.read",
+        "inventory.write",
+        "inventory.admin",
+        "inventory.extend",
+        "inventory.observe"
+      ],
+      "rpc": [
+        {
+          "method": "getStockBalance",
+          "scope": "inventory.read",
+          "public": false
+        },
+        {
+          "method": "reserveStock",
+          "scope": "inventory.write",
+          "public": false
+        },
+        {
+          "method": "deductStock",
+          "scope": "inventory.write",
+          "public": false
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeStockIn",
+        "beforeReservationCreate",
+        "beforeReleaseCreate",
+        "beforeDeductionCreate",
+        "beforeReconciliation",
+        "afterStockMovementRecorded"
+      ],
+      "events": [
+        "inventory.stock_received",
+        "inventory.stock_reserved",
+        "inventory.stock_released",
+        "inventory.stock_deducted",
+        "inventory.stock_reconciled"
+      ]
+    },
+    {
+      "id": "sales-order",
+      "name": "Sales Order",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/sales-orders",
+      "docPath": "docs/modules/sales-order.md",
+      "summary": "Tenant-scoped sales orders with line items, external references, status transitions, reservation handoff, and invoice draft handoff.",
+      "requires": [],
+      "permissions": [
+        "sales-order.read",
+        "sales-order.write",
+        "sales-order.admin",
+        "sales-order.extend",
+        "sales-order.observe"
+      ],
+      "rpc": [
+        {
+          "method": "listOrders",
+          "scope": "sales-order.read",
+          "public": false
+        },
+        {
+          "method": "createDraftOrder",
+          "scope": "sales-order.write",
+          "public": false
+        },
+        {
+          "method": "confirmOrder",
+          "scope": "sales-order.write",
+          "public": false
+        },
+        {
+          "method": "markOrderInvoiced",
+          "scope": "sales-order.write",
+          "public": false
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeSalesOrderCreate",
+        "beforeSalesOrderConfirm",
+        "beforeSalesOrderCancel",
+        "beforeSalesOrderInvoice",
+        "afterSalesOrderUpdated"
+      ],
+      "events": [
+        "sales-order.order_created",
+        "sales-order.order_confirmed",
+        "sales-order.order_cancelled",
+        "sales-order.order_invoiced"
+      ]
+    },
+    {
+      "id": "shipment",
+      "name": "Shipment",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/shipments",
+      "docPath": "docs/modules/shipment.md",
+      "summary": "Shipment batches and fulfillment workflow with idempotent completion and shipment events.",
+      "requires": [],
+      "permissions": [
+        "shipment.read",
+        "shipment.write",
+        "shipment.admin",
+        "shipment.extend",
+        "shipment.observe"
+      ],
+      "rpc": [
+        {
+          "method": "listShipments",
+          "scope": "shipment.read",
+          "public": false
+        },
+        {
+          "method": "createShipment",
+          "scope": "shipment.write",
+          "public": false
+        },
+        {
+          "method": "completeShipment",
+          "scope": "shipment.write",
+          "public": false
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeShipmentCreate",
+        "beforeShipmentComplete",
+        "afterShipmentUpdated"
+      ],
+      "events": [
+        "shipment.created",
+        "shipment.completed",
+        "shipment.cancelled"
+      ]
+    },
+    {
+      "id": "accounting-core",
+      "name": "Accounting Core",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/accounting",
+      "docPath": "docs/modules/accounting-core.md",
+      "summary": "Tenant-scoped double-entry accounting foundation with chart of accounts, fiscal periods, balanced posting, voiding, and trial balance.",
+      "requires": [],
+      "permissions": [
+        "accounting-core.read",
+        "accounting-core.write",
+        "accounting-core.admin",
+        "accounting-core.extend",
+        "accounting-core.observe"
+      ],
+      "rpc": [
+        {
+          "method": "listAccounts",
+          "scope": "accounting-core.read",
+          "public": false
+        },
+        {
+          "method": "createJournalEntry",
+          "scope": "accounting-core.write",
+          "public": false
+        },
+        {
+          "method": "postJournalEntry",
+          "scope": "accounting-core.write",
+          "public": false
+        },
+        {
+          "method": "getTrialBalance",
+          "scope": "accounting-core.read",
+          "public": false
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeAccountCreate",
+        "beforeFiscalPeriodCreate",
+        "beforeJournalEntryCreate",
+        "beforeJournalEntryPost",
+        "beforeJournalEntryVoid",
+        "afterJournalEntryChanged"
+      ],
+      "events": [
+        "accounting-core.account_created",
+        "accounting-core.fiscal_period_created",
+        "accounting-core.fiscal_period_status_changed",
+        "accounting-core.journal_entry_created",
+        "accounting-core.journal_entry_updated",
+        "accounting-core.journal_entry_posted",
+        "accounting-core.journal_entry_voided"
+      ]
+    },
+    {
       "id": "booking",
       "name": "Booking",
       "version": "0.1.0",

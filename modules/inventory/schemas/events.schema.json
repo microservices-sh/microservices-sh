@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Inventory Events",
+  "type": "string",
+  "enum": [
+    "inventory.stock_received",
+    "inventory.stock_reserved",
+    "inventory.stock_released",
+    "inventory.stock_deducted",
+    "inventory.stock_reconciled"
+  ]
+}

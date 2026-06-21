@@ -139,6 +139,104 @@
       }
     },
     {
+      "id": "product-catalog",
+      "version": "0.1.0",
+      "source": "registry:product-catalog@0.1.0",
+      "checksum": "sha256:preview-product-catalog-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/products",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["product-catalog.read", "product-catalog.write", "product-catalog.admin", "product-catalog.extend", "product-catalog.observe"],
+        "rpc": [
+          { "method": "listProducts", "scope": "product-catalog.read", "public": false },
+          { "method": "getProduct", "scope": "product-catalog.read", "public": false },
+          { "method": "createProduct", "scope": "product-catalog.write", "public": false },
+          { "method": "updateProduct", "scope": "product-catalog.write", "public": false },
+          { "method": "listCategories", "scope": "product-catalog.read", "public": false },
+          { "method": "createCategory", "scope": "product-catalog.write", "public": false },
+          { "method": "expandProductComponents", "scope": "product-catalog.read", "public": false }
+        ],
+        "hooks": ["beforeCategoryCreate", "beforeProductCreate", "afterCategoryUpdated", "afterProductUpdated"],
+        "events": ["product-catalog.category_created", "product-catalog.category_updated", "product-catalog.product_created", "product-catalog.product_updated", "product-catalog.combo_updated"],
+        "requires": []
+      }
+    },
+    {
+      "id": "inventory",
+      "version": "0.1.0",
+      "source": "registry:inventory@0.1.0",
+      "checksum": "sha256:preview-inventory-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/inventory",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["inventory.read", "inventory.write", "inventory.admin", "inventory.extend", "inventory.observe"],
+        "rpc": [],
+        "hooks": ["beforeStockIn", "beforeReservationCreate", "beforeReleaseCreate", "beforeDeductionCreate", "beforeReconciliation", "afterStockMovementRecorded"],
+        "events": ["inventory.stock_received", "inventory.stock_reserved", "inventory.stock_released", "inventory.stock_deducted", "inventory.stock_reconciled"],
+        "requires": ["product-catalog"]
+      }
+    },
+    {
+      "id": "sales-order",
+      "version": "0.1.0",
+      "source": "registry:sales-order@0.1.0",
+      "checksum": "sha256:preview-sales-order-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/sales-orders",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["sales-order.read", "sales-order.write", "sales-order.admin", "sales-order.extend", "sales-order.observe"],
+        "rpc": [],
+        "hooks": ["beforeSalesOrderCreate", "beforeSalesOrderConfirm", "beforeSalesOrderCancel", "beforeSalesOrderInvoice", "afterSalesOrderUpdated"],
+        "events": ["sales-order.order_created", "sales-order.order_confirmed", "sales-order.order_cancelled", "sales-order.order_invoiced"],
+        "requires": []
+      }
+    },
+    {
+      "id": "shipment",
+      "version": "0.1.0",
+      "source": "registry:shipment@0.1.0",
+      "checksum": "sha256:preview-shipment-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/shipments",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["shipment.read", "shipment.write", "shipment.admin", "shipment.extend", "shipment.observe"],
+        "rpc": [],
+        "hooks": ["beforeShipmentCreate", "beforeShipmentComplete", "afterShipmentUpdated"],
+        "events": ["shipment.created", "shipment.completed", "shipment.cancelled"],
+        "requires": []
+      }
+    },
+    {
+      "id": "accounting-core",
+      "version": "0.1.0",
+      "source": "registry:accounting-core@0.1.0",
+      "checksum": "sha256:preview-accounting-core-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/accounting",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["accounting-core.read", "accounting-core.write", "accounting-core.admin", "accounting-core.extend", "accounting-core.observe"],
+        "rpc": [],
+        "hooks": ["beforeAccountCreate", "beforeFiscalPeriodCreate", "beforeJournalEntryCreate", "beforeJournalEntryPost", "beforeJournalEntryVoid", "afterJournalEntryChanged"],
+        "events": ["accounting-core.account_created", "accounting-core.fiscal_period_created", "accounting-core.fiscal_period_status_changed", "accounting-core.journal_entry_created", "accounting-core.journal_entry_updated", "accounting-core.journal_entry_posted", "accounting-core.journal_entry_voided"],
+        "requires": []
+      }
+    },
+    {
       "id": "invoice",
       "version": "0.1.0",
       "source": "registry:invoice@0.1.0",

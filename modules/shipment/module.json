@@ -1,0 +1,141 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "shipment",
+  "name": "Shipment",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Shipment batches and fulfillment workflow with idempotent completion and shipment events.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": [
+      "hono-later",
+      "sveltekit-later"
+    ]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "shipment_batches",
+        "shipment_items",
+        "domain_events"
+      ]
+    }
+  ],
+  "permissions": [
+    "shipment.read",
+    "shipment.write",
+    "shipment.admin",
+    "shipment.extend",
+    "shipment.observe"
+  ],
+  "connections": {
+    "requires": [],
+    "optional": [
+      "auth",
+      "audit-log"
+    ],
+    "rpc": {
+      "exposes": [],
+      "calls": []
+    },
+    "events": {
+      "emits": [
+        "shipment.created",
+        "shipment.completed",
+        "shipment.cancelled"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeShipmentCreate": {
+        "kind": "filter",
+        "scope": "shipment.extend"
+      },
+      "beforeShipmentComplete": {
+        "kind": "filter",
+        "scope": "shipment.extend"
+      },
+      "afterShipmentUpdated": {
+        "kind": "observer",
+        "scope": "shipment.observe"
+      }
+    },
+    "provides": {
+      "hooks": []
+    }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": [
+      "config",
+      "hooks",
+      "overlay",
+      "fork"
+    ]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [
+        {
+          "label": "Shipments",
+          "path": "/shipments",
+          "permission": "shipment.read",
+          "icon": "Truck"
+        }
+      ],
+      "referenceUi": [
+        "reference-ui/admin/README.md"
+      ]
+    },
+    "visitor": {
+      "applicable": false,
+      "referenceUi": [
+        "reference-ui/visitor/README.md"
+      ]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": [
+        "shipment.listShipments",
+        "shipment.getShipment",
+        "shipment.createShipment",
+        "shipment.completeShipment",
+        "shipment.cancelShipment"
+      ],
+      "skillPaths": [
+        "skills/shipment-operator/SKILL.md"
+      ],
+      "approvalRequiredFor": [
+        "shipment.createShipment",
+        "shipment.completeShipment",
+        "shipment.cancelShipment"
+      ]
+    }
+  },
+  "skills": [
+    {
+      "id": "shipment-operator",
+      "path": "skills/shipment-operator/SKILL.md",
+      "recommendedFor": [
+        "admin-operations",
+        "agentic-tools"
+      ]
+    }
+  ],
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": [
+      "migrations",
+      "pii-fields",
+      "production-deploy",
+      "external-side-effects"
+    ]
+  }
+}

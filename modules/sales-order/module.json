@@ -1,0 +1,157 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "sales-order",
+  "name": "Sales Order",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Tenant-scoped sales orders with line items, external references, status transitions, reservation handoff, and invoice draft handoff.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": [
+      "hono-later",
+      "sveltekit-later"
+    ]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "sales_orders",
+        "sales_order_line_items",
+        "domain_events"
+      ]
+    }
+  ],
+  "permissions": [
+    "sales-order.read",
+    "sales-order.write",
+    "sales-order.admin",
+    "sales-order.extend",
+    "sales-order.observe"
+  ],
+  "connections": {
+    "requires": [],
+    "optional": [
+      "auth",
+      "audit-log",
+      "inventory",
+      "invoice"
+    ],
+    "rpc": {
+      "exposes": [],
+      "calls": [
+        "inventory.reserveSalesOrder",
+        "invoice.createDraftFromSalesOrder"
+      ]
+    },
+    "events": {
+      "emits": [
+        "sales-order.order_created",
+        "sales-order.order_confirmed",
+        "sales-order.order_cancelled",
+        "sales-order.order_invoiced"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeSalesOrderCreate": {
+        "kind": "filter",
+        "scope": "sales-order.extend"
+      },
+      "beforeSalesOrderConfirm": {
+        "kind": "filter",
+        "scope": "sales-order.extend"
+      },
+      "beforeSalesOrderCancel": {
+        "kind": "filter",
+        "scope": "sales-order.extend"
+      },
+      "beforeSalesOrderInvoice": {
+        "kind": "filter",
+        "scope": "sales-order.extend"
+      },
+      "afterSalesOrderUpdated": {
+        "kind": "observer",
+        "scope": "sales-order.observe"
+      }
+    },
+    "provides": {
+      "hooks": []
+    }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": [
+      "config",
+      "hooks",
+      "overlay",
+      "fork"
+    ]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [
+        {
+          "label": "Sales Orders",
+          "path": "/sales-orders",
+          "permission": "sales-order.read",
+          "icon": "ShoppingCart"
+        }
+      ],
+      "referenceUi": [
+        "reference-ui/admin/README.md"
+      ]
+    },
+    "visitor": {
+      "applicable": false,
+      "referenceUi": [
+        "reference-ui/visitor/README.md"
+      ]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": [
+        "sales-order.listOrders",
+        "sales-order.getOrder",
+        "sales-order.createDraftOrder",
+        "sales-order.confirmOrder",
+        "sales-order.cancelOrder",
+        "sales-order.markOrderInvoiced"
+      ],
+      "skillPaths": [
+        "skills/sales-order-operator/SKILL.md"
+      ],
+      "approvalRequiredFor": [
+        "sales-order.createDraftOrder",
+        "sales-order.confirmOrder",
+        "sales-order.cancelOrder",
+        "sales-order.markOrderInvoiced"
+      ]
+    }
+  },
+  "skills": [
+    {
+      "id": "sales-order-operator",
+      "path": "skills/sales-order-operator/SKILL.md",
+      "recommendedFor": [
+        "admin-operations",
+        "agentic-tools"
+      ]
+    }
+  ],
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": [
+      "migrations",
+      "pii-fields",
+      "production-deploy",
+      "external-side-effects"
+    ]
+  }
+}

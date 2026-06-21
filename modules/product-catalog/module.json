@@ -1,0 +1,151 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "product-catalog",
+  "name": "Product Catalog",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Product and category catalog with SKU uniqueness, external mappings, combo products, and catalog events.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": [
+      "hono-later",
+      "sveltekit-later"
+    ]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "catalog_categories",
+        "products",
+        "product_category_assignments",
+        "combo_products",
+        "domain_events"
+      ]
+    }
+  ],
+  "permissions": [
+    "product-catalog.read",
+    "product-catalog.write",
+    "product-catalog.admin",
+    "product-catalog.extend",
+    "product-catalog.observe"
+  ],
+  "connections": {
+    "requires": [],
+    "optional": [
+      "auth",
+      "audit-log"
+    ],
+    "rpc": {
+      "exposes": [],
+      "calls": []
+    },
+    "events": {
+      "emits": [
+        "product-catalog.category_created",
+        "product-catalog.category_updated",
+        "product-catalog.product_created",
+        "product-catalog.product_updated",
+        "product-catalog.combo_updated"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeCategoryCreate": {
+        "kind": "filter",
+        "scope": "product-catalog.extend"
+      },
+      "beforeProductCreate": {
+        "kind": "filter",
+        "scope": "product-catalog.extend"
+      },
+      "afterCategoryUpdated": {
+        "kind": "observer",
+        "scope": "product-catalog.observe"
+      },
+      "afterProductUpdated": {
+        "kind": "observer",
+        "scope": "product-catalog.observe"
+      }
+    },
+    "provides": {
+      "hooks": []
+    }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": [
+      "config",
+      "hooks",
+      "overlay",
+      "fork"
+    ]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [
+        {
+          "label": "Products",
+          "path": "/products",
+          "permission": "product-catalog.read",
+          "icon": "Package"
+        }
+      ],
+      "referenceUi": [
+        "reference-ui/admin/README.md"
+      ]
+    },
+    "visitor": {
+      "applicable": false,
+      "referenceUi": [
+        "reference-ui/visitor/README.md"
+      ]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": [
+        "product-catalog.listProducts",
+        "product-catalog.getProduct",
+        "product-catalog.createProduct",
+        "product-catalog.updateProduct",
+        "product-catalog.listCategories",
+        "product-catalog.createCategory",
+        "product-catalog.expandProductComponents"
+      ],
+      "skillPaths": [
+        "skills/product-catalog-operator/SKILL.md"
+      ],
+      "approvalRequiredFor": [
+        "product-catalog.createProduct",
+        "product-catalog.updateProduct",
+        "product-catalog.createCategory"
+      ]
+    }
+  },
+  "skills": [
+    {
+      "id": "product-catalog-operator",
+      "path": "skills/product-catalog-operator/SKILL.md",
+      "recommendedFor": [
+        "admin-operations",
+        "agentic-tools"
+      ]
+    }
+  ],
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": [
+      "migrations",
+      "pii-fields",
+      "production-deploy",
+      "external-side-effects"
+    ]
+  }
+}
