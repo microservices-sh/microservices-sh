@@ -508,6 +508,49 @@
       }
     },
     {
+      "id": "estimate-quote",
+      "version": "0.1.0",
+      "source": "registry:estimate-quote@0.1.0",
+      "checksum": "sha256:preview-estimate-quote-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/quotes",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "estimate-quote.read",
+          "estimate-quote.write",
+          "estimate-quote.admin",
+          "estimate-quote.extend",
+          "estimate-quote.observe"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeEstimateQuoteCreate",
+          "afterEstimateQuoteUpdated"
+        ],
+        "events": [
+          "estimate-quote.created",
+          "estimate-quote.updated",
+          "estimate-quote.sent",
+          "estimate-quote.viewed",
+          "estimate-quote.accepted",
+          "estimate-quote.declined",
+          "estimate-quote.expired",
+          "estimate-quote.converted",
+          "estimate-quote.voided"
+        ],
+        "requires": [
+          "customer"
+        ]
+      }
+    },
+    {
       "id": "invoice",
       "version": "0.1.0",
       "source": "registry:invoice@0.1.0",

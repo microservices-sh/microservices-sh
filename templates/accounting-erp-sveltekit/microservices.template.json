@@ -5,7 +5,7 @@
   "status": "ready",
   "displayName": "Accounting ERP SvelteKit",
   "category": "accounting",
-  "summary": "Accounting ERP template for Cloudflare SvelteKit: chart of accounts, fiscal periods, journals, payables, receivables, bank reconciliation, invoices, payments, files, webhooks, and jobs in a lock-driven operator shell.",
+  "summary": "Accounting ERP template for Cloudflare SvelteKit: chart of accounts, fiscal periods, journals, payables, receivables, bank reconciliation, quotes, invoices, payments, files, webhooks, and jobs in a lock-driven operator shell.",
   "runtime": {
     "language": "typescript",
     "framework": "sveltekit",
@@ -27,6 +27,7 @@
       "audit-log",
       "customer",
       "support-ticket",
+      "estimate-quote",
       "invoice",
       "payment",
       "file-media",
@@ -91,6 +92,13 @@
       "activeModule": "invoice",
       "allowedModules": [
         "invoice"
+      ],
+      "approvalRisk": "medium"
+    },
+    "quotes": {
+      "activeModule": "estimate-quote",
+      "allowedModules": [
+        "estimate-quote"
       ],
       "approvalRisk": "medium"
     },

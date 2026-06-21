@@ -4,6 +4,7 @@ export const enabledModules: string[] | null = [
   "gateway",
   "customer",
   "support-ticket",
+  "estimate-quote",
   "invoice",
   "payment",
   "file-media",

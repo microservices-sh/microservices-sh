@@ -16,6 +16,7 @@ import type { AccountingCoreStore } from "@microservices-sh/accounting-core";
 import type { AccountsPayableStore } from "@microservices-sh/accounts-payable";
 import type { AccountsReceivableService } from "@microservices-sh/accounts-receivable";
 import type { BankReconciliationService } from "@microservices-sh/bank-reconciliation";
+import type { EstimateQuoteStore } from "@microservices-sh/estimate-quote";
 
 declare global {
   namespace App {
@@ -73,6 +74,7 @@ declare global {
       accountsPayableStore: AccountsPayableStore;
       accountsReceivableService: AccountsReceivableService;
       bankReconciliationService: BankReconciliationService;
+      estimateQuoteStore: EstimateQuoteStore;
       // The signed-in principal, resolved from the session store each request.
       // isSuperAdmin is derived from the account's isAdmin flag, never the cookie.
       user: { id: string; email: string; isSuperAdmin: boolean } | null;

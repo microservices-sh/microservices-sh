@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Official microservices.sh accounting ERP template (Cloudflare SvelteKit) with StackSuite general ledger, payables, receivables, bank reconciliation, invoices, payments, files, webhooks, and jobs modules.",
+  "description": "Official microservices.sh accounting ERP template (Cloudflare SvelteKit) with StackSuite general ledger, payables, receivables, bank reconciliation, quotes, invoices, payments, files, webhooks, and jobs modules.",
   "engines": {
     "node": ">=20"
   },
@@ -35,6 +35,7 @@
     "@microservices-sh/bank-reconciliation": "workspace:*",
     "@microservices-sh/customer": "workspace:*",
     "@microservices-sh/email": "workspace:*",
+    "@microservices-sh/estimate-quote": "workspace:*",
     "@microservices-sh/file-media": "workspace:*",
     "@microservices-sh/gateway": "workspace:*",
     "@microservices-sh/identity": "workspace:*",

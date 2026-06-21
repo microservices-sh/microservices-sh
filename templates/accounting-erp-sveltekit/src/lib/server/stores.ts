@@ -67,6 +67,11 @@ import {
   createMemoryBankReconciliationStore,
   type BankReconciliationService
 } from "@microservices-sh/bank-reconciliation";
+import {
+  createD1EstimateQuoteStore,
+  createEstimateQuoteMemoryStore,
+  type EstimateQuoteStore
+} from "@microservices-sh/estimate-quote";
 
 import type { RbacStore } from "@microservices-sh/org-team-rbac/ports";
 import type { TableGateway } from "@microservices-sh/admin-shell/ports";
@@ -110,6 +115,7 @@ const memoryAccountsReceivableStore = createAccountsReceivableMemoryStore();
 const memoryAccountsReceivableService = createAccountsReceivableService({ store: memoryAccountsReceivableStore });
 const memoryBankReconciliationStore = createMemoryBankReconciliationStore();
 const memoryBankReconciliationService = createBankReconciliationService({ store: memoryBankReconciliationStore });
+const memoryEstimateQuoteStore = createEstimateQuoteMemoryStore();
 
 export interface ServerStores {
   rbacStore: RbacStore;
@@ -137,6 +143,7 @@ export interface ServerStores {
   accountsPayableStore: AccountsPayableStore;
   accountsReceivableService: AccountsReceivableService;
   bankReconciliationService: BankReconciliationService;
+  estimateQuoteStore: EstimateQuoteStore;
 }
 
 // The platform bindings as declared on App.Platform — referenced via the platform
@@ -177,7 +184,8 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
       : memoryAccountsReceivableService,
     bankReconciliationService: db
       ? createBankReconciliationService({ store: createD1BankReconciliationStore(db) })
-      : memoryBankReconciliationService
+      : memoryBankReconciliationService,
+    estimateQuoteStore: db ? createD1EstimateQuoteStore(db) : memoryEstimateQuoteStore
   };
 }
 
@@ -193,6 +201,7 @@ export const memoryStores = {
   accountsPayableStore: memoryAccountsPayableStore,
   accountsReceivableService: memoryAccountsReceivableService,
   bankReconciliationService: memoryBankReconciliationService,
+  estimateQuoteStore: memoryEstimateQuoteStore,
   mediaStore: memoryMediaStore,
   objectStorage: memoryObjectStorage,
   auditStore: memoryAuditStore

@@ -40,6 +40,31 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Recurring invoice creation route stays a thin adapter over the invoice module."
   );
   assertFileIncludesAll(
+    "src/routes/app/quotes/+page.server.ts",
+    ["@microservices-sh/estimate-quote", "createEstimateQuoteService", "prepareInvoiceDraft", "recordEvent"],
+    "Quotes route stays a thin adapter over estimate-quote service methods and previews invoice drafts without persisting invoices."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/stores.ts",
+    ["createD1EstimateQuoteStore", "createEstimateQuoteMemoryStore", "estimateQuoteStore"],
+    "Template wires estimate-quote D1 and memory stores through the server store resolver."
+  );
+  assertFileIncludes(
+    "src/hooks.server.ts",
+    "event.locals.estimateQuoteStore = stores.estimateQuoteStore",
+    "Request locals expose the estimate-quote store to route adapters."
+  );
+  assertFileIncludesAll(
+    "migrations/0028_estimate_quote.sql",
+    ["CREATE TABLE IF NOT EXISTS estimate_quotes", "CREATE TABLE IF NOT EXISTS estimate_quote_lines"],
+    "Template keeps estimate quote tables aligned with the estimate-quote module."
+  );
+  assertFileIncludes(
+    "src/lib/server/erp-nav.ts",
+    "\"estimate-quote\": { label: \"Quotes\", href: \"/app/quotes\"",
+    "Sidebar exposes the estimate-quote module as a dedicated Quotes billing surface."
+  );
+  assertFileIncludesAll(
     "migrations/0004_invoice.sql",
     ["CREATE TABLE IF NOT EXISTS invoice_recurring_templates", "idx_invoices_recurring_occurrence"],
     "Template keeps recurring invoice tables and occurrence dedupe index aligned with the invoice module."
