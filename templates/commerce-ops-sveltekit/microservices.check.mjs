@@ -45,6 +45,11 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Template keeps recurring invoice tables and occurrence dedupe index aligned with the invoice module."
   );
   assertFileIncludesAll(
+    "migrations/0027_commerce_sync.sql",
+    ["CREATE TABLE IF NOT EXISTS commerce_sync_envelopes", "idx_commerce_sync_envelopes_external"],
+    "Template keeps normalized commerce envelope storage aligned with the commerce-sync module."
+  );
+  assertFileIncludesAll(
     "src/lib/server/stores.ts",
     ["createD1RecurringInvoiceStore", "createMemoryRecurringInvoiceStore", "recurringInvoiceStore"],
     "Template wires the invoice recurring template store through the server store resolver."
