@@ -23,6 +23,7 @@ export {
   toolName,
   isReadMethod,
 } from "./tool-codegen.js";
+export { createToolGateway } from "./tool-gateway.js";
 
 function requestId() {
   return `local_${Date.now().toString(36)}`;
