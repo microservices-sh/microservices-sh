@@ -80,6 +80,36 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Files route uses the file-media module list use case."
   );
   assertFileIncludesAll(
+    "src/lib/server/stores.ts",
+    ["createD1SmsCampaignsStore", "createSmsCampaignsMemoryStore", "smsCampaignsStore"],
+    "Template wires SMS campaign storage through the server store resolver."
+  );
+  assertFileIncludes(
+    "src/hooks.server.ts",
+    "event.locals.smsCampaignsStore = stores.smsCampaignsStore",
+    "Request locals expose the SMS campaigns store to route adapters."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/sms/+page.server.ts",
+    ["@microservices-sh/sms-campaigns", "listSmsContacts", "createSmsCampaign", "dispatchSmsCampaign", "recordEvent"],
+    "SMS route stays a thin adapter over the sms-campaigns service."
+  );
+  assertFileIncludesAll(
+    "migrations/0029_sms_campaigns.sql",
+    ["CREATE TABLE IF NOT EXISTS sms_campaigns", "idx_sms_delivery_logs_vendor_message"],
+    "Template keeps SMS campaign D1 schema aligned with the module migration."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/erp-nav.ts",
+    ["sms-campaigns", "/app/sms"],
+    "SMS campaigns module appears in the lock-driven sidebar nav."
+  );
+  assertFileIncludes(
+    "src/lib/ui/AppShell.svelte",
+    "message-square",
+    "Sidebar icon set includes the SMS nav icon."
+  );
+  assertFileIncludesAll(
     "src/routes/app/+layout.server.ts",
     ["@microservices-sh/org-team-rbac", "resolvePermissions", "buildNav"],
     "The /app layer gates membership through org-team-rbac and builds the lock-driven nav."

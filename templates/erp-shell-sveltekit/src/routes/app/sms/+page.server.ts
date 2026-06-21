@@ -7,7 +7,7 @@ import {
   type SmsProvider,
   type SmsVendor
 } from "@microservices-sh/sms-campaigns";
-import { requireOrgPermission } from "$lib/server/org-context";
+import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 
 function text(value: FormDataEntryValue | null): string {
@@ -40,10 +40,17 @@ const previewProvider: SmsProvider = {
   }
 };
 
-async function requireManage({ locals, cookies, platform }: { locals: App.Locals; cookies: import("@sveltejs/kit").Cookies; platform?: App.Platform }) {
+async function requireManage({
+  locals,
+  cookies,
+  platform
+}: {
+  locals: App.Locals;
+  cookies: import("@sveltejs/kit").Cookies;
+  platform?: App.Platform;
+}) {
   requireModule("sms-campaigns", platform);
   if (!locals.user) return null;
-  const { loadCompanyContext, requireOrgPermission } = await import("$lib/server/org-context");
   const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
   if (!org) return null;
   await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
