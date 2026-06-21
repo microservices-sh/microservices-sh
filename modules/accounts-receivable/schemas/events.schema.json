@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Accounts Receivable Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": [
+        "accounts-receivable.customer_payment_recorded",
+        "accounts-receivable.payment_applied"
+      ]
+    },
+    "entityType": {
+      "type": "string",
+      "enum": ["customer_payment", "payment_application"]
+    }
+  },
+  "required": ["eventName", "entityType"]
+}

@@ -39,7 +39,11 @@
       "inventory",
       "sales-order",
       "shipment",
-      "accounting-core"
+      "commerce-sync",
+      "accounting-core",
+      "accounts-payable",
+      "accounts-receivable",
+      "bank-reconciliation"
     ]
   },
   "slots": {
@@ -121,10 +125,38 @@
       ],
       "approvalRisk": "medium"
     },
+    "commerceSync": {
+      "activeModule": "commerce-sync",
+      "allowedModules": [
+        "commerce-sync"
+      ],
+      "approvalRisk": "high"
+    },
     "accounting": {
       "activeModule": "accounting-core",
       "allowedModules": [
         "accounting-core"
+      ],
+      "approvalRisk": "medium"
+    },
+    "payables": {
+      "activeModule": "accounts-payable",
+      "allowedModules": [
+        "accounts-payable"
+      ],
+      "approvalRisk": "medium"
+    },
+    "receivables": {
+      "activeModule": "accounts-receivable",
+      "allowedModules": [
+        "accounts-receivable"
+      ],
+      "approvalRisk": "medium"
+    },
+    "banking": {
+      "activeModule": "bank-reconciliation",
+      "allowedModules": [
+        "bank-reconciliation"
       ],
       "approvalRisk": "medium"
     },

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Bank Reconciliation Config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "default": true },
+    "defaultCurrency": { "type": "string", "minLength": 3, "maxLength": 3, "default": "USD" },
+    "defaultDateToleranceDays": { "type": "integer", "minimum": 0, "maximum": 30, "default": 3 },
+    "defaultAmountToleranceCents": { "type": "integer", "minimum": 0, "maximum": 100000, "default": 0 }
+  }
+}

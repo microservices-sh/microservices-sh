@@ -436,6 +436,80 @@
       ]
     },
     {
+      "id": "commerce-sync",
+      "name": "Commerce Sync",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/commerce-sync",
+      "docPath": "docs/modules/commerce-sync.md",
+      "summary": "Provider-neutral commerce integration records, external resource mappings, sync runs, webhook receipts, and normalized order/product sync envelopes.",
+      "requires": [
+        "product-catalog",
+        "sales-order"
+      ],
+      "permissions": [
+        "commerce-sync.read",
+        "commerce-sync.write",
+        "commerce-sync.admin",
+        "commerce-sync.extend",
+        "commerce-sync.observe"
+      ],
+      "rpc": [
+        {
+          "method": "createCommerceConnection",
+          "scope": "commerce-sync.write",
+          "public": false
+        },
+        {
+          "method": "listCommerceConnections",
+          "scope": "commerce-sync.read",
+          "public": false
+        },
+        {
+          "method": "recordProviderMapping",
+          "scope": "commerce-sync.write",
+          "public": false
+        },
+        {
+          "method": "startSyncRun",
+          "scope": "commerce-sync.write",
+          "public": false
+        },
+        {
+          "method": "recordWebhookReceipt",
+          "scope": "commerce-sync.write",
+          "public": false
+        },
+        {
+          "method": "normalizeCommercePayload",
+          "scope": "commerce-sync.write",
+          "public": false
+        }
+      ],
+      "approvalRisk": "high",
+      "secrets": [
+        "COMMERCE_SYNC_ENCRYPTION_KEY"
+      ],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeCommerceConnectionCreate",
+        "beforeCommerceSyncRun",
+        "beforeCommerceWebhookRecord",
+        "afterCommercePayloadNormalized"
+      ],
+      "events": [
+        "commerce-sync.connection_created",
+        "commerce-sync.mapping_recorded",
+        "commerce-sync.sync_started",
+        "commerce-sync.sync_completed",
+        "commerce-sync.webhook_recorded",
+        "commerce-sync.payload_normalized"
+      ]
+    },
+    {
       "id": "accounting-core",
       "name": "Accounting Core",
       "version": "0.1.0",
@@ -495,6 +569,207 @@
         "accounting-core.journal_entry_updated",
         "accounting-core.journal_entry_posted",
         "accounting-core.journal_entry_voided"
+      ]
+    },
+    {
+      "id": "accounts-payable",
+      "name": "Accounts Payable",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/payables",
+      "docPath": "docs/modules/accounts-payable.md",
+      "summary": "Tenant-scoped vendor, bill, bill-line, payment application, and payable aging workflows with integer-cent balances and accounting handoff events.",
+      "requires": [
+        "accounting-core"
+      ],
+      "permissions": [
+        "accounts-payable.read",
+        "accounts-payable.write",
+        "accounts-payable.admin",
+        "accounts-payable.extend",
+        "accounts-payable.observe"
+      ],
+      "rpc": [
+        {
+          "method": "listVendors",
+          "scope": "accounts-payable.read",
+          "public": false
+        },
+        {
+          "method": "createVendor",
+          "scope": "accounts-payable.write",
+          "public": false
+        },
+        {
+          "method": "createBill",
+          "scope": "accounts-payable.write",
+          "public": false
+        },
+        {
+          "method": "approveBill",
+          "scope": "accounts-payable.write",
+          "public": false
+        },
+        {
+          "method": "recordBillPayment",
+          "scope": "accounts-payable.write",
+          "public": false
+        },
+        {
+          "method": "getPayableAging",
+          "scope": "accounts-payable.read",
+          "public": false
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeVendorCreate",
+        "beforeBillCreate",
+        "beforeBillApprove",
+        "beforeBillPaymentRecord",
+        "afterPayableChanged"
+      ],
+      "events": [
+        "accounts-payable.vendor_created",
+        "accounts-payable.bill_created",
+        "accounts-payable.bill_approved",
+        "accounts-payable.bill_payment_recorded",
+        "accounts-payable.aging_generated"
+      ]
+    },
+    {
+      "id": "accounts-receivable",
+      "name": "Accounts Receivable",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/receivables",
+      "docPath": "docs/modules/accounts-receivable.md",
+      "summary": "Tenant-scoped customer payment application, open receivables, aging buckets, and customer statement workflows that extend invoice and payment systems through ports.",
+      "requires": [
+        "invoice",
+        "payment"
+      ],
+      "permissions": [
+        "accounts-receivable.read",
+        "accounts-receivable.write",
+        "accounts-receivable.admin",
+        "accounts-receivable.extend",
+        "accounts-receivable.observe"
+      ],
+      "rpc": [
+        {
+          "method": "recordCustomerPayment",
+          "scope": "accounts-receivable.write",
+          "public": false
+        },
+        {
+          "method": "applyCustomerPayment",
+          "scope": "accounts-receivable.write",
+          "public": false
+        },
+        {
+          "method": "listOpenReceivables",
+          "scope": "accounts-receivable.read",
+          "public": false
+        },
+        {
+          "method": "getReceivableAging",
+          "scope": "accounts-receivable.read",
+          "public": false
+        },
+        {
+          "method": "generateCustomerStatement",
+          "scope": "accounts-receivable.read",
+          "public": false
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeCustomerPaymentRecord",
+        "beforePaymentApplication",
+        "beforeStatementGenerate",
+        "afterReceivableChanged"
+      ],
+      "events": [
+        "accounts-receivable.customer_payment_recorded",
+        "accounts-receivable.payment_applied",
+        "accounts-receivable.aging_generated",
+        "accounts-receivable.statement_generated"
+      ]
+    },
+    {
+      "id": "bank-reconciliation",
+      "name": "Bank Reconciliation",
+      "version": "0.1.0",
+      "status": "draft",
+      "class": "core",
+      "mount": "/banking",
+      "docPath": "docs/modules/bank-reconciliation.md",
+      "summary": "Tenant-scoped bank accounts, statement imports, bank transactions, ledger matching, and reconciliation sessions with completion guards.",
+      "requires": [
+        "accounting-core"
+      ],
+      "permissions": [
+        "bank-reconciliation.read",
+        "bank-reconciliation.write",
+        "bank-reconciliation.admin",
+        "bank-reconciliation.extend",
+        "bank-reconciliation.observe"
+      ],
+      "rpc": [
+        {
+          "method": "listBankAccounts",
+          "scope": "bank-reconciliation.read",
+          "public": false
+        },
+        {
+          "method": "createBankAccount",
+          "scope": "bank-reconciliation.write",
+          "public": false
+        },
+        {
+          "method": "importStatement",
+          "scope": "bank-reconciliation.write",
+          "public": false
+        },
+        {
+          "method": "matchTransaction",
+          "scope": "bank-reconciliation.write",
+          "public": false
+        },
+        {
+          "method": "completeReconciliation",
+          "scope": "bank-reconciliation.write",
+          "public": false
+        }
+      ],
+      "approvalRisk": "medium",
+      "secrets": [],
+      "resources": [
+        "D1"
+      ],
+      "hooks": [
+        "beforeBankAccountCreate",
+        "beforeStatementImport",
+        "beforeTransactionMatch",
+        "beforeReconciliationComplete",
+        "afterBankReconciliationChanged"
+      ],
+      "events": [
+        "bank-reconciliation.bank_account_created",
+        "bank-reconciliation.statement_imported",
+        "bank-reconciliation.transaction_matched",
+        "bank-reconciliation.reconciliation_completed"
       ]
     },
     {

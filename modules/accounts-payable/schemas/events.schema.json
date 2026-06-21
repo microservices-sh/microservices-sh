@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Accounts Payable Events",
+  "type": "object",
+  "properties": {
+    "eventName": {
+      "type": "string",
+      "enum": [
+        "accounts-payable.vendor_created",
+        "accounts-payable.bill_created",
+        "accounts-payable.bill_marked_payable",
+        "accounts-payable.bill_payment_recorded",
+        "accounts-payable.bill_paid",
+        "accounts-payable.recurring_bill_template_created"
+      ]
+    },
+    "entityType": {
+      "type": "string",
+      "const": "accounts-payable"
+    }
+  },
+  "required": ["eventName", "entityType"]
+}

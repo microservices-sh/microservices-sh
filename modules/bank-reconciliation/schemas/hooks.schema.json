@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Bank Reconciliation Hooks",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "beforeBankAccountCreate": { "type": "string" },
+    "beforeStatementImport": { "type": "string" },
+    "beforeMatchCreate": { "type": "string" },
+    "beforeReconciliationStart": { "type": "string" },
+    "beforeReconciliationComplete": { "type": "string" },
+    "afterBankAccountChanged": { "type": "string" },
+    "afterStatementTransactionsImported": { "type": "string" },
+    "afterMatchCreated": { "type": "string" },
+    "afterReconciliationChanged": { "type": "string" }
+  }
+}

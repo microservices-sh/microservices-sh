@@ -1,0 +1,147 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "accounts-receivable",
+  "name": "Accounts Receivable",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Tenant-scoped customer payment application, open receivables, aging, and statement workflows.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": [
+      "hono-later",
+      "sveltekit-later"
+    ]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "ar_customer_payments",
+        "ar_payment_applications",
+        "domain_events"
+      ]
+    }
+  ],
+  "permissions": [
+    "accounts-receivable.read",
+    "accounts-receivable.write",
+    "accounts-receivable.admin",
+    "accounts-receivable.extend",
+    "accounts-receivable.observe"
+  ],
+  "connections": {
+    "requires": [
+      "customer",
+      "invoice"
+    ],
+    "optional": [
+      "auth",
+      "audit-log",
+      "payment",
+      "accounting-core"
+    ],
+    "rpc": {
+      "exposes": [],
+      "calls": []
+    },
+    "events": {
+      "emits": [
+        "accounts-receivable.customer_payment_recorded",
+        "accounts-receivable.payment_applied"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeCustomerPaymentRecord": {
+        "kind": "filter",
+        "scope": "accounts-receivable.extend"
+      },
+      "beforePaymentApply": {
+        "kind": "filter",
+        "scope": "accounts-receivable.extend"
+      },
+      "afterCustomerPaymentRecorded": {
+        "kind": "observer",
+        "scope": "accounts-receivable.observe"
+      },
+      "afterPaymentApplied": {
+        "kind": "observer",
+        "scope": "accounts-receivable.observe"
+      }
+    },
+    "provides": {
+      "hooks": []
+    }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": [
+      "config",
+      "hooks",
+      "overlay",
+      "fork"
+    ]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [
+        {
+          "label": "Accounts Receivable",
+          "path": "/accounts-receivable",
+          "permission": "accounts-receivable.read"
+        }
+      ],
+      "referenceUi": [
+        "reference-ui/admin/README.md"
+      ]
+    },
+    "visitor": {
+      "applicable": false,
+      "referenceUi": [
+        "reference-ui/visitor/README.md"
+      ]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": [
+        "accounts-receivable.recordCustomerPayment",
+        "accounts-receivable.applyPaymentToInvoices",
+        "accounts-receivable.listOpenReceivables",
+        "accounts-receivable.generateAgedReceivables",
+        "accounts-receivable.produceCustomerStatement"
+      ],
+      "skillPaths": [
+        "skills/accounts-receivable-operator/SKILL.md"
+      ],
+      "approvalRequiredFor": [
+        "accounts-receivable.recordCustomerPayment",
+        "accounts-receivable.applyPaymentToInvoices"
+      ]
+    }
+  },
+  "skills": [
+    {
+      "id": "accounts-receivable-operator",
+      "path": "skills/accounts-receivable-operator/SKILL.md",
+      "recommendedFor": [
+        "admin-operations",
+        "agentic-tools"
+      ]
+    }
+  ],
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": [
+      "migrations",
+      "pii-fields",
+      "production-deploy",
+      "external-side-effects"
+    ]
+  }
+}

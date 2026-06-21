@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Bank Reconciliation API",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "accountTypes": {
+      "type": "array",
+      "items": {
+        "enum": ["checking", "savings", "credit_card", "money_market", "other"]
+      }
+    },
+    "matchStatuses": {
+      "type": "array",
+      "items": {
+        "enum": ["unmatched", "auto_matched", "manual_matched", "excluded"]
+      }
+    },
+    "reconciliationStatuses": {
+      "type": "array",
+      "items": {
+        "enum": ["in_progress", "completed", "abandoned"]
+      }
+    }
+  }
+}

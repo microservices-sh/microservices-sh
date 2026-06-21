@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "accounts-payable",
+  "name": "Accounts Payable",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Tenant-scoped accounts payable with vendors, bills, payable lifecycle, idempotent payment application, aging, recurring bill templates, and accounting-core handoff ports.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": ["hono-later", "sveltekit-later"]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "accounts_payable_vendors",
+        "accounts_payable_bills",
+        "accounts_payable_bill_line_items",
+        "accounts_payable_bill_payments",
+        "accounts_payable_bill_payment_applications",
+        "accounts_payable_recurring_bill_templates",
+        "accounts_payable_recurring_bill_line_items",
+        "domain_events"
+      ]
+    }
+  ],
+  "permissions": [
+    "accounts-payable.read",
+    "accounts-payable.write",
+    "accounts-payable.pay",
+    "accounts-payable.admin",
+    "accounts-payable.extend",
+    "accounts-payable.observe"
+  ],
+  "connections": {
+    "requires": [],
+    "optional": ["auth", "accounting-core", "audit-log", "jobs-workflows"],
+    "rpc": {
+      "exposes": [],
+      "calls": ["accounting-core.createJournalEntry"]
+    },
+    "events": {
+      "emits": [
+        "accounts-payable.vendor_created",
+        "accounts-payable.bill_created",
+        "accounts-payable.bill_marked_payable",
+        "accounts-payable.bill_payment_recorded",
+        "accounts-payable.bill_paid",
+        "accounts-payable.recurring_bill_template_created"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeVendorCreate": { "kind": "filter", "scope": "accounts-payable.extend" },
+      "beforeBillCreate": { "kind": "filter", "scope": "accounts-payable.extend" },
+      "beforeBillMarkPayable": { "kind": "filter", "scope": "accounts-payable.extend" },
+      "afterBillPayable": { "kind": "observer", "scope": "accounts-payable.observe" },
+      "afterBillPaymentRecorded": { "kind": "observer", "scope": "accounts-payable.observe" },
+      "afterVendorCreated": { "kind": "observer", "scope": "accounts-payable.observe" }
+    },
+    "provides": { "hooks": [] }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": ["config", "hooks", "overlay", "fork"]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [
+        {
+          "label": "Payables",
+          "path": "/accounts-payable",
+          "permission": "accounts-payable.read",
+          "icon": "Receipt"
+        }
+      ],
+      "referenceUi": ["reference-ui/admin/README.md"]
+    },
+    "visitor": {
+      "applicable": false,
+      "referenceUi": ["reference-ui/visitor/README.md"]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": [
+        "accounts-payable.listVendors",
+        "accounts-payable.createVendor",
+        "accounts-payable.createBill",
+        "accounts-payable.markBillPayable",
+        "accounts-payable.recordBillPayment",
+        "accounts-payable.getAgingReport"
+      ],
+      "skillPaths": ["skills/accounts-payable-operator/SKILL.md"],
+      "approvalRequiredFor": [
+        "accounts-payable.createBill",
+        "accounts-payable.markBillPayable",
+        "accounts-payable.recordBillPayment"
+      ]
+    }
+  },
+  "skills": [
+    {
+      "id": "accounts-payable-operator",
+      "path": "skills/accounts-payable-operator/SKILL.md",
+      "recommendedFor": ["admin-operations", "money-mutations", "agentic-tools"]
+    }
+  ],
+  "approval": {
+    "risk": "high",
+    "requiresApprovalFor": ["migrations", "money-mutations", "production-deploy", "external-side-effects"]
+  }
+}

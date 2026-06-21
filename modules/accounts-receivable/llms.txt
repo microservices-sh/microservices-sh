@@ -1,0 +1,14 @@
+# Accounts Receivable Module
+
+Module ID: accounts-receivable
+Status: draft
+Purpose: Tenant-scoped customer payment application, open receivables, aging, and statement workflows.
+Entrypoint: src/index.ts
+Check: pnpm check:spec
+Build: pnpm build
+
+Core invariants:
+- Money is integer cents.
+- Customer payment recording is idempotent per tenant on idempotencyKey.
+- Payment application rejects over-application against both the payment amount and invoice total.
+- Invoice/payment/accounting integrations are ports or emitted events; this module does not mutate invoice core tables.

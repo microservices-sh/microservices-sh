@@ -1,0 +1,46 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Accounts Receivable Module",
+    "version": "0.1.0",
+    "description": "Tenant-scoped customer payment recording, invoice payment applications, open receivables, aging, and customer statements. Routes are owned by the host app."
+  },
+  "paths": {
+    "/accounts-receivable/customer-payments": {
+      "post": {
+        "summary": "Record an idempotent customer payment",
+        "responses": {
+          "201": { "description": "Payment recorded" },
+          "200": { "description": "Idempotent replay" }
+        }
+      }
+    },
+    "/accounts-receivable/customer-payments/{id}/applications": {
+      "post": {
+        "summary": "Apply a customer payment to one or more invoices",
+        "responses": {
+          "200": { "description": "Applications recorded" },
+          "409": { "description": "Payment or invoice over-application rejected" }
+        }
+      }
+    },
+    "/accounts-receivable/open": {
+      "get": {
+        "summary": "List tenant-scoped open receivables",
+        "responses": { "200": { "description": "Open receivables" } }
+      }
+    },
+    "/accounts-receivable/aging": {
+      "get": {
+        "summary": "Generate aged receivables buckets",
+        "responses": { "200": { "description": "Aged receivables report" } }
+      }
+    },
+    "/accounts-receivable/statements/{customerId}": {
+      "get": {
+        "summary": "Produce a customer statement",
+        "responses": { "200": { "description": "Customer statement" } }
+      }
+    }
+  }
+}

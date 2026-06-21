@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Bank Reconciliation Events",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "emits": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "bank-reconciliation.bank_account_created",
+          "bank-reconciliation.statement_imported",
+          "bank-reconciliation.match_created",
+          "bank-reconciliation.reconciliation_started",
+          "bank-reconciliation.reconciliation_completed"
+        ]
+      }
+    },
+    "consumes": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "accounting-core.journal_entry_posted",
+          "payment.succeeded",
+          "payment.refunded"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Accounts Payable Module",
+    "version": "0.1.0",
+    "description": "Boundary shapes for tenant-scoped vendors, bills, payment applications, and aging."
+  },
+  "paths": {
+    "/vendors": {
+      "post": {
+        "summary": "Create vendor",
+        "responses": { "201": { "description": "Vendor created" } }
+      },
+      "get": {
+        "summary": "List vendors",
+        "responses": { "200": { "description": "Vendor list" } }
+      }
+    },
+    "/bills": {
+      "post": {
+        "summary": "Create bill with line items",
+        "responses": { "201": { "description": "Bill created" }, "422": { "description": "Invalid totals" } }
+      },
+      "get": {
+        "summary": "List bills",
+        "responses": { "200": { "description": "Bill list" } }
+      }
+    },
+    "/bills/{id}/payable": {
+      "post": {
+        "summary": "Approve/post or mark bill payable",
+        "responses": { "200": { "description": "Bill marked payable" }, "409": { "description": "Invalid status" } }
+      }
+    },
+    "/bill-payments": {
+      "post": {
+        "summary": "Record bill payment and applications",
+        "responses": { "201": { "description": "Payment recorded" }, "409": { "description": "Overpayment or duplicate guard" } }
+      }
+    },
+    "/aging": {
+      "get": {
+        "summary": "Open balance aging report",
+        "responses": { "200": { "description": "Aging report" } }
+      }
+    }
+  }
+}

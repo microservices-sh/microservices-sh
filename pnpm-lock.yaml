@@ -52,6 +52,44 @@ importers:
         specifier: ^3.2.4
         version: 3.2.6(@types/debug@4.1.13)(@types/node@25.9.3)(lightningcss@1.32.0)
 
+  modules/accounts-payable:
+    dependencies:
+      '@microservices-sh/connection-contract':
+        specifier: workspace:*
+        version: link:../../packages/connection-contract
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250109.0
+        version: 4.20260613.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@25.9.3)(lightningcss@1.32.0)
+
+  modules/accounts-receivable:
+    dependencies:
+      '@microservices-sh/connection-contract':
+        specifier: workspace:*
+        version: link:../../packages/connection-contract
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250109.0
+        version: 4.20260613.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@25.9.3)(lightningcss@1.32.0)
+
   modules/admin-shell:
     dependencies:
       '@microservices-sh/connection-contract':
@@ -169,6 +207,25 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  modules/bank-reconciliation:
+    dependencies:
+      '@microservices-sh/connection-contract':
+        specifier: workspace:*
+        version: link:../../packages/connection-contract
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250109.0
+        version: 4.20260613.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@25.9.3)(lightningcss@1.32.0)
+
   modules/billing-subscriptions:
     dependencies:
       '@microservices-sh/connection-contract':
@@ -243,6 +300,25 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+
+  modules/commerce-sync:
+    dependencies:
+      '@microservices-sh/connection-contract':
+        specifier: workspace:*
+        version: link:../../packages/connection-contract
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20250109.0
+        version: 4.20260613.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.6(@types/debug@4.1.13)(@types/node@25.9.3)(lightningcss@1.32.0)
 
   modules/customer:
     dependencies:
@@ -1170,6 +1246,12 @@ importers:
       '@microservices-sh/accounting-core':
         specifier: workspace:*
         version: link:../../modules/accounting-core
+      '@microservices-sh/accounts-payable':
+        specifier: workspace:*
+        version: link:../../modules/accounts-payable
+      '@microservices-sh/accounts-receivable':
+        specifier: workspace:*
+        version: link:../../modules/accounts-receivable
       '@microservices-sh/admin-shell':
         specifier: workspace:*
         version: link:../../modules/admin-shell
@@ -1182,12 +1264,18 @@ importers:
       '@microservices-sh/auth':
         specifier: workspace:*
         version: link:../../modules/auth
+      '@microservices-sh/bank-reconciliation':
+        specifier: workspace:*
+        version: link:../../modules/bank-reconciliation
       '@microservices-sh/billing-subscriptions':
         specifier: workspace:*
         version: link:../../modules/billing-subscriptions
       '@microservices-sh/booking':
         specifier: workspace:*
         version: link:../../modules/booking
+      '@microservices-sh/commerce-sync':
+        specifier: workspace:*
+        version: link:../../modules/commerce-sync
       '@microservices-sh/customer':
         specifier: workspace:*
         version: link:../../modules/customer

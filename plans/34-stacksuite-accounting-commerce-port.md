@@ -141,6 +141,18 @@ Acceptance criteria:
 - `packages/create-microservices-app/tests/template-bundle-closure.test.js`
   remains green after adding it to a template dependency set.
 
+## Implementation Status
+
+- Completed first commerce/accounting slice: `product-catalog`, `inventory`,
+  `sales-order`, `shipment`, and `accounting-core`.
+- Completed second accounting/sync slice: `accounts-payable`,
+  `accounts-receivable`, `bank-reconciliation`, and `commerce-sync`.
+- `erp-shell-sveltekit` now declares the StackSuite commerce/accounting modules
+  as optional slots, carries template migrations through `0027_commerce_sync.sql`,
+  and is bundled by `create-microservices-app`.
+- Follow-up template split remains open: fork `commerce-ops-sveltekit` and
+  `accounting-erp-sveltekit` from the ERP shell once route-level UI proves stable.
+
 ## Open Questions
 
 1. Should `accounts-receivable` extend the existing `invoice` module or stay

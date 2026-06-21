@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Commerce Sync Hooks",
+  "type": "object",
+  "properties": {
+    "beforeCommerceSyncCreate": {
+      "type": "string"
+    },
+    "afterCommerceSyncUpdated": {
+      "type": "string"
+    }
+  }
+}

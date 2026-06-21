@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Accounts Receivable Hooks",
+  "type": "object",
+  "properties": {
+    "beforeCustomerPaymentRecord": { "type": "string" },
+    "beforePaymentApply": { "type": "string" },
+    "afterCustomerPaymentRecorded": { "type": "string" },
+    "afterPaymentApplied": { "type": "string" }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,8 @@
+# Commerce Sync Module
+
+Module ID: commerce-sync
+Status: draft
+Purpose: Provider-neutral commerce connections, mappings, sync runs, webhook receipts, and normalized payload envelopes.
+Entrypoint: src/index.ts
+Check: pnpm check:spec
+Build: pnpm build

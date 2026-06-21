@@ -219,6 +219,24 @@
       }
     },
     {
+      "id": "commerce-sync",
+      "version": "0.1.0",
+      "source": "registry:commerce-sync@0.1.0",
+      "checksum": "sha256:preview-commerce-sync-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/commerce-sync",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["commerce-sync.read", "commerce-sync.write", "commerce-sync.admin", "commerce-sync.extend", "commerce-sync.observe"],
+        "rpc": [],
+        "hooks": ["beforeCommerceConnectionCreate", "beforeCommerceSyncRun", "beforeCommerceWebhookRecord", "afterCommercePayloadNormalized"],
+        "events": ["commerce-sync.connection_created", "commerce-sync.mapping_recorded", "commerce-sync.sync_started", "commerce-sync.sync_completed", "commerce-sync.webhook_recorded", "commerce-sync.payload_normalized"],
+        "requires": ["product-catalog", "sales-order"]
+      }
+    },
+    {
       "id": "accounting-core",
       "version": "0.1.0",
       "source": "registry:accounting-core@0.1.0",
@@ -234,6 +252,60 @@
         "hooks": ["beforeAccountCreate", "beforeFiscalPeriodCreate", "beforeJournalEntryCreate", "beforeJournalEntryPost", "beforeJournalEntryVoid", "afterJournalEntryChanged"],
         "events": ["accounting-core.account_created", "accounting-core.fiscal_period_created", "accounting-core.fiscal_period_status_changed", "accounting-core.journal_entry_created", "accounting-core.journal_entry_updated", "accounting-core.journal_entry_posted", "accounting-core.journal_entry_voided"],
         "requires": []
+      }
+    },
+    {
+      "id": "accounts-payable",
+      "version": "0.1.0",
+      "source": "registry:accounts-payable@0.1.0",
+      "checksum": "sha256:preview-accounts-payable-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/payables",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["accounts-payable.read", "accounts-payable.write", "accounts-payable.admin", "accounts-payable.extend", "accounts-payable.observe"],
+        "rpc": [],
+        "hooks": ["beforeVendorCreate", "beforeBillCreate", "beforeBillApprove", "beforeBillPaymentRecord", "afterPayableChanged"],
+        "events": ["accounts-payable.vendor_created", "accounts-payable.bill_created", "accounts-payable.bill_approved", "accounts-payable.bill_payment_recorded", "accounts-payable.aging_generated"],
+        "requires": ["accounting-core"]
+      }
+    },
+    {
+      "id": "accounts-receivable",
+      "version": "0.1.0",
+      "source": "registry:accounts-receivable@0.1.0",
+      "checksum": "sha256:preview-accounts-receivable-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/receivables",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["accounts-receivable.read", "accounts-receivable.write", "accounts-receivable.admin", "accounts-receivable.extend", "accounts-receivable.observe"],
+        "rpc": [],
+        "hooks": ["beforeCustomerPaymentRecord", "beforePaymentApplication", "beforeStatementGenerate", "afterReceivableChanged"],
+        "events": ["accounts-receivable.customer_payment_recorded", "accounts-receivable.payment_applied", "accounts-receivable.aging_generated", "accounts-receivable.statement_generated"],
+        "requires": ["invoice", "payment"]
+      }
+    },
+    {
+      "id": "bank-reconciliation",
+      "version": "0.1.0",
+      "source": "registry:bank-reconciliation@0.1.0",
+      "checksum": "sha256:preview-bank-reconciliation-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/banking",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["bank-reconciliation.read", "bank-reconciliation.write", "bank-reconciliation.admin", "bank-reconciliation.extend", "bank-reconciliation.observe"],
+        "rpc": [],
+        "hooks": ["beforeBankAccountCreate", "beforeStatementImport", "beforeTransactionMatch", "beforeReconciliationComplete", "afterBankReconciliationChanged"],
+        "events": ["bank-reconciliation.bank_account_created", "bank-reconciliation.statement_imported", "bank-reconciliation.transaction_matched", "bank-reconciliation.reconciliation_completed"],
+        "requires": ["accounting-core"]
       }
     },
     {

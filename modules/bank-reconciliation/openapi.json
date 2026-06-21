@@ -1,0 +1,68 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Bank Reconciliation Module",
+    "version": "0.1.0",
+    "description": "Tenant-scoped bank accounts, statement imports, matching, and reconciliation completion."
+  },
+  "paths": {
+    "/bank-accounts": {
+      "get": {
+        "summary": "List bank accounts",
+        "operationId": "listBankAccounts"
+      },
+      "post": {
+        "summary": "Create a bank account",
+        "operationId": "createBankAccount"
+      }
+    },
+    "/statement-imports": {
+      "post": {
+        "summary": "Import statement transactions",
+        "operationId": "importStatementTransactions"
+      }
+    },
+    "/statement-transactions": {
+      "get": {
+        "summary": "List statement transactions",
+        "operationId": "listStatementTransactions"
+      }
+    },
+    "/matches/suggest": {
+      "post": {
+        "summary": "Suggest matches against ledger or payment candidates",
+        "operationId": "suggestMatches"
+      }
+    },
+    "/matches": {
+      "post": {
+        "summary": "Create a reconciliation match",
+        "operationId": "createMatch"
+      }
+    },
+    "/reconciliations": {
+      "get": {
+        "summary": "List reconciliation sessions",
+        "operationId": "listReconciliations"
+      },
+      "post": {
+        "summary": "Start a reconciliation session",
+        "operationId": "startReconciliation"
+      }
+    },
+    "/reconciliations/{id}/complete": {
+      "post": {
+        "summary": "Complete a reconciliation session",
+        "operationId": "completeReconciliation"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "MoneyCents": {
+        "type": "integer",
+        "description": "Signed integer cents. Deposits are positive and withdrawals are negative."
+      }
+    }
+  }
+}

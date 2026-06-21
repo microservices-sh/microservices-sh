@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Commerce Sync Events",
+  "type": "object",
+  "enum": [
+    "commerce-sync.created",
+    "commerce-sync.updated"
+  ]
+}
