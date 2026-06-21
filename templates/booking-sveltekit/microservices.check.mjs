@@ -89,6 +89,23 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     ["@microservices-sh/identity", "requestLoginCode", "verifyLoginCode", "serializeSessionCookie"],
     "Login route adapts @microservices-sh/identity (request/verify + session cookie)."
   );
+  assertFileIncludesAll(
+    "scripts/generate-mcp.mjs",
+    ["loadConnections", "connections: loadConnections", "generateToolManifest(m)", "templateId"],
+    "Booking MCP generator reads authoritative module rpc contracts and normalizes the template id."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/mcp-wiring.ts",
+    [
+      "customer_getCustomer",
+      "customer_listCustomers",
+      "customer_upsertCustomer",
+      "booking_listBookings",
+      "booking_getBooking",
+      "booking_getAvailability"
+    ],
+    "Booking MCP wiring binds governed customer and booking domain tools."
+  );
   assert(
     !exists("src/lib/server/modules/booking/index.ts"),
     "Template does not own booking internals.",
