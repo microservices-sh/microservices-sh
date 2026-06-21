@@ -5,7 +5,8 @@ import { createMemoryRbacStore } from "@microservices-sh/org-team-rbac/adapters/
 import {
   createMemoryAccountStore,
   createMemoryLoginCodeStore,
-  createMemorySessionStore
+  createMemorySessionStore,
+  requestLoginCode
 } from "@microservices-sh/identity";
 import { createMemoryRateLimitStore } from "@microservices-sh/gateway/adapters/memory-rate-limit";
 import { actions as signupActions } from "../src/routes/signup/+page.server";
@@ -105,10 +106,16 @@ async function createTestContext() {
 }
 
 async function signUpOwner(context: Awaited<ReturnType<typeof createTestContext>>) {
+  // Two-step signup: obtain the emailed code, then submit it to the verify step.
+  const codeRes = await requestLoginCode(
+    { email: "owner@example.com" },
+    { accountStore: context.locals.accountStore, loginCodeStore: context.locals.loginCodeStore, adminEmails: [] }
+  );
+  const code = (codeRes as { ok: boolean; data?: { code: string } }).data!.code;
   await expectRedirect(
     () =>
-      signupActions.default({
-        request: formRequest("/signup", { email: "owner@example.com", orgName: "Acme Co", slug: "acme-co" }),
+      signupActions.verify({
+        request: formRequest("/signup", { email: "owner@example.com", orgName: "Acme Co", slug: "acme-co", code }),
         cookies: context.cookies,
         locals: context.locals,
         platform: context.platform

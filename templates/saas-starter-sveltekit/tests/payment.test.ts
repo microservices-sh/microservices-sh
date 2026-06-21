@@ -12,7 +12,8 @@ import { createMemoryRbacStore } from "@microservices-sh/org-team-rbac/adapters/
 import {
   createMemoryAccountStore,
   createMemoryLoginCodeStore,
-  createMemorySessionStore
+  createMemorySessionStore,
+  requestLoginCode
 } from "@microservices-sh/identity";
 import { createMemoryRateLimitStore } from "@microservices-sh/gateway/adapters/memory-rate-limit";
 import { actions as signupActions } from "../src/routes/signup/+page.server";
@@ -121,10 +122,16 @@ describe("billing checkout action", () => {
     const platform = { env: {} } as unknown as App.Platform;
 
     // Sign up an owner so RBAC has the org + owner membership (org.manage).
+    // Two-step signup: get the emailed code, then submit it to the verify step.
+    const codeRes = await requestLoginCode(
+      { email: "owner@example.com" },
+      { accountStore: locals.accountStore, loginCodeStore: locals.loginCodeStore, adminEmails: [] }
+    );
+    const signupCode = (codeRes as { ok: boolean; data?: { code: string } }).data!.code;
     let thrown: unknown;
     try {
-      await signupActions.default({
-        request: formRequest("/signup", { email: "owner@example.com", orgName: "Acme Co", slug: "acme-co" }),
+      await signupActions.verify({
+        request: formRequest("/signup", { email: "owner@example.com", orgName: "Acme Co", slug: "acme-co", code: signupCode }),
         cookies,
         locals,
         platform

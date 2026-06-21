@@ -5,7 +5,8 @@ import { createMemoryRbacStore } from "@microservices-sh/org-team-rbac/adapters/
 import {
   createMemoryAccountStore,
   createMemoryLoginCodeStore,
-  createMemorySessionStore
+  createMemorySessionStore,
+  requestLoginCode
 } from "@microservices-sh/identity";
 import { createMemoryRateLimitStore } from "@microservices-sh/gateway/adapters/memory-rate-limit";
 import { actions as signupActions } from "../src/routes/signup/+page.server";
@@ -100,9 +101,16 @@ type Ctx = Awaited<ReturnType<typeof createTestContext>>;
 // Sign up an org owner. Leaves locals.user set to the NEW owner (the signup
 // rotates the session cookie), so the most recent sign-up is the "current" user.
 async function signUpOwner(ctx: Ctx, opts: { email: string; orgName: string; slug: string }) {
+  // Mirror the two-step signup: obtain a code the way step 1 would, then submit
+  // it to the verify step. The code must round-trip — it is never self-served.
+  const codeRes = await requestLoginCode(
+    { email: opts.email },
+    { accountStore: ctx.locals.accountStore, loginCodeStore: ctx.locals.loginCodeStore, adminEmails: [] }
+  );
+  const code = (codeRes as { ok: boolean; data?: { code: string } }).data!.code;
   const thrown = await expectThrow(() =>
-    signupActions.default({
-      request: formRequest("/signup", { email: opts.email, orgName: opts.orgName, slug: opts.slug }),
+    signupActions.verify({
+      request: formRequest("/signup", { email: opts.email, orgName: opts.orgName, slug: opts.slug, code }),
       cookies: ctx.cookies,
       locals: ctx.locals,
       platform: ctx.platform
@@ -185,5 +193,28 @@ describe("admin authz", () => {
     ctx.locals.user = { id: "usr_root", email: "root@example.com", isSuperAdmin: true };
     const ok = (await adminLayoutLoad({ locals: ctx.locals } as any)) as { resources: unknown[] };
     expect(Array.isArray(ok.resources)).toBe(true);
+  });
+});
+
+describe("signup email verification", () => {
+  it("rejects signup with a code the user never received", async () => {
+    const ctx = await createTestContext();
+
+    // Attacker submits the verify step with a forged code for an email they do
+    // not control. No account, org, or session may be created — the code must
+    // come from the inbox, never from the server.
+    const denied = await signupActions.verify({
+      request: formRequest("/signup", { email: "victim@example.com", orgName: "Victim Co", slug: "victim-co", code: "000000" }),
+      cookies: ctx.cookies,
+      locals: ctx.locals,
+      platform: ctx.platform
+    } as any);
+    expect((denied as { status?: number }).status).toBeGreaterThanOrEqual(400);
+
+    const user = await getCurrentUser(ctx.cookies as any, {
+      accountStore: ctx.locals.accountStore,
+      sessionStore: ctx.locals.sessionStore
+    });
+    expect(user).toBeNull();
   });
 });
