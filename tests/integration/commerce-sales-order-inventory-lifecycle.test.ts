@@ -201,6 +201,7 @@ describe("commerce sales order inventory lifecycle", () => {
     const inventoryStore = createMemoryInventoryStore();
     const productCatalogStore = createMemoryProductCatalogStore();
     const salesOrderStore = createMemorySalesOrderStore();
+    const shipmentStore = createMemoryShipmentStore();
     const product = await seedProductAndStock(productCatalogStore, inventoryStore);
     const draft = await createTrackedSalesOrder(salesOrderStore, product);
 
@@ -250,6 +251,47 @@ describe("commerce sales order inventory lifecycle", () => {
     expect(
       mustOk(await getStockBalance({ tenantId: "tenant-1", productId: product.id }, { inventoryStore })).balance
     ).toMatchObject({ onHand: 10, reserved: 0, available: 10 });
+
+    const shipment = mustOk(
+      await createShipment(
+        {
+          tenantId: "tenant-1",
+          externalSource: "sales-order",
+          externalId: invoiced.id,
+          items: invoiced.lineItems.map((line) => ({
+            sourceType: "sales-order",
+            sourceId: invoiced.id,
+            productId: line.productId,
+            sku: line.sku,
+            description: line.description || line.name,
+            quantity: line.quantity
+          }))
+        },
+        { shipmentStore, now: fixedNow(11), actor: { id: "user-1" } }
+      )
+    ).shipment;
+    const completed = mustOk(
+      await completeShipment(
+        { tenantId: "tenant-1", shipmentId: shipment.id, completionRef: `complete:${shipment.id}` },
+        {
+          shipmentStore,
+          inventoryPort: createShipmentInventoryPort({
+            inventoryStore,
+            productCatalogStore,
+            salesOrderStore,
+            actorId: "user-1",
+            now: fixedNow(12)
+          }),
+          now: fixedNow(12),
+          actor: { id: "user-1" }
+        }
+      )
+    ).shipment;
+
+    expect(completed).toMatchObject({ status: "completed", inventoryDeductionRef: `shipment:${shipment.id}` });
+    expect(
+      mustOk(await getStockBalance({ tenantId: "tenant-1", productId: product.id }, { inventoryStore })).balance
+    ).toMatchObject({ onHand: 6, reserved: 0, available: 6 });
   });
 
   it("reserves and releases combo component stock instead of the combo parent", async () => {

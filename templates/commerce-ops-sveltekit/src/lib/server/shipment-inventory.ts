@@ -18,7 +18,7 @@ export function createShipmentInventoryPort(deps: ShipmentInventoryDeps): Shipme
         const order = item.sourceType === "sales-order"
           ? await deps.salesOrderStore.getOrder(input.tenantId, item.sourceId)
           : null;
-        const consumeReserved = Boolean(order?.inventoryReservationId);
+        const consumeReserved = order?.status === "confirmed" && Boolean(order.inventoryReservationId);
         const stockItems = await resolveTrackedStockItems(
           input.tenantId,
           [{ productId: item.productId, quantity: item.quantity }],
