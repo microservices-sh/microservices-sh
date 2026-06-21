@@ -40,13 +40,8 @@ const MODULE_NAV: Record<string, NavItem> = {
   "commerce-sync": { label: "Commerce sync", href: "/app/commerce-sync", icon: "refresh-cw" },
   invoice: { label: "Invoices", href: "/app/invoices", icon: "file-text" },
   payment: { label: "Payments", href: "/app/payments", icon: "credit-card" },
-  "billing-subscriptions": { label: "Billing", href: "/app/billing", icon: "receipt" },
-  booking: { label: "Bookings", href: "/app/bookings", icon: "calendar" },
   "support-ticket": { label: "Support", href: "/app/support", icon: "life-buoy" },
   "notifications-inapp": { label: "Notifications", href: "/app/notifications", icon: "bell" },
-  "image-generation": { label: "Images", href: "/app/images", icon: "image" },
-  "ads-manager": { label: "Ads", href: "/app/ads", icon: "megaphone" },
-  "forms-intake": { label: "Forms", href: "/app/forms", icon: "clipboard" },
   "jobs-workflows": { label: "Jobs", href: "/app/jobs", icon: "workflow" },
   "webhook-delivery": { label: "Webhooks", href: "/app/webhooks", icon: "webhook" },
   "file-media": { label: "Files", href: "/app/files", icon: "folder" }
@@ -56,9 +51,8 @@ const MODULE_NAV: Record<string, NavItem> = {
 // only enabled ones render, and empty groups are dropped.
 const GROUPS: { section: string; modules: string[] }[] = [
   { section: "Commerce", modules: ["product-catalog", "inventory", "sales-order", "shipment", "commerce-sync"] },
-  { section: "Customers", modules: ["customer", "booking", "support-ticket"] },
-  { section: "Billing", modules: ["invoice", "payment", "billing-subscriptions"] },
-  { section: "Marketing", modules: ["forms-intake", "image-generation", "ads-manager"] },
+  { section: "Customers", modules: ["customer", "support-ticket"] },
+  { section: "Billing", modules: ["invoice", "payment"] },
   { section: "Automation", modules: ["jobs-workflows", "webhook-delivery"] },
   { section: "Workspace", modules: ["file-media"] }
 ];

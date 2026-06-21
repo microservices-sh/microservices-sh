@@ -6,12 +6,6 @@ import { createMemoryRateLimitStore } from "@microservices-sh/gateway/adapters/m
 import { createStripePaymentGateway } from "@microservices-sh/payment/adapters/stripe-gateway";
 import { createMemoryPaymentGateway } from "@microservices-sh/payment/adapters/memory-gateway";
 import { createCfQueueProducer } from "@microservices-sh/jobs-workflows";
-import {
-  buildProviders,
-  createMemoryImageProvider,
-  createMemoryObjectStorage as createMemoryImageStorage,
-  createR2ObjectStorage as createR2ImageStorage
-} from "@microservices-sh/image-generation";
 import { reportRuntimeError, logRequest, generateRequestId } from "$lib/server/observability";
 import { readCompanyOrgId } from "$lib/server/org-context";
 
@@ -20,9 +14,6 @@ import { readCompanyOrgId } from "$lib/server/org-context";
 const memoryRateLimitStore = createMemoryRateLimitStore();
 // Memory payment gateway for local dev; Stripe when STRIPE_SECRET_KEY is set.
 const memoryPaymentGateway = createMemoryPaymentGateway();
-// Memory image-object storage (R2 when IMAGE_BUCKET is bound). Singleton so bytes
-// persist across requests in dev.
-const memoryImageStorage = createMemoryImageStorage();
 
 // Wire module stores + the session user onto locals for every request. Stores are
 // D1/R2-backed in production and memory-backed locally. Route adapters consume
@@ -67,17 +58,6 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.paymentGateway = env?.STRIPE_SECRET_KEY
     ? createStripePaymentGateway(env.STRIPE_SECRET_KEY)
     : memoryPaymentGateway;
-  // Image generation: store (D1/memory), object storage (R2/memory), and the
-  // provider registry built from env keys — falling back to a memory provider
-  // locally so the gallery works without a real image API.
-  event.locals.imageStore = stores.imageStore;
-  event.locals.imageStorage = env?.IMAGE_BUCKET ? createR2ImageStorage(env.IMAGE_BUCKET) : memoryImageStorage;
-  const imageProviders = buildProviders(env ?? {});
-  if (Object.keys(imageProviders).length === 0) imageProviders["kie-ai"] = createMemoryImageProvider();
-  event.locals.imageProviders = imageProviders;
-  event.locals.adsStore = stores.adsStore;
-  event.locals.formStore = stores.formStore;
-  event.locals.bookingRepository = stores.bookingRepository;
   event.locals.productCatalogStore = stores.productCatalogStore;
   event.locals.inventoryStore = stores.inventoryStore;
   event.locals.salesOrderStore = stores.salesOrderStore;

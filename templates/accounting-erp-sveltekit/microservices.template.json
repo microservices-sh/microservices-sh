@@ -39,9 +39,6 @@
       "identity",
       "email",
       "notifications-inapp",
-      "product-catalog",
-      "sales-order",
-      "commerce-sync",
       "support-ticket"
     ]
   },
@@ -151,27 +148,6 @@
         "notifications-inapp"
       ],
       "approvalRisk": "low"
-    },
-    "catalog": {
-      "activeModule": null,
-      "allowedModules": [
-        "product-catalog"
-      ],
-      "approvalRisk": "medium"
-    },
-    "salesOrders": {
-      "activeModule": null,
-      "allowedModules": [
-        "sales-order"
-      ],
-      "approvalRisk": "medium"
-    },
-    "commerceSync": {
-      "activeModule": null,
-      "allowedModules": [
-        "commerce-sync"
-      ],
-      "approvalRisk": "high"
     },
     "messaging": {
       "activeModule": null,

@@ -16,7 +16,7 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "erp_shell_sveltekit",
+      "database_name": "accounting_erp_sveltekit",
       "database_id": "REPLACE_WITH_D1_ID",
       "migrations_dir": "migrations"
     }
@@ -31,10 +31,6 @@
     {
       "binding": "MEDIA_BUCKET",
       "bucket_name": "accounting-erp-sveltekit-files"
-    },
-    {
-      "binding": "IMAGE_BUCKET",
-      "bucket_name": "accounting-erp-sveltekit-images"
     }
   ],
   "queues": {

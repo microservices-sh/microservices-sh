@@ -40,9 +40,6 @@
       "email",
       "notifications-inapp",
       "webhook-delivery",
-      "accounting-core",
-      "accounts-receivable",
-      "bank-reconciliation",
       "support-ticket"
     ]
   },
@@ -159,20 +156,6 @@
         "webhook-delivery"
       ],
       "approvalRisk": "high"
-    },
-    "receivables": {
-      "activeModule": "accounts-receivable",
-      "allowedModules": [
-        "accounts-receivable"
-      ],
-      "approvalRisk": "medium"
-    },
-    "banking": {
-      "activeModule": "bank-reconciliation",
-      "allowedModules": [
-        "bank-reconciliation"
-      ],
-      "approvalRisk": "medium"
     },
     "messaging": {
       "activeModule": null,

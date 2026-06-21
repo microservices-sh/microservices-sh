@@ -94,11 +94,6 @@ The reference page is deliberately generic. When customizing:
 | file-media | Files — list + upload | ✅ `app/files` |
 | org-team-rbac | Team — members + invites | ✅ `app/team` |
 | payment | Payments — ledger + refunds | ✅ `app/payments` |
-| billing-subscriptions | Billing — plans + subscriptions | ✅ `app/billing` |
-| image-generation | Images — prompt + gallery (bytes served by `[id]/+server.ts`) | ✅ `app/images` |
-| ads-manager | Ads — connections, alerts, performance review, copy drafts, and publish plan (live insights need the upstream connector) | ✅ `app/ads` |
-| forms-intake | Forms — define forms + review submissions (public submit is a separate surface) | ✅ `app/forms` |
-| booking | Bookings — schedule list + cancel (create needs seeded services) | ✅ `app/bookings` |
 | jobs-workflows | Jobs — queue health, manual enqueue, schedules, and catch-up controls | ✅ `app/jobs` |
 | webhook-delivery | Webhooks — endpoints, redacted signing status, delivery log, and safe test delivery | ✅ `app/webhooks` |
 | auth, identity, email, gateway, audit-log, admin-shell, idempotency | infra | — no user UI by design |

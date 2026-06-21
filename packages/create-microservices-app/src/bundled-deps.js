@@ -74,6 +74,8 @@ export const REPO_TEMPLATES = [
 ];
 
 const ERP_SHELL_MODULES = ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "product-catalog", "inventory", "sales-order", "shipment", "commerce-sync", "accounting-core", "accounts-payable", "accounts-receivable", "bank-reconciliation", "invoice", "payment", "billing-subscriptions", "image-generation", "ads-manager", "forms-intake", "booking", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket", "webhook-delivery"];
+const COMMERCE_OPS_MODULES = ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "product-catalog", "inventory", "sales-order", "shipment", "commerce-sync", "invoice", "payment", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket", "webhook-delivery"];
+const ACCOUNTING_ERP_MODULES = ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "accounting-core", "accounts-payable", "accounts-receivable", "bank-reconciliation", "invoice", "payment", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket", "webhook-delivery"];
 
 export const REPO_TEMPLATE_MODULES = {
   "booking-sveltekit": ["gateway", "auth", "customer", "booking", "audit-log", "email", "payment", "identity", "research"],
@@ -84,8 +86,8 @@ export const REPO_TEMPLATE_MODULES = {
   "client-portal-sveltekit": ["auth", "identity", "email", "gateway", "customer", "invoice", "file-media", "audit-log"],
   "dot-ai-os": ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "invoice", "file-media", "jobs-workflows", "notifications-inapp", "operator-work", "support-ticket"],
   "erp-shell-sveltekit": ERP_SHELL_MODULES,
-  "commerce-ops-sveltekit": ERP_SHELL_MODULES,
-  "accounting-erp-sveltekit": ERP_SHELL_MODULES,
+  "commerce-ops-sveltekit": COMMERCE_OPS_MODULES,
+  "accounting-erp-sveltekit": ACCOUNTING_ERP_MODULES,
 };
 
 export const REPO_TEMPLATE_PACKAGES = {

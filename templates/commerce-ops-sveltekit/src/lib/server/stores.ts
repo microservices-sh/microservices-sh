@@ -38,21 +38,6 @@ import {
 import { createD1PaymentRepository } from "@microservices-sh/payment/adapters/d1";
 import { createMemoryPaymentRepository } from "@microservices-sh/payment/adapters/memory";
 import type { PaymentRepository } from "@microservices-sh/payment/ports";
-import { createD1BillingStore } from "@microservices-sh/billing-subscriptions/adapters/d1";
-import { createMemoryBillingStore } from "@microservices-sh/billing-subscriptions/adapters/memory";
-import type { BillingStore } from "@microservices-sh/billing-subscriptions/ports";
-import { createD1ImageStore } from "@microservices-sh/image-generation/adapters/d1";
-import { createMemoryImageStore } from "@microservices-sh/image-generation/adapters/memory";
-import type { ImageStore } from "@microservices-sh/image-generation/ports";
-import { createD1AdsStore } from "@microservices-sh/ads-manager/adapters/d1";
-import { createMemoryAdsStore } from "@microservices-sh/ads-manager/adapters/memory";
-import type { AdsStore } from "@microservices-sh/ads-manager/ports";
-import { createD1FormStore } from "@microservices-sh/forms-intake/adapters/d1";
-import { createMemoryFormStore } from "@microservices-sh/forms-intake/adapters/memory";
-import type { FormStore } from "@microservices-sh/forms-intake/ports";
-import { createD1BookingRepository } from "@microservices-sh/booking/adapters/d1";
-import { createMemoryBookingRepository } from "@microservices-sh/booking/adapters/memory";
-import type { BookingRepository } from "@microservices-sh/booking/ports";
 import { createD1ProductCatalogStore, createMemoryProductCatalogStore } from "@microservices-sh/product-catalog";
 import { createD1InventoryStore, createMemoryInventoryStore } from "@microservices-sh/inventory";
 import { createD1SalesOrderStore, createMemorySalesOrderStore } from "@microservices-sh/sales-order";
@@ -98,11 +83,6 @@ const memoryAccountStore = createMemoryAccountStore();
 const memoryLoginCodeStore = createMemoryLoginCodeStore();
 const memorySessionStore = createMemorySessionStore();
 const memoryPaymentRepository = createMemoryPaymentRepository();
-const memoryBillingStore = createMemoryBillingStore();
-const memoryImageStore = createMemoryImageStore();
-const memoryAdsStore = createMemoryAdsStore();
-const memoryFormStore = createMemoryFormStore();
-const memoryBookingRepository = createMemoryBookingRepository();
 const memoryProductCatalogStore = createMemoryProductCatalogStore();
 const memoryInventoryStore = createMemoryInventoryStore();
 const memorySalesOrderStore = createMemorySalesOrderStore();
@@ -130,11 +110,6 @@ export interface ServerStores {
   loginCodeStore: LoginCodeStore;
   sessionStore: SessionStore;
   paymentRepository: PaymentRepository;
-  billingStore: BillingStore;
-  imageStore: ImageStore;
-  adsStore: AdsStore;
-  formStore: FormStore;
-  bookingRepository: BookingRepository;
   productCatalogStore: ProductCatalogStore;
   inventoryStore: InventoryStore;
   salesOrderStore: SalesOrderStore;
@@ -171,11 +146,6 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     loginCodeStore: db ? createD1LoginCodeStore(db) : memoryLoginCodeStore,
     sessionStore: db ? createD1SessionStore(db) : memorySessionStore,
     paymentRepository: db ? createD1PaymentRepository(db) : memoryPaymentRepository,
-    billingStore: db ? createD1BillingStore(db) : memoryBillingStore,
-    imageStore: db ? createD1ImageStore(db) : memoryImageStore,
-    adsStore: db ? createD1AdsStore(db) : memoryAdsStore,
-    formStore: db ? createD1FormStore(db) : memoryFormStore,
-    bookingRepository: db ? createD1BookingRepository(db) : memoryBookingRepository,
     productCatalogStore: db ? createD1ProductCatalogStore(db) : memoryProductCatalogStore,
     inventoryStore: db ? createD1InventoryStore(db) : memoryInventoryStore,
     salesOrderStore: db ? createD1SalesOrderStore(db) : memorySalesOrderStore,

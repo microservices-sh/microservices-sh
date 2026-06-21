@@ -77,7 +77,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "wrangler.jsonc",
-    ["DB", "MEDIA_BUCKET", "RATE_LIMIT_KV", "IMAGE_BUCKET", "JOB_QUEUE", "DESKTOP_IMPORT_ALLOWED_ORIGIN"],
+    ["DB", "MEDIA_BUCKET", "RATE_LIMIT_KV", "JOB_QUEUE", "DESKTOP_IMPORT_ALLOWED_ORIGIN"],
     "Cloudflare deployment config declares canonical D1 plus R2/KV/Queue bindings used by the ERP Worker."
   );
   assert(

@@ -25,23 +25,12 @@ const SECTIONS: { section: string; items: { label: string; href: string; module?
     ]
   },
   {
-    section: "Billing",
-    items: [{ label: "Plans", href: "/app/settings/plans", module: "billing-subscriptions" }]
-  },
-  {
     section: "Integrations",
-    items: [
-      { label: "Webhook endpoints", href: "/app/settings/webhooks", module: "webhook-delivery" },
-      { label: "Ad connections", href: "/app/settings/connections", module: "ads-manager" }
-    ]
+    items: [{ label: "Webhook endpoints", href: "/app/settings/webhooks", module: "webhook-delivery" }]
   },
   {
     section: "Automation",
     items: [{ label: "Job schedules", href: "/app/settings/schedules", module: "jobs-workflows" }]
-  },
-  {
-    section: "Forms",
-    items: [{ label: "Form builder", href: "/app/settings/forms", module: "forms-intake" }]
   }
 ];
 
