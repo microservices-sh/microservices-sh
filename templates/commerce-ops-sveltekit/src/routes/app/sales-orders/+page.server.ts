@@ -3,18 +3,21 @@ import { fail, redirect } from "@sveltejs/kit";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { getCustomer, listCustomers, upsertCustomer } from "@microservices-sh/customer";
 import { authContext, createInvoice, issueInvoiceScoped } from "@microservices-sh/invoice";
-import { getStockBalance, reserveStock } from "@microservices-sh/inventory";
 import { listProducts } from "@microservices-sh/product-catalog";
 import {
+  cancelOrder,
   confirmOrder,
   createDraftOrder,
   listOrders,
   markOrderInvoiced,
-  type InventoryReservationPort,
   type InvoiceDraftPort
 } from "@microservices-sh/sales-order";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
+import {
+  createSalesOrderInventoryReservationPort,
+  releaseSalesOrderReservations
+} from "$lib/server/sales-order-inventory";
 
 function text(value: FormDataEntryValue | null): string {
   return String(value ?? "").trim();
@@ -54,80 +57,6 @@ function orderLineToInvoiceLine(line: {
     quantity: 1,
     unitAmountCents: line.totalCents,
     taxRateBps: 0
-  };
-}
-
-function productReader(productCatalogStore: App.Locals["productCatalogStore"]) {
-  return {
-    async getProduct(tenantId: string, productId: string) {
-      const product = await productCatalogStore.getProduct(tenantId, productId);
-      return product ? { id: product.id, tenantId: product.tenantId, trackStock: product.trackStock } : null;
-    }
-  };
-}
-
-function inventoryReservationPort(locals: App.Locals, actorId: string, permissions: string[]): InventoryReservationPort {
-  return {
-    async reserveSalesOrder({ order }) {
-      const aggregate = new Map<string, { productId: string; sku: string; quantity: number }>();
-      for (const line of order.lineItems) {
-        if (!line.productId) continue;
-        const product = await locals.productCatalogStore.getProduct(order.tenantId, line.productId);
-        if (!product) throw new Error(`Product ${line.productId} was not found for this company.`);
-        if (!product.trackStock) continue;
-        const current = aggregate.get(product.id);
-        if (current) current.quantity += line.quantity;
-        else aggregate.set(product.id, { productId: product.id, sku: product.sku, quantity: line.quantity });
-      }
-
-      const pending: Array<{ productId: string; sku: string; quantity: number }> = [];
-      for (const item of aggregate.values()) {
-        const existing = await locals.inventoryStore.findMovementBySourceRef(
-          order.tenantId,
-          item.productId,
-          "default",
-          "reservation",
-          "sales-order",
-          order.id
-        );
-        if (!existing) pending.push(item);
-      }
-
-      for (const item of pending) {
-        const balance = await getStockBalance(
-          { tenantId: order.tenantId, productId: item.productId, locationId: "default" },
-          { inventoryStore: locals.inventoryStore }
-        );
-        if (!balance.ok || !balance.data) throw new Error(balance.ok ? "Could not inspect stock balance." : balance.error.message);
-        if (balance.data.balance.available < item.quantity) {
-          throw new Error(`Insufficient available stock for ${item.sku}: ${balance.data.balance.available} available, ${item.quantity} needed.`);
-        }
-      }
-
-      const movementIds: string[] = [];
-      for (const item of pending) {
-        const reserved = await reserveStock(
-          {
-            tenantId: order.tenantId,
-            productId: item.productId,
-            locationId: "default",
-            quantity: item.quantity,
-            sourceType: "sales-order",
-            sourceId: order.id,
-            reason: `Sales order ${order.orderNumber ?? order.id}`
-          },
-          {
-            inventoryStore: locals.inventoryStore,
-            productReader: productReader(locals.productCatalogStore),
-            actor: { id: actorId, permissions }
-          }
-        );
-        if (!reserved.ok) throw new Error(reserved.error.message);
-        movementIds.push(reserved.data.movement.id);
-      }
-
-      return { reservationId: movementIds.length > 0 || aggregate.size > 0 ? `sales-order:${order.id}` : null };
-    }
   };
 }
 
@@ -338,7 +267,12 @@ export const actions: Actions = {
         { tenantId: org.id, orderId },
         {
           salesOrderStore: locals.salesOrderStore,
-          inventoryReservationPort: inventoryReservationPort(locals, locals.user.id, permissions),
+          inventoryReservationPort: createSalesOrderInventoryReservationPort({
+            inventoryStore: locals.inventoryStore,
+            productCatalogStore: locals.productCatalogStore,
+            actorId: locals.user.id,
+            permissions
+          }),
           actor: { id: locals.user.id, email: locals.user.email, permissions }
         }
       );
@@ -370,6 +304,7 @@ export const actions: Actions = {
   invoice: async ({ request, locals, cookies, platform }) => {
     requireModule("sales-order", platform);
     requireModule("invoice", platform);
+    requireModule("inventory", platform);
     if (!locals.user) return fail(403, { error: "Not signed in to a company." });
     const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
     if (!org) return fail(403, { error: "Not signed in to a company." });
@@ -380,6 +315,7 @@ export const actions: Actions = {
     if (!orderId) return fail(400, { error: "Missing sales order id." });
 
     let result;
+    let releaseSummary = { releasedCount: 0, idempotentCount: 0, movementIds: [] as string[] };
     try {
       result = await markOrderInvoiced(
         { tenantId: org.id, orderId },
@@ -389,6 +325,14 @@ export const actions: Actions = {
           actor: { id: locals.user.id, email: locals.user.email, permissions }
         }
       );
+      if (result.ok && result.data) {
+        releaseSummary = await releaseSalesOrderReservations(result.data.order, {
+          inventoryStore: locals.inventoryStore,
+          productCatalogStore: locals.productCatalogStore,
+          actorId: locals.user.id,
+          permissions
+        });
+      }
     } catch (error) {
       return fail(400, { error: error instanceof Error ? error.message : "Could not create invoice draft." });
     }
@@ -404,6 +348,8 @@ export const actions: Actions = {
         payload: {
           idempotent: result.data.idempotent,
           invoiceId: result.data.order.invoiceId,
+          releasedReservations: releaseSummary.releasedCount,
+          idempotentReservationReleases: releaseSummary.idempotentCount,
           status: result.data.order.status
         }
       },
@@ -411,5 +357,62 @@ export const actions: Actions = {
     );
 
     return { invoiced: true, invoiceId: result.data.order.invoiceId };
+  },
+
+  cancel: async ({ request, locals, cookies, platform }) => {
+    requireModule("sales-order", platform);
+    requireModule("inventory", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const orderId = text(form.get("orderId"));
+    const reason = text(form.get("reason")) || "Cancelled from sales order ledger.";
+    if (!orderId) return fail(400, { error: "Missing sales order id." });
+
+    let result;
+    let releaseSummary = { releasedCount: 0, idempotentCount: 0, movementIds: [] as string[] };
+    try {
+      result = await cancelOrder(
+        { tenantId: org.id, orderId, reason },
+        {
+          salesOrderStore: locals.salesOrderStore,
+          actor: { id: locals.user.id, email: locals.user.email, permissions }
+        }
+      );
+      if (result.ok && result.data) {
+        releaseSummary = await releaseSalesOrderReservations(result.data.order, {
+          inventoryStore: locals.inventoryStore,
+          productCatalogStore: locals.productCatalogStore,
+          actorId: locals.user.id,
+          permissions
+        });
+      }
+    } catch (error) {
+      return fail(400, { error: error instanceof Error ? error.message : "Could not cancel this sales order." });
+    }
+    if (!result.ok || !result.data) return fail(result.status, { error: result.error.message });
+
+    await recordEvent(
+      {
+        eventName: "sales-order.order_cancelled",
+        actorId: locals.user.id,
+        entityType: "sales-order",
+        entityId: result.data.order.id,
+        source: "app/sales-orders",
+        payload: {
+          idempotent: result.data.idempotent,
+          releasedReservations: releaseSummary.releasedCount,
+          idempotentReservationReleases: releaseSummary.idempotentCount,
+          reason: result.data.order.cancelReason,
+          status: result.data.order.status
+        }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { cancelled: true };
   }
 };

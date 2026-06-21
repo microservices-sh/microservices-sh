@@ -126,8 +126,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/sales-orders/+page.server.ts",
-    ["inventoryReservationPort", "reserveStock", "getStockBalance", "confirmOrder"],
-    "Sales order confirmation reserves stock through the inventory module before moving orders to confirmed."
+    ["createSalesOrderInventoryReservationPort", "releaseSalesOrderReservations", "confirmOrder", "releasedReservations"],
+    "Sales order confirmation reserves stock through the inventory bridge before moving orders to confirmed, then releases reservations on terminal handoff."
   );
   assertFileIncludesAll(
     "src/routes/app/shipments/+page.server.ts",
@@ -195,8 +195,18 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/sales-orders/+page.svelte",
-    ["generateSalesOrderPrintHtml", "generateSalesOrderLedgerCsv", "generateSalesOrderLineItemsCsv", "printSalesOrder", "exportSalesOrder", "Export CSV"],
-    "Sales order ledger exposes row-level print and CSV document actions."
+    ["generateSalesOrderPrintHtml", "generateSalesOrderLedgerCsv", "generateSalesOrderLineItemsCsv", "printSalesOrder", "exportSalesOrder", "Export CSV", "?/cancel"],
+    "Sales order ledger exposes row-level print, CSV, and cancellation actions."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/sales-order-inventory.ts",
+    ["createSalesOrderInventoryReservationPort", "releaseSalesOrderReservations", "reserveStock", "releaseReservation", "findMovementBySourceRef"],
+    "Sales order host bridge reserves stock on confirmation and releases tracked reservations after invoice or cancellation."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/sales-orders/+page.server.ts",
+    ["cancelOrder", "createSalesOrderInventoryReservationPort", "releaseSalesOrderReservations", "releasedReservations", "sales-order.order_cancelled"],
+    "Sales order route wires confirm, invoice, and cancel lifecycle actions through module ports plus inventory release side effects."
   );
   assertFileIncludesAll(
     "src/lib/server/demo.ts",

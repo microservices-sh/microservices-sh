@@ -106,6 +106,8 @@
     <Alert tone="success">
       Invoice issued.{#if form.invoiceId} <a href={`/app/invoices/${form.invoiceId}`}>Open invoice</a>{/if}
     </Alert>
+  {:else if form?.cancelled}
+    <Alert tone="success">Sales order cancelled and reservations released.</Alert>
   {:else if form?.error}
     <Alert tone="error">{form.error}</Alert>
   {/if}
@@ -156,10 +158,18 @@
                           <input type="hidden" name="orderId" value={order.id} />
                           <Button type="submit" variant="primary" size="sm">Confirm</Button>
                         </form>
+                        <form class="action-form" method="POST" action="?/cancel" use:enhance>
+                          <input type="hidden" name="orderId" value={order.id} />
+                          <Button type="submit" variant="ghost" size="sm">Cancel</Button>
+                        </form>
                       {:else if data.canManage && order.status === "confirmed"}
                         <form class="action-form" method="POST" action="?/invoice" use:enhance>
                           <input type="hidden" name="orderId" value={order.id} />
                           <Button type="submit" variant="primary" size="sm">Invoice</Button>
+                        </form>
+                        <form class="action-form" method="POST" action="?/cancel" use:enhance>
+                          <input type="hidden" name="orderId" value={order.id} />
+                          <Button type="submit" variant="ghost" size="sm">Cancel</Button>
                         </form>
                       {:else if data.canManage && order.status === "invoiced" && order.invoiceId}
                         <Button href={`/app/invoices/${order.invoiceId}`} variant="ghost" size="sm">Open</Button>
