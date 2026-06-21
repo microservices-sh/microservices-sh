@@ -44,7 +44,7 @@ Remaining gaps are mostly add-on business workflows, not more full-app cloning.
 | P0 | Support inbox/widget hardening | HelpGrid widget settings, quick actions, conversations, messages, channel metadata, agent takeover | Implemented as `support-inbox`; `support-ticket` now owns comments, attachment metadata, share tokens, and per-tenant ticket numbers. |
 | P1 | Membership and customer credits | Booking membership tiers, customer memberships, credits, credit transactions, membership history | Implemented as `membership-credits`; route proof now extends `booking-sveltekit`. |
 | P1 | Estimates/quotes and recurring invoice templates | Accounting Chiangs estimates, accepted/converted lifecycle, recurring invoices, recurring items, send/post/void schemas | `estimate-quote` and `recurring-documents` implemented; route proof now extends `accounting-erp-sveltekit`. |
-| P1 | Storage entitlements and expiring share links | DashDrive files, short IDs, expiry, download count, storage packages, purchases | `storage-entitlements` implemented; integrate with `file-media` or client portal routes later. |
+| P1 | Storage entitlements and expiring share links | DashDrive files, short IDs, expiry, download count, storage packages, purchases | `storage-entitlements` implemented; client portal route proof now enforces per-customer quota on file uploads. |
 | P1 | HR people ops | HR employees, departments, positions, leave balances/requests, attendance | `hr-people-ops` implemented; template later, not before focused route proof demand. |
 | P1 | Project/field progress | EPMIS projects, worker access, progress logs, media files, comments, public access tokens | `project-progress` implemented; route proof now extends `erp-shell-sveltekit`. |
 | P2 | Content/CMS publishing | CMS, mini-CMS, blog, magazine | `content-cms` implemented as a headless module; add route proof only when landing/content-heavy generated apps need it. |
@@ -217,7 +217,8 @@ Integrations:
 - `file-media`, `payment`, `jobs-workflows`, `audit-log`.
 
 Template impact:
-- Improve `client-portal-sveltekit` file sharing.
+- `client-portal-sveltekit` now shows storage usage, quota-gates uploads, and includes storage/file-media D1 tables for the files route.
+- Next step: add expiring public share links and optional storage package purchases.
 - Optional `storage-share-sveltekit` template later.
 
 ## P1/P2 Plan: HR People Ops

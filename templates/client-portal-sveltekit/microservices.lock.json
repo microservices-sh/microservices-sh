@@ -153,6 +153,38 @@
       }
     },
     {
+      "id": "storage-entitlements",
+      "version": "0.1.0",
+      "source": "registry:storage-entitlements@0.1.0",
+      "checksum": "sha256:preview-storage-entitlements-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/storage-entitlements",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": [
+          "storage-entitlements.read",
+          "storage-entitlements.write",
+          "storage-entitlements.admin",
+          "storage-entitlements.extend",
+          "storage-entitlements.observe"
+        ],
+        "rpc": [],
+        "hooks": ["beforeStorageEntitlementsCreate", "afterStorageEntitlementsUpdated"],
+        "events": [
+          "storage-entitlements.created",
+          "storage-entitlements.updated",
+          "storage-entitlements.quota.updated",
+          "storage-entitlements.purchase.completed",
+          "storage-entitlements.share.created",
+          "storage-entitlements.share.downloaded",
+          "storage-entitlements.share.revoked"
+        ],
+        "requires": []
+      }
+    },
+    {
       "id": "audit-log",
       "version": "0.1.0",
       "source": "registry:audit-log@0.1.0",
@@ -173,7 +205,7 @@
   ],
   "customizations": {
     "config": true,
-    "hooks": ["beforeMintToken", "afterTokenMinted", "beforeVerifyCode", "afterSessionCreated", "beforeEmailSend", "afterEmailQueued", "afterEmailFailed", "beforeIssueToken", "afterTokenIssued", "beforeCustomerCreate", "afterCustomerUpdated", "beforeInvoiceIssue", "onInvoiceIssued", "onInvoicePaid", "beforeUpload", "allowContentType", "onFileUploaded", "redactAuditPayload"],
+    "hooks": ["beforeMintToken", "afterTokenMinted", "beforeVerifyCode", "afterSessionCreated", "beforeEmailSend", "afterEmailQueued", "afterEmailFailed", "beforeIssueToken", "afterTokenIssued", "beforeCustomerCreate", "afterCustomerUpdated", "beforeInvoiceIssue", "onInvoiceIssued", "onInvoicePaid", "beforeUpload", "allowContentType", "onFileUploaded", "beforeStorageEntitlementsCreate", "afterStorageEntitlementsUpdated", "redactAuditPayload"],
     "overlays": [],
     "forks": []
   }

@@ -1,6 +1,7 @@
 import type { CustomerRepository } from "@microservices-sh/customer/ports";
 import type { InvoiceStore, NumberAllocator } from "@microservices-sh/invoice/ports";
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
+import type { StorageEntitlementsStore } from "@microservices-sh/storage-entitlements/ports";
 import type { AuditEventStore } from "@microservices-sh/audit-log/ports";
 import type { SigningKeyStore } from "@microservices-sh/auth/ports";
 import type { TokenClaims } from "@microservices-sh/auth/types";
@@ -35,6 +36,7 @@ declare global {
       numberAllocator: NumberAllocator;
       mediaStore: MediaStore;
       objectStorage: ObjectStorage;
+      storageEntitlementsStore: StorageEntitlementsStore;
       auditStore: AuditEventStore;
       signingKeyStore: SigningKeyStore;
       claims: TokenClaims | null;

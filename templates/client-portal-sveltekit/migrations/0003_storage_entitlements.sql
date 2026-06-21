@@ -1,3 +1,6 @@
+-- @microservices-sh/storage-entitlements schema for customer storage quotas.
+-- The storage-entitlements D1 adapter only reads and writes the tables below.
+
 CREATE TABLE IF NOT EXISTS storage_accounts (
   id TEXT PRIMARY KEY,
   tenant_id TEXT NOT NULL,

@@ -36,6 +36,7 @@
     "@microservices-sh/gateway": "workspace:*",
     "@microservices-sh/identity": "workspace:*",
     "@microservices-sh/invoice": "workspace:*",
+    "@microservices-sh/storage-entitlements": "workspace:*",
     "@sveltejs/adapter-cloudflare": "^7.2.4",
     "@sveltejs/kit": "^2.9.0",
     "svelte": "^5.0.0",

@@ -339,6 +339,44 @@
     @apply mb-0 mt-1 text-[0.9rem];
   }
 
+  /* Storage usage */
+  .storage-meter {
+    @apply grid gap-3;
+  }
+  .storage-meter__summary {
+    @apply flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1;
+  }
+  .storage-meter__summary strong {
+    @apply font-display text-[1.45rem] font-medium leading-tight text-ink;
+    letter-spacing: 0;
+  }
+  .storage-meter__summary span {
+    @apply text-[0.92rem] font-medium text-muted;
+  }
+  .storage-meter progress {
+    inline-size: 100%;
+    block-size: 0.7rem;
+    overflow: hidden;
+    border: 0;
+    border-radius: 999px;
+    background: var(--color-line);
+    color: var(--color-accent);
+  }
+  .storage-meter progress::-webkit-progress-bar {
+    background: var(--color-line);
+  }
+  .storage-meter progress::-webkit-progress-value {
+    border-radius: 999px;
+    background: var(--color-accent);
+  }
+  .storage-meter progress::-moz-progress-bar {
+    border-radius: 999px;
+    background: var(--color-accent);
+  }
+  .storage-meter p {
+    @apply m-0 text-[0.9rem];
+  }
+
   /* Pills (status badges) */
   .pill {
     @apply inline-flex min-h-[1.9rem] items-center rounded-full border border-accent-line

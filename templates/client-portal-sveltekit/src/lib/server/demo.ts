@@ -14,8 +14,11 @@ import { createInvoice, issueInvoice } from "@microservices-sh/invoice";
 import type { InvoiceStore, NumberAllocator } from "@microservices-sh/invoice/ports";
 import { createUploadTicket, completeUpload } from "@microservices-sh/file-media";
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
+import { createStorageEntitlementsService } from "@microservices-sh/storage-entitlements";
+import type { StorageEntitlementsStore } from "@microservices-sh/storage-entitlements/ports";
 import { recordEvent } from "@microservices-sh/audit-log";
 import type { AuditEventStore } from "@microservices-sh/audit-log/ports";
+import { storageEntitlementsConfig } from "$lib/server/template-config";
 
 export interface DemoDeps {
   tenantId: string;
@@ -24,6 +27,7 @@ export interface DemoDeps {
   numberAllocator: NumberAllocator;
   mediaStore: MediaStore;
   objectStorage: ObjectStorage & { setSize?: (key: string, info: { size: number; contentType?: string }) => void };
+  storageEntitlementsStore: StorageEntitlementsStore;
   auditStore: AuditEventStore;
 }
 
@@ -37,6 +41,10 @@ const DEMO_CUSTOMERS = [
 export async function seedDemoData(deps: DemoDeps): Promise<void> {
   if (seeded) return;
   seeded = true;
+  const storageEntitlements = createStorageEntitlementsService({
+    store: deps.storageEntitlementsStore,
+    config: storageEntitlementsConfig
+  });
 
   for (const profile of DEMO_CUSTOMERS) {
     const customerResult = await upsertCustomer(profile, { customerRepository: deps.customerRepository });
@@ -117,10 +125,16 @@ export async function seedDemoData(deps: DemoDeps): Promise<void> {
       const body = "%PDF-1.4 demo statement";
       await deps.objectStorage.put(ticket.data.key, body, { contentType: "application/pdf" });
       deps.objectStorage.setSize?.(ticket.data.key, { size: body.length, contentType: "application/pdf" });
-      await completeUpload(
+      const completed = await completeUpload(
         { ticketId: ticket.data.ticketId, tenantId: deps.tenantId },
         { mediaStore: deps.mediaStore, storage: deps.objectStorage }
       );
+      if (completed.ok) {
+        await storageEntitlements.recordFileStored(
+          { tenantId: deps.tenantId, actorId: "system:seed" },
+          { ownerType: "customer", ownerId: customer.id, sizeBytes: body.length }
+        );
+      }
     }
   }
 }

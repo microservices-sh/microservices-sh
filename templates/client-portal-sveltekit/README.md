@@ -8,9 +8,11 @@ customer sees their own invoices, documents, and account; staff get an admin
 side spanning all customers, invoices, and activity.
 
 Billing comes from `@microservices-sh/invoice`, documents from
-`@microservices-sh/file-media`, accounts from `@microservices-sh/customer`,
-sessions from `@microservices-sh/identity`, login-code delivery from
-`@microservices-sh/email`, and the activity trail from `@microservices-sh/audit-log`.
+`@microservices-sh/file-media`, quota accounting from
+`@microservices-sh/storage-entitlements`, accounts from
+`@microservices-sh/customer`, sessions from `@microservices-sh/identity`,
+login-code delivery from `@microservices-sh/email`, and the activity trail from
+`@microservices-sh/audit-log`.
 The template owns only SvelteKit routes, UI, composition glue, and Cloudflare
 binding wiring.
 
@@ -38,14 +40,15 @@ system — colors, fonts, radius, shadows — lives in one `@theme` block in
 | `/portal` | customer | Dashboard — own invoices + files summary |
 | `/portal/invoices` | customer | Own invoices |
 | `/portal/invoices/[id]` | customer | Invoice detail with line items |
-| `/portal/files` | customer | Documents + two-step upload |
+| `/portal/files` | customer | Documents + quota-gated two-step upload |
 | `/admin` | staff | Workspace overview + recent activity |
 | `/admin/invoices` | staff | All invoices |
 | `/admin/customers` | staff | All customers with billing rollups |
 
 Customer sessions are scoped to their own `customerId`; file reads and uploads
-pass that id as `ownerId` to `@microservices-sh/file-media`. Staff routes require
-`role === "staff"` from `ADMIN_EMAILS`. Local dev can still use explicit
+pass that id as `ownerId` to `@microservices-sh/file-media`; uploads also call
+`@microservices-sh/storage-entitlements` to check and reserve per-customer quota,
+then release the reservation if the file-media flow fails. Staff routes require `role === "staff"` from `ADMIN_EMAILS`. Local dev can still use explicit
 `?role=staff` / `?role=customer` links for demo data.
 
 ## Data Wiring
@@ -62,6 +65,7 @@ cases (no domain logic lives in the template).
 pnpm check:spec
 pnpm --filter @microservices-sh/invoice check:spec
 pnpm --filter @microservices-sh/file-media check:spec
+pnpm --filter @microservices-sh/storage-entitlements check:spec
 pnpm build:app
 pnpm microservices local setup
 pnpm dev
@@ -69,7 +73,7 @@ pnpm dev
 
 ## Pending Before Beta
 
-1. Add broader D1/R2 migration coverage for invoice, file-media, customer, and audit-log tables.
+1. Add broader D1/R2 migration coverage for invoice, customer, and audit-log tables.
 2. Browser screenshot checks for desktop and mobile.
 3. Add payment provider modules behind approval gates.
 

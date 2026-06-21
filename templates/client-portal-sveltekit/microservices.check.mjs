@@ -11,8 +11,28 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/portal/files/+page.server.ts",
-    ["@microservices-sh/file-media", "createUploadTicket", "completeUpload", "ownerId: user.customerId"],
-    "Files route uses the file-media module's two-step upload flow scoped by customer ownerId."
+    [
+      "@microservices-sh/file-media",
+      "@microservices-sh/storage-entitlements",
+      "createUploadTicketScoped",
+      "completeUploadScoped",
+      "canStoreBytes",
+      "recordFileStored",
+      "recordFileDeleted",
+      "releaseReservation",
+      "ownerId: user.customerId"
+    ],
+    "Files route uses scoped file-media two-step uploads plus storage-entitlements quota reservation scoped by customer ownerId."
+  );
+  assertFileIncludesAll(
+    "migrations/0003_storage_entitlements.sql",
+    ["CREATE TABLE IF NOT EXISTS storage_accounts", "CREATE TABLE IF NOT EXISTS storage_share_links"],
+    "Storage entitlements migration creates account and share-link tables."
+  );
+  assertFileIncludesAll(
+    "migrations/0004_file_media.sql",
+    ["CREATE TABLE IF NOT EXISTS upload_tickets", "CREATE TABLE IF NOT EXISTS media_files"],
+    "File-media migration creates upload ticket and media file tables for D1-backed portal files."
   );
   assertFileIncludesAll(
     "src/routes/api/login/+server.ts",

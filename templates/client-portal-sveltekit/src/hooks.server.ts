@@ -8,6 +8,7 @@ import { createD1MediaStore } from "@microservices-sh/file-media/adapters/d1";
 import { createMemoryMediaStore } from "@microservices-sh/file-media/adapters/memory";
 import { createR2ObjectStorage } from "@microservices-sh/file-media/adapters/r2";
 import { createMemoryObjectStorage } from "@microservices-sh/file-media";
+import { createD1StorageEntitlementsStore, createStorageEntitlementsMemoryStore } from "@microservices-sh/storage-entitlements";
 import { createD1AuditEventStore } from "@microservices-sh/audit-log/adapters/d1";
 import { createMemoryAuditEventStore } from "@microservices-sh/audit-log/adapters/memory";
 import { createD1SigningKeyStore } from "@microservices-sh/auth/adapters/d1";
@@ -33,6 +34,7 @@ const memoryInvoiceStore = createMemoryInvoiceStore();
 const memoryNumberAllocator = createMemoryNumberAllocator();
 const memoryMediaStore = createMemoryMediaStore();
 const memoryObjectStorage = createMemoryObjectStorage();
+const memoryStorageEntitlementsStore = createStorageEntitlementsMemoryStore();
 const memoryAuditStore = createMemoryAuditEventStore();
 const memorySigningKeyStore = createMemorySigningKeyStore();
 const memoryAccountStore = createMemoryAccountStore();
@@ -56,6 +58,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.numberAllocator = db ? createD1NumberAllocator(db) : memoryNumberAllocator;
   event.locals.mediaStore = db ? createD1MediaStore(db) : memoryMediaStore;
   event.locals.objectStorage = bucket ? createR2ObjectStorage(bucket) : memoryObjectStorage;
+  event.locals.storageEntitlementsStore = db ? createD1StorageEntitlementsStore(db) : memoryStorageEntitlementsStore;
   event.locals.auditStore = db ? createD1AuditEventStore(db) : memoryAuditStore;
   event.locals.signingKeyStore = db ? createD1SigningKeyStore(db) : memorySigningKeyStore;
   event.locals.claims = null;
@@ -74,6 +77,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       numberAllocator: memoryNumberAllocator,
       mediaStore: memoryMediaStore,
       objectStorage: memoryObjectStorage,
+      storageEntitlementsStore: memoryStorageEntitlementsStore,
       auditStore: memoryAuditStore
     });
   }

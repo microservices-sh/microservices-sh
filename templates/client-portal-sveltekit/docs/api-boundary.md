@@ -7,7 +7,7 @@ The template must not put business logic directly in SvelteKit route files.
 | Layer | Owns | Example |
 |-------|------|---------|
 | Route adapter | HTTP parsing and response mapping | `src/routes/portal/files/+page.server.ts` |
-| Use case | domain orchestration | `createUploadTicket`, `createInvoice` |
+| Use case | domain orchestration | `createUploadTicket`, `createInvoice`, `canStoreBytes` |
 | Port | dependency contract | `InvoiceStore`, `MediaStore` |
 | Adapter | concrete infrastructure | `D1InvoiceStore`, `R2ObjectStorage` |
 | Hook | user customization | `beforeInvoiceIssue`, `allowContentType` |
@@ -65,13 +65,17 @@ export interface InvoiceStore {
 
 ## File Uploads: Two-Step Boundary
 
-File uploads cross the boundary in two module calls — the route only moves bytes:
+File uploads cross the boundary in storage and file-media module calls — the route only moves bytes:
 
-1. `createUploadTicket` reserves a tenant-scoped key, carries the session
+1. `canStoreBytes` checks the customer storage quota before any object write.
+2. `createUploadTicket` reserves a tenant-scoped key, carries the session
    `customerId` as `ownerId`, and validates content type / size.
-2. The route PUTs the bytes to the ticket key, then `completeUpload` verifies the
+3. `recordFileStored` reserves the declared bytes against the customer quota.
+4. The route PUTs the bytes to the ticket key, then `completeUpload` verifies the
    object landed and records a `MediaFile`.
-3. Customer portal loads call `listFiles({ tenantId, ownerId: customerId })`;
+5. If PUT or completion fails, `recordFileDeleted` releases the quota reservation
+   and the route removes any object at the ticket key.
+6. Customer portal loads call `listFiles({ tenantId, ownerId: customerId })`;
    tenant-wide listing is reserved for staff/admin contexts.
 
 The same use cases should be callable from SvelteKit, Hono, MCP tools, tests, and

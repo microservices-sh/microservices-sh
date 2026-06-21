@@ -5,7 +5,7 @@
   "status": "ready",
   "displayName": "Client Portal SvelteKit",
   "category": "business-system",
-  "summary": "Auth-gated Cloudflare SvelteKit client portal: customers see their own invoices, files, and account; staff get an admin side. Detached invoice/file/customer logic.",
+  "summary": "Auth-gated Cloudflare SvelteKit client portal: customers see their own invoices, files, storage quota, and account; staff get an admin side. Detached invoice/file/customer logic.",
   "runtime": {
     "language": "typescript",
     "framework": "sveltekit",
@@ -27,6 +27,7 @@
       "customer",
       "invoice",
       "file-media",
+      "storage-entitlements",
       "audit-log"
     ],
     "optional": [
@@ -61,7 +62,15 @@
     "files": {
       "activeModule": "file-media",
       "allowedModules": [
-        "file-media"
+        "file-media",
+        "storage-entitlements"
+      ],
+      "approvalRisk": "medium"
+    },
+    "storage": {
+      "activeModule": "storage-entitlements",
+      "allowedModules": [
+        "storage-entitlements"
       ],
       "approvalRisk": "medium"
     },

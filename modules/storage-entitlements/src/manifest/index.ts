@@ -24,8 +24,7 @@ export const manifest = {
         "storage_accounts",
         "storage_packages",
         "storage_purchases",
-        "storage_share_links",
-        "domain_events"
+        "storage_share_links"
       ]
     }
   ],

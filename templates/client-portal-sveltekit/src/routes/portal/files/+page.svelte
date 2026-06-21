@@ -3,6 +3,22 @@
   import { statusBadgeVariant } from "$lib/status";
   import { Button, Field, Card, Alert, Eyebrow, Badge } from "$lib/ui";
   let { data, form } = $props();
+
+  function formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    const units = ["KB", "MB", "GB", "TB"];
+    let value = bytes / 1024;
+    let unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex += 1;
+    }
+    return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)} ${units[unitIndex]}`;
+  }
+
+  function usagePercent(storage: { usedBasisPoints: number }): number {
+    return Math.min(100, Math.round(storage.usedBasisPoints / 100));
+  }
 </script>
 
 <svelte:head>
@@ -26,6 +42,20 @@
       {:else if form?.error}
         <Alert tone="error">{form.error}</Alert>
       {/if}
+
+      <Card class="mt-6">
+        <h2>Storage</h2>
+        <div class="storage-meter" aria-label="Storage usage">
+          <div class="storage-meter__summary">
+            <strong>{formatBytes(data.storage.usedBytes)} used</strong>
+            <span>{formatBytes(data.storage.remainingBytes)} remaining</span>
+          </div>
+          <progress max="100" value={usagePercent(data.storage)} aria-label="Storage usage">
+            {usagePercent(data.storage)}%
+          </progress>
+          <p>{usagePercent(data.storage)}% of {formatBytes(data.storage.quotaBytes)} included storage is in use.</p>
+        </div>
+      </Card>
 
       <Card class="mt-6">
         <h2>Upload a document</h2>

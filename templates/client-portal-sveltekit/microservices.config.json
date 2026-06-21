@@ -20,6 +20,10 @@
     "allowedContentTypes": ["application/pdf", "image/png", "image/jpeg"],
     "maxBytesMb": 25
   },
+  "storageEntitlements": {
+    "defaultQuotaBytes": 2147483648,
+    "defaultCurrency": "USD"
+  },
   "theme": {
     "primaryColor": "#146c54",
     "surface": "#ffffff",
