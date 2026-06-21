@@ -34,6 +34,7 @@
       "jobs-workflows",
       "notifications-inapp",
       "email",
+      "support-inbox",
       "webhook-delivery",
       "product-catalog",
       "inventory",
@@ -87,6 +88,13 @@
       "activeModule": "support-ticket",
       "allowedModules": [
         "support-ticket"
+      ],
+      "approvalRisk": "medium"
+    },
+    "supportInbox": {
+      "activeModule": "support-inbox",
+      "allowedModules": [
+        "support-inbox"
       ],
       "approvalRisk": "medium"
     },

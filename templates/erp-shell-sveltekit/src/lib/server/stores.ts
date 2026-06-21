@@ -63,6 +63,11 @@ import type { FormStore } from "@microservices-sh/forms-intake/ports";
 import { createD1BookingRepository } from "@microservices-sh/booking/adapters/d1";
 import { createMemoryBookingRepository } from "@microservices-sh/booking/adapters/memory";
 import type { BookingRepository } from "@microservices-sh/booking/ports";
+import {
+  createD1SupportInboxStore,
+  createSupportInboxMemoryStore,
+  type SupportInboxStore
+} from "@microservices-sh/support-inbox";
 
 import type { RbacStore } from "@microservices-sh/org-team-rbac/ports";
 import type { TableGateway } from "@microservices-sh/admin-shell/ports";
@@ -106,6 +111,7 @@ const memoryAdsStore = createMemoryAdsStore();
 const memorySmsCampaignsStore = createSmsCampaignsMemoryStore();
 const memoryFormStore = createMemoryFormStore();
 const memoryBookingRepository = createMemoryBookingRepository();
+const memorySupportInboxStore = createSupportInboxMemoryStore();
 
 export interface ServerStores {
   rbacStore: RbacStore;
@@ -135,6 +141,7 @@ export interface ServerStores {
   smsCampaignsStore: SmsCampaignsStore;
   formStore: FormStore;
   bookingRepository: BookingRepository;
+  supportInboxStore: SupportInboxStore;
 }
 
 // The platform bindings as declared on App.Platform — referenced via the platform
@@ -173,7 +180,8 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     adsStore: db ? createD1AdsStore(db) : memoryAdsStore,
     smsCampaignsStore: db ? createD1SmsCampaignsStore(db) : memorySmsCampaignsStore,
     formStore: db ? createD1FormStore(db) : memoryFormStore,
-    bookingRepository: db ? createD1BookingRepository(db) : memoryBookingRepository
+    bookingRepository: db ? createD1BookingRepository(db) : memoryBookingRepository,
+    supportInboxStore: db ? createD1SupportInboxStore(db) : memorySupportInboxStore
   };
 }
 
@@ -185,6 +193,7 @@ export const memoryStores = {
   invoiceStore: memoryInvoiceStore,
   recurringInvoiceStore: memoryRecurringInvoiceStore,
   numberAllocator: memoryNumberAllocator,
+  supportInboxStore: memorySupportInboxStore,
   mediaStore: memoryMediaStore,
   objectStorage: memoryObjectStorage,
   auditStore: memoryAuditStore

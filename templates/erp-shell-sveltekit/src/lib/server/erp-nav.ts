@@ -38,6 +38,7 @@ const MODULE_NAV: Record<string, NavItem> = {
   "billing-subscriptions": { label: "Billing", href: "/app/billing", icon: "receipt" },
   booking: { label: "Bookings", href: "/app/bookings", icon: "calendar" },
   "support-ticket": { label: "Support", href: "/app/support", icon: "life-buoy" },
+  "support-inbox": { label: "Support inbox", href: "/app/support-inbox", icon: "message-square" },
   "notifications-inapp": { label: "Notifications", href: "/app/notifications", icon: "bell" },
   "image-generation": { label: "Images", href: "/app/images", icon: "image" },
   "ads-manager": { label: "Ads", href: "/app/ads", icon: "megaphone" },
@@ -51,7 +52,7 @@ const MODULE_NAV: Record<string, NavItem> = {
 // Thematic groups (ordered). Each lists the ordered module ids it contains;
 // only enabled ones render, and empty groups are dropped.
 const GROUPS: { section: string; modules: string[] }[] = [
-  { section: "Customers", modules: ["customer", "booking", "support-ticket"] },
+  { section: "Customers", modules: ["customer", "booking", "support-ticket", "support-inbox"] },
   { section: "Billing", modules: ["invoice", "payment", "billing-subscriptions"] },
   { section: "Marketing", modules: ["forms-intake", "image-generation", "ads-manager", "sms-campaigns"] },
   { section: "Automation", modules: ["jobs-workflows", "webhook-delivery"] },

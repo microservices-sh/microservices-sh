@@ -41,6 +41,7 @@ export const BUNDLED_MODULES = [
   "sales-order",
   "shipment",
   "sms-campaigns",
+  "support-inbox",
   "support-ticket",
   "webhook-delivery",
 ];
@@ -76,7 +77,7 @@ export const REPO_TEMPLATES = [
   "accounting-erp-sveltekit",
 ];
 
-const ERP_SHELL_MODULES = ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "product-catalog", "inventory", "sales-order", "shipment", "commerce-sync", "accounting-core", "accounts-payable", "accounts-receivable", "bank-reconciliation", "invoice", "payment", "billing-subscriptions", "image-generation", "ads-manager", "forms-intake", "booking", "file-media", "jobs-workflows", "notifications-inapp", "sms-campaigns", "support-ticket", "webhook-delivery"];
+const ERP_SHELL_MODULES = ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "product-catalog", "inventory", "sales-order", "shipment", "commerce-sync", "accounting-core", "accounts-payable", "accounts-receivable", "bank-reconciliation", "invoice", "payment", "billing-subscriptions", "image-generation", "ads-manager", "forms-intake", "booking", "file-media", "jobs-workflows", "notifications-inapp", "sms-campaigns", "support-inbox", "support-ticket", "webhook-delivery"];
 const COMMERCE_OPS_MODULES = ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "product-catalog", "inventory", "sales-order", "shipment", "commerce-sync", "invoice", "payment", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket", "webhook-delivery"];
 const ACCOUNTING_ERP_MODULES = ["auth", "identity", "email", "gateway", "org-team-rbac", "admin-shell", "audit-log", "customer", "accounting-core", "accounts-payable", "accounts-receivable", "bank-reconciliation", "estimate-quote", "invoice", "payment", "file-media", "jobs-workflows", "notifications-inapp", "support-ticket", "webhook-delivery"];
 

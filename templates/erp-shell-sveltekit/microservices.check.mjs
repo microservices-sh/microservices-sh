@@ -81,6 +81,31 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/lib/server/stores.ts",
+    ["createD1SupportInboxStore", "createSupportInboxMemoryStore", "supportInboxStore"],
+    "Template wires support-inbox storage through the server store resolver."
+  );
+  assertFileIncludes(
+    "src/hooks.server.ts",
+    "event.locals.supportInboxStore = stores.supportInboxStore",
+    "Request locals expose the support-inbox store to route adapters."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/support-inbox/+page.server.ts",
+    ["@microservices-sh/support-inbox", "listConversations", "getConversationThread", "addMessage", "setAgentTakeover", "updateConversationStatus", "recordEvent"],
+    "Support inbox route stays a thin adapter over support-inbox service methods."
+  );
+  assertFileIncludesAll(
+    "migrations/0030_support_inbox.sql",
+    ["CREATE TABLE IF NOT EXISTS support_inbox_conversations", "CREATE TABLE IF NOT EXISTS support_inbox_messages", "idx_support_inbox_messages_conversation"],
+    "Template keeps support-inbox D1 schema aligned with the module migration."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/erp-nav.ts",
+    ["support-inbox", "/app/support-inbox"],
+    "Support inbox module appears in the lock-driven sidebar nav without replacing support tickets."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/stores.ts",
     ["createD1SmsCampaignsStore", "createSmsCampaignsMemoryStore", "smsCampaignsStore"],
     "Template wires SMS campaign storage through the server store resolver."
   );

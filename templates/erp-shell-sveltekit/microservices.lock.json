@@ -146,6 +146,24 @@
       }
     },
     {
+      "id": "support-inbox",
+      "version": "0.1.0",
+      "source": "registry:support-inbox@0.1.0",
+      "checksum": "sha256:preview-support-inbox-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/support-inbox",
+        "bindings": ["DB"],
+        "resources": ["D1"],
+        "permissions": ["support-inbox.read", "support-inbox.write", "support-inbox.agent", "support-inbox.channel-admin", "support-inbox.admin", "support-inbox.extend", "support-inbox.observe"],
+        "rpc": [],
+        "hooks": ["beforeSupportInboxCreate", "afterSupportInboxUpdated"],
+        "events": ["support-inbox.widget_settings_updated", "support-inbox.quick_action_created", "support-inbox.quick_action_deleted", "support-inbox.conversation_started", "support-inbox.message_added", "support-inbox.conversation_status_updated", "support-inbox.agent_takeover_updated", "support-inbox.channel_connection_configured"],
+        "requires": []
+      }
+    },
+    {
       "id": "product-catalog",
       "version": "0.1.0",
       "source": "registry:product-catalog@0.1.0",

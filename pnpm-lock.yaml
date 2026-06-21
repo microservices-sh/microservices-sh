@@ -1768,6 +1768,9 @@ importers:
       '@microservices-sh/sms-campaigns':
         specifier: workspace:*
         version: link:../../modules/sms-campaigns
+      '@microservices-sh/support-inbox':
+        specifier: workspace:*
+        version: link:../../modules/support-inbox
       '@microservices-sh/support-ticket':
         specifier: workspace:*
         version: link:../../modules/support-ticket

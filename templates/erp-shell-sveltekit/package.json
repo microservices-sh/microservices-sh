@@ -54,6 +54,7 @@
     "@microservices-sh/sales-order": "workspace:*",
     "@microservices-sh/shipment": "workspace:*",
     "@microservices-sh/sms-campaigns": "workspace:*",
+    "@microservices-sh/support-inbox": "workspace:*",
     "@microservices-sh/support-ticket": "workspace:*",
     "@microservices-sh/webhook-delivery": "workspace:*",
     "@sveltejs/adapter-cloudflare": "^7.2.4",
