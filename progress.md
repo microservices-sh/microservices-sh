@@ -1805,3 +1805,19 @@
 | Create app package | Packaged commerce template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed | Pass |
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 83 Accounting AP recurring bill route proof
+
+- **Status:** complete.
+- Goal: close the accounting route gap where accounts-payable recurring bill primitives existed but the focused Payables UI did not expose schedule creation or due generation.
+- Added recurring bill schedule list/create/status-update and due-generation actions to `/app/payables`.
+- Due generation creates AP bills without posting to accounting; operators still use the existing bill-row Post and Pay actions for final ledger approval and settlement.
+- Added accounting template policy checks and refreshed StackSuite porting backlog wording.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounting template spec | Policy catches AP recurring bill route proof and template contract remains valid | `pnpm --dir templates/accounting-erp-sveltekit check:spec` passed | Pass |
+| Accounting template build | SvelteKit/Cloudflare build compiles after Payables route additions | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Packaged accounting template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

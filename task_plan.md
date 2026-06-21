@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 82
+Phase 83
 
 ## Phases
 
@@ -638,6 +638,14 @@ Phase 82
 - [x] Add focused commerce template policy checks for the inventory receive/adjust/reconcile route proof.
 - [x] Refresh StackSuite planning docs so route-level inventory adjust/reconcile is no longer marked pending.
 - [x] Verify commerce template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 83: Accounting AP Recurring Bill Route Proof
+- [x] Add recurring bill schedule list/create/status/update and due-generation actions to the Payables route.
+- [x] Keep due generation as draft bill creation so the existing bill post/pay workflow remains the accounting approval gate.
+- [x] Add focused accounting template policy checks for AP recurring bill route proof.
+- [x] Refresh StackSuite planning docs so AP recurring bill route proof is no longer marked pending.
+- [x] Verify accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

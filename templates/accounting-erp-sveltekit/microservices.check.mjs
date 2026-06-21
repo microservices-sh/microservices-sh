@@ -339,6 +339,16 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Accounting template lock keeps accounts-payable permissions, hooks, and events aligned with the module contract."
   );
   assertFileIncludesAll(
+    "src/routes/app/payables/+page.server.ts",
+    ["createRecurringBillTemplate", "listRecurringBillTemplates", "updateRecurringBillTemplateStatus", "generateDueRecurringBills", "postToAccounting: false"],
+    "Payables route exposes recurring bill schedules and due generation through accounts-payable use cases while keeping final posting operator-gated."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/payables/+page.svelte",
+    ["Recurring bills", "Create recurring bill", "?/createRecurringBillTemplate", "?/generateDueRecurringBills", "?/updateRecurringBillStatus"],
+    "Payables page exposes AP recurring bill route proof for schedule creation, status changes, and due generation."
+  );
+  assertFileIncludesAll(
     "microservices.lock.json",
     ["beforeMatchCreate", "beforeReconciliationStart", "afterReconciliationChanged"],
     "Accounting template lock keeps bank-reconciliation hook names aligned with the module contract."
