@@ -20,6 +20,40 @@
   },
   "modules": [
     {
+      "id": "gateway",
+      "version": "0.1.0",
+      "source": "registry:gateway@0.1.0",
+      "checksum": "sha256:preview-gateway-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/gateway",
+        "bindings": [
+          "DB",
+          "RATE_LIMIT_KV"
+        ],
+        "resources": [
+          "D1",
+          "KV"
+        ],
+        "permissions": [
+          "gateway.admin"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeIssueToken",
+          "afterTokenIssued"
+        ],
+        "events": [
+          "gateway.token_issued",
+          "gateway.access_denied"
+        ],
+        "requires": [
+          "auth"
+        ]
+      }
+    },
+    {
       "id": "auth",
       "version": "0.1.0",
       "source": "registry:auth@0.1.0",

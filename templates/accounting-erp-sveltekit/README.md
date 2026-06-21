@@ -16,6 +16,7 @@ the generated-project CLI.
 Focused modules:
 
 - `accounting-core`
+- `gateway`
 - `accounts-payable`
 - `accounts-receivable`
 - `bank-reconciliation`

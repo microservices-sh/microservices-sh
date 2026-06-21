@@ -21,6 +21,7 @@
   "modules": {
     "required": [
       "auth",
+      "gateway",
       "org-team-rbac",
       "admin-shell",
       "audit-log",
@@ -49,6 +50,13 @@
       "allowedModules": [
         "auth",
         "identity"
+      ],
+      "approvalRisk": "high"
+    },
+    "gateway": {
+      "activeModule": "gateway",
+      "allowedModules": [
+        "gateway"
       ],
       "approvalRisk": "high"
     },

@@ -16,6 +16,7 @@ the generated-project CLI.
 Focused modules:
 
 - `product-catalog`
+- `gateway`
 - `inventory`
 - `sales-order`
 - `shipment`

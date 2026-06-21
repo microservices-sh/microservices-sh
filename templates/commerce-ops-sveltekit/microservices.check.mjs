@@ -60,6 +60,16 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Template keeps the org-team-rbac per-(org,user) membership uniqueness index."
   );
   assertFileIncludesAll(
+    "src/hooks.server.ts",
+    ["@microservices-sh/gateway/adapters/kv-rate-limit", "RATE_LIMIT_KV"],
+    "Request hook uses gateway rate-limit stores with the shared RATE_LIMIT_KV binding."
+  );
+  assertFileIncludes(
+    "migrations/0010_gateway.sql",
+    "CREATE TABLE IF NOT EXISTS api_keys",
+    "Template includes gateway API-key storage for the declared gateway module."
+  );
+  assertFileIncludesAll(
     "scripts/smoke-http.mjs",
     ["route:/", "route:/app:auth-redirect"],
     "HTTP smoke script verifies the public pages and the /app auth gate."
