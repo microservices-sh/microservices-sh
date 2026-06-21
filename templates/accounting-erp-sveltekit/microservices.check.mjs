@@ -110,6 +110,11 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Template keeps Accounts Receivable D1 schema aligned with invoice snapshots and unapplied balances."
   );
   assertFileIncludesAll(
+    "src/routes/app/banking/+page.server.ts",
+    ["createBankAccount", "importStatementCsv", "matchTransaction", "startReconciliation", "recordEvent"],
+    "Banking route exposes operator actions through bank-reconciliation service methods and records audit events."
+  );
+  assertFileIncludesAll(
     "src/hooks.server.ts",
     ["@microservices-sh/gateway/adapters/kv-rate-limit", "RATE_LIMIT_KV"],
     "Request hook uses gateway rate-limit stores with the shared RATE_LIMIT_KV binding."
