@@ -1,14 +1,14 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { recordEvent } from "@microservices-sh/audit-log";
-import { deductStock, getStockBalance } from "@microservices-sh/inventory";
 import { expandProductComponents, type Product } from "@microservices-sh/product-catalog";
-import { createShipment, completeShipment, listShipments, type ShipmentInventoryPort } from "@microservices-sh/shipment";
+import { createShipment, completeShipment, listShipments } from "@microservices-sh/shipment";
 import { getOrder, listOrders } from "@microservices-sh/sales-order";
 import { money } from "$lib/format";
 import type { ShipmentPrintItem } from "$lib/packing-slip";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
+import { createShipmentInventoryPort } from "$lib/server/shipment-inventory";
 
 function text(value: FormDataEntryValue | null): string {
   return String(value ?? "").trim();
@@ -72,81 +72,6 @@ async function pickListPrintItems(locals: App.Locals, tenantId: string, items: A
     }
   }
   return expanded;
-}
-
-function inventoryPort(locals: App.Locals, actorId: string): ShipmentInventoryPort {
-  return {
-    async deductShipment(input) {
-      const aggregate = new Map<string, { productId: string; quantity: number; consumeReserved: boolean }>();
-      for (const item of input.items) {
-        const current = aggregate.get(item.productId);
-        const order = item.sourceType === "sales-order"
-          ? await locals.salesOrderStore.getOrder(input.tenantId, item.sourceId)
-          : null;
-        const consumeReserved = Boolean(order?.inventoryReservationId);
-        if (current) {
-          current.quantity += item.quantity;
-          current.consumeReserved = current.consumeReserved || consumeReserved;
-        } else {
-          aggregate.set(item.productId, { productId: item.productId, quantity: item.quantity, consumeReserved });
-        }
-      }
-
-      const pending: Array<{ productId: string; sku: string; quantity: number; consumeReserved: boolean }> = [];
-      for (const item of aggregate.values()) {
-        const product = await locals.productCatalogStore.getProduct(input.tenantId, item.productId);
-        if (!product) throw new Error(`Product ${item.productId} was not found for this company.`);
-        if (!product.trackStock) continue;
-
-        const existing = await locals.inventoryStore.findMovementBySourceRef(
-          input.tenantId,
-          item.productId,
-          "default",
-          "deduction",
-          "shipment",
-          input.shipmentId
-        );
-        if (!existing) pending.push({ ...item, sku: product.sku });
-      }
-
-      for (const item of pending) {
-        const balance = await getStockBalance(
-          { tenantId: input.tenantId, productId: item.productId, locationId: "default" },
-          { inventoryStore: locals.inventoryStore }
-        );
-        if (!balance.ok || !balance.data) throw new Error(balance.ok ? "Could not inspect stock balance." : balance.error.message);
-        const availableQuantity = item.consumeReserved ? balance.data.balance.reserved : balance.data.balance.available;
-        if (availableQuantity < item.quantity) {
-          const quantityLabel = item.consumeReserved ? "reserved" : "available";
-          throw new Error(
-            `Insufficient ${quantityLabel} stock for ${item.sku}: ${availableQuantity} ${quantityLabel}, ${item.quantity} needed.`
-          );
-        }
-      }
-
-      for (const item of pending) {
-        const deducted = await deductStock(
-          {
-            tenantId: input.tenantId,
-            productId: item.productId,
-            locationId: "default",
-            quantity: item.quantity,
-            consumeReserved: item.consumeReserved,
-            sourceType: "shipment",
-            sourceId: input.shipmentId,
-            reason: `Shipment ${input.shipmentId}`
-          },
-          {
-            inventoryStore: locals.inventoryStore,
-            actor: { id: actorId }
-          }
-        );
-        if (!deducted.ok) throw new Error(deducted.error.message);
-      }
-
-      return { deductionRef: `shipment:${input.shipmentId}` };
-    }
-  };
 }
 
 export const load: PageServerLoad = async ({ locals, cookies, parent, platform }) => {
@@ -322,7 +247,12 @@ export const actions: Actions = {
         },
         {
           shipmentStore: locals.shipmentStore,
-          inventoryPort: inventoryPort(locals, locals.user.id),
+          inventoryPort: createShipmentInventoryPort({
+            inventoryStore: locals.inventoryStore,
+            productCatalogStore: locals.productCatalogStore,
+            salesOrderStore: locals.salesOrderStore,
+            actorId: locals.user.id
+          }),
           actor: { id: locals.user.id }
         }
       );

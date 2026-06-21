@@ -131,8 +131,13 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/shipments/+page.server.ts",
-    ["deductStock", "consumeReserved", "completeShipment", "shipmentDocuments", "customerSnapshot", "expandProductComponents", "pickListPrintItems"],
-    "Shipment completion consumes reserved inventory for sales-order-backed fulfillment and exposes alias-aware, combo-expanded shipping context for packing slips."
+    ["createShipmentInventoryPort", "completeShipment", "shipmentDocuments", "customerSnapshot", "expandProductComponents", "pickListPrintItems"],
+    "Shipment completion uses the shared inventory bridge and exposes alias-aware, combo-expanded shipping context for packing slips."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/shipment-inventory.ts",
+    ["createShipmentInventoryPort", "resolveTrackedStockItems", "consumeReserved", "deductStock"],
+    "Shipment inventory bridge expands combo products and consumes reserved component stock for sales-order-backed fulfillment."
   );
   assertFileIncludesAll(
     "src/routes/app/shipments/+page.svelte",

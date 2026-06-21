@@ -9,10 +9,12 @@ import {
   createMemorySalesOrderStore,
   markOrderInvoiced
 } from "../../modules/sales-order/src/index";
+import { completeShipment, createMemoryShipmentStore, createShipment } from "../../modules/shipment/src/index";
 import {
   createSalesOrderInventoryReservationPort,
   releaseSalesOrderReservations
 } from "../../templates/commerce-ops-sveltekit/src/lib/server/sales-order-inventory.ts";
+import { createShipmentInventoryPort } from "../../templates/commerce-ops-sveltekit/src/lib/server/shipment-inventory.ts";
 
 const T0 = Date.parse("2026-06-21T00:00:00.000Z");
 const fixedNow = (offsetMs = 0) => () => T0 + offsetMs;
@@ -54,6 +56,59 @@ async function seedProductAndStock(
   );
 
   return product;
+}
+
+async function seedComboAndComponentStock(
+  productCatalogStore: ReturnType<typeof createMemoryProductCatalogStore>,
+  inventoryStore: ReturnType<typeof createMemoryInventoryStore>
+) {
+  const componentA = await seedProductAndStock(productCatalogStore, inventoryStore);
+  const componentB = mustOk(
+    await createProduct(
+      {
+        tenantId: "tenant-1",
+        sku: "SKU-COMP-B",
+        name: "Second component",
+        priceCents: 800,
+        currency: "USD",
+        trackStock: true
+      },
+      { productCatalogStore, now: fixedNow(11), actor: { id: "user-1" } }
+    )
+  ).product;
+  mustOk(
+    await stockIn(
+      {
+        tenantId: "tenant-1",
+        productId: componentB.id,
+        quantity: 20,
+        sourceType: "purchase-order",
+        sourceId: "po-2"
+      },
+      { inventoryStore, now: fixedNow(12), actor: { id: "user-1" } }
+    )
+  );
+
+  const combo = mustOk(
+    await createProduct(
+      {
+        tenantId: "tenant-1",
+        sku: "KIT-COMBO",
+        name: "Combo kit",
+        priceCents: 5_000,
+        currency: "USD",
+        productType: "combo",
+        trackStock: false,
+        comboComponents: [
+          { productId: componentA.id, quantity: 2 },
+          { productId: componentB.id, quantity: 3 }
+        ]
+      },
+      { productCatalogStore, now: fixedNow(13), actor: { id: "user-1" } }
+    )
+  ).product;
+
+  return { combo, componentA, componentB };
 }
 
 async function createTrackedSalesOrder(
@@ -195,5 +250,149 @@ describe("commerce sales order inventory lifecycle", () => {
     expect(
       mustOk(await getStockBalance({ tenantId: "tenant-1", productId: product.id }, { inventoryStore })).balance
     ).toMatchObject({ onHand: 10, reserved: 0, available: 10 });
+  });
+
+  it("reserves and releases combo component stock instead of the combo parent", async () => {
+    const inventoryStore = createMemoryInventoryStore();
+    const productCatalogStore = createMemoryProductCatalogStore();
+    const salesOrderStore = createMemorySalesOrderStore();
+    const { combo, componentA, componentB } = await seedComboAndComponentStock(productCatalogStore, inventoryStore);
+    const draft = await createTrackedSalesOrder(salesOrderStore, combo);
+
+    const confirmed = mustOk(
+      await confirmOrder(
+        { tenantId: draft.tenantId, orderId: draft.id },
+        {
+          salesOrderStore,
+          inventoryReservationPort: createSalesOrderInventoryReservationPort({
+            inventoryStore,
+            productCatalogStore,
+            actorId: "user-1",
+            permissions: ["*"],
+            now: fixedNow(14)
+          }),
+          now: fixedNow(14),
+          actor: { id: "user-1", permissions: ["*"] }
+        }
+      )
+    ).order;
+
+    expect(
+      mustOk(await getStockBalance({ tenantId: "tenant-1", productId: componentA.id }, { inventoryStore })).balance
+    ).toMatchObject({ onHand: 10, reserved: 8, available: 2 });
+    expect(
+      mustOk(await getStockBalance({ tenantId: "tenant-1", productId: componentB.id }, { inventoryStore })).balance
+    ).toMatchObject({ onHand: 20, reserved: 12, available: 8 });
+    expect(
+      mustOk(await getStockBalance({ tenantId: "tenant-1", productId: combo.id }, { inventoryStore })).balance
+    ).toMatchObject({ onHand: 0, reserved: 0, available: 0 });
+
+    const released = await releaseSalesOrderReservations(confirmed, {
+      inventoryStore,
+      productCatalogStore,
+      actorId: "user-1",
+      permissions: ["*"],
+      now: fixedNow(15)
+    });
+    expect(released).toMatchObject({ releasedCount: 2, idempotentCount: 0 });
+    expect(
+      mustOk(await getStockBalance({ tenantId: "tenant-1", productId: componentA.id }, { inventoryStore })).balance
+    ).toMatchObject({ onHand: 10, reserved: 0, available: 10 });
+    expect(
+      mustOk(await getStockBalance({ tenantId: "tenant-1", productId: componentB.id }, { inventoryStore })).balance
+    ).toMatchObject({ onHand: 20, reserved: 0, available: 20 });
+  });
+
+  it("deducts combo component reservations when a sales-order shipment completes", async () => {
+    const inventoryStore = createMemoryInventoryStore();
+    const productCatalogStore = createMemoryProductCatalogStore();
+    const salesOrderStore = createMemorySalesOrderStore();
+    const shipmentStore = createMemoryShipmentStore();
+    const { combo, componentA, componentB } = await seedComboAndComponentStock(productCatalogStore, inventoryStore);
+    const draft = await createTrackedSalesOrder(salesOrderStore, combo);
+
+    const confirmed = mustOk(
+      await confirmOrder(
+        { tenantId: draft.tenantId, orderId: draft.id },
+        {
+          salesOrderStore,
+          inventoryReservationPort: createSalesOrderInventoryReservationPort({
+            inventoryStore,
+            productCatalogStore,
+            actorId: "user-1",
+            permissions: ["*"],
+            now: fixedNow(16)
+          }),
+          now: fixedNow(16),
+          actor: { id: "user-1", permissions: ["*"] }
+        }
+      )
+    ).order;
+    const shipment = mustOk(
+      await createShipment(
+        {
+          tenantId: "tenant-1",
+          externalSource: "sales-order",
+          externalId: confirmed.id,
+          items: confirmed.lineItems.map((line) => ({
+            sourceType: "sales-order",
+            sourceId: confirmed.id,
+            productId: line.productId,
+            sku: line.sku,
+            description: line.description || line.name,
+            quantity: line.quantity
+          }))
+        },
+        { shipmentStore, now: fixedNow(17), actor: { id: "user-1" } }
+      )
+    ).shipment;
+
+    const completed = mustOk(
+      await completeShipment(
+        { tenantId: "tenant-1", shipmentId: shipment.id, completionRef: `complete:${shipment.id}` },
+        {
+          shipmentStore,
+          inventoryPort: createShipmentInventoryPort({
+            inventoryStore,
+            productCatalogStore,
+            salesOrderStore,
+            actorId: "user-1",
+            now: fixedNow(18)
+          }),
+          now: fixedNow(18),
+          actor: { id: "user-1" }
+        }
+      )
+    ).shipment;
+
+    expect(completed).toMatchObject({ status: "completed", inventoryDeductionRef: `shipment:${shipment.id}` });
+    expect(
+      mustOk(await getStockBalance({ tenantId: "tenant-1", productId: componentA.id }, { inventoryStore })).balance
+    ).toMatchObject({ onHand: 2, reserved: 0, available: 2 });
+    expect(
+      mustOk(await getStockBalance({ tenantId: "tenant-1", productId: componentB.id }, { inventoryStore })).balance
+    ).toMatchObject({ onHand: 8, reserved: 0, available: 8 });
+
+    const replay = mustOk(
+      await completeShipment(
+        { tenantId: "tenant-1", shipmentId: shipment.id, completionRef: `complete:${shipment.id}` },
+        {
+          shipmentStore,
+          inventoryPort: createShipmentInventoryPort({
+            inventoryStore,
+            productCatalogStore,
+            salesOrderStore,
+            actorId: "user-1",
+            now: fixedNow(19)
+          }),
+          now: fixedNow(19),
+          actor: { id: "user-1" }
+        }
+      )
+    ).shipment;
+    expect(replay.status).toBe("completed");
+    expect(
+      mustOk(await getStockBalance({ tenantId: "tenant-1", productId: componentA.id }, { inventoryStore })).balance
+    ).toMatchObject({ onHand: 2, reserved: 0, available: 2 });
   });
 });

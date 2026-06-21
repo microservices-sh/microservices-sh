@@ -1,4 +1,5 @@
-import { getStockBalance, releaseReservation, reserveStock, type StockMovement } from "@microservices-sh/inventory";
+import { getStockBalance, listStockMovements, releaseReservation, reserveStock, type StockMovement } from "@microservices-sh/inventory";
+import { expandProductComponents } from "@microservices-sh/product-catalog";
 import type { InventoryReservationPort, SalesOrderWithLineItems } from "@microservices-sh/sales-order";
 
 const LOCATION_ID = "default";
@@ -21,22 +22,53 @@ function productReader(productCatalogStore: App.Locals["productCatalogStore"]) {
   };
 }
 
+function addStockItem(
+  aggregate: Map<string, { productId: string; sku: string; quantity: number }>,
+  item: { productId: string; sku: string; quantity: number }
+) {
+  const current = aggregate.get(item.productId);
+  if (current) current.quantity += item.quantity;
+  else aggregate.set(item.productId, { ...item });
+}
+
+export async function resolveTrackedStockItems(
+  tenantId: string,
+  items: Array<{ productId: string | null; quantity: number }>,
+  productCatalogStore: App.Locals["productCatalogStore"]
+): Promise<Array<{ productId: string; sku: string; quantity: number }>> {
+  const aggregate = new Map<string, { productId: string; sku: string; quantity: number }>();
+
+  for (const item of items) {
+    if (!item.productId) continue;
+    const expanded = await expandProductComponents(
+      { tenantId, productId: item.productId, quantity: item.quantity },
+      { productCatalogStore }
+    );
+    if (!expanded.ok || !expanded.data) {
+      throw new Error(expanded.ok ? "Could not expand product components." : expanded.error.message);
+    }
+
+    for (const component of expanded.data.components) {
+      if (!Number.isSafeInteger(component.quantity)) {
+        throw new Error("Stock-tracked component quantities must resolve to whole units.");
+      }
+      const product = await productCatalogStore.getProduct(tenantId, component.productId);
+      if (!product) throw new Error(`Product ${component.productId} was not found for this company.`);
+      if (!product.trackStock) continue;
+      addStockItem(aggregate, { productId: product.id, sku: product.sku, quantity: component.quantity });
+    }
+  }
+
+  return [...aggregate.values()];
+}
+
 export function createSalesOrderInventoryReservationPort(deps: SalesOrderInventoryDeps): InventoryReservationPort {
   return {
     async reserveSalesOrder({ order }) {
-      const aggregate = new Map<string, { productId: string; sku: string; quantity: number }>();
-      for (const line of order.lineItems) {
-        if (!line.productId) continue;
-        const product = await deps.productCatalogStore.getProduct(order.tenantId, line.productId);
-        if (!product) throw new Error(`Product ${line.productId} was not found for this company.`);
-        if (!product.trackStock) continue;
-        const current = aggregate.get(product.id);
-        if (current) current.quantity += line.quantity;
-        else aggregate.set(product.id, { productId: product.id, sku: product.sku, quantity: line.quantity });
-      }
+      const stockItems = await resolveTrackedStockItems(order.tenantId, order.lineItems, deps.productCatalogStore);
 
       const pending: Array<{ productId: string; sku: string; quantity: number }> = [];
-      for (const item of aggregate.values()) {
+      for (const item of stockItems) {
         const existing = await deps.inventoryStore.findMovementBySourceRef(
           order.tenantId,
           item.productId,
@@ -82,7 +114,7 @@ export function createSalesOrderInventoryReservationPort(deps: SalesOrderInvento
         movementIds.push(reserved.data.movement.id);
       }
 
-      return { reservationId: movementIds.length > 0 || aggregate.size > 0 ? `${SOURCE_TYPE}:${order.id}` : null };
+      return { reservationId: movementIds.length > 0 || stockItems.length > 0 ? `${SOURCE_TYPE}:${order.id}` : null };
     }
   };
 }
@@ -97,28 +129,27 @@ export async function releaseSalesOrderReservations(
   order: SalesOrderWithLineItems,
   deps: SalesOrderInventoryDeps
 ): Promise<SalesOrderReservationReleaseSummary> {
-  const seenProductIds = new Set<string>();
+  const reservations = await listStockMovements(
+    {
+      tenantId: order.tenantId,
+      locationId: LOCATION_ID,
+      movementType: "reservation",
+      sourceType: SOURCE_TYPE,
+      sourceId: order.id,
+      limit: 500
+    },
+    { inventoryStore: deps.inventoryStore }
+  );
+  if (!reservations.ok) throw new Error(reservations.error.message);
+
   const releasedMovements: StockMovement[] = [];
   let idempotentCount = 0;
 
-  for (const line of order.lineItems) {
-    if (!line.productId || seenProductIds.has(line.productId)) continue;
-    seenProductIds.add(line.productId);
-
-    const reservation = await deps.inventoryStore.findMovementBySourceRef(
-      order.tenantId,
-      line.productId,
-      LOCATION_ID,
-      "reservation",
-      SOURCE_TYPE,
-      order.id
-    );
-    if (!reservation) continue;
-
+  for (const reservation of reservations.data.movements) {
     const released = await releaseReservation(
       {
         tenantId: order.tenantId,
-        productId: line.productId,
+        productId: reservation.productId,
         locationId: LOCATION_ID,
         quantity: reservation.quantity,
         sourceType: SOURCE_TYPE,
