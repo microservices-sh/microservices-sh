@@ -8,12 +8,19 @@ import { createMemoryPaymentGateway } from "@microservices-sh/payment/adapters/m
 import { createCfQueueProducer } from "@microservices-sh/jobs-workflows";
 import { reportRuntimeError, logRequest, generateRequestId } from "$lib/server/observability";
 import { readCompanyOrgId } from "$lib/server/org-context";
+import { runAccountingScheduled } from "$lib/server/scheduled";
 
 // Memory rate limiter for local dev / when no KV binding exists. Per-isolate and
 // non-durable — KV (RATE_LIMIT_KV) is used in production for shared, durable limits.
 const memoryRateLimitStore = createMemoryRateLimitStore();
 // Memory payment gateway for local dev; Stripe when STRIPE_SECRET_KEY is set.
 const memoryPaymentGateway = createMemoryPaymentGateway();
+
+export async function scheduled(event: ScheduledController, env: NonNullable<App.Platform["env"]>, ctx: ExecutionContext) {
+  const run = runAccountingScheduled({ cron: event.cron, scheduledTime: event.scheduledTime }, env);
+  ctx.waitUntil(run);
+  await run;
+}
 
 // Wire module stores + the session user onto locals for every request. Stores are
 // D1/R2-backed in production and memory-backed locally. Route adapters consume

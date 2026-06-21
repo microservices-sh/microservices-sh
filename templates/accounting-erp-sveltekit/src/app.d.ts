@@ -29,6 +29,7 @@ declare global {
         RATE_LIMIT_KV?: KVNamespace;
         JOB_QUEUE?: Queue<{ jobId: string }>;
         STRIPE_SECRET_KEY?: string;
+        CRON_TOKEN?: string;
         DESKTOP_IMPORT_TOKEN?: string;
         DESKTOP_IMPORT_ALLOWED_ORIGIN?: string;
         // Optional Workers Analytics Engine dataset for per-request data points.
