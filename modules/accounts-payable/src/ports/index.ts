@@ -40,6 +40,7 @@ export interface AccountsPayableStore {
   insertRecurringBillTemplate(template: RecurringBillTemplate, lineItems: RecurringBillLineItem[]): Promise<void>;
   getRecurringBillTemplate(tenantId: string, templateId: string): Promise<RecurringBillTemplateWithLineItems | null>;
   listRecurringBillTemplates(filter: RecurringBillTemplateFilter): Promise<RecurringBillTemplateWithLineItems[]>;
+  updateRecurringBillTemplate(template: RecurringBillTemplate): Promise<void>;
 
   writeEvent(event: AccountsPayableEvent): Promise<void>;
 }

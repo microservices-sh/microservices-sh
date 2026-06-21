@@ -21,6 +21,7 @@ export { recordBillPayment } from "./use-cases/record-bill-payment";
 export { getAgingReport } from "./use-cases/get-aging-report";
 export { createRecurringBillTemplate } from "./use-cases/create-recurring-bill-template";
 export { listRecurringBillTemplates } from "./use-cases/list-recurring-bill-templates";
+export { updateRecurringBillTemplateStatus } from "./use-cases/update-recurring-bill-template-status";
 export { createMemoryAccountsPayableStore } from "./adapters/memory-accounts-payable-store";
 export { createD1AccountsPayableStore } from "./adapters/d1-accounts-payable-store";
 export {

@@ -247,7 +247,8 @@ export interface AccountsPayableEvent {
     | "accounts-payable.bill_marked_payable"
     | "accounts-payable.bill_payment_recorded"
     | "accounts-payable.bill_paid"
-    | "accounts-payable.recurring_bill_template_created";
+    | "accounts-payable.recurring_bill_template_created"
+    | "accounts-payable.recurring_bill_template_status_updated";
   entityType: "accounts-payable";
   entityId: string;
   tenantId: string;

@@ -630,6 +630,28 @@ export function createD1AccountsPayableStore(db: D1Database): AccountsPayableSto
       return Promise.all((result.results ?? []).map((row) => withRecurringLineItems(rowToTemplate(row))));
     },
 
+    async updateRecurringBillTemplate(template) {
+      await db
+        .prepare(
+          `UPDATE accounts_payable_recurring_bill_templates
+           SET status = ?, next_bill_date = ?, last_bill_date = ?, max_occurrences = ?, bills_generated = ?,
+             memo = ?, updated_at = ?
+           WHERE tenant_id = ? AND id = ?`
+        )
+        .bind(
+          template.status,
+          template.nextBillDate,
+          template.lastBillDate,
+          template.maxOccurrences,
+          template.billsGenerated,
+          template.memo,
+          template.updatedAt,
+          template.tenantId,
+          template.id
+        )
+        .run();
+    },
+
     async writeEvent(event) {
       await db
         .prepare("INSERT INTO domain_events (id, event_type, aggregate_id, payload, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)")

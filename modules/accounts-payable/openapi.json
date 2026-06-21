@@ -53,6 +53,12 @@
         "summary": "List recurring bill templates",
         "responses": { "200": { "description": "Recurring bill template list" } }
       }
+    },
+    "/recurring-bill-templates/{id}/status": {
+      "post": {
+        "summary": "Pause, resume, cancel, or complete a recurring bill template",
+        "responses": { "200": { "description": "Recurring bill template status updated" }, "409": { "description": "Invalid status transition" } }
+      }
     }
   }
 }

@@ -196,6 +196,10 @@ export function createMemoryAccountsPayableStore(): AccountsPayableStore {
         .map((template) => withRecurringLineItems(template, recurringLinesByTemplate.get(template.id) ?? []));
     },
 
+    async updateRecurringBillTemplate(template) {
+      if (recurringTemplates.has(template.id)) recurringTemplates.set(template.id, { ...template });
+    },
+
     async writeEvent(event) {
       events.push({ ...event, payload: { ...event.payload } });
     }

@@ -8,7 +8,8 @@ import {
   listRecurringBillTemplates,
   listVendors,
   markBillPayable,
-  recordBillPayment
+  recordBillPayment,
+  updateRecurringBillTemplateStatus
 } from "./index";
 
 const T0 = Date.parse("2026-01-01T00:00:00.000Z");
@@ -325,5 +326,54 @@ describe("accounts-payable: recurring bill templates", () => {
     });
     expect(listed.data.templates[0].lineItems).toHaveLength(1);
     expect(listed.data.templates[0].lineItems[0]).toMatchObject({ description: "Hosting", totalCents: 8_000 });
+  });
+
+  it("updates recurring template status with terminal-state protection", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const vendor = await seedVendor(store, "tenant-1");
+    const created = await createRecurringBillTemplate(
+      {
+        tenantId: "tenant-1",
+        vendorId: vendor.id,
+        name: "Monthly hosting",
+        frequency: "monthly",
+        startDate: "2026-01-01T00:00:00.000Z",
+        lineItems: [{ description: "Hosting", quantity: 1, unitAmountCents: 8_000, taxCents: 0 }]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0) }
+    );
+    if (!created.ok) throw new Error(created.error.message);
+
+    const paused = await updateRecurringBillTemplateStatus(
+      { tenantId: "tenant-1", templateId: created.data.template.id, status: "paused" },
+      { accountsPayableStore: store, now: fixedNow(T0 + 1) }
+    );
+    expect(paused.ok).toBe(true);
+    if (!paused.ok) throw new Error(paused.error.message);
+    expect(paused.data.template).toMatchObject({ status: "paused", updatedAt: "2026-01-01T00:00:00.001Z" });
+
+    const resumed = await updateRecurringBillTemplateStatus(
+      { tenantId: "tenant-1", templateId: created.data.template.id, status: "active" },
+      { accountsPayableStore: store, now: fixedNow(T0 + 2) }
+    );
+    expect(resumed.ok).toBe(true);
+    if (!resumed.ok) throw new Error(resumed.error.message);
+    expect(resumed.data.template.status).toBe("active");
+
+    const cancelled = await updateRecurringBillTemplateStatus(
+      { tenantId: "tenant-1", templateId: created.data.template.id, status: "cancelled" },
+      { accountsPayableStore: store, now: fixedNow(T0 + 3) }
+    );
+    expect(cancelled.ok).toBe(true);
+
+    const invalid = await updateRecurringBillTemplateStatus(
+      { tenantId: "tenant-1", templateId: created.data.template.id, status: "active" },
+      { accountsPayableStore: store, now: fixedNow(T0 + 4) }
+    );
+    expect(invalid).toMatchObject({
+      ok: false,
+      status: 409,
+      error: { code: "accounts-payable.INVALID_RECURRING_BILL_TEMPLATE_STATUS_TRANSITION" }
+    });
   });
 });
