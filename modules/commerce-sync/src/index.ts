@@ -4,16 +4,27 @@ export { defaultCommerceSyncHooks } from "./hooks";
 export { commerceSyncEvents } from "./events";
 export { commerceSyncPermissions } from "./permissions";
 export { commerceSyncResources } from "./resources";
-export { createCommerceSyncMemoryService, getCommerceSyncModuleStatus } from "./service";
+export { createMemoryCommerceSyncStore } from "./adapters/memory-commerce-sync-store";
+export { createCommerceSyncMemoryService, createCommerceSyncService, getCommerceSyncModuleStatus } from "./service";
+export type { CreateCommerceSyncServiceOptions } from "./service";
+export type { CommerceSyncStore } from "./ports";
 export type {
   CommerceConnection,
   CommerceProvider,
   CommerceResourceType,
   CommerceSyncConfig,
+  CommerceSyncIdGenerator,
+  CommerceSyncMemoryService,
   CommerceSyncRecord,
+  CommerceSyncService,
+  CompleteSyncRunInput,
+  CreateCommerceConnectionInput,
   ModuleResult,
   NormalizedCommerceEnvelope,
+  NormalizeCommercePayloadInput,
   ProviderMapping,
+  RecordProviderMappingInput,
+  RecordWebhookReceiptInput,
   SyncRun,
   SyncRunStatus,
   TenantContext,

@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 45
+Phase 47
 
 ## Phases
 
@@ -350,6 +350,21 @@ Phase 45
 - [x] Add route-level pages and sidebar entries for StackSuite accounting modules: ledger, payables, receivables, and banking.
 - [ ] Prune inherited broad ERP shell deps and migrations once shared dashboard/store imports are narrowed.
 - **Status:** route-level template adoption complete; dependency pruning pending
+
+### Phase 46: StackSuite Route Adoption Fixes
+- [x] Verify focused template route builds and generated route smoke checks.
+- [x] Fix commerce inventory demo stock visibility by aligning the inventory page with the seeded `default` stock location.
+- **Status:** complete
+
+### Phase 47: StackSuite Durable Adapter Readiness
+- [x] Add async store-backed service factories while preserving synchronous memory services for `accounts-receivable`, `bank-reconciliation`, and `commerce-sync`.
+- [x] Add memory store adapters and tests for store-backed accounts receivable, bank reconciliation, and commerce sync flows.
+- [x] Add a D1 bank reconciliation store mapped to the existing module migration tables.
+- [x] Document D1 blockers for accounts receivable and commerce sync where module-owned durable tables are not yet present.
+- [x] Verify focused module tests/build/spec checks plus full workspace spec validation.
+- [ ] Add accounts receivable D1 after an invoice snapshot table contract is added or verified.
+- [ ] Add commerce sync D1 after a normalized envelope table contract is added or verified.
+- **Status:** durable service ports complete; bank D1 ready; AR/commerce D1 pending table contracts
 
 ## Key Questions
 1. Is the current plan good enough to start an MVP?

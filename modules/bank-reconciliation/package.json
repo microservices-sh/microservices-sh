@@ -16,7 +16,9 @@
     "./permissions": "./src/permissions/index.ts",
     "./resources": "./src/resources/index.ts",
     "./service": "./src/service/index.ts",
-    "./ports": "./src/ports/index.ts"
+    "./ports": "./src/ports/index.ts",
+    "./adapters/memory": "./src/adapters/memory-bank-reconciliation-store.ts",
+    "./adapters/d1": "./src/adapters/d1-bank-reconciliation-store.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",

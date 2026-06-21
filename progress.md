@@ -1186,3 +1186,24 @@
 | Bundle closure | Generated template module graph remains closed | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 22/22 | Pass |
 | Generated route smoke | Generated templates contain new route files | Both templates generated under `/tmp`; route files verified with `rg` | Pass |
 | Full spec | Workspace module/template checks pass | `pnpm spec:check:all` passed, 51 targets | Pass |
+
+### Phase 47 StackSuite durable adapter readiness
+
+- **Status:** complete for service ports and memory adapters; bank D1 adapter ready; AR/commerce D1 blocked on table contracts.
+- Goal: make the service-style StackSuite modules usable from durable stores instead of only closure-local memory services.
+- Added async store-backed service factories for `accounts-receivable`, `bank-reconciliation`, and `commerce-sync`.
+- Preserved existing synchronous memory services so current local callers and tests keep working.
+- Added memory store adapters for accounts receivable, bank reconciliation, and commerce sync, with store-backed workflow tests.
+- Added `createD1BankReconciliationStore()` mapped to the existing bank reconciliation D1 migration tables.
+- Documented why accounts receivable D1 needs an invoice snapshot table and why commerce sync D1 needs a normalized envelope table before those adapters should be added.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounts receivable test | Memory and store-backed AR workflows pass | `pnpm --dir modules/accounts-receivable test` passed, 3/3 | Pass |
+| Accounts receivable build/spec | Typecheck and module contract pass | `pnpm --dir modules/accounts-receivable build`; `pnpm --dir modules/accounts-receivable check:spec` | Pass |
+| Bank reconciliation test | Sync memory and async store-backed reconciliation workflows pass | `pnpm --dir modules/bank-reconciliation test` passed, 2/2 | Pass |
+| Bank reconciliation build/spec | Typecheck and module contract pass | `pnpm --dir modules/bank-reconciliation build`; `pnpm --dir modules/bank-reconciliation check:spec` | Pass |
+| Commerce sync test | Memory and store-backed sync workflows pass | `pnpm --dir modules/commerce-sync test` passed, 2/2 | Pass |
+| Commerce sync build/spec | Typecheck and module contract pass | `pnpm --dir modules/commerce-sync build`; `pnpm --dir modules/commerce-sync check:spec` | Pass |
+| Full spec | Workspace module/template checks pass | `pnpm spec:check:all` passed, 51 targets | Pass |
+| Whitespace | No diff whitespace errors | `git diff --check` passed | Pass |

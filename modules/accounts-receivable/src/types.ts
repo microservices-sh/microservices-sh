@@ -8,6 +8,18 @@ export interface TenantContext {
   now?: string;
 }
 
+export interface RecordCustomerPaymentInput {
+  customerId: string;
+  amountCents: number;
+  paymentDate: string;
+  idempotencyKey: string;
+}
+
+export interface ApplyPaymentInput {
+  paymentId: string;
+  applications: Array<{ invoiceId: string; amountCents: number }>;
+}
+
 export interface InvoiceSnapshot {
   id: string;
   tenantId: string;

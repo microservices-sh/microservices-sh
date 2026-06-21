@@ -1,23 +1,31 @@
+import type { AccountsReceivableStore } from "../ports";
 import type {
+  ApplyPaymentInput,
   CustomerPayment,
   CustomerStatement,
   InvoiceSnapshot,
   ModuleResult,
   PaymentApplication,
   ReceivableAging,
+  RecordCustomerPaymentInput,
   TenantContext
 } from "../types";
 
-interface RecordCustomerPaymentInput {
-  customerId: string;
-  amountCents: number;
-  paymentDate: string;
-  idempotencyKey: string;
+export type AccountsReceivableIdPrefix = "cpay" | "arapp";
+export type AccountsReceivableIdFactory = (prefix: AccountsReceivableIdPrefix) => string;
+
+export interface AccountsReceivableServiceDeps {
+  store: AccountsReceivableStore;
+  createId?: AccountsReceivableIdFactory;
 }
 
-interface ApplyPaymentInput {
-  paymentId: string;
-  applications: Array<{ invoiceId: string; amountCents: number }>;
+export interface AccountsReceivableService {
+  upsertInvoiceSnapshot(ctx: TenantContext, invoice: Omit<InvoiceSnapshot, "tenantId">): Promise<ModuleResult<InvoiceSnapshot>>;
+  recordCustomerPayment(ctx: TenantContext, input: RecordCustomerPaymentInput): Promise<ModuleResult<CustomerPayment>>;
+  applyCustomerPayment(ctx: TenantContext, input: ApplyPaymentInput): Promise<ModuleResult<PaymentApplication[]>>;
+  listOpenReceivables(ctx: TenantContext): Promise<ModuleResult<InvoiceSnapshot[]>>;
+  getReceivableAging(ctx: TenantContext, reportDate: string, customerId?: string): Promise<ModuleResult<ReceivableAging>>;
+  generateCustomerStatement(ctx: TenantContext, customerId: string, statementDate: string): Promise<ModuleResult<CustomerStatement>>;
 }
 
 function ok<T>(data: T): ModuleResult<T> {
@@ -34,6 +42,18 @@ function now(ctx: TenantContext): string {
 
 function id(prefix: string, sequence: number): string {
   return `${prefix}_${sequence.toString().padStart(6, "0")}`;
+}
+
+export function createSequentialAccountsReceivableIdFactory(): AccountsReceivableIdFactory {
+  const sequences: Record<AccountsReceivableIdPrefix, number> = { cpay: 0, arapp: 0 };
+  return (prefix) => id(prefix, ++sequences[prefix]);
+}
+
+function defaultId(prefix: AccountsReceivableIdPrefix): string {
+  const cryptoProvider = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  const uuid = cryptoProvider?.randomUUID?.();
+  const randomId = uuid?.replaceAll("-", "") ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+  return `${prefix}_${randomId.slice(0, 24)}`;
 }
 
 function emptyAging(): ReceivableAging {
@@ -57,6 +77,152 @@ function addToAging(aging: ReceivableAging, dueDate: string, reportDate: string,
   else aging.days90PlusCents += amountCents;
 }
 
+function validateInvoiceSnapshot(snapshot: InvoiceSnapshot): ModuleResult<InvoiceSnapshot> | null {
+  if (snapshot.amountDueCents < 0 || snapshot.amountPaidCents < 0) {
+    return fail("invalid_invoice_balance", "Invoice balances cannot be negative.");
+  }
+  return null;
+}
+
+function validatePaymentApplications(
+  payment: CustomerPayment,
+  applications: ApplyPaymentInput["applications"],
+  invoicesById: Map<string, InvoiceSnapshot>
+): ModuleResult<PaymentApplication[]> | null {
+  const amountByInvoiceId = new Map<string, number>();
+  for (const app of applications) {
+    const invoice = invoicesById.get(app.invoiceId);
+    if (!invoice) return fail("invoice_not_found", `Invoice ${app.invoiceId} not found.`);
+    if (invoice.customerId !== payment.customerId) return fail("customer_mismatch", "Payment customer must match invoice customer.");
+    if (invoice.status === "void") return fail("invoice_void", "Cannot apply payment to a void invoice.");
+    const invoiceAppliedAmount = (amountByInvoiceId.get(invoice.id) ?? 0) + app.amountCents;
+    amountByInvoiceId.set(invoice.id, invoiceAppliedAmount);
+    if (invoiceAppliedAmount > invoice.amountDueCents) {
+      return fail("invoice_overapplied", "Application exceeds invoice open balance.");
+    }
+  }
+  return null;
+}
+
+async function withStoreTransaction<T>(store: AccountsReceivableStore, operation: (transactionStore: AccountsReceivableStore) => Promise<T>) {
+  return store.withTransaction ? store.withTransaction(operation) : operation(store);
+}
+
+export function createAccountsReceivableService(deps: AccountsReceivableServiceDeps): AccountsReceivableService {
+  const createId = deps.createId ?? defaultId;
+
+  return {
+    async upsertInvoiceSnapshot(ctx, invoice) {
+      const snapshot = { ...invoice, tenantId: ctx.tenantId };
+      const validationError = validateInvoiceSnapshot(snapshot);
+      if (validationError) return validationError;
+      await deps.store.upsertInvoiceSnapshot(snapshot);
+      return ok(snapshot);
+    },
+
+    async recordCustomerPayment(ctx, input) {
+      return withStoreTransaction(deps.store, async (store) => {
+        const existingPayment = await store.getPaymentByIdempotencyKey(ctx.tenantId, input.idempotencyKey);
+        if (existingPayment) return ok(existingPayment);
+        const createdAt = now(ctx);
+        const payment: CustomerPayment = {
+          id: createId("cpay"),
+          tenantId: ctx.tenantId,
+          customerId: input.customerId,
+          amountCents: input.amountCents,
+          unappliedCents: input.amountCents,
+          paymentDate: input.paymentDate,
+          idempotencyKey: input.idempotencyKey,
+          createdAt
+        };
+        await store.insertPayment(payment);
+        return ok(payment);
+      });
+    },
+
+    async applyCustomerPayment(ctx, input) {
+      return withStoreTransaction(deps.store, async (store) => {
+        const payment = await store.getPayment(ctx.tenantId, input.paymentId);
+        if (!payment) return fail("payment_not_found", "Customer payment not found.");
+        const totalApplied = input.applications.reduce((sum, app) => sum + app.amountCents, 0);
+        if (totalApplied > payment.unappliedCents) return fail("payment_overapplied", "Applications exceed unapplied payment amount.");
+
+        const invoicesById = new Map<string, InvoiceSnapshot>();
+        for (const app of input.applications) {
+          if (invoicesById.has(app.invoiceId)) continue;
+          const invoice = await store.getInvoiceSnapshot(ctx.tenantId, app.invoiceId);
+          if (invoice) invoicesById.set(invoice.id, invoice);
+        }
+
+        const validationError = validatePaymentApplications(payment, input.applications, invoicesById);
+        if (validationError) return validationError;
+
+        const appliedAt = now(ctx);
+        const created: PaymentApplication[] = [];
+        const updatedInvoices = new Map<string, InvoiceSnapshot>();
+        for (const app of input.applications) {
+          const invoice = updatedInvoices.get(app.invoiceId) ?? invoicesById.get(app.invoiceId)!;
+          const application: PaymentApplication = {
+            id: createId("arapp"),
+            tenantId: ctx.tenantId,
+            paymentId: payment.id,
+            invoiceId: invoice.id,
+            amountCents: app.amountCents,
+            appliedAt
+          };
+          const amountPaidCents = invoice.amountPaidCents + app.amountCents;
+          const amountDueCents = invoice.totalCents - amountPaidCents;
+          updatedInvoices.set(invoice.id, {
+            ...invoice,
+            amountPaidCents,
+            amountDueCents,
+            status: amountDueCents === 0 ? "paid" : invoice.status
+          });
+          created.push(application);
+        }
+
+        for (const invoice of updatedInvoices.values()) await store.upsertInvoiceSnapshot(invoice);
+        await store.insertApplications(created);
+        await store.updatePayment({ ...payment, unappliedCents: payment.unappliedCents - totalApplied });
+        return ok(created);
+      });
+    },
+
+    async listOpenReceivables(ctx) {
+      return ok(await deps.store.listOpenInvoiceSnapshots(ctx.tenantId));
+    },
+
+    async getReceivableAging(ctx, reportDate, customerId) {
+      const aging = emptyAging();
+      const invoices = await deps.store.listOpenInvoiceSnapshots(ctx.tenantId, customerId ? { customerId } : undefined);
+      for (const invoice of invoices) addToAging(aging, invoice.dueDate, reportDate, invoice.amountDueCents);
+      return ok(aging);
+    },
+
+    async generateCustomerStatement(ctx, customerId, statementDate) {
+      const customerInvoices = await deps.store.listInvoiceSnapshots(ctx.tenantId, { customerId });
+      const customerPayments = await deps.store.listPayments(ctx.tenantId, { customerId });
+      const paymentIds = customerPayments.map((payment) => payment.id);
+      const customerApplications = paymentIds.length > 0 ? await deps.store.listApplicationsByPaymentIds(ctx.tenantId, paymentIds) : [];
+      const aging = emptyAging();
+      for (const invoice of customerInvoices) {
+        if (invoice.status !== "void" && invoice.amountDueCents > 0) {
+          addToAging(aging, invoice.dueDate, statementDate, invoice.amountDueCents);
+        }
+      }
+      return ok({
+        tenantId: ctx.tenantId,
+        customerId,
+        statementDate,
+        invoices: customerInvoices,
+        payments: customerPayments,
+        applications: customerApplications,
+        aging
+      });
+    }
+  };
+}
+
 export function createAccountsReceivableMemoryService() {
   const invoices = new Map<string, InvoiceSnapshot>();
   const payments = new Map<string, CustomerPayment>();
@@ -68,9 +234,8 @@ export function createAccountsReceivableMemoryService() {
   return {
     upsertInvoiceSnapshot(ctx: TenantContext, invoice: Omit<InvoiceSnapshot, "tenantId">): ModuleResult<InvoiceSnapshot> {
       const snapshot = { ...invoice, tenantId: ctx.tenantId };
-      if (snapshot.amountDueCents < 0 || snapshot.amountPaidCents < 0) {
-        return fail("invalid_invoice_balance", "Invoice balances cannot be negative.");
-      }
+      const validationError = validateInvoiceSnapshot(snapshot);
+      if (validationError) return validationError;
       invoices.set(snapshot.id, snapshot);
       return ok(snapshot);
     },
@@ -99,13 +264,13 @@ export function createAccountsReceivableMemoryService() {
       if (!payment || payment.tenantId !== ctx.tenantId) return fail("payment_not_found", "Customer payment not found.");
       const totalApplied = input.applications.reduce((sum, app) => sum + app.amountCents, 0);
       if (totalApplied > payment.unappliedCents) return fail("payment_overapplied", "Applications exceed unapplied payment amount.");
+      const invoicesById = new Map<string, InvoiceSnapshot>();
       for (const app of input.applications) {
         const invoice = invoices.get(app.invoiceId);
-        if (!invoice || invoice.tenantId !== ctx.tenantId) return fail("invoice_not_found", `Invoice ${app.invoiceId} not found.`);
-        if (invoice.customerId !== payment.customerId) return fail("customer_mismatch", "Payment customer must match invoice customer.");
-        if (invoice.status === "void") return fail("invoice_void", "Cannot apply payment to a void invoice.");
-        if (app.amountCents > invoice.amountDueCents) return fail("invoice_overapplied", "Application exceeds invoice open balance.");
+        if (invoice?.tenantId === ctx.tenantId) invoicesById.set(invoice.id, invoice);
       }
+      const validationError = validatePaymentApplications(payment, input.applications, invoicesById);
+      if (validationError) return validationError;
       const appliedAt = now(ctx);
       const created: PaymentApplication[] = [];
       for (const app of input.applications) {

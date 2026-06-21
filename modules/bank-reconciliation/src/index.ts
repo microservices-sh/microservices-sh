@@ -4,8 +4,23 @@ export { defaultBankReconciliationHooks } from "./hooks";
 export { bankReconciliationEvents } from "./events";
 export { bankReconciliationPermissions } from "./permissions";
 export { bankReconciliationResources } from "./resources";
-export { createBankReconciliationMemoryService, getBankReconciliationModuleStatus } from "./service";
+export {
+  createBankReconciliationMemoryService,
+  createBankReconciliationService,
+  createSequentialBankReconciliationIdFactory,
+  getBankReconciliationModuleStatus
+} from "./service";
+export { createMemoryBankReconciliationStore } from "./adapters/memory-bank-reconciliation-store";
+export { createD1BankReconciliationStore } from "./adapters/d1-bank-reconciliation-store";
 export type { BankReconciliationStore } from "./ports";
+export type {
+  BankReconciliationIdFactory,
+  BankReconciliationIdPrefix,
+  BankReconciliationService,
+  BankReconciliationServiceDeps,
+  CreateBankAccountInput,
+  StatementTransactionInput
+} from "./service";
 export type {
   BankAccount,
   BankReconciliationConfig,

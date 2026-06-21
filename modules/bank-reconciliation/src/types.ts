@@ -33,6 +33,8 @@ export interface BankTransaction {
   matchStatus: BankTransactionMatchStatus;
   ledgerReferenceId?: string;
   reconciled: boolean;
+  reconciledAt?: string;
+  reconciliationId?: string;
   createdAt: string;
 }
 
@@ -42,17 +44,27 @@ export interface StatementImportResult {
   skippedDuplicateCount: number;
 }
 
-export type ReconciliationStatus = "in_progress" | "completed";
+export type ReconciliationStatus = "in_progress" | "completed" | "abandoned";
 
 export interface ReconciliationSession {
   id: string;
   tenantId: string;
   bankAccountId: string;
+  periodStart?: string;
+  periodEnd?: string;
+  openingBalanceCents?: number;
   statementDate: string;
   statementBalanceCents: number;
+  clearedDepositsCents?: number;
+  clearedWithdrawalsCents?: number;
+  clearedBalanceCents?: number;
+  differenceCents?: number;
+  transactionsCleared?: number;
+  transactionsUnmatched?: number;
   status: ReconciliationStatus;
   completedAt?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface ModuleResult<T> {

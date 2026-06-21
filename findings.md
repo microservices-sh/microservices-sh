@@ -231,3 +231,7 @@
 - `commerce-ops-sveltekit` and `accounting-erp-sveltekit` are now repo-style create-app templates with focused manifests, lockfiles, enabled-module sets, and StackSuite-specific agent docs.
 - Route-level StackSuite pages now exist in the focused templates: commerce has products, inventory, sales orders, shipments, and commerce sync; accounting has ledger, payables, receivables, and banking.
 - The new templates intentionally keep inherited ERP shell code and broad package deps for now because the SvelteKit route layer still imports shared stores and dashboard behavior. Pruning inherited deps/migrations is now the remaining template-hardening work.
+- Accounts receivable, bank reconciliation, and commerce sync now expose async store-backed service factories while preserving their synchronous in-memory services for existing local callers.
+- Bank reconciliation has memory and D1 store adapters against its existing migration tables for accounts, statement transactions, matches, and reconciliation sessions.
+- Accounts receivable has a memory store adapter, but a complete D1 adapter needs a module-owned or verified invoice snapshot table for open receivables, aging, and statements.
+- Commerce sync has a memory store adapter, but a complete D1 adapter needs a normalized envelope table for the payload persistence contract.
