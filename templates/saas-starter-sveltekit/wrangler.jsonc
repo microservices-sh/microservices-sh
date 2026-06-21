@@ -19,12 +19,6 @@
       "migrations_dir": "migrations"
     }
   ],
-  "r2_buckets": [
-    {
-      "binding": "IMAGE_BUCKET",
-      "bucket_name": "saas-starter-sveltekit-images"
-    }
-  ],
   "vars": {
     "MICROSERVICES_DEPLOYMENT_ID": "",
     "MICROSERVICES_OBSERVABILITY_URL": "https://api.microservices.sh",

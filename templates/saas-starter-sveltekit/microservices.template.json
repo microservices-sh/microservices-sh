@@ -31,9 +31,7 @@
     "optional": [
       "payment",
       "webhook-delivery",
-      "notifications-inapp",
-      "image-generation",
-      "ads-manager"
+      "notifications-inapp"
     ]
   },
   "slots": {
@@ -86,20 +84,6 @@
         "email"
       ],
       "approvalRisk": "high"
-    },
-    "media": {
-      "activeModule": "image-generation",
-      "allowedModules": [
-        "image-generation"
-      ],
-      "approvalRisk": "medium"
-    },
-    "advertising": {
-      "activeModule": "ads-manager",
-      "allowedModules": [
-        "ads-manager"
-      ],
-      "approvalRisk": "medium"
     }
   },
   "sourcePolicy": {
@@ -120,7 +104,13 @@
     "apiLogic": "detached-use-cases-with-sveltekit-adapters"
   },
   "checks": [
-    { "id": "migrations", "file": "migrations/0001_core.sql" },
-    { "id": "http-smoke", "file": "scripts/smoke-http.mjs" }
+    {
+      "id": "migrations",
+      "file": "migrations/0001_core.sql"
+    },
+    {
+      "id": "http-smoke",
+      "file": "scripts/smoke-http.mjs"
+    }
   ]
 }
