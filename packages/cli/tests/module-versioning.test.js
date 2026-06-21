@@ -125,4 +125,23 @@ describe("CLI module versioning", () => {
       expect(payload.error.code).toBe("MODULE_VERSION_NOT_FOUND");
     });
   });
+
+  it("generates governed tool manifests for Code Memory", () => {
+    const result = runCli(["tools", "manifest", "--modules", "code-memory", "--json"], process.cwd());
+    expect(result.status).toBe(0);
+    const payload = parseStdout(result);
+    expect(payload.ok).toBe(true);
+    expect(payload.data.modules).toEqual([{ id: "code-memory", version: "0.1.0" }]);
+    expect(payload.data.tools).toHaveLength(8);
+    expect(payload.data.tools.find((tool) => tool.name === "code-memory_searchLogicCapsules")).toMatchObject({
+      mutation: false,
+      requiresConfirmation: false,
+      scope: "code-memory.read",
+    });
+    expect(payload.data.tools.find((tool) => tool.name === "code-memory_approveLogicCapsule")).toMatchObject({
+      mutation: true,
+      requiresConfirmation: true,
+      scope: "code-memory.approve",
+    });
+  });
 });

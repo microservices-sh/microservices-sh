@@ -13,6 +13,7 @@ import {
   generateProject,
   getModuleDoc,
   getSecretsStatus,
+  generateToolManifest,
   inspectModule,
   inspectTemplate,
   listModules,
@@ -444,6 +445,7 @@ Common commands:
   microservices memory github install
   microservices memory search "stripe webhook"
   microservices memory approve <capsule-id-or-slug>
+  microservices tools manifest --modules code-memory --json
   microservices generate [template-id] --out <dir>
   microservices check [template-id]
 
@@ -510,6 +512,7 @@ Usage:
   microservices memory reject <capsule-id-or-slug> [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices memory search <query> [--limit 25] [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices memory get <capsule-id-or-slug> [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices tools manifest --modules code-memory[,customer] [--json]
   microservices agents hermes plan [--mode hosted|byo-fly] [--name "Test Hermes"] [--json]
   microservices agents hermes setup --mode byo-fly [--app <fly-app>] [--org <fly-org>] [--region iad] [--json]
   microservices agents hermes create --mode hosted [--name "Test Hermes"] [--dashboard-user admin] [--json]
@@ -927,6 +930,46 @@ function formatMemoryApproval(result) {
   const capsule = result.capsule ?? result;
   return `Logic Capsule ${capsule.slug ?? capsule.id} is ${capsule.approvalStatus ?? "updated"}.
 `;
+}
+
+function toolManifestResponse(flags, explicitModuleId) {
+  const requested = flags.modules?.length ? flags.modules : [explicitModuleId].filter(Boolean);
+  if (!requested.length) {
+    return failResponse(
+      "TOOLS_MODULES_REQUIRED",
+      "Missing modules for tool manifest generation.",
+      "Run `microservices tools manifest --modules code-memory --json`.",
+      {}
+    );
+  }
+
+  const modules = [];
+  for (const moduleId of requested) {
+    const inspected = inspectModule(moduleId);
+    if (!inspected.ok) return inspected;
+    modules.push(inspected.data);
+  }
+
+  const tools = modules
+    .flatMap((module) => generateToolManifest(module))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    ok: true,
+    requestId: `local_${Date.now().toString(36)}`,
+    data: {
+      modules: modules.map((module) => ({ id: module.id, version: module.version })),
+      tools,
+    },
+    warnings: [],
+  };
+}
+
+function formatToolManifest(result) {
+  if (!result.tools.length) return "No governed tools for selected modules.\n";
+  return `${result.tools
+    .map((tool) => `${tool.name}: ${tool.mutation ? "mutation" : "read"}${tool.requiresConfirmation ? " confirm" : ""} scope=${tool.scope ?? "public"}`)
+    .join("\n")}\n`;
 }
 
 function memoryLimit(flags, fallback = 25) {
@@ -4249,6 +4292,11 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
   if (resource === "modules" && action === "inspect") {
     response = inspectModule(versionedModuleArg(value, flags.version));
     return flags.json ? writeJson(response) : printHuman(response, (module) => `${module.name}\n${module.summary}\nMount: ${module.runtime.mount}\nRequires: ${module.requires.join(", ") || "none"}\nHooks: ${module.hooks.map((hook) => hook.name).join(", ")}\n`);
+  }
+
+  if (resource === "tools" && (action === "manifest" || action === "list")) {
+    response = toolManifestResponse(flags, value);
+    return flags.json ? writeJson(response) : printHuman(response, formatToolManifest);
   }
 
   if (resource === "docs") {
