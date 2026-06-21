@@ -1524,3 +1524,16 @@
 | Create package build | Bundled create-app artifact builds after template runtime changes | `pnpm --filter create-microservices-app build` passed | Pass |
 | Create package smoke | Built create package can generate/check a project | `pnpm --filter create-microservices-app smoke:built` passed | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 67 accounting ledger tenant scoping fix
+
+- **Status:** complete.
+- Goal: fix the route bug found during the accounting parity audit where `/app/ledger` account creation referenced an out-of-scope `org` variable instead of the resolved company context.
+- Changed account creation to use `ctx.org.id`, matching the rest of the ledger actions.
+- Extended accounting template assertions to require account creation and active-org tenant scoping in the ledger route.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounting template spec | Ledger route assertion covers account creation and `tenantId: ctx.org.id` | `node packages/workspace-tools/src/index.js check template --path templates/accounting-erp-sveltekit` passed | Pass |
+| Accounting template build | SvelteKit/Cloudflare build compiles the ledger route | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

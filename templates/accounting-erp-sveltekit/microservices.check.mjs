@@ -296,14 +296,16 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   assertFileIncludesAll(
     "src/routes/app/ledger/+page.server.ts",
     [
+      "createAccount",
       "createFiscalPeriod",
       "updateFiscalPeriodStatus",
       "createJournalEntry",
       "postJournalEntry",
       "voidJournalEntry",
-      "getTrialBalance"
+      "getTrialBalance",
+      "tenantId: ctx.org.id"
     ],
-    "Ledger route exposes fiscal period, journal lifecycle, and trial balance adapters over accounting-core use cases."
+    "Ledger route exposes account, fiscal period, journal lifecycle, and trial balance adapters over accounting-core use cases scoped to the active org."
   );
   assertFileIncludesAll(
     "src/routes/app/banking/+page.server.ts",

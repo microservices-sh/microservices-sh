@@ -114,7 +114,7 @@ export const actions: Actions = {
 
     const result = await createAccount(
       {
-        tenantId: org.id,
+        tenantId: ctx.org.id,
         code: values.code,
         name: values.name,
         type,

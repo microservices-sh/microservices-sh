@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 66
+Phase 67
 
 ## Phases
 
@@ -526,6 +526,12 @@ Phase 66
 - [x] Pass accounting and receivables stores through both Cloudflare scheduled runtime and operator-run due jobs.
 - [x] Add a focused integration regression for auto-issued recurring invoice GL posting and AR sync.
 - [x] Verify focused scheduled-runtime test, accounting template check, accounting template build, and whitespace checks.
+- **Status:** complete
+
+### Phase 67: Accounting Ledger Tenant Scoping Fix
+- [x] Fix `/app/ledger` account creation to use the resolved company context (`ctx.org.id`) instead of an out-of-scope `org`.
+- [x] Extend accounting template assertions so ledger account creation remains active-org scoped.
+- [x] Verify accounting template check, accounting template build, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions
