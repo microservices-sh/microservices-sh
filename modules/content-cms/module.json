@@ -1,0 +1,152 @@
+{
+  "schemaVersion": "2026-06-13",
+  "id": "content-cms",
+  "name": "Content CMS",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "core",
+  "summary": "Headless CMS content types, fields, versioned entries, localizations, media metadata, and locales.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": [
+      "hono-later",
+      "sveltekit-later"
+    ]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "cms_content_types",
+        "cms_content_fields",
+        "cms_content_entries",
+        "cms_content_entry_versions",
+        "cms_content_entry_localizations",
+        "cms_locales",
+        "cms_media_assets",
+        "domain_events"
+      ]
+    }
+  ],
+  "permissions": [
+    "content-cms.read",
+    "content-cms.write",
+    "content-cms.admin",
+    "content-cms.extend",
+    "content-cms.observe"
+  ],
+  "connections": {
+    "requires": [],
+    "optional": [
+      "auth",
+      "audit-log"
+    ],
+    "rpc": {
+      "exposes": [],
+      "calls": []
+    },
+    "events": {
+      "emits": [
+        "content-cms.created",
+        "content-cms.updated",
+        "content-cms.content-type.created",
+        "content-cms.field.created",
+        "content-cms.entry.created",
+        "content-cms.entry.versioned",
+        "content-cms.entry.published",
+        "content-cms.entry.archived",
+        "content-cms.localization.upserted",
+        "content-cms.locale.created",
+        "content-cms.media.created"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeContentTypeCreate": {
+        "kind": "filter",
+        "scope": "content-cms.extend"
+      },
+      "beforeEntryPublish": {
+        "kind": "filter",
+        "scope": "content-cms.extend"
+      },
+      "afterEntryPublished": {
+        "kind": "observer",
+        "scope": "content-cms.observe"
+      },
+      "afterMediaCreated": {
+        "kind": "observer",
+        "scope": "content-cms.observe"
+      }
+    },
+    "provides": {
+      "hooks": []
+    }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": [
+      "config",
+      "hooks",
+      "overlay",
+      "fork"
+    ]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [
+        {
+          "label": "Content CMS",
+          "path": "/content-cms",
+          "permission": "content-cms.read"
+        }
+      ],
+      "referenceUi": [
+        "reference-ui/admin/README.md"
+      ]
+    },
+    "visitor": {
+      "applicable": true,
+      "referenceUi": [
+        "reference-ui/visitor/README.md"
+      ]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": [
+        "content-cms.read",
+        "content-cms.write"
+      ],
+      "skillPaths": [
+        "skills/content-cms-operator/SKILL.md"
+      ],
+      "approvalRequiredFor": [
+        "content-cms.write"
+      ]
+    }
+  },
+  "skills": [
+    {
+      "id": "content-cms-operator",
+      "path": "skills/content-cms-operator/SKILL.md",
+      "recommendedFor": [
+        "admin-operations",
+        "agentic-tools"
+      ]
+    }
+  ],
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": [
+      "migrations",
+      "pii-fields",
+      "production-deploy",
+      "external-side-effects"
+    ]
+  }
+}

@@ -1,0 +1,285 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Content CMS API",
+  "type": "object",
+  "additionalProperties": false,
+  "definitions": {
+    "jsonObject": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "fieldType": {
+      "type": "string",
+      "enum": [
+        "text",
+        "richtext",
+        "number",
+        "boolean",
+        "date",
+        "media",
+        "reference",
+        "json",
+        "slug",
+        "enum",
+        "color",
+        "email",
+        "url"
+      ]
+    },
+    "contentStatus": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "review",
+        "published",
+        "archived"
+      ]
+    },
+    "createContentTypeInput": {
+      "type": "object",
+      "required": [
+        "name",
+        "apiId"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "apiId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "icon": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "isSingleton": {
+          "type": "boolean"
+        },
+        "isSystem": {
+          "type": "boolean"
+        },
+        "sortField": {
+          "type": "string"
+        },
+        "sortOrder": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "displayField": {
+          "type": "string"
+        }
+      }
+    },
+    "addContentFieldInput": {
+      "type": "object",
+      "required": [
+        "contentTypeId",
+        "name",
+        "apiId",
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "contentTypeId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "apiId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "type": {
+          "$ref": "#/definitions/fieldType"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "config": {
+          "$ref": "#/definitions/jsonObject"
+        },
+        "validation": {
+          "$ref": "#/definitions/jsonObject"
+        },
+        "defaultValue": true,
+        "isRequired": {
+          "type": "boolean"
+        },
+        "isUnique": {
+          "type": "boolean"
+        },
+        "isLocalizable": {
+          "type": "boolean"
+        },
+        "isHidden": {
+          "type": "boolean"
+        },
+        "position": {
+          "type": "integer"
+        },
+        "group": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "createContentEntryInput": {
+      "type": "object",
+      "required": [
+        "contentTypeId",
+        "data"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "contentTypeId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "data": {
+          "$ref": "#/definitions/jsonObject"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "review"
+          ]
+        },
+        "scheduledAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "changeDescription": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "contentEntry": {
+      "type": "object",
+      "required": [
+        "id",
+        "tenantId",
+        "contentTypeId",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "contentTypeId": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/contentStatus"
+        },
+        "publishedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "publishedVersion": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      }
+    },
+    "entrySnapshot": {
+      "type": "object",
+      "required": [
+        "entry",
+        "contentType",
+        "fields",
+        "version",
+        "data",
+        "localization"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "entry": {
+          "$ref": "#/definitions/contentEntry"
+        },
+        "contentType": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "version": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "data": {
+          "$ref": "#/definitions/jsonObject"
+        },
+        "localization": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true
+        }
+      }
+    }
+  },
+  "properties": {
+    "createContentType": {
+      "$ref": "#/definitions/createContentTypeInput"
+    },
+    "addContentField": {
+      "$ref": "#/definitions/addContentFieldInput"
+    },
+    "createContentEntry": {
+      "$ref": "#/definitions/createContentEntryInput"
+    },
+    "entrySnapshot": {
+      "$ref": "#/definitions/entrySnapshot"
+    }
+  }
+}

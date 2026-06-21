@@ -474,6 +474,15 @@ Phase 60
 - [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
 - **Status:** complete
 
+### Phase 61: StackSuite Content CMS Module
+- [x] Inspect CMS content type, field, entry version, localization, media, and locale schemas.
+- [x] Scaffold `modules/content-cms` from the standard module layout.
+- [x] Implement headless content types, fields, versioned entries, publish/archive lifecycle, localizations, locales, media metadata, and entry snapshots.
+- [x] Add memory and D1 stores, migration, schemas, docs, module metadata, permissions, events, resources, exports, and tests.
+- [x] Keep auth, billing, API keys, setup wizard, AI page designer, R2 uploads, CDN policy, and public rendering as template/app-adapter concerns.
+- [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

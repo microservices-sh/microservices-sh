@@ -1421,3 +1421,19 @@
 | HTML Renderer spec | Module contract check passes | `pnpm --filter @microservices-sh/html-renderer check:spec` passed | Pass |
 | D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/html-renderer/migrations/0001_initial.sql"` passed | Pass |
 | JSON docs | OpenAPI and JSON schema stubs parse | Node JSON parse check passed | Pass |
+
+### Phase 61 StackSuite Content CMS module
+
+- **Status:** complete.
+- Goal: port the CMS app's reusable content model into a headless module without cloning its admin app, auth, billing, setup, AI designer, or public renderer.
+- Added `modules/content-cms` for content types, field definitions, versioned entries, publish/archive lifecycle, entry snapshots, localizations, locale settings, and media metadata.
+- Added memory and D1 stores plus migration tables for content definitions, entries, versions, localization records, locales, media assets, and domain events.
+- Kept R2 uploads, CDN/public URL policy, route rendering, API-key auth, tenant quota, and AI page generation as app-adapter or companion-module responsibilities.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Content CMS build | TypeScript typecheck passes | `pnpm --filter @microservices-sh/content-cms build` passed | Pass |
+| Content CMS tests | Content model, versioning, publishing, localization, locale, and media flows pass | `pnpm --filter @microservices-sh/content-cms test` passed, 3/3 | Pass |
+| Content CMS spec | Module contract check passes | `pnpm --filter @microservices-sh/content-cms check:spec` passed | Pass |
+| D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/content-cms/migrations/0001_initial.sql"` passed | Pass |
+| JSON docs | OpenAPI, manifest, and JSON schemas parse | Node JSON parse check passed | Pass |

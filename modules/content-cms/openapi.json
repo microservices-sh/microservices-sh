@@ -1,0 +1,172 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Content CMS Module",
+    "version": "0.1.0",
+    "description": "Representative route-adapter contract for content models, entries, localizations, locales, and media metadata."
+  },
+  "paths": {
+    "/content-cms/content-types": {
+      "get": {
+        "summary": "List content types",
+        "x-permission": "content-cms.read",
+        "responses": {
+          "200": {
+            "description": "Content types for the tenant"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a content type",
+        "x-permission": "content-cms.write",
+        "responses": {
+          "200": {
+            "description": "Created content type"
+          }
+        }
+      }
+    },
+    "/content-cms/content-types/{contentTypeId}/fields": {
+      "post": {
+        "summary": "Add a field to a content type",
+        "x-permission": "content-cms.write",
+        "parameters": [
+          {
+            "name": "contentTypeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Created content field"
+          }
+        }
+      }
+    },
+    "/content-cms/entries": {
+      "post": {
+        "summary": "Create a draft content entry with initial version",
+        "x-permission": "content-cms.write",
+        "responses": {
+          "200": {
+            "description": "Created entry snapshot"
+          }
+        }
+      }
+    },
+    "/content-cms/entries/{entryId}/versions": {
+      "post": {
+        "summary": "Save a new entry version",
+        "x-permission": "content-cms.write",
+        "parameters": [
+          {
+            "name": "entryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Saved entry snapshot"
+          }
+        }
+      }
+    },
+    "/content-cms/entries/{entryId}/publish": {
+      "post": {
+        "summary": "Publish a selected entry version",
+        "x-permission": "content-cms.write",
+        "parameters": [
+          {
+            "name": "entryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Published entry snapshot"
+          }
+        }
+      }
+    },
+    "/content-cms/entries/{entryId}/snapshot": {
+      "get": {
+        "summary": "Read a published-or-latest entry snapshot",
+        "x-permission": "content-cms.read",
+        "parameters": [
+          {
+            "name": "entryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Entry snapshot"
+          }
+        }
+      }
+    },
+    "/content-cms/locales": {
+      "get": {
+        "summary": "List locales",
+        "x-permission": "content-cms.read",
+        "responses": {
+          "200": {
+            "description": "Locales"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a locale",
+        "x-permission": "content-cms.write",
+        "responses": {
+          "200": {
+            "description": "Created locale"
+          }
+        }
+      }
+    },
+    "/content-cms/media": {
+      "get": {
+        "summary": "List media metadata",
+        "x-permission": "content-cms.read",
+        "responses": {
+          "200": {
+            "description": "Media metadata records"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create media metadata",
+        "x-permission": "content-cms.write",
+        "responses": {
+          "200": {
+            "description": "Created media metadata record"
+          }
+        }
+      }
+    }
+  }
+}

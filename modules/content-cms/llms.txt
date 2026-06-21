@@ -1,0 +1,16 @@
+# Content CMS Module
+
+Module ID: content-cms
+Status: draft
+Purpose: Headless CMS content models, fields, versioned entries, localizations, locales, and media metadata.
+Entrypoint: src/index.ts
+Primary service: createContentCmsService
+Stores: createContentCmsMemoryStore, createD1ContentCmsStore
+Check: pnpm --filter @microservices-sh/content-cms check:spec
+Build: pnpm --filter @microservices-sh/content-cms build
+Test: pnpm --filter @microservices-sh/content-cms test
+
+Boundaries:
+- Owns D1 metadata and domain behavior for content publishing.
+- Does not own auth, billing, R2 uploads, CDN policy, AI page design, or public renderer templates.
+- Use getEntrySnapshot for route/API read models instead of reaching into version tables.
