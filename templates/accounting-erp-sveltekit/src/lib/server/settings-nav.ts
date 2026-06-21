@@ -25,6 +25,10 @@ const SECTIONS: { section: string; items: { label: string; href: string; module?
     ]
   },
   {
+    section: "Finance",
+    items: [{ label: "Accounting", href: "/app/settings/accounting", module: "accounting-core" }]
+  },
+  {
     section: "Integrations",
     items: [{ label: "Webhook endpoints", href: "/app/settings/webhooks", module: "webhook-delivery" }]
   },
