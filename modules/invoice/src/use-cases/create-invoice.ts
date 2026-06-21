@@ -64,6 +64,8 @@ export async function createInvoice(
     paymentLinkUrl: null,
     paymentLinkProvider: null,
     paymentLinkCreatedAt: null,
+    recurringTemplateId: parsed.data.recurringTemplateId ?? null,
+    recurringOccurrenceAt: parsed.data.recurringOccurrenceAt ?? null,
     createdAt: nowIso,
     updatedAt: nowIso
   };

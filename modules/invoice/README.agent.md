@@ -6,8 +6,9 @@ Rules:
 
 1. Keep use cases framework-neutral. Do not import SvelteKit, Hono, or app route code.
 2. Put persistence behind `InvoiceStore` and number allocation behind
-   `NumberAllocator`. Never make real I/O in tests — use `createMemoryInvoiceStore()`
-   and `createMemoryNumberAllocator()`.
+   `NumberAllocator`. Put recurring templates behind `RecurringInvoiceStore`.
+   Never make real I/O in tests — use `createMemoryInvoiceStore()`,
+   `createMemoryRecurringInvoiceStore()`, and `createMemoryNumberAllocator()`.
 3. Preserve the correctness invariants — they are the reason this module exists:
    - **Atomic numbering**: keep allocation in the `NumberAllocator` port. Never
      compute numbers with `MAX(number)+1` or a read-then-write in a use case.
@@ -17,6 +18,8 @@ Rules:
    - **Payment links**: create links only through the `InvoicePaymentLinkProvider`
      port, pass a deterministic provider idempotency key, and keep repeat calls
      idempotent once link metadata exists.
+   - **Recurring invoices**: the first occurrence is `startAt`; generation must
+     recover existing invoices by `(tenantId, recurringTemplateId, recurringOccurrenceAt)`.
    - **Money is integer cents**; tax rounds per line via `totals.ts`. No floats.
    - **Void, never delete**; paid invoices cannot be voided (credit note instead).
 4. Risk `high`: migrations, money mutations, and production deploy are approval-gated.

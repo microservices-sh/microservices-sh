@@ -1,10 +1,23 @@
-import type { Invoice, InvoiceFilter, InvoiceLineItem } from "../types";
+import type {
+  Invoice,
+  InvoiceFilter,
+  InvoiceLineItem,
+  RecurringInvoiceTemplate,
+  RecurringInvoiceTemplateFilter,
+  RecurringInvoiceTemplateLineItem,
+  RecurringInvoiceTemplateWithLineItems
+} from "../types";
 
 export interface InvoiceStore {
   insert(invoice: Invoice): Promise<void>;
   get(id: string): Promise<Invoice | null>;
   update(invoice: Invoice): Promise<void>;
   list(filter: InvoiceFilter): Promise<Invoice[]>;
+  findByRecurringOccurrence(
+    tenantId: string,
+    recurringTemplateId: string,
+    recurringOccurrenceAt: string
+  ): Promise<Invoice | null>;
   // Open invoices past dueAt — drives dunning/reminders.
   listOverdue(nowIso: string, limit: number): Promise<Invoice[]>;
 
@@ -13,6 +26,16 @@ export interface InvoiceStore {
 
   // Idempotent payment ledger: returns false if this key was already applied.
   recordPaymentKey(invoiceId: string, key: string): Promise<boolean>;
+}
+
+export interface RecurringInvoiceStore {
+  insertTemplate(
+    template: RecurringInvoiceTemplate,
+    lineItems: RecurringInvoiceTemplateLineItem[]
+  ): Promise<void>;
+  getTemplate(tenantId: string, templateId: string): Promise<RecurringInvoiceTemplateWithLineItems | null>;
+  listTemplates(filter: RecurringInvoiceTemplateFilter): Promise<RecurringInvoiceTemplateWithLineItems[]>;
+  updateTemplate(template: RecurringInvoiceTemplate): Promise<void>;
 }
 
 // Allocates gapless, monotonically increasing numbers per series. The

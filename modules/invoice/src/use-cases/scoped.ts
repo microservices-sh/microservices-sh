@@ -5,9 +5,13 @@ import { listInvoices } from "./list-invoices";
 import { issueInvoice } from "./issue-invoice";
 import { recordPayment } from "./record-payment";
 import { createInvoicePaymentLink } from "./create-invoice-payment-link";
+import { createRecurringInvoiceTemplate } from "./create-recurring-invoice-template";
+import { generateDueRecurringInvoices } from "./generate-due-recurring-invoices";
+import { listRecurringInvoiceTemplates } from "./list-recurring-invoice-templates";
+import { updateRecurringInvoiceTemplateStatus } from "./update-recurring-invoice-template-status";
 import { voidInvoice } from "./void-invoice";
 import { addLineItem } from "./add-line-item";
-import type { InvoiceStore } from "../ports";
+import type { InvoiceStore, RecurringInvoiceStore } from "../ports";
 
 // Enforced-authorization wrappers (plans/33, L1). These are the boundary the app
 // should call instead of the raw use-cases: the tenant comes from the server-
@@ -16,6 +20,7 @@ import type { InvoiceStore } from "../ports";
 // — the wrapped use-cases are unchanged. See the leak test in invoice.scope.test.ts.
 
 type ScopeDeps = { invoiceStore: InvoiceStore; correlationId?: string; now?: () => number };
+type RecurringScopeDeps = { recurringInvoiceStore: RecurringInvoiceStore; correlationId?: string; now?: () => number };
 
 // A non-empty org scope must be present, else the call is refused (403) rather
 // than run against an unknown tenant.
@@ -43,6 +48,14 @@ async function ensureOwned(ctx: AuthContext, invoiceId: string, deps: ScopeDeps)
 function readInvoiceId(input: unknown): string | null {
   if (input && typeof input === "object") {
     const v = (input as Record<string, unknown>).invoiceId;
+    if (typeof v === "string") return v;
+  }
+  return null;
+}
+
+function readTemplateId(input: unknown): string | null {
+  if (input && typeof input === "object") {
+    const v = (input as Record<string, unknown>).templateId;
     if (typeof v === "string") return v;
   }
   return null;
@@ -107,6 +120,63 @@ export async function createInvoicePaymentLinkScoped(
     if (bad) return bad;
   }
   return createInvoicePaymentLink(input, deps);
+}
+
+export async function createRecurringInvoiceTemplateScoped(
+  ctx: AuthContext,
+  input: unknown,
+  deps: Parameters<typeof createRecurringInvoiceTemplate>[1]
+) {
+  const denied = requireScope(ctx, deps);
+  if (denied) return denied;
+  const base = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
+  return createRecurringInvoiceTemplate({ ...base, tenantId: ctx.orgId }, deps);
+}
+
+export async function listRecurringInvoiceTemplatesScoped(
+  ctx: AuthContext,
+  input: unknown,
+  deps: Parameters<typeof listRecurringInvoiceTemplates>[1]
+) {
+  const denied = requireScope(ctx, deps);
+  if (denied) return denied;
+  const base = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
+  return listRecurringInvoiceTemplates({ ...base, tenantId: ctx.orgId }, deps);
+}
+
+async function ensureTemplateOwned(ctx: AuthContext, templateId: string, deps: RecurringScopeDeps) {
+  const template = await deps.recurringInvoiceStore.getTemplate(ctx.orgId, templateId);
+  if (!template) {
+    return err(404, { code: "invoice.RECURRING_TEMPLATE_NOT_FOUND", message: "Recurring invoice template not found." }, invoiceMeta(deps));
+  }
+  return null;
+}
+
+export async function updateRecurringInvoiceTemplateStatusScoped(
+  ctx: AuthContext,
+  input: unknown,
+  deps: Parameters<typeof updateRecurringInvoiceTemplateStatus>[1]
+) {
+  const denied = requireScope(ctx, deps);
+  if (denied) return denied;
+  const id = readTemplateId(input);
+  if (id) {
+    const bad = await ensureTemplateOwned(ctx, id, deps);
+    if (bad) return bad;
+  }
+  const base = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
+  return updateRecurringInvoiceTemplateStatus({ ...base, tenantId: ctx.orgId }, deps);
+}
+
+export async function generateDueRecurringInvoicesScoped(
+  ctx: AuthContext,
+  input: unknown,
+  deps: Parameters<typeof generateDueRecurringInvoices>[1]
+) {
+  const denied = requireScope(ctx, deps);
+  if (denied) return denied;
+  const base = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
+  return generateDueRecurringInvoices({ ...base, tenantId: ctx.orgId }, deps);
 }
 
 export async function voidInvoiceScoped(ctx: AuthContext, invoiceId: string, deps: Parameters<typeof voidInvoice>[1]) {

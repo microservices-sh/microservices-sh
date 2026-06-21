@@ -322,7 +322,7 @@
         "permissions": ["invoice.read", "invoice.write", "invoice.admin", "invoice.extend", "invoice.observe"],
         "rpc": [],
         "hooks": ["beforeInvoiceIssue", "onInvoiceIssued", "onInvoicePaid"],
-        "events": ["invoice.created", "invoice.issued", "invoice.paid", "invoice.voided", "invoice.overdue"],
+        "events": ["invoice.created", "invoice.issued", "invoice.paid", "invoice.voided", "invoice.overdue", "invoice.payment_link_created", "invoice.recurring_template_created", "invoice.recurring_template_status_updated", "invoice.recurring_invoice_generated"],
         "requires": ["customer"]
       }
     },

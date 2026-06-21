@@ -23,6 +23,8 @@ function rowToInvoice(row: Record<string, unknown>): Invoice {
     paymentLinkUrl: row.payment_link_url ? String(row.payment_link_url) : null,
     paymentLinkProvider: row.payment_link_provider ? String(row.payment_link_provider) : null,
     paymentLinkCreatedAt: row.payment_link_created_at ? String(row.payment_link_created_at) : null,
+    recurringTemplateId: row.recurring_template_id ? String(row.recurring_template_id) : null,
+    recurringOccurrenceAt: row.recurring_occurrence_at ? String(row.recurring_occurrence_at) : null,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at)
   };
@@ -41,13 +43,15 @@ function rowToLine(row: Record<string, unknown>): InvoiceLineItem {
 }
 
 const COLS =
-  "id, number, series, tenant_id, customer_id, status, currency, subtotal_cents, tax_cents, total_cents, amount_paid_cents, notes, issued_at, due_at, paid_at, voided_at, payment_link_id, payment_link_url, payment_link_provider, payment_link_created_at, created_at, updated_at";
+  "id, number, series, tenant_id, customer_id, status, currency, subtotal_cents, tax_cents, total_cents, amount_paid_cents, notes, issued_at, due_at, paid_at, voided_at, payment_link_id, payment_link_url, payment_link_provider, payment_link_created_at, recurring_template_id, recurring_occurrence_at, created_at, updated_at";
 
 export function createD1InvoiceStore(db: D1Database): InvoiceStore {
   return {
     async insert(invoice) {
       await db
-        .prepare(`INSERT INTO invoices (${COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .prepare(
+          `INSERT INTO invoices (${COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
         .bind(
           invoice.id,
           invoice.number,
@@ -69,6 +73,8 @@ export function createD1InvoiceStore(db: D1Database): InvoiceStore {
           invoice.paymentLinkUrl,
           invoice.paymentLinkProvider,
           invoice.paymentLinkCreatedAt,
+          invoice.recurringTemplateId,
+          invoice.recurringOccurrenceAt,
           invoice.createdAt,
           invoice.updatedAt
         )
@@ -127,6 +133,18 @@ export function createD1InvoiceStore(db: D1Database): InvoiceStore {
         .bind(...binds, filter.limit ?? 100)
         .all<Record<string, unknown>>();
       return (result.results ?? []).map(rowToInvoice);
+    },
+
+    async findByRecurringOccurrence(tenantId, recurringTemplateId, recurringOccurrenceAt) {
+      const row = await db
+        .prepare(
+          `SELECT ${COLS} FROM invoices
+           WHERE tenant_id = ? AND recurring_template_id = ? AND recurring_occurrence_at = ?
+           LIMIT 1`
+        )
+        .bind(tenantId, recurringTemplateId, recurringOccurrenceAt)
+        .first<Record<string, unknown>>();
+      return row ? rowToInvoice(row) : null;
     },
 
     async listOverdue(nowIso, limit) {

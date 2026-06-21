@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Prebuilt microservices.sh invoice module: gapless atomic numbering, per-line tax, enforced lifecycle, idempotent payment application, and dunning hooks.",
+  "description": "Prebuilt microservices.sh invoice module: gapless atomic numbering, recurring templates, per-line tax, enforced lifecycle, idempotent payment application, and dunning hooks.",
   "exports": {
     ".": "./src/index.ts",
     "./preview": "./reference-ui/Preview.svelte",
@@ -20,7 +20,9 @@
     "./ports": "./src/ports/index.ts",
     "./totals": "./src/totals.ts",
     "./adapters/d1": "./src/adapters/d1-invoice-store.ts",
+    "./adapters/d1-recurring": "./src/adapters/d1-recurring-invoice-store.ts",
     "./adapters/memory": "./src/adapters/memory-invoice-store.ts",
+    "./adapters/memory-recurring": "./src/adapters/memory-recurring-invoice-store.ts",
     "./adapters/memory-payment-link": "./src/adapters/memory-payment-link-provider.ts",
     "./adapters/stripe-payment-link": "./src/adapters/stripe-payment-link-provider.ts"
   },

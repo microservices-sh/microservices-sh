@@ -15,7 +15,10 @@ agents reliably ship:
    redelivered payment webhook is applied exactly once (no double-credit).
 4. **Provider-backed payment links** — `createInvoicePaymentLink` stores one
    reusable link per issued, unpaid invoice and keeps Stripe behind a port.
-5. **Per-line tax in integer cents** — tax rounds per line so a printed invoice
+5. **Recurring invoice templates** — `createRecurringInvoiceTemplate` and
+   `generateDueRecurringInvoices` port StackSuite-style recurring billing with a
+   unique occurrence key so retries do not double-bill.
+6. **Per-line tax in integer cents** — tax rounds per line so a printed invoice
    reconciles line-by-line.
 
 ## Flow
@@ -23,10 +26,12 @@ agents reliably ship:
 ```ts
 import {
   createInvoice, addLineItem, issueInvoice, createInvoicePaymentLink, recordPayment, voidInvoice, dueForReminder,
-  createD1InvoiceStore, createD1NumberAllocator, createStripeInvoicePaymentLinkProvider
+  createRecurringInvoiceTemplate, generateDueRecurringInvoices,
+  createD1InvoiceStore, createD1RecurringInvoiceStore, createD1NumberAllocator, createStripeInvoicePaymentLinkProvider
 } from "@microservices-sh/invoice";
 
 const invoiceStore = createD1InvoiceStore(env.DB);
+const recurringInvoiceStore = createD1RecurringInvoiceStore(env.DB);
 const allocator = createD1NumberAllocator(env.DB);
 const paymentLinkProvider = createStripeInvoicePaymentLinkProvider(env.STRIPE_SECRET_KEY);
 
@@ -37,16 +42,33 @@ const draft = await createInvoice(
 await issueInvoice({ invoiceId: draft.data.id, termsDays: 14 }, { invoiceStore, allocator }); // -> INV-00001
 await createInvoicePaymentLink({ invoiceId: draft.data.id }, { invoiceStore, paymentLinkProvider });
 await recordPayment({ invoiceId: draft.data.id, amountCents: 48938, idempotencyKey: stripeEventId }, { invoiceStore });
+
+await createRecurringInvoiceTemplate(
+  {
+    tenantId,
+    customerId,
+    name: "Monthly retainer",
+    startAt: "2026-07-01T00:00:00.000Z",
+    frequency: "monthly",
+    autoIssue: true,
+    lineItems: [{ description: "Retainer", quantity: 1, unitAmountCents: 250000, taxRateBps: 0 }]
+  },
+  { recurringInvoiceStore }
+);
+await generateDueRecurringInvoices({ tenantId }, { invoiceStore, recurringInvoiceStore, allocator });
 ```
 
 ## Dunning
 
-Run `dueForReminder({ invoiceStore })` on a **jobs-workflows** schedule and enqueue
-a reminder job per overdue invoice (key the job on invoice id + date to send once).
+Run `generateDueRecurringInvoices({ tenantId })` and `dueForReminder({ invoiceStore })`
+on **jobs-workflows** schedules. Recurring generation keys each occurrence by
+`(tenantId, recurringTemplateId, recurringOccurrenceAt)`; reminder jobs should be
+keyed on invoice id + date to send once.
 
 ## Resources
 
-- D1 (`DB`): `invoices`, `invoice_line_items`, `invoice_sequences`, `invoice_payments` (migration `0001`).
+- D1 (`DB`): `invoices`, `invoice_line_items`, `invoice_sequences`, `invoice_payments`,
+  `invoice_recurring_templates`, `invoice_recurring_template_line_items` (migration `0001`).
 - Optional Stripe payment-link adapter: `createStripeInvoicePaymentLinkProvider`.
 
 ## Verification

@@ -30,6 +30,11 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Invoices route uses the invoice module list use case."
   );
   assertFileIncludesAll(
+    "migrations/0004_invoice.sql",
+    ["CREATE TABLE IF NOT EXISTS invoice_recurring_templates", "idx_invoices_recurring_occurrence"],
+    "Template keeps recurring invoice tables and occurrence dedupe index aligned with the invoice module."
+  );
+  assertFileIncludesAll(
     "src/routes/app/files/+page.server.ts",
     ["@microservices-sh/file-media", "listFiles"],
     "Files route uses the file-media module list use case."

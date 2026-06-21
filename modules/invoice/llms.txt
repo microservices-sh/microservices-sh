@@ -7,13 +7,16 @@ Entry points:
 - `src/index.ts` exports the safe public surface.
 - `src/use-cases/` holds framework-neutral behavior: createInvoice, addLineItem,
   issueInvoice, createInvoicePaymentLink, recordPayment, voidInvoice, listInvoices,
-  dueForReminder.
+  dueForReminder, createRecurringInvoiceTemplate, listRecurringInvoiceTemplates,
+  updateRecurringInvoiceTemplateStatus, generateDueRecurringInvoices.
 - `src/totals.ts` is the pure money math (integer cents, per-line tax rounding).
-- `src/ports/` defines InvoiceStore, NumberAllocator, and InvoicePaymentLinkProvider.
+- `src/ports/` defines InvoiceStore, RecurringInvoiceStore, NumberAllocator, and
+  InvoicePaymentLinkProvider.
 - `src/adapters/` contains D1 + memory invoice stores, atomic + memory allocators,
-  and memory/Stripe payment-link providers.
+  D1 + memory recurring template stores, and memory/Stripe payment-link providers.
 - `migrations/0001_invoice.sql` owns invoices, invoice_line_items,
-  invoice_sequences (atomic counter), invoice_payments (idempotency ledger).
+  invoice_sequences (atomic counter), invoice_payments (idempotency ledger),
+  invoice_recurring_templates, and invoice_recurring_template_line_items.
 - `module.json` is the machine-readable manifest.
 
 Model:
@@ -27,9 +30,12 @@ Correctness invariants (the point of the module — do not remove):
 - Payments are idempotent (recordPaymentKey) so a redelivered webhook applies once.
 - Payment links pass a deterministic provider idempotency key, are idempotent once
   provider id/url metadata exists, and keep provider I/O behind InvoicePaymentLinkProvider.
+- Recurring invoice generation starts at template startAt, advances after each
+  occurrence, and recovers existing occurrences by tenant/template/date on retry.
 - Void never deletes; paid invoices cannot be voided.
 
 Agent rules:
-- Keep use cases neutral; persistence behind InvoiceStore, numbering behind NumberAllocator.
+- Keep use cases neutral; persistence behind InvoiceStore/RecurringInvoiceStore,
+  numbering behind NumberAllocator.
 - Never make real I/O in tests; inject the memory adapters.
 - Ask before changing migrations, money mutations, or production deploy.

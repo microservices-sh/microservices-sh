@@ -8,6 +8,11 @@ export { addLineItem } from "./use-cases/add-line-item";
 export { issueInvoice } from "./use-cases/issue-invoice";
 export { recordPayment } from "./use-cases/record-payment";
 export { createInvoicePaymentLink } from "./use-cases/create-invoice-payment-link";
+export { createRecurringInvoiceTemplate } from "./use-cases/create-recurring-invoice-template";
+export { listRecurringInvoiceTemplates } from "./use-cases/list-recurring-invoice-templates";
+export { updateRecurringInvoiceTemplateStatus } from "./use-cases/update-recurring-invoice-template-status";
+export { generateDueRecurringInvoices } from "./use-cases/generate-due-recurring-invoices";
+export { nextRecurringInvoiceDate } from "./use-cases/recurring-date";
 export { voidInvoice } from "./use-cases/void-invoice";
 export { listInvoices } from "./use-cases/list-invoices";
 export { dueForReminder } from "./use-cases/due-for-reminder";
@@ -16,6 +21,10 @@ export {
   getInvoiceScoped,
   issueInvoiceScoped,
   recordPaymentScoped,
+  createRecurringInvoiceTemplateScoped,
+  listRecurringInvoiceTemplatesScoped,
+  updateRecurringInvoiceTemplateStatusScoped,
+  generateDueRecurringInvoicesScoped,
   createInvoicePaymentLinkScoped,
   voidInvoiceScoped,
   addLineItemScoped
@@ -26,17 +35,25 @@ export { authContext } from "@microservices-sh/connection-contract";
 export type { AuthContext } from "@microservices-sh/connection-contract";
 export { computeTotals, lineAmountCents, lineTaxCents } from "./totals";
 export { createD1InvoiceStore } from "./adapters/d1-invoice-store";
+export { createD1RecurringInvoiceStore } from "./adapters/d1-recurring-invoice-store";
 export { createD1NumberAllocator } from "./adapters/d1-number-allocator";
 export { createStripeInvoicePaymentLinkProvider } from "./adapters/stripe-payment-link-provider";
 export { createMemoryInvoicePaymentLinkProvider } from "./adapters/memory-payment-link-provider";
 export { createMemoryInvoiceStore } from "./adapters/memory-invoice-store";
+export { createMemoryRecurringInvoiceStore } from "./adapters/memory-recurring-invoice-store";
 export { createMemoryNumberAllocator } from "./adapters/memory-number-allocator";
-export type { InvoicePaymentLinkProvider, InvoiceStore, NumberAllocator } from "./ports";
+export type { InvoicePaymentLinkProvider, InvoiceStore, NumberAllocator, RecurringInvoiceStore } from "./ports";
 export type {
   Invoice,
   InvoiceWithLines,
   InvoiceLineItem,
   InvoiceStatus,
   InvoiceFilter,
-  InvoiceTotals
+  InvoiceTotals,
+  RecurringInvoiceFrequency,
+  RecurringInvoiceStatus,
+  RecurringInvoiceTemplate,
+  RecurringInvoiceTemplateFilter,
+  RecurringInvoiceTemplateLineItem,
+  RecurringInvoiceTemplateWithLineItems
 } from "./types";

@@ -19,4 +19,19 @@ export default function check({ assertFileIncludes }) {
     "INVOICE_NOT_EDITABLE",
     "Issued invoices are immutable; only drafts can be edited."
   );
+  assertFileIncludes(
+    "migrations/0001_invoice.sql",
+    "CREATE TABLE IF NOT EXISTS invoice_recurring_templates",
+    "Invoice migration owns recurring invoice templates."
+  );
+  assertFileIncludes(
+    "migrations/0001_invoice.sql",
+    "idx_invoices_recurring_occurrence",
+    "Recurring invoice generation is protected by a unique occurrence key."
+  );
+  assertFileIncludes(
+    "src/use-cases/generate-due-recurring-invoices.ts",
+    "findByRecurringOccurrence",
+    "Recurring invoice generation recovers existing occurrences on retries."
+  );
 }

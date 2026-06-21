@@ -29,6 +29,15 @@ export function createMemoryInvoiceStore(): InvoiceStore {
         .slice(0, filter.limit ?? 100)
         .map((inv) => ({ ...inv }));
     },
+    async findByRecurringOccurrence(tenantId, recurringTemplateId, recurringOccurrenceAt) {
+      const invoice = [...invoices.values()].find(
+        (inv) =>
+          inv.tenantId === tenantId &&
+          inv.recurringTemplateId === recurringTemplateId &&
+          inv.recurringOccurrenceAt === recurringOccurrenceAt
+      );
+      return invoice ? { ...invoice } : null;
+    },
     async listOverdue(nowIso, limit) {
       return [...invoices.values()]
         .filter((inv) => inv.status === "open" && inv.dueAt !== null && inv.dueAt <= nowIso)

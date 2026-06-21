@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "status": "available",
   "class": "core",
-  "summary": "Invoices with gapless atomic numbering, per-line tax, an enforced draft->open->paid->void lifecycle, idempotent payment application, payment-link metadata, and dunning hooks.",
+  "summary": "Invoices with gapless atomic numbering, per-line tax, recurring invoice templates, an enforced draft->open->paid->void lifecycle, idempotent payment application, payment-link metadata, and dunning hooks.",
   "runtime": {
     "language": "typescript",
     "platform": "cloudflare-workers",
@@ -14,7 +14,18 @@
   },
   "entrypoint": "src/index.ts",
   "resources": [
-    { "type": "d1", "binding": "DB", "tables": ["invoices", "invoice_line_items", "invoice_sequences", "invoice_payments"] }
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "invoices",
+        "invoice_line_items",
+        "invoice_sequences",
+        "invoice_payments",
+        "invoice_recurring_templates",
+        "invoice_recurring_template_line_items"
+      ]
+    }
   ],
   "permissions": ["invoice.read", "invoice.write", "invoice.admin", "invoice.extend", "invoice.observe"],
   "connections": {
@@ -31,7 +42,10 @@
         "invoice.paid",
         "invoice.voided",
         "invoice.overdue",
-        "invoice.payment_link_created"
+        "invoice.payment_link_created",
+        "invoice.recurring_template_created",
+        "invoice.recurring_template_status_updated",
+        "invoice.recurring_invoice_generated"
       ],
       "consumes": []
     },
@@ -65,6 +79,10 @@
         "invoice.issueInvoice",
         "invoice.recordPayment",
         "invoice.createPaymentLink",
+        "invoice.createRecurringTemplate",
+        "invoice.listRecurringTemplates",
+        "invoice.updateRecurringTemplateStatus",
+        "invoice.generateDueRecurringInvoices",
         "invoice.voidInvoice"
       ],
       "skillPaths": ["skills/invoice-operator/SKILL.md"],
@@ -72,6 +90,9 @@
         "invoice.issueInvoice",
         "invoice.recordPayment",
         "invoice.createPaymentLink",
+        "invoice.createRecurringTemplate",
+        "invoice.updateRecurringTemplateStatus",
+        "invoice.generateDueRecurringInvoices",
         "invoice.voidInvoice"
       ]
     }

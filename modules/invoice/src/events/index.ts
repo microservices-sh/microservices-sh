@@ -7,7 +7,10 @@ export const events = {
     "invoice.paid",
     "invoice.voided",
     "invoice.overdue",
-    "invoice.payment_link_created"
+    "invoice.payment_link_created",
+    "invoice.recurring_template_created",
+    "invoice.recurring_template_status_updated",
+    "invoice.recurring_invoice_generated"
   ],
   consumed: []
 } as const;
