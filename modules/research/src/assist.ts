@@ -38,11 +38,15 @@ export async function assistedBrief(
   const tools = (deps.plan ?? planOpsTools)(input.question);
   const opsPassages: Passage[] = [];
   for (const tool of tools) {
-    const read = await opsRead(
-      { tool, args: { query: input.question } },
-      { client: deps.client, actor: deps.actor, now: deps.now, registry: deps.registry, audit: deps.audit }
-    );
-    if (read.ok) opsPassages.push(...read.data.passages); // skip refusals (e.g. unscoped) best-effort
+    try {
+      const read = await opsRead(
+        { tool, args: { query: input.question } },
+        { client: deps.client, actor: deps.actor, now: deps.now, registry: deps.registry, audit: deps.audit }
+      );
+      if (read.ok) opsPassages.push(...read.data.passages); // skip refusals (e.g. unscoped) best-effort
+    } catch {
+      await deps.audit?.record({ action: "ops.read_denied", actorId: ownerId, entityType: "ops_tool", entityId: tool });
+    }
   }
 
   const passages = [...graphPassages, ...opsPassages];

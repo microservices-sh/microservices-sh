@@ -76,4 +76,29 @@ describe("assistedBrief (blended graph + ops)", () => {
     if (!result.ok) throw new Error("expected ok");
     expect(result.data.planes).toEqual({ graph: 1, ops: 0 });
   });
+
+  it("skips an ops transport failure, still answering from graph passages", async () => {
+    const store = createMemoryResearchStore();
+    let denied = false;
+    const throwingClient: OpsClient = {
+      async read() {
+        throw new Error("HTTP 404");
+      }
+    };
+    const audit = {
+      async record(entry: { action: string }) {
+        if (entry.action === "ops.read_denied") denied = true;
+      }
+    };
+
+    const result = await assistedBrief(
+      { question: "what does ACME owe?" },
+      { graphRetriever, client: throwingClient, store, synthesizer: citingSynth, now, actor, audit }
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected ok");
+    expect(result.data.planes).toEqual({ graph: 1, ops: 0 });
+    expect(denied).toBe(true);
+  });
 });
