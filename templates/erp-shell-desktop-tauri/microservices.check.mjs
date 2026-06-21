@@ -12,14 +12,15 @@ export default function check({ assertFileIncludesAll }) {
       "PageHeader",
       "MetricStrip",
       "ResourceTable",
+      "FlowStepper",
       "Drop or Select Documents",
       "Review Drafts",
-      "ERP import",
+      "Submit to ERP",
       "Submit Selected",
       "Runtime settings",
       "Test Selected Model"
     ],
-    "Desktop MVP uses the ERP shell chrome and shared UI primitives."
+    "Desktop MVP uses the ERP shell chrome, shared UI primitives, and guided flow stepper."
   );
   assertFileIncludesAll(
     "src/lib/ui/index.ts",

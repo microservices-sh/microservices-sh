@@ -102,32 +102,73 @@ a {
   white-space: nowrap;
 }
 
+/* ── Guided flow rail ─────────────────────────────────────────────── */
+.flow-rail {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(120% 160% at 0% 0%, color-mix(in srgb, var(--color-act) 5%, transparent), transparent 55%),
+    var(--color-panel);
+  box-shadow: var(--shadow-sm);
+  padding: 12px 18px;
+}
+
+/* ── Intake bay (drop zone) ───────────────────────────────────────── */
 .drop-zone {
+  position: relative;
   display: grid;
   place-items: center;
-  gap: 6px;
+  gap: 9px;
   inline-size: 100%;
-  min-block-size: 104px;
-  margin-block-end: 18px;
-  border: 1px dashed var(--color-line-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-panel-subtle);
+  min-block-size: 188px;
+  margin-block-end: 20px;
+  border: 1.5px dashed var(--color-line-strong);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(130% 120% at 50% -10%, color-mix(in srgb, var(--color-act) 4%, transparent), transparent 60%),
+    var(--color-panel-subtle);
   color: var(--color-ink);
   cursor: pointer;
   text-align: center;
+  overflow: hidden;
   transition:
-    background 180ms var(--ease),
-    border-color 180ms var(--ease),
-    box-shadow 180ms var(--ease),
-    transform 180ms var(--ease);
+    background 200ms var(--ease),
+    border-color 200ms var(--ease),
+    box-shadow 200ms var(--ease),
+    transform 200ms var(--ease);
+}
+
+/* A faint scan-line sweep that animates only while a drag is active. */
+.drop-zone::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  block-size: 38%;
+  inset-block-start: -40%;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--color-signal) 22%, transparent), transparent);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .drop-zone:hover,
 .drop-zone.active {
   border-color: var(--color-act);
-  background: var(--color-green-soft);
+  border-style: solid;
+  background:
+    radial-gradient(130% 120% at 50% -10%, color-mix(in srgb, var(--color-act) 9%, transparent), transparent 60%),
+    var(--color-green-soft);
   box-shadow: var(--shadow-card);
   transform: translateY(-1px);
+}
+
+.drop-zone.active::after {
+  opacity: 1;
+  animation: drop-scan 1.1s linear infinite;
+}
+
+@keyframes drop-scan {
+  from { inset-block-start: -40%; }
+  to { inset-block-start: 110%; }
 }
 
 .drop-zone:disabled {
@@ -136,19 +177,115 @@ a {
   transform: none;
 }
 
-.drop-zone span {
+.drop-ico {
+  display: grid;
+  place-items: center;
+  inline-size: 54px;
+  block-size: 54px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-line);
+  background: var(--color-panel);
+  color: var(--color-act);
+  box-shadow: var(--shadow-sm);
+}
+.drop-ico svg {
+  inline-size: 26px;
+  block-size: 26px;
+}
+.drop-zone:hover .drop-ico,
+.drop-zone.active .drop-ico {
+  border-color: color-mix(in srgb, var(--color-act) 40%, var(--color-line));
+}
+
+.drop-zone span:not(.drop-ico) {
   display: block;
   max-inline-size: 40rem;
   overflow-wrap: anywhere;
 }
 
 .drop-title {
+  font-size: 1.02rem;
   font-weight: 650;
+  letter-spacing: -0.01em;
 }
 
-.drop-title + span {
+.drop-sub {
   color: var(--color-ink-soft);
   font-size: 0.86rem;
+}
+
+/* ── Connect + Submit layouts ─────────────────────────────────────── */
+.connect-grid,
+.submit-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.62fr);
+  gap: 16px;
+  align-items: start;
+  min-inline-size: 0;
+}
+
+.card-lede {
+  margin: 0 0 16px;
+  color: var(--color-ink-soft);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.mono-dd {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.submit-list {
+  display: grid;
+  gap: 9px;
+  margin-block-end: 12px;
+}
+
+.submit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  padding: 11px 12px;
+  background: var(--color-panel-subtle);
+  transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease);
+}
+.submit-row:hover {
+  border-color: color-mix(in srgb, var(--color-act) 35%, var(--color-line));
+  box-shadow: var(--shadow-sm);
+}
+.submit-row-meta {
+  display: grid;
+  gap: 3px;
+  min-inline-size: 0;
+}
+.submit-row-meta strong {
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.submit-row-meta small {
+  color: var(--color-ink-faint);
+  font-size: 0.74rem;
+}
+
+/* ── Entry motion: stagger cards/sections on page change ──────────── */
+@media (prefers-reduced-motion: no-preference) {
+  .desktop-page > * {
+    animation: rise-in 360ms var(--ease) both;
+  }
+  .desktop-page > :nth-child(2) { animation-delay: 40ms; }
+  .desktop-page > :nth-child(3) { animation-delay: 90ms; }
+  .desktop-page > :nth-child(4) { animation-delay: 140ms; }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: none; }
 }
 
 .queue-table {
@@ -586,7 +723,9 @@ meter {
 
 @container (max-width: 880px) {
   .runtime-page-grid,
-  .review-page-grid {
+  .review-page-grid,
+  .connect-grid,
+  .submit-grid {
     grid-template-columns: 1fr;
   }
 

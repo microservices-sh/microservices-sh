@@ -7,9 +7,11 @@
     Card,
     CustomSelect,
     EmptyState,
+    FlowStepper,
     MetricStrip,
     PageHeader,
     ResourceTable,
+    type FlowStep,
     type Metric,
     type Tone
   } from "./lib/ui";
@@ -100,6 +102,11 @@
   let metrics: Metric[] = [];
 
   const pageDetails: Record<string, { eyebrow: string; title: string; description: string }> = {
+    "#connect": {
+      eyebrow: "Workspace connection",
+      title: "Connect workspace",
+      description: "Link this desktop app to the authenticated ERP workspace that approved drafts will be submitted to."
+    },
     "#import": {
       eyebrow: "Document intake",
       title: "Import queue",
@@ -110,45 +117,53 @@
       title: "Review drafts",
       description: "Inspect extracted fields, correct low-confidence values, then approve or reject the local draft."
     },
+    "#submit": {
+      eyebrow: "Governed handoff",
+      title: "Submit to ERP",
+      description: "Send approved local drafts to the authenticated ERP Worker. The backend stays the system of record."
+    },
     "#runtime": {
       eyebrow: "Local AI runtime",
       title: "Local runtime",
-      description: "Check OCR and Ollama readiness, then run a live probe against the selected Gemma model."
-    },
-    "#erp-import": {
-      eyebrow: "Remote ERP handoff",
-      title: "ERP import",
-      description: "Submit approved local drafts to the authenticated ERP Worker and remote D1-backed queue."
+      description: "Check Gemma vision and Ollama readiness, then run a live probe against the selected model."
     },
     "#settings": {
       eyebrow: "Runtime configuration",
       title: "Runtime settings",
-      description: "Choose the Gemma model, OCR language, and local model installation target for this desktop app."
+      description: "Choose the Gemma model, document language, and local model installation target for this desktop app."
     }
   };
 
+  // Sidebar = the linear document Workflow (also driven by the FlowStepper) plus
+  // a quieter Setup group for runtime configuration that sits outside the flow.
   const desktopNav = [
     {
-      section: "Intake",
+      section: "Workflow",
       items: [
+        { href: "#connect", label: "Connect", icon: "shield" },
         { href: "#import", label: "Import Queue", icon: "folder" },
-        { href: "#review", label: "Review Drafts", icon: "clipboard" }
+        { href: "#review", label: "Review Drafts", icon: "clipboard" },
+        { href: "#submit", label: "Submit to ERP", icon: "workflow" }
       ]
     },
     {
-      section: "Runtime",
+      section: "Setup",
       items: [
         { href: "#runtime", label: "Local Runtime", icon: "bot" },
         { href: "#settings", label: "Runtime Settings", icon: "settings" }
       ]
-    },
-    {
-      section: "ERP",
-      items: [
-        { href: "#erp-import", label: "ERP Import", icon: "workflow" }
-      ]
     }
   ];
+
+  // The four linear pipeline steps, in order. Setup pages are intentionally
+  // excluded — they are not part of the document path.
+  const flowOrder = ["#connect", "#import", "#review", "#submit"] as const;
+  const flowLabels: Record<string, string> = {
+    "#connect": "Connect",
+    "#import": "Import",
+    "#review": "Review",
+    "#submit": "Submit"
+  };
 
   const ocrLanguageOptions = [
     { value: "eng", label: "English" },
@@ -194,7 +209,7 @@
   $: pageMetaPrimary =
     activePage === "#runtime" || activePage === "#settings"
       ? settingsDraftModel
-      : activePage === "#erp-import"
+      : activePage === "#connect" || activePage === "#submit"
         ? erpImport.baseUrl
         : folder?.path ?? "No folder selected";
   $: pageMetaSecondary =
@@ -202,7 +217,7 @@
       ? modelTestMessage
       : activePage === "#settings"
         ? settingsMessage
-        : activePage === "#erp-import"
+        : activePage === "#connect" || activePage === "#submit"
           ? erpSubmitMessage
           : importMessage;
   $: modelOptions = Array.from(
@@ -229,6 +244,63 @@
     { label: "Review", value: reviewCount, tone: reviewCount > 0 ? "warn" : "neutral", hint: "needs approval" },
     { label: "Approved", value: approvedCount, tone: approvedCount > 0 ? "good" : "neutral", hint: "ready to submit" }
   ];
+
+  // ── Guided flow state ───────────────────────────────────────────────
+  $: configured = erpImportSettings.tokenConfigured && erpImport.baseUrl.trim().length > 0;
+  $: readyToExtractCount = jobs.filter((job) => job.status === "ready").length;
+  $: isWorkflowPage = (flowOrder as readonly string[]).includes(activePage);
+
+  // Reference every data dependency directly so Svelte's `$:` tracks them — a
+  // value read only inside a helper closure would NOT re-run this block.
+  $: flowSteps = [
+    {
+      key: "#connect",
+      label: flowLabels["#connect"],
+      href: "#connect",
+      state: activePage === "#connect" ? "active" : configured ? "done" : "upcoming",
+      hint: configured ? "linked" : "not linked",
+      count: 0
+    },
+    {
+      key: "#import",
+      label: flowLabels["#import"],
+      href: "#import",
+      state: activePage === "#import" ? "active" : jobs.length ? "done" : "upcoming",
+      hint: `${jobs.length} queued`,
+      count: readyToExtractCount
+    },
+    {
+      key: "#review",
+      label: flowLabels["#review"],
+      href: "#review",
+      state:
+        activePage === "#review"
+          ? "active"
+          : approvedCount > 0 || importedDraftCount > 0
+            ? "done"
+            : "upcoming",
+      hint: `${reviewCount} to review`,
+      count: reviewCount
+    },
+    {
+      key: "#submit",
+      label: flowLabels["#submit"],
+      href: "#submit",
+      state:
+        activePage === "#submit"
+          ? "active"
+          : importedDraftCount > 0
+            ? "done"
+            : configured
+              ? "upcoming"
+              : "blocked",
+      hint: `${approvedCount} ready`,
+      count: approvedCount
+    }
+  ] satisfies FlowStep[];
+
+  $: approvedJobs = jobs.filter((job) => job.status === "approved");
+  $: submittedJobs = jobs.filter((job) => job.status === "synced");
 
   async function refresh() {
     const [runtimeStatus, importStatus, queued, settings, importSettings] = await Promise.all([
@@ -630,6 +702,12 @@
   {/snippet}
 
   <section class="desktop-page" aria-label={page.title}>
+    {#if isWorkflowPage}
+      <div class="flow-rail">
+        <FlowStepper steps={flowSteps} current={activePage} />
+      </div>
+    {/if}
+
     <PageHeader
       eyebrow={page.eyebrow}
       title={page.title}
@@ -666,8 +744,16 @@
             ondrop={handleBrowserDrop}
             disabled={busy}
           >
-            <span id="import-title" class="drop-title">{dragActive ? "Release to Import" : "Drop or Select Documents"}</span>
-            <span>PDF, images, folders, and scans stay local until review.</span>
+            <span class="drop-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+                <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z" />
+                <path d="M12 11v6" />
+                <path d="m9.5 13.5 2.5-2.5 2.5 2.5" />
+              </svg>
+            </span>
+            <span id="import-title" class="drop-title">{dragActive ? "Release to import" : "Drop or Select Documents"}</span>
+            <span class="drop-sub">PDF, images, folders, and phone photos stay local until you review them.</span>
           </button>
 
           {#if jobs.length}
@@ -937,40 +1023,27 @@
         </Card>
       </div>
 
-    {:else if activePage === "#erp-import"}
-      <div id="erp-import" class="side-section">
-        <Card title="ERP import" class="side-card">
+    {:else if activePage === "#connect"}
+      <div id="connect" class="connect-grid">
+        <Card title="Connection details" class="side-card">
           {#snippet header()}
             <Badge tone={toneForStatus(erpImport.state)}>{statusLabel[erpImport.state]}</Badge>
           {/snippet}
-          <dl class="status-list">
-            <div>
-              <dt>Target</dt>
-              <dd>{erpImport.baseUrl}</dd>
-            </div>
-            <div>
-              <dt>Approved</dt>
-              <dd>{erpImport.pendingDrafts}</dd>
-            </div>
-            <div>
-              <dt>Imported</dt>
-              <dd>{erpImport.importedDrafts}</dd>
-            </div>
-            <div>
-              <dt>Token</dt>
-              <dd>{erpImportSettings.tokenConfigured ? "Configured" : "Not configured"}</dd>
-            </div>
-          </dl>
+
+          <p class="card-lede">
+            Approved drafts are submitted only to this workspace. Local drafts never leave this
+            device until you approve and submit them.
+          </p>
 
           <form
-            class="settings-form import-settings-form"
+            class="settings-form"
             onsubmit={(event) => {
               event.preventDefault();
               void saveImportSettings();
             }}
           >
             <label class="setting-field" for="erp-import-url">
-              <span>ERP app URL</span>
+              <span>ERP workspace URL</span>
               <input
                 id="erp-import-url"
                 type="url"
@@ -994,24 +1067,122 @@
             </label>
 
             <div class="settings-actions">
-              <Button type="submit" size="sm" disabled={savingImportSettings}>
-                {savingImportSettings ? "Saving" : "Save Import Settings"}
+              <Button type="submit" variant="primary" size="sm" disabled={savingImportSettings}>
+                {savingImportSettings ? "Saving" : configured ? "Update Connection" : "Save Connection"}
               </Button>
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                disabled={!selectedJob ||
-                  selectedJob.status !== "approved" ||
-                  Boolean(submittingImportJobId)}
-                onclick={() => selectedJob && void submitApprovedToErp(selectedJob)}
-              >
-                {submittingImportJobId ? "Submitting" : "Submit Selected"}
-              </Button>
+              {#if configured}
+                <Button type="button" size="sm" href="#import">Go to Import</Button>
+              {/if}
             </div>
 
             <p class="settings-message" aria-live="polite">{erpSubmitMessage}</p>
           </form>
+        </Card>
+
+        <Card title="Workspace" class="side-card">
+          {#snippet header()}
+            <Badge tone={configured ? "good" : "warn"}>{configured ? "Linked" : "Not linked"}</Badge>
+          {/snippet}
+          <dl class="status-list">
+            <div>
+              <dt>Target</dt>
+              <dd class="mono-dd">{erpImport.baseUrl || "—"}</dd>
+            </div>
+            <div>
+              <dt>Token</dt>
+              <dd>{erpImportSettings.tokenConfigured ? "Configured" : "Not configured"}</dd>
+            </div>
+            <div>
+              <dt>Approved</dt>
+              <dd>{approvedJobs.length} waiting</dd>
+            </div>
+            <div>
+              <dt>Imported</dt>
+              <dd>{erpImport.importedDrafts}</dd>
+            </div>
+          </dl>
+        </Card>
+      </div>
+
+    {:else if activePage === "#submit"}
+      <div id="submit" class="submit-grid">
+        <Card title="Ready to submit" class="side-card">
+          {#snippet header()}
+            <Badge tone={approvedJobs.length ? "good" : "neutral"}>
+              {approvedJobs.length ? `${approvedJobs.length} Approved` : "Empty"}
+            </Badge>
+          {/snippet}
+
+          {#if !configured}
+            <EmptyState
+              title="Connect a workspace first"
+              description="Submitting approved drafts needs an authenticated ERP workspace connection."
+            />
+            <div class="settings-actions">
+              <Button variant="primary" size="sm" href="#connect">Connect Workspace</Button>
+            </div>
+          {:else if approvedJobs.length}
+            <div class="submit-list" aria-label="Approved drafts">
+              {#each approvedJobs as job}
+                <div class="submit-row">
+                  <span class="submit-row-meta">
+                    <strong>{job.name}</strong>
+                    <small>{kindLabel[job.kind]} · {confidenceLabel(job.confidence)} · {job.pages} pages</small>
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    disabled={Boolean(submittingImportJobId)}
+                    onclick={() => void submitApprovedToErp(job)}
+                  >
+                    {submittingImportJobId === job.id ? "Submitting" : "Submit"}
+                  </Button>
+                </div>
+              {/each}
+            </div>
+          {:else}
+            <EmptyState
+              title="No approved drafts"
+              description="Approve drafts in Review, then submit them to the ERP workspace here."
+            />
+            <div class="settings-actions">
+              <Button size="sm" href="#review">Go to Review</Button>
+            </div>
+          {/if}
+          <p class="settings-message" aria-live="polite">{erpSubmitMessage}</p>
+        </Card>
+
+        <Card title="Destination" class="side-card">
+          {#snippet header()}
+            <Badge tone={toneForStatus(erpImport.state)}>{statusLabel[erpImport.state]}</Badge>
+          {/snippet}
+          <dl class="status-list">
+            <div>
+              <dt>Target</dt>
+              <dd class="mono-dd">{erpImport.baseUrl || "—"}</dd>
+            </div>
+            <div>
+              <dt>Approved</dt>
+              <dd>{approvedJobs.length}</dd>
+            </div>
+            <div>
+              <dt>Imported</dt>
+              <dd>{submittedJobs.length}</dd>
+            </div>
+          </dl>
+          <div class="settings-actions">
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={!selectedJob ||
+                selectedJob.status !== "approved" ||
+                Boolean(submittingImportJobId)}
+              onclick={() => selectedJob && void submitApprovedToErp(selectedJob)}
+            >
+              {submittingImportJobId ? "Submitting" : "Submit Selected"}
+            </Button>
+            <Button size="sm" href="#connect">Connection</Button>
+          </div>
         </Card>
       </div>
 

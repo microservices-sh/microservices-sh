@@ -4,6 +4,8 @@ export { default as Button } from "./Button.svelte";
 export { default as Card } from "./Card.svelte";
 export { default as CustomSelect } from "./CustomSelect.svelte";
 export { default as EmptyState } from "./EmptyState.svelte";
+export { default as FlowStepper } from "./FlowStepper.svelte";
+export type { FlowStep, FlowState } from "./FlowStepper.svelte";
 export { default as Logo } from "./Logo.svelte";
 export { default as MetricStrip } from "./MetricStrip.svelte";
 export { default as PageHeader } from "./PageHeader.svelte";
