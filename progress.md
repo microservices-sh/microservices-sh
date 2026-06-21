@@ -1359,3 +1359,18 @@
 | Recurring Documents spec | Module contract check passes | `pnpm --filter @microservices-sh/recurring-documents check:spec` passed | Pass |
 | D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/recurring-documents/migrations/0001_initial.sql"` passed | Pass |
 | JSON docs | OpenAPI and JSON schema stubs parse | Node JSON parse check passed | Pass |
+
+### Phase 57 StackSuite Storage Entitlements module
+
+- **Status:** complete.
+- Goal: port DashDrive storage quota, package purchase, expiring share link, and download-count behavior into a reusable module without changing `file-media`.
+- Added `modules/storage-entitlements` for owner-scoped storage accounts, quota/usage accounting, storage packages, idempotent purchase completion by external session id, expiring share links, revocation, and download counts.
+- Kept byte upload, R2 signing, and object deletion outside the module; those remain `file-media` or app-adapter responsibilities.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Storage Entitlements build | TypeScript typecheck passes | `pnpm --filter @microservices-sh/storage-entitlements build` passed | Pass |
+| Storage Entitlements tests | Quota, purchase, and share-link flows pass | `pnpm --filter @microservices-sh/storage-entitlements test` passed, 3/3 | Pass |
+| Storage Entitlements spec | Module contract check passes | `pnpm --filter @microservices-sh/storage-entitlements check:spec` passed | Pass |
+| D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/storage-entitlements/migrations/0001_initial.sql"` passed | Pass |
+| JSON docs | OpenAPI and JSON schema stubs parse | Node JSON parse check passed | Pass |

@@ -438,6 +438,14 @@ Phase 54
 - [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
 - **Status:** complete
 
+### Phase 57: StackSuite Storage Entitlements Module
+- [x] Inspect DashDrive storage quota, package, purchase, share-link, expiry, and download-count workflows.
+- [x] Scaffold `modules/storage-entitlements` from the standard module layout.
+- [x] Implement owner-scoped storage accounts, quota accounting, storage packages, idempotent purchase completion, expiring share links, download counts, and revocation.
+- [x] Add memory and D1 stores, migration, schemas, docs, module metadata, permissions, events, resources, exports, and tests.
+- [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

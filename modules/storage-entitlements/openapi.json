@@ -1,0 +1,40 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Storage Entitlements Module",
+    "version": "0.1.0",
+    "description": "Storage quotas, packages, purchases, expiring share links, and download counting."
+  },
+  "paths": {
+    "/storage/info": {
+      "get": {
+        "summary": "Get storage quota and usage",
+        "responses": {
+          "200": {
+            "description": "Storage info"
+          }
+        }
+      }
+    },
+    "/storage/packages": {
+      "get": {
+        "summary": "List active storage packages",
+        "responses": {
+          "200": {
+            "description": "Storage package list"
+          }
+        }
+      }
+    },
+    "/storage/share-links": {
+      "post": {
+        "summary": "Create an expiring share link",
+        "responses": {
+          "201": {
+            "description": "Share link created"
+          }
+        }
+      }
+    }
+  }
+}

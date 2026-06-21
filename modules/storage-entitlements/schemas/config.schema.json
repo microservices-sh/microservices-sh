@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Storage Entitlements Config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "defaultQuotaBytes": {
+      "type": "integer",
+      "default": 2147483648,
+      "minimum": 1
+    },
+    "defaultCurrency": {
+      "type": "string",
+      "default": "USD",
+      "minLength": 3,
+      "maxLength": 3
+    }
+  }
+}

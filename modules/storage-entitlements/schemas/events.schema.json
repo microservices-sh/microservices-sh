@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Storage Entitlements Events",
+  "type": "string",
+  "enum": [
+    "storage-entitlements.created",
+    "storage-entitlements.updated",
+    "storage-entitlements.quota.updated",
+    "storage-entitlements.purchase.completed",
+    "storage-entitlements.share.created",
+    "storage-entitlements.share.downloaded",
+    "storage-entitlements.share.revoked"
+  ]
+}

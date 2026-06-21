@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Storage Entitlements API",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "ownerType": {
+      "type": "string",
+      "enum": [
+        "user",
+        "customer",
+        "workspace"
+      ]
+    },
+    "ownerId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sizeBytes": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "expiryDays": {
+      "type": "integer",
+      "enum": [
+        1,
+        7,
+        30
+      ]
+    }
+  }
+}
