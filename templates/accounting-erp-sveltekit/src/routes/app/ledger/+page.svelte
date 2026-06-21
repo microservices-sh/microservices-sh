@@ -87,9 +87,9 @@
             <tbody>
               {#each data.accounts as account (account.id)}
                 <tr>
-                  <td><code>{account.code}</code></td>
+                  <td><a href={`/app/ledger/accounts/${account.id}`}><code>{account.code}</code></a></td>
                   <td>
-                    <strong>{account.name}</strong>
+                    <strong><a href={`/app/ledger/accounts/${account.id}`}>{account.name}</a></strong>
                     {#if account.description}<span>{account.description}</span>{/if}
                   </td>
                   <td>{account.type}</td>
@@ -180,7 +180,7 @@
               {#each trialBalanceLines as line (line.accountId)}
                 <tr>
                   <td>
-                    <strong>{line.accountCode} · {line.accountName}</strong>
+                    <strong><a href={`/app/ledger/accounts/${line.accountId}`}>{line.accountCode} · {line.accountName}</a></strong>
                     <span>{line.normalBalance} normal</span>
                   </td>
                   <td>{line.accountType}</td>

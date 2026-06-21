@@ -54,6 +54,11 @@ export const accountFilterSchema = z.object({
   limit: z.number().int().min(1).max(500).optional()
 });
 
+export const accountIdentitySchema = z.object({
+  tenantId: z.string().min(1),
+  accountId: z.string().min(1)
+});
+
 export const fiscalPeriodInputSchema = z.object({
   tenantId: z.string().min(1),
   name: z.string().min(1),

@@ -1880,6 +1880,23 @@
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 92 accounting ledger account detail route proof
+
+- **Status:** complete.
+- Goal: close the chart-of-accounts detail route gap by exposing a small accounting-core read use case and adding a read-only account review page.
+- Added `getAccount` to `modules/accounting-core`, backed by the existing tenant-scoped store method and covered by tenant isolation tests.
+- Added `/app/ledger/accounts/[id]` with account metadata, posting policy, child accounts, and trial-balance totals; linked from chart and trial-balance rows.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounting-core tests | New account lookup remains tenant-scoped and existing ledger behavior remains green | `pnpm --filter @microservices-sh/accounting-core test` passed, 10/10 | Pass |
+| Accounting-core spec | Module docs/OpenAPI/manifest stay aligned with the new use case | `pnpm --filter @microservices-sh/accounting-core check:spec` passed | Pass |
+| Accounting template spec | Policy catches ledger account detail route and read-only boundary | `pnpm --dir templates/accounting-erp-sveltekit check:spec` passed | Pass |
+| Accounting template build | SvelteKit/Cloudflare build compiles after route additions | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Packaged accounting template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and sequential `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 87 commerce sync logs route proof
 
 - **Status:** complete.

@@ -10,6 +10,7 @@ Tenant-scoped double-entry accounting foundation with chart of accounts, fiscal 
 import {
   createMemoryAccountingCoreStore,
   createAccount,
+  getAccount,
   createFiscalPeriod,
   createJournalEntry,
   postJournalEntry,

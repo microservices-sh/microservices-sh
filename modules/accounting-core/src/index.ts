@@ -2,6 +2,7 @@ export { manifest, moduleDefinition } from "./manifest";
 export { defaultConfig, configSchema } from "./config";
 export {
   accountFilterSchema,
+  accountIdentitySchema,
   accountInputSchema,
   accountingCoreConfigSchema,
   accountRecordSchema,
@@ -32,6 +33,7 @@ export { accountingCoreResources } from "./resources";
 export { createMemoryAccountingCoreStore } from "./adapters/memory-accounting-core-store";
 export { createD1AccountingCoreStore } from "./adapters/d1-accounting-core-store";
 export { createAccount } from "./use-cases/create-account";
+export { getAccount } from "./use-cases/get-account";
 export { listAccounts } from "./use-cases/list-accounts";
 export { createFiscalPeriod } from "./use-cases/create-fiscal-period";
 export { updateFiscalPeriodStatus } from "./use-cases/update-fiscal-period-status";

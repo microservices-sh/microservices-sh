@@ -1,5 +1,6 @@
 export {
   accountFilterSchema,
+  accountIdentitySchema,
   accountInputSchema,
   accountingCoreConfigSchema,
   accountRecordSchema,

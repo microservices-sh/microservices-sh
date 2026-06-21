@@ -4,6 +4,7 @@ import {
   createFiscalPeriod,
   createJournalEntry,
   createMemoryAccountingCoreStore,
+  getAccount,
   getAccountingSetupStatus,
   getTrialBalance,
   postJournalEntry,
@@ -174,6 +175,30 @@ describe("accounting-core: posting", () => {
 });
 
 describe("accounting-core: setup", () => {
+  it("gets one account by tenant and rejects cross-tenant account ids", async () => {
+    const store = createMemoryAccountingCoreStore();
+    const deps = { accountingCoreStore: store, now: fixedNow() };
+    const tenantAccount = await createAccount(
+      { tenantId: TENANT_ID, code: "1300", name: "Inventory", type: "asset" },
+      deps
+    );
+    const otherTenantAccount = await createAccount(
+      { tenantId: "tenant-2", code: "1300", name: "Inventory", type: "asset" },
+      deps
+    );
+    if (!tenantAccount.ok || !otherTenantAccount.ok) throw new Error("setup failed");
+
+    const found = await getAccount({ tenantId: TENANT_ID, accountId: tenantAccount.data.account.id }, deps);
+    expect(found.ok).toBe(true);
+    if (found.ok) {
+      expect(found.data.account).toEqual(expect.objectContaining({ id: tenantAccount.data.account.id, tenantId: TENANT_ID, code: "1300" }));
+    }
+
+    const crossTenant = await getAccount({ tenantId: TENANT_ID, accountId: otherTenantAccount.data.account.id }, deps);
+    expect(crossTenant.ok).toBe(false);
+    if (!crossTenant.ok) expect(crossTenant.error.code).toBe("accounting-core.ACCOUNT_NOT_FOUND");
+  });
+
   it("seeds a donor-derived chart with hierarchy, system flags, reconcilable accounts, and contra balances", async () => {
     const store = createMemoryAccountingCoreStore();
     const deps = { accountingCoreStore: store, now: fixedNow() };

@@ -7,6 +7,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const bankingImportDetailPage = readText("src/routes/app/banking/imports/[id]/+page.svelte");
   const bankingReconciliationDetailServer = readText("src/routes/app/banking/reconciliations/[id]/+page.server.ts");
   const bankingReconciliationDetailPage = readText("src/routes/app/banking/reconciliations/[id]/+page.svelte");
+  const ledgerAccountDetailServer = readText("src/routes/app/ledger/accounts/[id]/+page.server.ts");
+  const ledgerAccountDetailPage = readText("src/routes/app/ledger/accounts/[id]/+page.svelte");
 
   assertFileIncludesAll(
     "docs/api-boundary.md",
@@ -332,6 +334,67 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       "tenantId: ctx.org.id"
     ],
     "Ledger route exposes account, fiscal period, journal lifecycle, and trial balance adapters over accounting-core use cases scoped to the active org."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/ledger/+page.svelte",
+    ["/app/ledger/accounts/${account.id}", "/app/ledger/accounts/${line.accountId}"],
+    "Ledger chart and trial balance rows link to the read-only account detail route."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/ledger/accounts/[id]/+page.server.ts",
+    [
+      "getAccount",
+      "listAccounts",
+      "getTrialBalance",
+      "requireModule(\"accounting-core\"",
+      "requireOrgPermission",
+      "\"org.read\"",
+      "tenantId: activeOrgId",
+      "accountId: params.id",
+      "child.parentId === account.id"
+    ],
+    "Ledger account detail loads one tenant-scoped account through accounting-core and composes read-only child-account and trial-balance context."
+  );
+  assert(
+    !ledgerAccountDetailServer.includes("export const actions") &&
+      !ledgerAccountDetailServer.includes("AccountingCoreStore") &&
+      !ledgerAccountDetailServer.includes("createD1AccountingCoreStore") &&
+      !ledgerAccountDetailServer.includes("platform.env.DB") &&
+      !ledgerAccountDetailServer.includes(".prepare(") &&
+      !ledgerAccountDetailServer.includes("accountingCoreStore.getAccount") &&
+      !ledgerAccountDetailServer.includes(".listFiscalPeriods") &&
+      !ledgerAccountDetailServer.includes(".writeEvent") &&
+      !ledgerAccountDetailServer.includes("createAccount") &&
+      !ledgerAccountDetailServer.includes("createFiscalPeriod") &&
+      !ledgerAccountDetailServer.includes("updateFiscalPeriodStatus") &&
+      !ledgerAccountDetailServer.includes("seedChartOfAccounts") &&
+      !ledgerAccountDetailServer.includes("seedMonthlyFiscalPeriods") &&
+      !ledgerAccountDetailServer.includes("createJournalEntry") &&
+      !ledgerAccountDetailServer.includes("updateJournalEntry") &&
+      !ledgerAccountDetailServer.includes("postJournalEntry") &&
+      !ledgerAccountDetailServer.includes("voidJournalEntry") &&
+      !ledgerAccountDetailServer.includes("recordEvent") &&
+      !ledgerAccountDetailServer.includes("bankReconciliationService") &&
+      !ledgerAccountDetailServer.includes("recordCustomerPayment") &&
+      !ledgerAccountDetailServer.includes("syncInvoiceToReceivables") &&
+      !ledgerAccountDetailServer.includes("enqueueJob") &&
+      !ledgerAccountDetailServer.includes("sendEmail") &&
+      !/(?:insert|update|upsert|delete)[A-Z]/.test(ledgerAccountDetailServer),
+    "Ledger account detail route remains read-only; setup, fiscal-period, journal, event, and direct store writes stay off the detail route.",
+    "policy:accounting-ledger-account-detail-read-only"
+  );
+  assert(
+    !ledgerAccountDetailPage.includes("<form") &&
+      !ledgerAccountDetailPage.includes("method=\"POST\"") &&
+      !ledgerAccountDetailPage.includes("use:enhance") &&
+      !ledgerAccountDetailPage.includes("?/"),
+    "Ledger account detail page does not render write-capable forms or SvelteKit action targets.",
+    "policy:accounting-ledger-account-detail-ui-read-only"
+  );
+  assertFileIncludesAll(
+    "src/routes/app/ledger/accounts/[id]/+page.svelte",
+    ["Account profile", "Posting policy", "Child accounts", "Open ledger actions"],
+    "Ledger account detail page exposes read-only account metadata, posting policy, child accounts, and ledger handoff."
   );
   assertFileIncludesAll(
     "src/routes/app/banking/+page.server.ts",

@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 91
+Phase 92
 
 ## Phases
 
@@ -708,6 +708,14 @@ Phase 91
 - [x] Link the Banking reconciliation session list to the reconciliation detail route.
 - [x] Add accounting template policy checks for tenant/account/session filtering and read-only side-effect boundary.
 - [x] Verify bank-reconciliation tests, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 92: Accounting Ledger Account Detail Route Proof
+- [x] Add `getAccount` as a public accounting-core use case over the existing tenant-scoped store method.
+- [x] Add read-only `/app/ledger/accounts/[id]` backed by `getAccount`, child account context, and trial-balance totals.
+- [x] Link the Ledger chart and trial-balance rows to the account detail route.
+- [x] Add accounting template policy checks for read-only account detail boundary.
+- [x] Verify accounting-core tests, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

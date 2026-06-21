@@ -52,6 +52,16 @@
         }
       }
     },
+    "/accounts/{id}": {
+      "get": {
+        "summary": "Get one chart account",
+        "operationId": "getAccount",
+        "responses": {
+          "200": { "description": "Account detail" },
+          "404": { "description": "Account not found" }
+        }
+      }
+    },
     "/fiscal-periods": {
       "post": {
         "summary": "Create a fiscal period",
