@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 54
+Phase 58
 
 ## Phases
 
@@ -442,6 +442,15 @@ Phase 54
 - [x] Inspect DashDrive storage quota, package, purchase, share-link, expiry, and download-count workflows.
 - [x] Scaffold `modules/storage-entitlements` from the standard module layout.
 - [x] Implement owner-scoped storage accounts, quota accounting, storage packages, idempotent purchase completion, expiring share links, download counts, and revocation.
+- [x] Add memory and D1 stores, migration, schemas, docs, module metadata, permissions, events, resources, exports, and tests.
+- [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
+- **Status:** complete
+
+### Phase 58: StackSuite HR People Ops Module
+- [x] Inspect HR System employee, department, position, leave, and attendance schema.
+- [x] Scaffold `modules/hr-people-ops` from the standard module layout.
+- [x] Implement employee directory, department/position hierarchy, leave type/balance setup, leave request approval/rejection/cancellation, and attendance upsert workflows.
+- [x] Store leave balances as integer hundredths of a day instead of floating-point day totals.
 - [x] Add memory and D1 stores, migration, schemas, docs, module metadata, permissions, events, resources, exports, and tests.
 - [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
 - **Status:** complete

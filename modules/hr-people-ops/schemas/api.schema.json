@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HR People Ops API",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "employeeId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "departmentId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "positionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "leaveTypeId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "totalHundredths": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "on_leave",
+        "terminated",
+        "pending",
+        "approved",
+        "rejected",
+        "cancelled",
+        "present",
+        "absent",
+        "late",
+        "half_day"
+      ]
+    }
+  }
+}

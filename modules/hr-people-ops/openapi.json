@@ -1,0 +1,50 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "HR People Ops Module",
+    "version": "0.1.0",
+    "description": "Employee directory, department and position structure, leave balances, leave request lifecycle, and attendance records."
+  },
+  "paths": {
+    "/hr/employees": {
+      "post": {
+        "summary": "Create an employee",
+        "responses": {
+          "201": {
+            "description": "Employee created"
+          }
+        }
+      }
+    },
+    "/hr/employees/{employeeId}/snapshot": {
+      "get": {
+        "summary": "Get employee snapshot",
+        "responses": {
+          "200": {
+            "description": "Employee profile with org, leave, and attendance context"
+          }
+        }
+      }
+    },
+    "/hr/leave-requests": {
+      "post": {
+        "summary": "Create a leave request",
+        "responses": {
+          "201": {
+            "description": "Leave request created"
+          }
+        }
+      }
+    },
+    "/hr/attendance": {
+      "post": {
+        "summary": "Record or update attendance",
+        "responses": {
+          "201": {
+            "description": "Attendance recorded"
+          }
+        }
+      }
+    }
+  }
+}

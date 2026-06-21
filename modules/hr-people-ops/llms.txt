@@ -1,0 +1,21 @@
+# HR People Ops Module
+
+Use `src/index.ts` as the public entrypoint.
+
+Key exports:
+- `createHrPeopleOpsService`
+- `createHrPeopleOpsMemoryStore`
+- `createD1HrPeopleOpsStore`
+- `createSequentialHrPeopleOpsIdFactory`
+
+Core workflows:
+- create department
+- create position
+- create employee
+- create leave type
+- assign leave balance
+- request, approve, reject, and cancel leave
+- record attendance
+- get employee snapshot
+
+Amounts for leave are integer hundredths of a day. Do not use floating point leave balances.

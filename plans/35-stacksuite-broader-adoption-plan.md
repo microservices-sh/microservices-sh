@@ -41,7 +41,7 @@ Remaining gaps are mostly add-on business workflows, not more full-app cloning.
 | P1 | Membership and customer credits | Booking membership tiers, customer memberships, credits, credit transactions, membership history | Implemented as `membership-credits`; route proof can extend `booking-sveltekit` later. |
 | P1 | Estimates/quotes and recurring invoice templates | Accounting Chiangs estimates, accepted/converted lifecycle, recurring invoices, recurring items, send/post/void schemas | `estimate-quote` and `recurring-documents` implemented; route proof can extend `accounting-erp-sveltekit` later. |
 | P1 | Storage entitlements and expiring share links | DashDrive files, short IDs, expiry, download count, storage packages, purchases | `storage-entitlements` implemented; integrate with `file-media` or client portal routes later. |
-| P1 | HR people ops | HR employees, departments, positions, leave balances/requests, attendance | Add `hr-people-ops`; template later, not before P0 modules. |
+| P1 | HR people ops | HR employees, departments, positions, leave balances/requests, attendance | `hr-people-ops` implemented; template later, not before focused route proof demand. |
 | P2 | Content/CMS publishing | CMS, mini-CMS, blog, magazine | Add only if needed for landing/content-heavy generated apps. |
 | P2 | Utility modules | URL shortener, QR generator, document renderer, HTML renderer, video maker | Good free-tool examples, but not core until System Harness adoption is proven. |
 | P2 | Runtime/control-plane patterns | OpenClaw launcher instance, integrations, channels, custom domains, managed instances | Mine for managed deploy/control-plane design, not as an app template yet. |
@@ -223,13 +223,13 @@ HR System has a coherent internal-ops model:
 - leave types, leave balances, leave requests.
 - attendance records.
 
-Recommended module: `hr-people-ops`
+Recommended module: `hr-people-ops` (implemented)
 
 Initial scope:
 - employee directory.
 - department/position hierarchy.
 - leave request lifecycle with approval/rejection/cancellation.
-- leave balance adjustment.
+- leave balance adjustment using integer hundredths of a day.
 - attendance import/listing.
 
 Defer:
@@ -291,14 +291,14 @@ Recommended order:
 - Remaining follow-up: add route proof in booking template and a formal booking eligibility integration port.
 
 ### Phase E: Quotes And Recurring Documents
-- Add `estimate-quote` module.
-- Add recurring invoice generation through `jobs-workflows`.
-- Add quote-to-invoice handoff and audit events.
-- Add accounting template routes.
+- Completed `estimate-quote` for quote/estimate documents, lifecycle transitions, and invoice-conversion handoff.
+- Completed `recurring-documents` for recurring invoice/bill templates, due-cycle generation, and draft document payload handoff.
+- Remaining follow-up: add accounting template routes after the current template route queue settles.
 
 ### Phase F: HR And Utility Modules
-- Add HR only if a pilot or template demand exists.
+- Completed `hr-people-ops` for employee directory, org structure, leave balances/requests, and attendance.
 - Keep utility modules small and composable.
+- Add `hr-ops-sveltekit` only after there is route-proof demand.
 
 ## Acceptance Criteria For Every Adopted Module
 - `pnpm --filter @microservices-sh/<module> build` passes.
@@ -317,6 +317,7 @@ The next valuable StackSuite adoption is not another accounting pass. After comp
 1. Estimates/quotes and recurring documents as the next accounting add-on.
 2. Ticket comments/attachments/share-token hardening once `support-ticket` concurrent edits settle.
 3. Route proof for `membership-credits` in booking template when booking membership becomes part of a demo path.
-4. A focused `sms-crm-sveltekit` or support route/template proof only if those workflows become part of the public demo path.
+4. HR people ops module proof is complete; add an HR template only after a pilot or demo path needs it.
+5. A focused `sms-crm-sveltekit` or support route/template proof only if those workflows become part of the public demo path.
 
 Everything else should stay P2 until the System Harness launch proof and existing focused templates are cleaner.

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HR People Ops Hooks",
+  "type": "object",
+  "properties": {
+    "beforeHrPeopleOpsCreate": {
+      "type": "string"
+    },
+    "afterHrPeopleOpsUpdated": {
+      "type": "string"
+    }
+  }
+}

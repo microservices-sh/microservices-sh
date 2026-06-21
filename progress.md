@@ -1374,3 +1374,19 @@
 | Storage Entitlements spec | Module contract check passes | `pnpm --filter @microservices-sh/storage-entitlements check:spec` passed | Pass |
 | D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/storage-entitlements/migrations/0001_initial.sql"` passed | Pass |
 | JSON docs | OpenAPI and JSON schema stubs parse | Node JSON parse check passed | Pass |
+
+### Phase 58 StackSuite HR People Ops module
+
+- **Status:** complete.
+- Goal: port HR System employee, department, position, leave, and attendance workflows into a reusable module.
+- Added `modules/hr-people-ops` for employee profiles, departments, positions, leave types, leave balances, leave request lifecycle, and attendance records.
+- Stored leave balances as integer hundredths of a day instead of the donor app's floating-point day totals.
+- Kept payroll, benefits, local tax rules, auth/session tables, and complex scheduling outside the module boundary.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| HR People Ops build | TypeScript typecheck passes | `pnpm --filter @microservices-sh/hr-people-ops build` passed | Pass |
+| HR People Ops tests | Employee, leave, and attendance flows pass | `pnpm --filter @microservices-sh/hr-people-ops test` passed, 3/3 | Pass |
+| HR People Ops spec | Module contract check passes | `pnpm --filter @microservices-sh/hr-people-ops check:spec` passed | Pass |
+| D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/hr-people-ops/migrations/0001_initial.sql"` passed | Pass |
+| JSON docs | OpenAPI and JSON schema stubs parse | Node JSON parse check passed | Pass |

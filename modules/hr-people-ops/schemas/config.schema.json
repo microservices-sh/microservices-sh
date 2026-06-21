@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HR People Ops Config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "defaultLeaveYear": {
+      "type": "integer",
+      "minimum": 2000
+    }
+  }
+}
