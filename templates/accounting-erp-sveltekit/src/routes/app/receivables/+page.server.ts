@@ -12,28 +12,30 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
 
   const service = locals.accountsReceivableService;
   const ctx = { tenantId: activeOrgId, now: "2026-06-21T00:00:00.000Z" };
-  await service.upsertInvoiceSnapshot(ctx, {
-    id: "ar-demo-1001",
-    customerId: "cust-demo-1",
-    invoiceNumber: "INV-1001",
-    issuedAt: "2026-05-20T00:00:00.000Z",
-    dueDate: "2026-06-19T00:00:00.000Z",
-    totalCents: 180000,
-    amountPaidCents: 50000,
-    amountDueCents: 130000,
-    status: "open"
-  });
-  await service.upsertInvoiceSnapshot(ctx, {
-    id: "ar-demo-1002",
-    customerId: "cust-demo-2",
-    invoiceNumber: "INV-1002",
-    issuedAt: "2026-06-10T00:00:00.000Z",
-    dueDate: "2026-07-10T00:00:00.000Z",
-    totalCents: 72500,
-    amountPaidCents: 0,
-    amountDueCents: 72500,
-    status: "open"
-  });
+  if (!platform?.env?.DB) {
+    await service.upsertInvoiceSnapshot(ctx, {
+      id: "ar-demo-1001",
+      customerId: "cust-demo-1",
+      invoiceNumber: "INV-1001",
+      issuedAt: "2026-05-20T00:00:00.000Z",
+      dueDate: "2026-06-19T00:00:00.000Z",
+      totalCents: 180000,
+      amountPaidCents: 50000,
+      amountDueCents: 130000,
+      status: "open"
+    });
+    await service.upsertInvoiceSnapshot(ctx, {
+      id: "ar-demo-1002",
+      customerId: "cust-demo-2",
+      invoiceNumber: "INV-1002",
+      issuedAt: "2026-06-10T00:00:00.000Z",
+      dueDate: "2026-07-10T00:00:00.000Z",
+      totalCents: 72500,
+      amountPaidCents: 0,
+      amountDueCents: 72500,
+      status: "open"
+    });
+  }
   const receivables = await service.listOpenReceivables(ctx);
   const aging = await service.getReceivableAging(ctx, "2026-06-21T00:00:00.000Z");
 
