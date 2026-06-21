@@ -1,4 +1,6 @@
-export default function check({ assert, assertFileIncludes, assertFileIncludesAll, exists }) {
+export default function check({ assert, assertFileIncludes, assertFileIncludesAll, exists, readText }) {
+  const hooksServer = readText("src/hooks.server.ts");
+
   assertFileIncludesAll(
     "docs/api-boundary.md",
     ["Use Case Shape", "Route Adapter Shape"],
@@ -316,6 +318,11 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "src/hooks.server.ts",
     ["@microservices-sh/gateway/adapters/kv-rate-limit", "RATE_LIMIT_KV"],
     "Request hook uses gateway rate-limit stores with the shared RATE_LIMIT_KV binding."
+  );
+  assert(
+    !hooksServer.includes("billingStore"),
+    "Commerce request hook does not wire the removed billing store surface.",
+    "policy:commerce-hook-no-billing-store"
   );
   assertFileIncludes(
     "migrations/0010_gateway.sql",

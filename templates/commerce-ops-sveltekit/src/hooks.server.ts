@@ -74,7 +74,6 @@ export const handle: Handle = async ({ event, resolve }) => {
     ? createKvRateLimitStore(env.RATE_LIMIT_KV)
     : memoryRateLimitStore;
   event.locals.paymentRepository = stores.paymentRepository;
-  event.locals.billingStore = stores.billingStore;
   event.locals.paymentGateway = env?.STRIPE_SECRET_KEY
     ? createStripePaymentGateway(env.STRIPE_SECRET_KEY)
     : memoryPaymentGateway;

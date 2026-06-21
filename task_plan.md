@@ -534,6 +534,12 @@ Phase 67
 - [x] Verify accounting template check, accounting template build, and whitespace checks.
 - **Status:** complete
 
+### Phase 68: Commerce Stale Billing Hook Cleanup
+- [x] Remove stale `billingStore` locals wiring from the commerce template request hook.
+- [x] Add a commerce template assertion that the removed billing store surface is not wired in `hooks.server.ts`.
+- [x] Verify commerce template check, commerce template build, and whitespace checks.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

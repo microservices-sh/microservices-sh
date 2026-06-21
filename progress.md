@@ -1537,3 +1537,17 @@
 | Accounting template spec | Ledger route assertion covers account creation and `tenantId: ctx.org.id` | `node packages/workspace-tools/src/index.js check template --path templates/accounting-erp-sveltekit` passed | Pass |
 | Accounting template build | SvelteKit/Cloudflare build compiles the ledger route | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 68 commerce stale billing hook cleanup
+
+- **Status:** complete.
+- Goal: finish the commerce audit cleanup by removing obsolete request-hook wiring for a billing store surface that no longer exists in the commerce template stores or locals contract.
+- Removed `event.locals.billingStore = stores.billingStore` from the commerce request hook.
+- Added a commerce template policy assertion so `src/hooks.server.ts` stays free of stale `billingStore` wiring.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Commerce template spec | Template policy rejects stale billing-store hook wiring | `node packages/workspace-tools/src/index.js check template --path templates/commerce-ops-sveltekit` passed | Pass |
+| Commerce template build | SvelteKit/Cloudflare build compiles the updated hook | `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
+| Workspace specs | All module/template specs remain green after the commerce policy update | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
