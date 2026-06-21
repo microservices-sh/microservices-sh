@@ -35,6 +35,17 @@ function buildMcp() {
   return createMcpToolServer({ gateway, schemas });
 }
 
+async function callOk(mcp: ReturnType<typeof buildMcp>, name: string, args: Record<string, unknown>) {
+  const response: any = await mcp.handleRequest(
+    { method: "tools/call", params: { name, arguments: args } },
+    { actor: "agent:commerce", scopes: allScopes, confirmed: true }
+  );
+  expect(response.isError).toBe(false);
+  const payload = JSON.parse(response.content[0].text);
+  expect(payload.ok).toBe(true);
+  return payload.data;
+}
+
 describe("commerce-ops app MCP wiring", () => {
   it("exposes all installed governed RPC tools and has a handler for each one", async () => {
     const mcp = buildMcp();
@@ -104,6 +115,89 @@ describe("commerce-ops app MCP wiring", () => {
 
     expect(denied.isError).toBe(true);
     expect(denied._meta).toMatchObject({ code: "FORBIDDEN", status: 403 });
+  });
+
+  it("applies UI-equivalent inventory side effects for sales-order and shipment MCP tools", async () => {
+    const mcp = buildMcp();
+    const tenantId = "mcp-side-effects";
+    const product = (
+      await callOk(mcp, "product-catalog_createProduct", {
+        tenantId,
+        sku: "MCP-STOCK-1",
+        name: "MCP stocked item",
+        priceCents: 1_500,
+        currency: "USD",
+        trackStock: true
+      })
+    ).product;
+
+    await callOk(mcp, "inventory_stockIn", {
+      tenantId,
+      productId: product.id,
+      quantity: 12,
+      sourceType: "mcp-seed",
+      sourceId: "stock-1"
+    });
+
+    const cancellableOrder = (
+      await callOk(mcp, "sales-order_createDraftOrder", {
+        tenantId,
+        customerId: "cust-mcp",
+        customerSnapshot: { displayName: "MCP Customer", email: "mcp@example.com" },
+        currency: "USD",
+        lineItems: [{ productId: product.id, sku: product.sku, name: product.name, quantity: 4, unitPriceCents: product.priceCents }]
+      })
+    ).order;
+    await callOk(mcp, "sales-order_confirmOrder", { tenantId, orderId: cancellableOrder.id });
+    expect((await callOk(mcp, "inventory_getStockBalance", { tenantId, productId: product.id })).balance).toMatchObject({
+      onHand: 12,
+      reserved: 4,
+      available: 8
+    });
+
+    await callOk(mcp, "sales-order_cancelOrder", { tenantId, orderId: cancellableOrder.id, reason: "MCP test" });
+    expect((await callOk(mcp, "inventory_getStockBalance", { tenantId, productId: product.id })).balance).toMatchObject({
+      onHand: 12,
+      reserved: 0,
+      available: 12
+    });
+
+    const shippableOrder = (
+      await callOk(mcp, "sales-order_createDraftOrder", {
+        tenantId,
+        customerId: "cust-mcp",
+        customerSnapshot: { displayName: "MCP Customer", email: "mcp@example.com" },
+        currency: "USD",
+        lineItems: [{ productId: product.id, sku: product.sku, name: product.name, quantity: 3, unitPriceCents: product.priceCents }]
+      })
+    ).order;
+    const confirmed = (await callOk(mcp, "sales-order_confirmOrder", { tenantId, orderId: shippableOrder.id })).order;
+    const shipment = (
+      await callOk(mcp, "shipment_createShipment", {
+        tenantId,
+        externalSource: "sales-order",
+        externalId: confirmed.id,
+        items: confirmed.lineItems.map((line: any) => ({
+          sourceType: "sales-order",
+          sourceId: confirmed.id,
+          productId: line.productId,
+          sku: line.sku,
+          description: line.description || line.name,
+          quantity: line.quantity
+        }))
+      })
+    ).shipment;
+    await callOk(mcp, "shipment_completeShipment", {
+      tenantId,
+      shipmentId: shipment.id,
+      completionRef: `complete:${shipment.id}`
+    });
+
+    expect((await callOk(mcp, "inventory_getStockBalance", { tenantId, productId: product.id })).balance).toMatchObject({
+      onHand: 9,
+      reserved: 0,
+      available: 9
+    });
   });
 
   it("resolves an actor + scopes from the session env", () => {

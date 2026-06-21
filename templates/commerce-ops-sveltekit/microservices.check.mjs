@@ -140,6 +140,11 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Shipment inventory bridge expands combo products and consumes reserved component stock for sales-order-backed fulfillment."
   );
   assertFileIncludesAll(
+    "src/lib/server/mcp-wiring.ts",
+    ["createSalesOrderInventoryReservationPort", "releaseSalesOrderReservations", "createShipmentInventoryPort", "invoiceDraftPort"],
+    "MCP commerce tools use the same inventory and invoice lifecycle bridges as the UI routes."
+  );
+  assertFileIncludesAll(
     "src/routes/app/shipments/+page.svelte",
     ["printShipmentPackingSlip", "printShipmentPickList", "pickItems", "Packing slip", "Pick list"],
     "Shipments page exposes StackSuite-style packing slip and pick-list print actions."

@@ -83,6 +83,13 @@ import {
 } from "@microservices-sh/sales-order";
 
 import {
+  createInvoice,
+  issueInvoice,
+  createMemoryInvoiceStore,
+  createMemoryNumberAllocator
+} from "@microservices-sh/invoice";
+
+import {
   listShipments,
   getShipment,
   createShipment,
@@ -93,6 +100,11 @@ import {
 
 import { recordEvent } from "@microservices-sh/audit-log";
 import { createMemoryAuditEventStore } from "@microservices-sh/audit-log/adapters/memory";
+import {
+  createSalesOrderInventoryReservationPort,
+  releaseSalesOrderReservations
+} from "./sales-order-inventory";
+import { createShipmentInventoryPort } from "./shipment-inventory";
 
 type ToolContext = { actor?: string; scopes?: string[]; confirmed?: boolean };
 
@@ -113,6 +125,8 @@ const ticketStore = createMemoryTicketStore();
 const productCatalogStore = createMemoryProductCatalogStore();
 const inventoryStore = createMemoryInventoryStore();
 const salesOrderStore = createMemorySalesOrderStore();
+const invoiceStore = createMemoryInvoiceStore();
+const numberAllocator = createMemoryNumberAllocator();
 const shipmentStore = createMemoryShipmentStore();
 const auditStore = createMemoryAuditEventStore();
 
@@ -132,6 +146,140 @@ function rbacInput(input: unknown): { orgId: string; userId: string; permission:
 const productReader = {
   getProduct: (tenantId: string, productId: string) => productCatalogStore.getProduct(tenantId, productId)
 };
+
+function permissions(ctx?: ToolContext): string[] {
+  return ctx?.scopes ?? [];
+}
+
+function actorWithPermissions(ctx?: ToolContext) {
+  return { ...actor(ctx), permissions: permissions(ctx) };
+}
+
+function orderLineToInvoiceLine(line: {
+  name: string;
+  description: string | null;
+  quantity: number;
+  unitPriceCents: number;
+  discountCents: number;
+  taxCents: number;
+  totalCents: number;
+}) {
+  const description = (line.description || line.name).trim();
+  if (line.discountCents === 0 && line.taxCents === 0) {
+    return {
+      description,
+      quantity: line.quantity,
+      unitAmountCents: line.unitPriceCents,
+      taxRateBps: 0
+    };
+  }
+
+  return {
+    description: `${description} (sales order qty ${line.quantity}, adjusted total)`.slice(0, 500),
+    quantity: 1,
+    unitAmountCents: line.totalCents,
+    taxRateBps: 0
+  };
+}
+
+function invoiceDraftPort(ctx?: ToolContext) {
+  return {
+    async createDraftFromSalesOrder({ order }: { order: Awaited<ReturnType<typeof salesOrderStore.getOrder>> extends infer T ? NonNullable<T> : never }) {
+      if (!order.customerId) {
+        throw new Error("Sales order needs a customerId before an MCP invoice handoff can create an invoice.");
+      }
+
+      const created = await createInvoice(
+        {
+          tenantId: order.tenantId,
+          customerId: order.customerId,
+          currency: order.currency,
+          series: "INV",
+          notes: `Sales order ${order.orderNumber ?? order.id}${order.notes ? ` - ${order.notes}` : ""}`,
+          lineItems: order.lineItems.map(orderLineToInvoiceLine)
+        },
+        { invoiceStore }
+      );
+      if (!created.ok || !created.data) throw new Error(created.ok ? "Could not create invoice." : created.error.message);
+
+      const issued = await issueInvoice(
+        { invoiceId: created.data.id, termsDays: 14 },
+        { invoiceStore, allocator: numberAllocator }
+      );
+      if (!issued.ok || !issued.data) throw new Error(issued.ok ? "Could not issue invoice." : issued.error.message);
+
+      await recordEvent(
+        {
+          eventName: "invoice.issued",
+          actorId: actor(ctx).id,
+          entityType: "invoice",
+          entityId: created.data.id,
+          source: "agent-mcp",
+          payload: { number: issued.data.number, customerId: order.customerId, salesOrderId: order.id }
+        },
+        { auditStore }
+      );
+
+      return { invoiceId: created.data.id, invoiceNumber: issued.data.number };
+    }
+  };
+}
+
+async function confirmSalesOrder(input: unknown, ctx?: ToolContext) {
+  return confirmOrder(input, {
+    salesOrderStore,
+    inventoryReservationPort: createSalesOrderInventoryReservationPort({
+      inventoryStore,
+      productCatalogStore,
+      actorId: actor(ctx).id,
+      permissions: permissions(ctx)
+    }),
+    actor: actorWithPermissions(ctx)
+  });
+}
+
+async function cancelSalesOrder(input: unknown, ctx?: ToolContext) {
+  const result = await cancelOrder(input, { salesOrderStore, actor: actorWithPermissions(ctx) });
+  if (result.ok && result.data) {
+    await releaseSalesOrderReservations(result.data.order, {
+      inventoryStore,
+      productCatalogStore,
+      actorId: actor(ctx).id,
+      permissions: permissions(ctx)
+    });
+  }
+  return result;
+}
+
+async function invoiceSalesOrder(input: unknown, ctx?: ToolContext) {
+  const result = await markOrderInvoiced(input, {
+    salesOrderStore,
+    invoiceDraftPort: invoiceDraftPort(ctx),
+    actor: actorWithPermissions(ctx)
+  });
+  if (result.ok && result.data) {
+    await releaseSalesOrderReservations(result.data.order, {
+      inventoryStore,
+      productCatalogStore,
+      actorId: actor(ctx).id,
+      permissions: permissions(ctx)
+    });
+  }
+  return result;
+}
+
+async function completeCommerceShipment(input: unknown, ctx?: ToolContext) {
+  return completeShipment(input, {
+    shipmentStore,
+    inventoryPort: createShipmentInventoryPort({
+      inventoryStore,
+      productCatalogStore,
+      salesOrderStore,
+      actorId: actor(ctx).id
+    }),
+    actor: actor(ctx)
+  });
+}
 
 export const schemas: Record<string, unknown> = {};
 
@@ -192,15 +340,15 @@ export const handlers: Record<string, (input: unknown, ctx?: ToolContext) => Pro
 
   "sales-order_listOrders": (input) => listOrders(input, { salesOrderStore }),
   "sales-order_getOrder": (input) => getOrder(input, { salesOrderStore }),
-  "sales-order_createDraftOrder": (input, ctx) => createDraftOrder(input, { salesOrderStore, actor: actor(ctx) }),
-  "sales-order_confirmOrder": (input, ctx) => confirmOrder(input, { salesOrderStore, actor: actor(ctx) }),
-  "sales-order_cancelOrder": (input, ctx) => cancelOrder(input, { salesOrderStore, actor: actor(ctx) }),
-  "sales-order_markOrderInvoiced": (input, ctx) => markOrderInvoiced(input, { salesOrderStore, actor: actor(ctx) }),
+  "sales-order_createDraftOrder": (input, ctx) => createDraftOrder(input, { salesOrderStore, actor: actorWithPermissions(ctx) }),
+  "sales-order_confirmOrder": (input, ctx) => confirmSalesOrder(input, ctx),
+  "sales-order_cancelOrder": (input, ctx) => cancelSalesOrder(input, ctx),
+  "sales-order_markOrderInvoiced": (input, ctx) => invoiceSalesOrder(input, ctx),
 
   shipment_listShipments: (input) => listShipments(input, { shipmentStore }),
   shipment_getShipment: (input) => getShipment(input, { shipmentStore }),
   shipment_createShipment: (input, ctx) => createShipment(input, { shipmentStore, actor: actor(ctx) }),
-  shipment_completeShipment: (input, ctx) => completeShipment(input, { shipmentStore, actor: actor(ctx) }),
+  shipment_completeShipment: (input, ctx) => completeCommerceShipment(input, ctx),
   shipment_cancelShipment: (input, ctx) => cancelShipment(input, { shipmentStore, actor: actor(ctx) })
 };
 
