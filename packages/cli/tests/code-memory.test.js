@@ -126,6 +126,8 @@ describe("CLI Code Memory commands", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("microservices memory source add");
     expect(result.stdout).toContain("microservices memory source scan");
+    expect(result.stdout).toContain("microservices memory github status");
+    expect(result.stdout).toContain("microservices memory github install");
     expect(result.stdout).toContain("microservices memory capsule create");
     expect(result.stdout).toContain("microservices memory approve");
     expect(result.stdout).toContain("microservices memory reject");
@@ -150,6 +152,29 @@ describe("CLI Code Memory commands", () => {
               candidates: [CAPSULE],
               scanned: { ref: "main", fileCount: 4, candidateCount: 1, truncated: false },
               nextSteps: ["Review candidate Logic Capsules before approving them for agent reuse."],
+            },
+          },
+        };
+      }
+      if (request.method === "GET" && request.url === "/memory/github/status") {
+        return {
+          body: {
+            ok: true,
+            data: {
+              githubApp: { configured: true, slug: "microservices-test" },
+              installations: [{ installationId: "123", accountLogin: "acme" }],
+            },
+          },
+        };
+      }
+      if (request.method === "POST" && request.url === "/memory/github/installations/start") {
+        return {
+          body: {
+            ok: true,
+            data: {
+              installUrl: "https://github.com/apps/microservices-test/installations/new?state=memghst_1",
+              state: "memghst_1",
+              expiresAt: 1,
             },
           },
         };
@@ -221,6 +246,40 @@ describe("CLI Code Memory commands", () => {
         method: "POST",
         url: "/memory/sources/memsrc_1/scan",
         authorization: "Bearer test-key",
+      });
+
+      const githubStatus = await runCli([
+        "memory",
+        "github",
+        "status",
+        "--api-url",
+        apiUrl,
+        "--api-key",
+        "test-key",
+        "--json",
+      ]);
+      expect(githubStatus.status).toBe(0);
+      expect(parseStdout(githubStatus).data.installations).toHaveLength(1);
+      expect(requests.at(-1)).toMatchObject({
+        method: "GET",
+        url: "/memory/github/status",
+      });
+
+      const githubInstall = await runCli([
+        "memory",
+        "github",
+        "install",
+        "--api-url",
+        apiUrl,
+        "--api-key",
+        "test-key",
+        "--json",
+      ]);
+      expect(githubInstall.status).toBe(0);
+      expect(parseStdout(githubInstall).data.installUrl).toContain("github.com/apps/microservices-test");
+      expect(requests.at(-1)).toMatchObject({
+        method: "POST",
+        url: "/memory/github/installations/start",
       });
     });
   });

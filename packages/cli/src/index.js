@@ -437,6 +437,7 @@ Common commands:
   microservices account billing status [--api-key <key>]
   microservices usage [--api-key <key>]
   microservices memory source add https://github.com/me/repo [--path src/auth]
+  microservices memory github install
   microservices memory search "stripe webhook"
   microservices memory approve <capsule-id-or-slug>
   microservices generate [template-id] --out <dir>
@@ -498,6 +499,8 @@ Usage:
   microservices memory source add <github-url> [--visibility public|private|unknown] [--path src/auth] [--ref main] [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices memory source scan <source-id> [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices memory source list [--limit 50] [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices memory github status [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
+  microservices memory github install [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices memory capsule create --source <source-id> --name "Stripe webhook verifier" --purpose "Verify signatures..." [--slug stripe-webhook-verifier] [--path src/billing/webhooks.ts] [--files src/billing/webhooks.ts,test/billing/webhooks.test.ts] [--tests test/billing/webhooks.test.ts] [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices memory approve <capsule-id-or-slug> [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
   microservices memory reject <capsule-id-or-slug> [--api-url https://api.microservices.sh] [--api-key <key>] [--json]
@@ -902,6 +905,20 @@ ${formatBulletList(result.nextSteps)}
 `;
 }
 
+function formatMemoryGithubStatus(result) {
+  const app = result.githubApp ?? {};
+  const installations = Array.isArray(result.installations) ? result.installations : [];
+  return `GitHub App: ${app.configured ? "configured" : "not configured"}
+Installations: ${installations.length ? installations.map((item) => item.accountLogin ?? item.installationId).join(", ") : "none"}
+`;
+}
+
+function formatMemoryGithubInstall(result) {
+  return `Install GitHub App:
+${result.installUrl}
+`;
+}
+
 function formatMemoryApproval(result) {
   const capsule = result.capsule ?? result;
   return `Logic Capsule ${capsule.slug ?? capsule.id} is ${capsule.approvalStatus ?? "updated"}.
@@ -1008,6 +1025,20 @@ Scan: ${source.scanStatus ?? "not_scanned"}
     return flags.json ? writeJson(response) : printApiHuman(response, formatMemorySources);
   }
 
+  if (action === "github" || action === "gitHub") {
+    if (value === "install" || value === "connect") {
+      const response = await apiRequest(flags, "/memory/github/installations/start", {
+        method: "POST",
+        body: "{}",
+      });
+      return flags.json ? writeJson(response) : printApiHuman(response, formatMemoryGithubInstall);
+    }
+    if (!value || value === "status" || value === "list") {
+      const response = await apiRequest(flags, "/memory/github/status");
+      return flags.json ? writeJson(response) : printApiHuman(response, formatMemoryGithubStatus);
+    }
+  }
+
   if (action === "capsule" && (value === "create" || value === "add")) {
     const body = memoryCapsuleBody(flags);
     if (!body.sourceId || !body.name || !body.purpose) {
@@ -1073,7 +1104,7 @@ Scan: ${source.scanStatus ?? "not_scanned"}
   const response = failResponse(
     "UNKNOWN_MEMORY_COMMAND",
     `Unknown memory command: ${action}.`,
-    "Use `memory source add`, `memory source list`, `memory capsule create`, `memory approve`, `memory reject`, `memory search`, or `memory get`.",
+    "Use `memory source add`, `memory source list`, `memory github install`, `memory capsule create`, `memory approve`, `memory reject`, `memory search`, or `memory get`.",
     { command: action }
   );
   return flags.json ? writeJson(response) : printHuman(response, () => "");

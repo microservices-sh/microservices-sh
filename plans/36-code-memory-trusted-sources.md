@@ -1,6 +1,6 @@
 # Code Memory + Trusted Sources
 
-Status: draft product and implementation plan.
+Status: MVP implementation in progress. The local repo has the Code Memory module, CLI proxy commands, and skill/plan docs; hosted API, portal, MCP, scanner, and GitHub App backing flows still need control-plane wiring.
 
 ## Decision
 
@@ -218,6 +218,8 @@ MVP metadata/retrieval commands:
 microservices memory source add <repo-url> [--path <path>] [--ref <ref>]
 microservices memory source list
 microservices memory source scan <source-id>
+microservices memory github status
+microservices memory github install
 microservices memory capsule create --source <source-id> --name <name> --purpose <purpose>
 microservices memory approve <capsule-id-or-slug>
 microservices memory reject <capsule-id-or-slug>
@@ -358,11 +360,19 @@ Done:
 
 ### Phase 1: Public Source MVP
 
-- Add D1 tables for sources, source versions, capsules, events.
-- Add API endpoints for public repo add/scan/list/search/get.
-- Use GitHub public archive/tarball or contents API.
-- Add static scanner for TypeScript/JavaScript manifests, exports, docs, and tests.
-- Add CLI `memory source add`, `memory search`, `memory get`.
+Done locally:
+
+- Add source-visible `code-memory` module with D1 tables for sources, source versions, capsules, and events.
+- Add service/store contracts for Trusted Sources, scan records, candidate capsules, approval/reject, approved search, and retrieval.
+- Add CLI proxy commands for `memory source add`, `memory source scan`, `memory approve`, `memory reject`, `memory search`, and `memory get`.
+
+Still needed:
+
+- Add hosted API endpoints for public repo add/scan/list/search/get.
+- Use GitHub repo/commit/tree APIs for metadata-only scans.
+- Add static scanner heuristics for auth, billing, Stripe webhooks, booking, and database helpers.
+- Add portal Code Memory page.
+- Add MCP tools for source listing, approved memory search, and capsule retrieval.
 
 Success gate:
 
@@ -370,11 +380,21 @@ Success gate:
 
 ### Phase 2: Private GitHub App
 
-- Add GitHub App install flow.
-- Store installation metadata.
+Done locally:
+
+- Add CLI proxy entry points for GitHub App status/install.
+
+Still needed:
+
+- Add GitHub App install start/callback API flow.
+- Store workspace-scoped installation metadata and setup state.
 - Mint short-lived installation tokens server-side.
-- Fetch private repo contents through the API/broker.
-- Add audit events for private source access.
+- Scan private repo tree metadata through the GitHub API.
+- Add portal entry points for GitHub App status/install.
+- Add audit events for installation start/connect.
+- Production GitHub App registration and callback URL configuration.
+- Source snippet/file-content review before approval.
+- Explicit uninstall/suspend webhook handling.
 
 Success gate:
 
