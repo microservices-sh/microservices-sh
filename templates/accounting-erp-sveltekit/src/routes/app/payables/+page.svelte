@@ -9,6 +9,9 @@
   const openBills = $derived(data.bills.filter((bill) => bill.amountDueCents > 0 && bill.status !== "void"));
   const openAmount = $derived(openBills.reduce((total, bill) => total + bill.amountDueCents, 0));
   const overdueAmount = $derived((data.aging?.days1To30Cents ?? 0) + (data.aging?.days31To60Cents ?? 0) + (data.aging?.days61To90Cents ?? 0) + (data.aging?.days90PlusCents ?? 0));
+  const expenseAccounts = $derived(data.accounts.filter((account) => account.type === "expense" && !account.isHeader));
+  const liabilityAccounts = $derived(data.accounts.filter((account) => account.type === "liability" && !account.isHeader));
+  const paymentAccounts = $derived(data.accounts.filter((account) => account.type === "asset" && !account.isHeader));
   const metrics = $derived<Metric[]>([
     { label: "Open bills", value: openBills.length, tone: openBills.length > 0 ? "warn" : "good", hint: money(openAmount) },
     { label: "Overdue", value: money(overdueAmount), tone: overdueAmount > 0 ? "bad" : "good", hint: "aging buckets" },
@@ -42,6 +45,10 @@
     <Alert tone="success">Vendor created.</Alert>
   {:else if form?.billCreated}
     <Alert tone="success">Bill created.</Alert>
+  {:else if form?.billMarkedPayable}
+    <Alert tone="success">Bill marked payable and posted to the ledger.</Alert>
+  {:else if form?.billPaymentRecorded}
+    <Alert tone="success">Bill payment recorded and posted to the ledger.</Alert>
   {:else if form?.error}
     <Alert tone="error">{form.error}</Alert>
   {/if}
@@ -68,6 +75,7 @@
                 <th scope="col">Due</th>
                 <th scope="col">Status</th>
                 <th scope="col">Created</th>
+                {#if data.canManage}<th scope="col">Action</th>{/if}
               </tr>
             </thead>
             <tbody>
@@ -79,6 +87,34 @@
                   <td>{money(bill.amountDueCents, bill.currency)}</td>
                   <td><Badge tone={billTone(bill.status)}>{bill.status}</Badge></td>
                   <td>{relativeTime(bill.createdAt)}</td>
+                  {#if data.canManage}
+                    <td>
+                      {#if bill.status === "draft" || bill.status === "pending_approval"}
+                        <form class="inline-form" method="POST" action="?/markPayable" use:enhance>
+                          <input type="hidden" name="billId" value={bill.id} />
+                          <select name="apAccountId" aria-label="AP account" required>
+                            <option value="">AP account</option>
+                            {#each liabilityAccounts as account (account.id)}
+                              <option value={account.id} selected={bill.apAccountId === account.id}>{account.code} · {account.name}</option>
+                            {/each}
+                          </select>
+                          <Button type="submit" variant="ghost">Post</Button>
+                        </form>
+                      {:else if bill.status === "payable" || bill.status === "partial"}
+                        <form class="inline-form" method="POST" action="?/recordPayment" use:enhance>
+                          <input type="hidden" name="billId" value={bill.id} />
+                          <input type="hidden" name="paymentDate" value={data.today} />
+                          <select name="paymentAccountId" aria-label="Payment account" required>
+                            <option value="">Pay from</option>
+                            {#each paymentAccounts as account (account.id)}
+                              <option value={account.id}>{account.code} · {account.name}</option>
+                            {/each}
+                          </select>
+                          <Button type="submit" variant="ghost">Pay</Button>
+                        </form>
+                      {/if}
+                    </td>
+                  {/if}
                 </tr>
               {/each}
             </tbody>
@@ -123,6 +159,24 @@
           <div class="form-row">
             <Field label="Quantity" id="bill-quantity"><input id="bill-quantity" name="quantity" type="number" min="1" value={form?.values?.quantity ?? "1"} /></Field>
             <Field label="Unit amount" id="bill-amount"><input id="bill-amount" name="unitAmount" type="number" min="0" step="0.01" value={form?.values?.unitAmount ?? "0"} /></Field>
+          </div>
+          <div class="form-row">
+            <Field label="Expense account" id="bill-expense-account">
+              <select id="bill-expense-account" name="expenseAccountId" required>
+                <option value="">Choose account</option>
+                {#each expenseAccounts as account (account.id)}
+                  <option value={account.id}>{account.code} · {account.name}</option>
+                {/each}
+              </select>
+            </Field>
+            <Field label="AP account" id="bill-ap-account">
+              <select id="bill-ap-account" name="apAccountId" required>
+                <option value="">Choose account</option>
+                {#each liabilityAccounts as account (account.id)}
+                  <option value={account.id}>{account.code} · {account.name}</option>
+                {/each}
+              </select>
+            </Field>
           </div>
           <Field label="Memo" id="bill-memo"><textarea id="bill-memo" name="memo" rows="3">{form?.values?.memo ?? ""}</textarea></Field>
           <Button type="submit" variant="primary">Create bill</Button>
@@ -176,6 +230,16 @@
   code {
     font-family: var(--font-mono);
     font-size: 0.78rem;
+  }
+  .inline-form {
+    display: grid;
+    grid-template-columns: minmax(150px, 1fr) auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .inline-form select {
+    min-width: 0;
+    max-width: 220px;
   }
   .form-grid {
     display: grid;
