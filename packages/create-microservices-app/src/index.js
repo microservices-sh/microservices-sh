@@ -169,7 +169,8 @@ function repoTemplateModules(files) {
   const manifest = files.find((file) => file.path === "microservices.template.json");
   if (!manifest) return [];
   try {
-    return JSON.parse(manifest.contents).modules?.required ?? [];
+    const modules = JSON.parse(manifest.contents).modules ?? {};
+    return [...new Set([...(modules.required ?? []), ...(modules.optional ?? [])])];
   } catch {
     return [];
   }
@@ -681,7 +682,7 @@ function nextCommands(packageManager, appName, installed, planOnlyModules = [], 
     return [
       `cd ${appName}`,
       installLine,
-      microservices(["modules", "--json"]),
+      microservices(["modules", "list", "--json"]),
       microservices(["wp", "migrate", "--source", "https://example.com", "--theme", "./theme.zip"]),
       packageScriptCommand(packageManager, "wp:probe", ["--source", "https://example.com", "--out", "migration-reports/wp-source-probe.json"]),
       packageScriptCommand(packageManager, "wp:verify", ["--report", "migration-reports/wp-source-probe.json"]),
@@ -704,7 +705,7 @@ function nextCommands(packageManager, appName, installed, planOnlyModules = [], 
     return [
       `cd ${appName}`,
       installLine,
-      microservices(["modules", "--json"]),
+      microservices(["modules", "list", "--json"]),
       microservices(["check", "--json"]),
       devCommand,
     ].filter(Boolean);

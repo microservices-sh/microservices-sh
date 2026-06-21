@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        template: [booking-sveltekit]
+        template: [booking-sveltekit, accounting-erp-sveltekit, commerce-ops-sveltekit]
     env:
       MICROSERVICES_TELEMETRY: "0"
       R2_ARTIFACTS_BUCKET: ${{ secrets.R2_ARTIFACTS_BUCKET }}

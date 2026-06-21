@@ -57,6 +57,34 @@ function parseJsonc(text) {
   return JSON.parse(stripped);
 }
 
+function assertRepoTemplateScaffold(root, templateId, expectedModules) {
+  if (!existsSync(join(root, "package.json"))) {
+    throw new Error(`${templateId} create command did not generate package.json at ${root}.`);
+  }
+  if (!existsSync(join(root, "svelte.config.js"))) {
+    throw new Error(`${templateId} create command did not generate the SvelteKit shell.`);
+  }
+  if (!existsSync(join(root, "scripts", "microservices.js"))) {
+    throw new Error(`${templateId} create command did not include the project CLI.`);
+  }
+
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  for (const moduleId of expectedModules) {
+    if (!existsSync(join(root, "modules", moduleId, "package.json"))) {
+      throw new Error(`${templateId} create command did not include the ${moduleId} module source.`);
+    }
+    if (pkg.dependencies?.[`@microservices-sh/${moduleId}`] !== `link:./modules/${moduleId}`) {
+      throw new Error(`${templateId} generated app should depend on local ${moduleId} module source.`);
+    }
+  }
+  if (!existsSync(join(root, "packages", "connection-contract", "package.json"))) {
+    throw new Error(`${templateId} create command did not include the connection-contract package source.`);
+  }
+
+  run("node", ["--check", "scripts/microservices.js"], { cwd: root, stdio: "inherit" });
+  run("node", ["scripts/microservices.js", "check", "--json"], { cwd: root, stdio: "inherit" });
+}
+
 try {
   if (SKIP_BUILD) {
     run("node", ["--check", "dist/index.js"], { stdio: "inherit" });
@@ -115,6 +143,28 @@ try {
     "--no-git",
     "--json"
   ]);
+  const accountingErp = run("node", [
+    createEntrypoint,
+    "accounting-erp-smoke",
+    "--dir",
+    tempRoot,
+    "--template",
+    "accounting-erp-sveltekit",
+    "--no-install",
+    "--no-git",
+    "--json"
+  ]);
+  const commerceOps = run("node", [
+    createEntrypoint,
+    "commerce-ops-smoke",
+    "--dir",
+    tempRoot,
+    "--template",
+    "commerce-ops-sveltekit",
+    "--no-install",
+    "--no-git",
+    "--json"
+  ]);
   run("node", [createEntrypoint, "--interactive", "--dir", tempRoot, "--no-install", "--json"], {
     env: {
       ...process.env,
@@ -141,6 +191,65 @@ try {
   const privateDotAiOutput = JSON.parse(privateDotAi.stdout);
   assert.strictEqual(privateDotAiOutput.data.template, "dot-ai-os");
   assert.ok(privateDotAiOutput.warnings.some((warning) => warning.includes("private-pilot template")));
+
+  const accountingRoot = join(tempRoot, "accounting-erp-smoke");
+  const accountingModules = [
+    "admin-shell",
+    "accounts-payable",
+    "accounts-receivable",
+    "accounting-core",
+    "audit-log",
+    "auth",
+    "bank-reconciliation",
+    "customer",
+    "email",
+    "estimate-quote",
+    "file-media",
+    "gateway",
+    "identity",
+    "invoice",
+    "jobs-workflows",
+    "notifications-inapp",
+    "org-team-rbac",
+    "payment",
+    "recurring-documents",
+    "support-ticket",
+    "webhook-delivery",
+  ];
+  assertRepoTemplateScaffold(accountingRoot, "accounting-erp-sveltekit", accountingModules);
+  const accountingOutput = JSON.parse(accountingErp.stdout);
+  assert.strictEqual(accountingOutput.data.template, "accounting-erp-sveltekit");
+  assert.ok(accountingOutput.data.modules.includes("identity"));
+  assert.ok(accountingOutput.data.modules.includes("notifications-inapp"));
+
+  const commerceRoot = join(tempRoot, "commerce-ops-smoke");
+  const commerceModules = [
+    "admin-shell",
+    "audit-log",
+    "auth",
+    "commerce-sync",
+    "customer",
+    "email",
+    "file-media",
+    "gateway",
+    "identity",
+    "inventory",
+    "invoice",
+    "jobs-workflows",
+    "notifications-inapp",
+    "org-team-rbac",
+    "payment",
+    "product-catalog",
+    "sales-order",
+    "shipment",
+    "support-ticket",
+    "webhook-delivery",
+  ];
+  assertRepoTemplateScaffold(commerceRoot, "commerce-ops-sveltekit", commerceModules);
+  const commerceOutput = JSON.parse(commerceOps.stdout);
+  assert.strictEqual(commerceOutput.data.template, "commerce-ops-sveltekit");
+  assert.ok(commerceOutput.data.modules.includes("identity"));
+  assert.ok(commerceOutput.data.modules.includes("webhook-delivery"));
 
   const defaultRoot = join(tempRoot, "default-smoke");
   if (!existsSync(join(defaultRoot, "svelte.config.js"))) {

@@ -43,6 +43,9 @@ jobs:
       - name: Test create-microservices-app (node:test)
         run: pnpm --filter create-microservices-app test
 
+      - name: Smoke create-microservices-app bundled templates
+        run: pnpm --filter create-microservices-app smoke:built
+
       - name: Check workspace contracts
         run: pnpm spec:check:all
 

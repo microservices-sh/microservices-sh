@@ -58,6 +58,8 @@ See the full breakdown at [microservices.sh/compare/create-t3-app](https://micro
 
 Pass with `--template <id>`. Default is `booking-sveltekit`.
 
+Bundled SvelteKit/Astro templates are scaffolded through `create-microservices-app`. The global `microservices generate` command remains the procedural module-contract Worker generator.
+
 | id | What it is |
 |----|------------|
 | `booking-sveltekit` | Full Cloudflare SvelteKit booking app — public flow, admin, D1, typed hooks (default) |
@@ -65,6 +67,8 @@ Pass with `--template <id>`. Default is `booking-sveltekit`.
 | `saas-starter-sveltekit` | Multi-tenant B2B SaaS starter (SvelteKit) — org sign-up, team RBAC, subscriptions, admin, audit log |
 | `client-portal-sveltekit` | SvelteKit client portal — customers see their own invoices and files; auth, customer, audit-log |
 | `erp-shell-sveltekit` | SvelteKit ERP shell - customers, invoices, files, support tickets, teams, admin, audit-log |
+| `commerce-ops-sveltekit` | Commerce operations SvelteKit app — products, inventory, sales orders, fulfillment, sync, invoices, payments |
+| `accounting-erp-sveltekit` | Accounting ERP SvelteKit app — ledger, payables, receivables, bank reconciliation, invoices, payments |
 | `company-landing-astro` | Static Astro company landing page, no backend modules |
 | `wordpress-emdash-blog-astro` | Astro + EmDash WordPress blog migration template with D1/R2-ready content pipeline |
 | `nextjs` `astro` `react-router` `nuxt` `hono` `sveltekit` | Empty Cloudflare framework starters (via C3); add modules afterward |
