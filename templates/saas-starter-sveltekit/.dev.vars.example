@@ -1,0 +1,6 @@
+# Local dev environment (Wrangler reads .dev.vars). `microservices local dev`
+# copies this to .dev.vars on first run if one does not exist yet.
+#
+# Comma-separated emails that become super-admins on first login. Sign in with
+# one of these (the login code is shown in-page in dev) to reach /admin.
+ADMIN_EMAILS="admin@example.test"

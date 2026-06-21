@@ -1100,26 +1100,57 @@ function checkResponse() {
   };
 }
 
+// Scaffold .dev.vars from .dev.vars.example on the first local run, so a fresh
+// clone has the env it needs (e.g. ADMIN_EMAILS for the first super-admin)
+// without a manual copy step. No-op when .dev.vars exists or no example ships.
+function ensureDevVars(flags) {
+  if (existsSync(".dev.vars") || !existsSync(".dev.vars.example")) return;
+  writeFileSync(".dev.vars", readFileSync(".dev.vars.example"));
+  if (!flags.json) {
+    process.stderr.write("Created .dev.vars from .dev.vars.example. Edit it (e.g. ADMIN_EMAILS) for local dev.\n");
+  }
+}
+
+// Announce which store layer local dev uses, so the persistence model is never
+// a surprise. D1 (local) persists under .wrangler/state; the in-memory fallback
+// resets on restart.
+function localStoreBanner(flags) {
+  if (flags.json) return;
+  process.stderr.write(
+    localRequiresD1
+      ? "Local stores: D1 (local), persisted in .wrangler/state.\n"
+      : "Local stores: in-memory, reset on restart.\n"
+  );
+}
+
 function localSetup(flags) {
   const checks = checkResponse();
   if (!checks.ok) return checks;
+
+  ensureDevVars(flags);
 
   const steps = [{ id: "local:build", command: "vite", args: ["build"] }];
   if (localRequiresD1) {
     steps.push({ id: "local:migrate", command: "wrangler", args: localD1MigrationArgs });
   }
 
-  return runSteps(steps, flags, ["Run microservices local dev, then microservices local smoke in another terminal."]);
+  return runSteps(steps, flags, [
+    "Run microservices local dev, optionally microservices local seed, then microservices local smoke in another terminal."
+  ]);
 }
 
 function localDev(flags) {
   const checks = checkResponse();
   if (!checks.ok) return checks;
 
+  ensureDevVars(flags);
+
   if (localRequiresD1) {
     const migrated = runCommand("local:migrate", "wrangler", localD1MigrationArgs, flags);
     if (!migrated.ok) return migrated;
   }
+
+  localStoreBanner(flags);
 
   return runCommand("local:dev", "vite", ["dev", "--host", flags.host, "--port", flags.port, "--strictPort"], flags);
 }
@@ -1138,6 +1169,25 @@ function localMigrate(flags) {
     };
   }
   return runCommand("local:migrate", "wrangler", localD1MigrationArgs, flags);
+}
+
+// Run the app's optional seed script to populate local dev data. Kept app-owned
+// and idempotent: scripts/seed.mjs decides how to seed (HTTP against the running
+// dev server, or wrangler d1 execute --local). The CLI only owns discovery + run.
+function localSeed(flags) {
+  const checks = checkResponse();
+  if (!checks.ok) return checks;
+
+  if (!existsSync("scripts/seed.mjs")) {
+    return fail(
+      "SEED_NOT_FOUND",
+      "No scripts/seed.mjs to run.",
+      "Add an idempotent scripts/seed.mjs that populates local dev data (POST to the running dev server, or wrangler d1 execute --local).",
+      {}
+    );
+  }
+
+  return runCommand("local:seed", "node", ["scripts/seed.mjs"], flags);
 }
 
 function readCliConfig() {
@@ -3681,6 +3731,7 @@ function usage() {
   microservices check                            # verify the app against its contract
   microservices local dev [--host <h>] [--port <p>]   # run the app locally
   microservices local setup                      # verify local readiness
+  microservices local seed                       # run scripts/seed.mjs to populate local data
   microservices auth login                       # authenticate the CLI
   microservices deploy run [--plan] [--confirm deploy]   # build + managed deploy to live
   microservices deploy domain add <id> --hostname <host> # attach a custom preview domain
@@ -3707,6 +3758,7 @@ function usageAll() {
   microservices local verify [--json]
   microservices local migrate [--json]${remoteApiApp ? "  # skipped for remote-API apps" : ""}
   microservices local dev [--host ${localDevHost}] [--port ${localDevPort}]
+  microservices local seed [--json]                  # run scripts/seed.mjs to populate local data
   microservices local smoke [--url http://${localDevHost}:${localDevPort}] [--json]
   microservices auth login [--api-url https://api.microservices.sh] [--json]
   microservices auth login --api-key <key> [--api-url https://api.microservices.sh] [--json]
@@ -3895,6 +3947,8 @@ async function main() {
       workspaceTelemetryProps(flags, { kind: "local_smoke", durationMs: durationMs(startedAt) })
     );
     emit(response, (data) => `Local smoke exited ${data.exitCode}.\n`, flags);
+  } else if (resource === "local" && action === "seed") {
+    emit(localSeed(flags), (data) => `Local seed exited ${data.exitCode}.\n`, flags);
   } else if (resource === "auth" && action === "login") {
     const startedAt = Date.now();
     const method = flags.apiKey ? "api_key" : "device";
