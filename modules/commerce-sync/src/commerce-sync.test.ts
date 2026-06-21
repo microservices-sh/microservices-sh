@@ -171,6 +171,88 @@ describe("commerce-sync", () => {
     });
   });
 
+  it("scopes and orders read-only commerce log lists by tenant", async () => {
+    const service = createCommerceSyncService({
+      store: createMemoryCommerceSyncStore(),
+      idGenerator: sequenceIds()
+    });
+    const tenantA = "tenant_logs_a";
+    const tenantB = "tenant_logs_b";
+    const at = (tenantId: string, now: string) => ({ tenantId, now });
+
+    const tenantAConnection = await service.createCommerceConnection(at(tenantA, "2026-06-21T00:00:00.000Z"), {
+      provider: "woocommerce",
+      name: "Tenant A Store",
+      baseUrl: "https://tenant-a.example.test",
+      secretRef: "secret://commerce/tenant-a"
+    });
+    const tenantBConnection = await service.createCommerceConnection(at(tenantB, "2026-06-21T00:00:00.000Z"), {
+      provider: "woocommerce",
+      name: "Tenant B Store",
+      baseUrl: "https://tenant-b.example.test",
+      secretRef: "secret://commerce/tenant-b"
+    });
+    expect(tenantAConnection.ok).toBe(true);
+    expect(tenantBConnection.ok).toBe(true);
+
+    const tenantAOldMapping = await service.recordProviderMapping(at(tenantA, "2026-06-21T01:00:00.000Z"), {
+      connectionId: tenantAConnection.data!.id,
+      resourceType: "order",
+      externalId: "1001",
+      internalId: "so_1001"
+    });
+    const tenantBMapping = await service.recordProviderMapping(at(tenantB, "2026-06-21T03:00:00.000Z"), {
+      connectionId: tenantBConnection.data!.id,
+      resourceType: "order",
+      externalId: "1001",
+      internalId: "so_foreign"
+    });
+    const tenantANewMapping = await service.recordProviderMapping(at(tenantA, "2026-06-21T02:00:00.000Z"), {
+      connectionId: tenantAConnection.data!.id,
+      resourceType: "order",
+      externalId: "1002",
+      internalId: "so_1002"
+    });
+
+    const tenantAOldRun = await service.startSyncRun(at(tenantA, "2026-06-21T04:00:00.000Z"), tenantAConnection.data!.id, "order");
+    const tenantBRun = await service.startSyncRun(at(tenantB, "2026-06-21T06:00:00.000Z"), tenantBConnection.data!.id, "order");
+    const tenantANewRun = await service.startSyncRun(at(tenantA, "2026-06-21T05:00:00.000Z"), tenantAConnection.data!.id, "product");
+
+    const tenantAOldReceipt = await service.recordWebhookReceipt(at(tenantA, "2026-06-21T07:00:00.000Z"), {
+      connectionId: tenantAConnection.data!.id,
+      topic: "orders/create",
+      idempotencyKey: "delivery-old",
+      payload: { id: 1001 }
+    });
+    const tenantBReceipt = await service.recordWebhookReceipt(at(tenantB, "2026-06-21T09:00:00.000Z"), {
+      connectionId: tenantBConnection.data!.id,
+      topic: "orders/create",
+      idempotencyKey: "delivery-foreign",
+      payload: { id: 1003 }
+    });
+    const tenantANewReceipt = await service.recordWebhookReceipt(at(tenantA, "2026-06-21T08:00:00.000Z"), {
+      connectionId: tenantAConnection.data!.id,
+      topic: "orders/update",
+      idempotencyKey: "delivery-new",
+      payload: { id: 1002 }
+    });
+
+    const mappings = await service.listProviderMappings({ tenantId: tenantA });
+    expect(mappings.data?.map((mapping) => mapping.id)).toEqual([tenantANewMapping.data!.id, tenantAOldMapping.data!.id]);
+    expect(mappings.data?.every((mapping) => mapping.tenantId === tenantA)).toBe(true);
+    expect((await service.listProviderMappings({ tenantId: tenantB })).data?.map((mapping) => mapping.id)).toEqual([tenantBMapping.data!.id]);
+
+    const runs = await service.listSyncRuns({ tenantId: tenantA });
+    expect(runs.data?.map((run) => run.id)).toEqual([tenantANewRun.data!.id, tenantAOldRun.data!.id]);
+    expect(runs.data?.every((run) => run.tenantId === tenantA)).toBe(true);
+    expect((await service.listSyncRuns({ tenantId: tenantB })).data?.map((run) => run.id)).toEqual([tenantBRun.data!.id]);
+
+    const receipts = await service.listWebhookReceipts({ tenantId: tenantA });
+    expect(receipts.data?.map((receipt) => receipt.id)).toEqual([tenantANewReceipt.data!.id, tenantAOldReceipt.data!.id]);
+    expect(receipts.data?.every((receipt) => receipt.tenantId === tenantA)).toBe(true);
+    expect((await service.listWebhookReceipts({ tenantId: tenantB })).data?.map((receipt) => receipt.id)).toEqual([tenantBReceipt.data!.id]);
+  });
+
   it("normalizes WooCommerce customer, product, and order envelopes", async () => {
     const service = createCommerceSyncService({
       store: createMemoryCommerceSyncStore(),

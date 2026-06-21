@@ -673,6 +673,14 @@ Phase 85
 - [x] Verify commerce template spec/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 
+### Phase 87: Commerce Sync Logs Route Proof
+- [x] Add read-only `/app/commerce-sync/logs` backed by commerce-sync list APIs for runs, webhook receipts, mappings, and sanitized connections.
+- [x] Link the Commerce sync page to the logs route.
+- [x] Add template policy checks for tenant-scoped list calls and redaction of secret, credential, signature, and raw body fields.
+- [x] Add commerce-sync module tests for tenant-scoped, ordered list results.
+- [x] Verify commerce-sync tests, commerce template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

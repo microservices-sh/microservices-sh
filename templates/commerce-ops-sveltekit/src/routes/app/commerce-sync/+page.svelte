@@ -21,7 +21,11 @@
     eyebrow="Provider sync"
     title="Commerce sync"
     description="Connection, mapping, sync-run, and webhook receipt contracts for external commerce platforms."
-  />
+  >
+    {#snippet actions()}
+      <Button href="/app/commerce-sync/logs" variant="ghost">Sync logs</Button>
+    {/snippet}
+  </PageHeader>
 
   {#if form?.connectionCreated}
     <Alert tone="success">Provider connection created.</Alert>

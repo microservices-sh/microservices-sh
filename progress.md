@@ -1879,3 +1879,20 @@
 | Create app package | Packaged commerce template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 87 commerce sync logs route proof
+
+- **Status:** complete.
+- Goal: close the focused commerce sync-log route gap with a read-only operator view over existing commerce-sync list APIs, without exposing provider secrets, credential JSON, webhook signatures, or raw webhook bodies.
+- Added `/app/commerce-sync/logs` with sanitized connection, run, webhook receipt, and provider mapping projections.
+- Linked the Commerce sync page to the logs route.
+- Added commerce template policy checks that require the list APIs and block sensitive field names in the logs route/server projection.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Commerce-sync tests | Module list APIs remain tenant-scoped and ordered for logs route use | `pnpm --dir modules/commerce-sync test` passed, 8/8 | Pass |
+| Commerce template spec | Policy catches logs route list calls, link, and sensitive field redaction | `pnpm --dir templates/commerce-ops-sveltekit check:spec` passed | Pass |
+| Commerce template build | SvelteKit/Cloudflare build compiles after logs route additions | `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
+| Create app package | Packaged commerce template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

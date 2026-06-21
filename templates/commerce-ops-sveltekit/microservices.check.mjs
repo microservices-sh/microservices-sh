@@ -7,6 +7,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const mcpGenerator = readText("scripts/generate-mcp.mjs");
   const mcpWiring = readText("src/lib/server/mcp-wiring.ts");
   const agentCenter = readText("src/routes/app/agent/+page.server.ts");
+  const commerceSyncLogsServer = readText("src/routes/app/commerce-sync/logs/+page.server.ts");
+  const commerceSyncLogsPage = readText("src/routes/app/commerce-sync/logs/+page.svelte");
 
   assertFileIncludesAll(
     "docs/api-boundary.md",
@@ -102,6 +104,28 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     ],
     "Commerce sync route exposes operator actions through commerce-sync use cases, can run WooCommerce page syncs, and records audit events."
   );
+  assertFileIncludesAll(
+    "src/routes/app/commerce-sync/+page.svelte",
+    ["/app/commerce-sync/logs", "Sync logs"],
+    "Commerce sync page links to the read-only logs route."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/commerce-sync/logs/+page.server.ts",
+    ["requireOrgPermission", "listSyncRuns(ctx)", "listWebhookReceipts(ctx)", "listProviderMappings(ctx)", "connectionsById", "slice(0, LIMIT)"],
+    "Commerce sync logs route is a read-only, tenant-scoped projection over sync runs, webhook receipts, and provider mappings."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/commerce-sync/logs/+page.svelte",
+    ["Sync runs", "Webhook receipts", "Provider mappings", "idempotencyKey", "connectionName"],
+    "Commerce sync logs page renders sanitized operational lists for provider sync audit."
+  );
+  for (const token of ["secretRef", "signature", "payload", "credentialsJson", "consumerSecret", "WOOCOMMERCE_CREDENTIALS_JSON", "WOOCOMMERCE_WEBHOOK_SECRET"]) {
+    assert(
+      !commerceSyncLogsServer.includes(token) && !commerceSyncLogsPage.includes(token),
+      `Commerce sync logs route does not expose ${token}.`,
+      `policy:commerce-sync-logs-redacts-${token}`
+    );
+  }
   assertFileIncludesAll(
     "package.json",
     ["generate:mcp", "mcp", "@microservices-sh/sdk-internal", "@modelcontextprotocol/sdk", "tsx"],
