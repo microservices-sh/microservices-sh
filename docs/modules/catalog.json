@@ -215,7 +215,7 @@
       "class": "core",
       "mount": "/products",
       "docPath": "docs/modules/product-catalog.md",
-      "summary": "Product and category catalog with tenant-scoped SKU uniqueness, external source mappings, combo products, and catalog events.",
+      "summary": "Product and category catalog with SKU uniqueness, external mappings, combo products, and catalog events.",
       "requires": [],
       "permissions": [
         "product-catalog.read",
@@ -224,33 +224,7 @@
         "product-catalog.extend",
         "product-catalog.observe"
       ],
-      "rpc": [
-        {
-          "method": "listProducts",
-          "scope": "product-catalog.read",
-          "public": false
-        },
-        {
-          "method": "getProduct",
-          "scope": "product-catalog.read",
-          "public": false
-        },
-        {
-          "method": "createProduct",
-          "scope": "product-catalog.write",
-          "public": false
-        },
-        {
-          "method": "updateProduct",
-          "scope": "product-catalog.write",
-          "public": false
-        },
-        {
-          "method": "expandProductComponents",
-          "scope": "product-catalog.read",
-          "public": false
-        }
-      ],
+      "rpc": [],
       "approvalRisk": "medium",
       "secrets": [],
       "resources": [
@@ -289,23 +263,7 @@
         "inventory.extend",
         "inventory.observe"
       ],
-      "rpc": [
-        {
-          "method": "getStockBalance",
-          "scope": "inventory.read",
-          "public": false
-        },
-        {
-          "method": "reserveStock",
-          "scope": "inventory.write",
-          "public": false
-        },
-        {
-          "method": "deductStock",
-          "scope": "inventory.write",
-          "public": false
-        }
-      ],
+      "rpc": [],
       "approvalRisk": "medium",
       "secrets": [],
       "resources": [
@@ -344,28 +302,7 @@
         "sales-order.extend",
         "sales-order.observe"
       ],
-      "rpc": [
-        {
-          "method": "listOrders",
-          "scope": "sales-order.read",
-          "public": false
-        },
-        {
-          "method": "createDraftOrder",
-          "scope": "sales-order.write",
-          "public": false
-        },
-        {
-          "method": "confirmOrder",
-          "scope": "sales-order.write",
-          "public": false
-        },
-        {
-          "method": "markOrderInvoiced",
-          "scope": "sales-order.write",
-          "public": false
-        }
-      ],
+      "rpc": [],
       "approvalRisk": "medium",
       "secrets": [],
       "resources": [
@@ -528,23 +465,7 @@
         "shipment.extend",
         "shipment.observe"
       ],
-      "rpc": [
-        {
-          "method": "listShipments",
-          "scope": "shipment.read",
-          "public": false
-        },
-        {
-          "method": "createShipment",
-          "scope": "shipment.write",
-          "public": false
-        },
-        {
-          "method": "completeShipment",
-          "scope": "shipment.write",
-          "public": false
-        }
-      ],
+      "rpc": [],
       "approvalRisk": "medium",
       "secrets": [],
       "resources": [
@@ -569,11 +490,8 @@
       "class": "core",
       "mount": "/commerce-sync",
       "docPath": "docs/modules/commerce-sync.md",
-      "summary": "Provider-neutral commerce integration records, external resource mappings, sync runs, webhook receipts, and normalized order/product sync envelopes.",
-      "requires": [
-        "product-catalog",
-        "sales-order"
-      ],
+      "summary": "Provider-neutral commerce connections, mappings, sync runs, webhook receipts, and normalized payload envelopes.",
+      "requires": [],
       "permissions": [
         "commerce-sync.read",
         "commerce-sync.write",
@@ -581,42 +499,9 @@
         "commerce-sync.extend",
         "commerce-sync.observe"
       ],
-      "rpc": [
-        {
-          "method": "createCommerceConnection",
-          "scope": "commerce-sync.write",
-          "public": false
-        },
-        {
-          "method": "listCommerceConnections",
-          "scope": "commerce-sync.read",
-          "public": false
-        },
-        {
-          "method": "recordProviderMapping",
-          "scope": "commerce-sync.write",
-          "public": false
-        },
-        {
-          "method": "startSyncRun",
-          "scope": "commerce-sync.write",
-          "public": false
-        },
-        {
-          "method": "recordWebhookReceipt",
-          "scope": "commerce-sync.write",
-          "public": false
-        },
-        {
-          "method": "normalizeCommercePayload",
-          "scope": "commerce-sync.write",
-          "public": false
-        }
-      ],
+      "rpc": [],
       "approvalRisk": "high",
-      "secrets": [
-        "COMMERCE_SYNC_ENCRYPTION_KEY"
-      ],
+      "secrets": [],
       "resources": [
         "D1"
       ],
@@ -652,28 +537,7 @@
         "accounting-core.extend",
         "accounting-core.observe"
       ],
-      "rpc": [
-        {
-          "method": "listAccounts",
-          "scope": "accounting-core.read",
-          "public": false
-        },
-        {
-          "method": "createJournalEntry",
-          "scope": "accounting-core.write",
-          "public": false
-        },
-        {
-          "method": "postJournalEntry",
-          "scope": "accounting-core.write",
-          "public": false
-        },
-        {
-          "method": "getTrialBalance",
-          "scope": "accounting-core.read",
-          "public": false
-        }
-      ],
+      "rpc": [],
       "approvalRisk": "medium",
       "secrets": [],
       "resources": [
@@ -705,50 +569,18 @@
       "class": "core",
       "mount": "/payables",
       "docPath": "docs/modules/accounts-payable.md",
-      "summary": "Tenant-scoped vendor, bill, bill-line, payment application, and payable aging workflows with integer-cent balances and accounting handoff events.",
-      "requires": [
-        "accounting-core"
-      ],
+      "summary": "Tenant-scoped accounts payable with vendors, bills, payable lifecycle, idempotent payment application, aging, recurring bill templates, and accounting-core handoff ports.",
+      "requires": [],
       "permissions": [
         "accounts-payable.read",
         "accounts-payable.write",
+        "accounts-payable.pay",
         "accounts-payable.admin",
         "accounts-payable.extend",
         "accounts-payable.observe"
       ],
-      "rpc": [
-        {
-          "method": "listVendors",
-          "scope": "accounts-payable.read",
-          "public": false
-        },
-        {
-          "method": "createVendor",
-          "scope": "accounts-payable.write",
-          "public": false
-        },
-        {
-          "method": "createBill",
-          "scope": "accounts-payable.write",
-          "public": false
-        },
-        {
-          "method": "approveBill",
-          "scope": "accounts-payable.write",
-          "public": false
-        },
-        {
-          "method": "recordBillPayment",
-          "scope": "accounts-payable.write",
-          "public": false
-        },
-        {
-          "method": "getPayableAging",
-          "scope": "accounts-payable.read",
-          "public": false
-        }
-      ],
-      "approvalRisk": "medium",
+      "rpc": [],
+      "approvalRisk": "high",
       "secrets": [],
       "resources": [
         "D1"
@@ -756,16 +588,20 @@
       "hooks": [
         "beforeVendorCreate",
         "beforeBillCreate",
-        "beforeBillApprove",
-        "beforeBillPaymentRecord",
-        "afterPayableChanged"
+        "beforeBillMarkPayable",
+        "afterBillPayable",
+        "afterBillPaymentRecorded",
+        "afterVendorCreated"
       ],
       "events": [
         "accounts-payable.vendor_created",
         "accounts-payable.bill_created",
-        "accounts-payable.bill_approved",
+        "accounts-payable.bill_marked_payable",
         "accounts-payable.bill_payment_recorded",
-        "accounts-payable.aging_generated"
+        "accounts-payable.bill_paid",
+        "accounts-payable.recurring_bill_template_created",
+        "accounts-payable.recurring_bill_template_status_updated",
+        "accounts-payable.recurring_bill_generated"
       ]
     },
     {
@@ -776,10 +612,10 @@
       "class": "core",
       "mount": "/receivables",
       "docPath": "docs/modules/accounts-receivable.md",
-      "summary": "Tenant-scoped customer payment application, open receivables, aging buckets, and customer statement workflows that extend invoice and payment systems through ports.",
+      "summary": "Tenant-scoped customer payment application, open receivables, aging, and statement workflows.",
       "requires": [
-        "invoice",
-        "payment"
+        "customer",
+        "invoice"
       ],
       "permissions": [
         "accounts-receivable.read",
@@ -788,33 +624,7 @@
         "accounts-receivable.extend",
         "accounts-receivable.observe"
       ],
-      "rpc": [
-        {
-          "method": "recordCustomerPayment",
-          "scope": "accounts-receivable.write",
-          "public": false
-        },
-        {
-          "method": "applyCustomerPayment",
-          "scope": "accounts-receivable.write",
-          "public": false
-        },
-        {
-          "method": "listOpenReceivables",
-          "scope": "accounts-receivable.read",
-          "public": false
-        },
-        {
-          "method": "getReceivableAging",
-          "scope": "accounts-receivable.read",
-          "public": false
-        },
-        {
-          "method": "generateCustomerStatement",
-          "scope": "accounts-receivable.read",
-          "public": false
-        }
-      ],
+      "rpc": [],
       "approvalRisk": "medium",
       "secrets": [],
       "resources": [
@@ -822,15 +632,13 @@
       ],
       "hooks": [
         "beforeCustomerPaymentRecord",
-        "beforePaymentApplication",
-        "beforeStatementGenerate",
-        "afterReceivableChanged"
+        "beforePaymentApply",
+        "afterCustomerPaymentRecorded",
+        "afterPaymentApplied"
       ],
       "events": [
         "accounts-receivable.customer_payment_recorded",
-        "accounts-receivable.payment_applied",
-        "accounts-receivable.aging_generated",
-        "accounts-receivable.statement_generated"
+        "accounts-receivable.payment_applied"
       ]
     },
     {
@@ -841,10 +649,8 @@
       "class": "core",
       "mount": "/banking",
       "docPath": "docs/modules/bank-reconciliation.md",
-      "summary": "Tenant-scoped bank accounts, statement imports, bank transactions, ledger matching, and reconciliation sessions with completion guards.",
-      "requires": [
-        "accounting-core"
-      ],
+      "summary": "Tenant-scoped bank accounts, statement imports, matching, and reconciliation completion with integer-cent balances.",
+      "requires": [],
       "permissions": [
         "bank-reconciliation.read",
         "bank-reconciliation.write",
@@ -852,33 +658,7 @@
         "bank-reconciliation.extend",
         "bank-reconciliation.observe"
       ],
-      "rpc": [
-        {
-          "method": "listBankAccounts",
-          "scope": "bank-reconciliation.read",
-          "public": false
-        },
-        {
-          "method": "createBankAccount",
-          "scope": "bank-reconciliation.write",
-          "public": false
-        },
-        {
-          "method": "importStatement",
-          "scope": "bank-reconciliation.write",
-          "public": false
-        },
-        {
-          "method": "matchTransaction",
-          "scope": "bank-reconciliation.write",
-          "public": false
-        },
-        {
-          "method": "completeReconciliation",
-          "scope": "bank-reconciliation.write",
-          "public": false
-        }
-      ],
+      "rpc": [],
       "approvalRisk": "medium",
       "secrets": [],
       "resources": [
@@ -887,16 +667,20 @@
       "hooks": [
         "beforeBankAccountCreate",
         "beforeStatementImport",
-        "beforeTransactionMatch",
+        "beforeMatchCreate",
+        "beforeReconciliationStart",
         "beforeReconciliationComplete",
-        "afterBankReconciliationChanged"
+        "afterReconciliationChanged"
       ],
       "events": [
         "bank-reconciliation.bank_account_created",
         "bank-reconciliation.statement_imported",
         "bank-reconciliation.match_created",
         "bank-reconciliation.reconciliation_started",
-        "bank-reconciliation.reconciliation_completed"
+        "bank-reconciliation.reconciliation_completed",
+        "accounting-core.journal_entry_posted",
+        "payment.succeeded",
+        "payment.refunded"
       ]
     },
     {
@@ -1150,30 +934,35 @@
       "id": "email",
       "name": "Email",
       "version": "0.1.0",
-      "status": "planned",
-      "class": "provider-capable core",
+      "status": "available",
+      "class": "provider",
       "mount": "/emails",
       "docPath": "docs/modules/email.md",
-      "summary": "Transactional email templates, provider adapters, delivery jobs, and delivery events.",
+      "summary": "Transactional email module with provider-neutral ports and Resend and StackSuite (AWS SES) HTTP adapters.",
       "requires": [],
       "permissions": [
         "email.read",
         "email.write",
-        "email.admin"
+        "email.admin",
+        "email.extend"
       ],
       "rpc": [],
-      "approvalRisk": "high",
+      "approvalRisk": "medium",
       "secrets": [
-        "EMAIL_PROVIDER_API_KEY"
+        "RESEND_API_KEY",
+        "EMAIL_SERVICE_API_KEY"
       ],
       "resources": [
-        "Queue for delivery jobs",
-        "outbound fetch to provider API"
+        "D1",
+        "SECRET:RESEND_API_KEY",
+        "OUTBOUND-FETCH",
+        "SECRET:EMAIL_SERVICE_API_KEY",
+        "OUTBOUND-FETCH"
       ],
       "hooks": [
-        "renderEmailTemplate",
         "beforeEmailSend",
-        "afterEmailDelivered"
+        "afterEmailQueued",
+        "afterEmailFailed"
       ],
       "events": [
         "email.queued",

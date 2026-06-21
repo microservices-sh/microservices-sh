@@ -1667,3 +1667,19 @@
 | Built smoke | Generated app smoke remains green after accounting template packaging sync | `pnpm --filter create-microservices-app smoke:built` passed | Pass |
 | Drift scan | Packaged accounting copy has no stale AP/AR/bank table or event-type writer matches beyond negative assertions | `rg -n "CREATE TABLE IF NOT EXISTS domain_events|event_type TEXT NOT NULL|aggregate_id|INSERT INTO domain_events \\(id, event_type" packages/create-microservices-app/templates/accounting-erp-sveltekit/...` returned only negative guard assertions | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 75 StackSuite docs catalog metadata sync
+
+- **Status:** complete.
+- Goal: remove docs/catalog drift for the StackSuite commerce and accounting modules while preserving their current promotion state.
+- Synced the simplified docs module catalog rows for product catalog, inventory, sales order, shipment, commerce sync, accounting core, accounts payable, accounts receivable, bank reconciliation, and email from the generated registry metadata.
+- Kept StackSuite modules `draft` until generated-project smoke and promotion criteria are intentionally completed.
+- Marked `email` `available` in the docs catalog to match the module manifest and focused-template lock usage.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Catalog JSON | Docs module catalog remains valid JSON | `jq -e '.modules | length' docs/modules/catalog.json` returned 21 | Pass |
+| Registry drift | Selected docs rows match `.generated/registry/catalog.json` for status, class, summary, requires, RPC, permissions, hooks, and events | Node comparison script passed | Pass |
+| Promotion state | StackSuite modules stay draft and email is available | `jq -r ... docs/modules/catalog.json` showed StackSuite rows as `draft` and `email` as `available` | Pass |
+| Workspace specs | All module/template specs remain green after docs catalog sync | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

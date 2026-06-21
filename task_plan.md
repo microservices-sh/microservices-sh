@@ -582,6 +582,13 @@ Phase 74
 - [x] Verify focused template checks, module builds/tests, SQLite migration smokes, full workspace specs, accounting build, create-app build/smoke, packaged-template checks, drift scans, and whitespace checks.
 - **Status:** complete
 
+### Phase 75: StackSuite Docs Catalog Metadata Sync
+- [x] Sync the simplified docs module catalog for StackSuite commerce/accounting modules with generated registry metadata from module manifests.
+- [x] Keep StackSuite modules `draft` while generated-project smoke and promotion criteria remain pending.
+- [x] Mark `email` `available` in the docs catalog to match its module manifest and focused-template lock usage.
+- [x] Verify catalog JSON, selected field drift against the generated registry, full workspace specs, and whitespace checks.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.
