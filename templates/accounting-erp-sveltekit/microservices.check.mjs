@@ -329,14 +329,27 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       "createAccount",
       "createFiscalPeriod",
       "listFiscalPeriods",
-      "updateFiscalPeriodStatus",
+      "closeFiscalPeriod",
+      "reopenFiscalPeriod",
+      "lockFiscalPeriod",
       "createJournalEntry",
       "postJournalEntry",
       "voidJournalEntry",
       "getTrialBalance",
       "tenantId: ctx.org.id"
     ],
-    "Ledger route exposes account, fiscal period, journal lifecycle, and trial balance adapters over accounting-core use cases scoped to the active org."
+    "Ledger route exposes account, source-style fiscal period lifecycle, journal lifecycle, and trial balance adapters over accounting-core use cases scoped to the active org."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/ledger/+page.svelte",
+    ["?/closeFiscalPeriod", "?/reopenFiscalPeriod", "?/lockFiscalPeriod"],
+    "Ledger fiscal-period table exposes source-style close, reopen, and lock row actions instead of arbitrary status setting."
+  );
+  assert(
+    !readText("src/routes/app/ledger/+page.svelte").includes("period-status") &&
+      !readText("src/routes/app/ledger/+page.server.ts").includes("status: text(form.get(\"status\""),
+    "Ledger fiscal-period creation defaults to open and does not let the template bypass close/reopen/lock lifecycle actions.",
+    "policy:accounting-ledger-fiscal-period-create-open-only"
   );
   assertFileIncludesAll(
     "src/routes/app/ledger/+page.svelte",
@@ -378,6 +391,9 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       !ledgerAccountDetailServer.includes(".writeEvent") &&
       !ledgerAccountDetailServer.includes("createAccount") &&
       !ledgerAccountDetailServer.includes("createFiscalPeriod") &&
+      !ledgerAccountDetailServer.includes("closeFiscalPeriod") &&
+      !ledgerAccountDetailServer.includes("reopenFiscalPeriod") &&
+      !ledgerAccountDetailServer.includes("lockFiscalPeriod") &&
       !ledgerAccountDetailServer.includes("updateFiscalPeriodStatus") &&
       !ledgerAccountDetailServer.includes("seedChartOfAccounts") &&
       !ledgerAccountDetailServer.includes("seedMonthlyFiscalPeriods") &&
@@ -433,6 +449,9 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       !ledgerFiscalPeriodDetailServer.includes(".writeEvent") &&
       !ledgerFiscalPeriodDetailServer.includes("createAccount") &&
       !ledgerFiscalPeriodDetailServer.includes("createFiscalPeriod") &&
+      !ledgerFiscalPeriodDetailServer.includes("closeFiscalPeriod") &&
+      !ledgerFiscalPeriodDetailServer.includes("reopenFiscalPeriod") &&
+      !ledgerFiscalPeriodDetailServer.includes("lockFiscalPeriod") &&
       !ledgerFiscalPeriodDetailServer.includes("updateFiscalPeriodStatus") &&
       !ledgerFiscalPeriodDetailServer.includes("seedChartOfAccounts") &&
       !ledgerFiscalPeriodDetailServer.includes("seedMonthlyFiscalPeriods") &&

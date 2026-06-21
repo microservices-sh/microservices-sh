@@ -91,11 +91,41 @@
     },
     "/fiscal-periods/{id}/status": {
       "post": {
-        "summary": "Open, close, or lock a fiscal period",
+        "summary": "Open, close, or lock a fiscal period through guarded transition rules",
         "operationId": "updateFiscalPeriodStatus",
         "responses": {
           "200": { "description": "Fiscal period status updated" },
           "409": { "description": "Invalid fiscal period transition" }
+        }
+      }
+    },
+    "/fiscal-periods/{id}/close": {
+      "post": {
+        "summary": "Close an open fiscal period",
+        "operationId": "closeFiscalPeriod",
+        "responses": {
+          "200": { "description": "Fiscal period closed" },
+          "409": { "description": "Only open periods can be closed" }
+        }
+      }
+    },
+    "/fiscal-periods/{id}/reopen": {
+      "post": {
+        "summary": "Reopen a closed fiscal period",
+        "operationId": "reopenFiscalPeriod",
+        "responses": {
+          "200": { "description": "Fiscal period reopened" },
+          "409": { "description": "Only closed periods can be reopened" }
+        }
+      }
+    },
+    "/fiscal-periods/{id}/lock": {
+      "post": {
+        "summary": "Lock a closed fiscal period",
+        "operationId": "lockFiscalPeriod",
+        "responses": {
+          "200": { "description": "Fiscal period locked" },
+          "409": { "description": "Only closed periods can be locked" }
         }
       }
     },

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createAccount,
+  closeFiscalPeriod,
   createFiscalPeriod,
   createJournalEntry,
   createMemoryAccountingCoreStore,
@@ -9,9 +10,12 @@ import {
   getFiscalPeriod,
   getTrialBalance,
   listFiscalPeriods,
+  lockFiscalPeriod,
   postJournalEntry,
+  reopenFiscalPeriod,
   seedChartOfAccounts,
   seedMonthlyFiscalPeriods,
+  updateFiscalPeriodStatus,
   updateJournalEntry,
   voidJournalEntry
 } from "./index";
@@ -234,6 +238,78 @@ describe("accounting-core: setup", () => {
     expect(openPeriods.ok).toBe(true);
     if (openPeriods.ok) {
       expect(openPeriods.data.periods).toEqual([expect.objectContaining({ id: january.data.period.id, status: "open" })]);
+    }
+  });
+
+  it("enforces source-style fiscal period close, reopen, and lock transitions", async () => {
+    const store = createMemoryAccountingCoreStore();
+    const deps = { accountingCoreStore: store, now: fixedNow() };
+    const created = await createFiscalPeriod(
+      { tenantId: TENANT_ID, name: "January 2026", startsOn: "2026-01-01", endsOn: "2026-01-31" },
+      deps
+    );
+    if (!created.ok) throw new Error(created.error.message);
+
+    const lockedFromOpen = await lockFiscalPeriod({ tenantId: TENANT_ID, periodId: created.data.period.id, actorId: "actor-1" }, deps);
+    expect(lockedFromOpen.ok).toBe(false);
+    if (!lockedFromOpen.ok) expect(lockedFromOpen.error.code).toBe("accounting-core.INVALID_FISCAL_PERIOD_TRANSITION");
+
+    const closed = await closeFiscalPeriod({ tenantId: TENANT_ID, periodId: created.data.period.id, actorId: "actor-1" }, deps);
+    expect(closed.ok).toBe(true);
+    if (!closed.ok) throw new Error(closed.error.message);
+    expect(closed.data.period).toEqual(
+      expect.objectContaining({
+        status: "closed",
+        closedAt: "2026-01-15T12:00:00.000Z",
+        lockedAt: null
+      })
+    );
+
+    const reopened = await reopenFiscalPeriod({ tenantId: TENANT_ID, periodId: created.data.period.id, actorId: "actor-1" }, deps);
+    expect(reopened.ok).toBe(true);
+    if (!reopened.ok) throw new Error(reopened.error.message);
+    expect(reopened.data.period).toEqual(expect.objectContaining({ status: "open", closedAt: null, lockedAt: null }));
+
+    const closedAgain = await updateFiscalPeriodStatus(
+      { tenantId: TENANT_ID, periodId: created.data.period.id, status: "closed", actorId: "actor-1" },
+      deps
+    );
+    expect(closedAgain.ok).toBe(true);
+    const locked = await lockFiscalPeriod({ tenantId: TENANT_ID, periodId: created.data.period.id, actorId: "actor-1" }, deps);
+    expect(locked.ok).toBe(true);
+    if (!locked.ok) throw new Error(locked.error.message);
+    expect(locked.data.period).toEqual(
+      expect.objectContaining({
+        status: "locked",
+        closedAt: "2026-01-15T12:00:00.000Z",
+        lockedAt: "2026-01-15T12:00:00.000Z"
+      })
+    );
+
+    const reopenedLocked = await reopenFiscalPeriod({ tenantId: TENANT_ID, periodId: created.data.period.id, actorId: "actor-1" }, deps);
+    expect(reopenedLocked.ok).toBe(false);
+    if (!reopenedLocked.ok) expect(reopenedLocked.error.code).toBe("accounting-core.INVALID_FISCAL_PERIOD_TRANSITION");
+  });
+
+  it("rejects no-op and invalid fiscal period status transitions", async () => {
+    const cases = [
+      { from: "open", to: "open" },
+      { from: "open", to: "locked" },
+      { from: "closed", to: "closed" },
+      { from: "locked", to: "open" },
+      { from: "locked", to: "closed" },
+      { from: "locked", to: "locked" }
+    ] as const;
+
+    for (const testCase of cases) {
+      const setup = await setupLedger(testCase.from);
+      const result = await updateFiscalPeriodStatus(
+        { tenantId: TENANT_ID, periodId: setup.period.id, status: testCase.to, actorId: "actor-1" },
+        setup.deps
+      );
+
+      expect(result.ok, `${testCase.from} -> ${testCase.to}`).toBe(false);
+      if (!result.ok) expect(result.error.code).toBe("accounting-core.INVALID_FISCAL_PERIOD_TRANSITION");
     }
   });
 

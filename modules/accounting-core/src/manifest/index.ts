@@ -94,8 +94,11 @@ export const manifest = {
         "accounting-core.getAccount",
         "accounting-core.createAccount",
         "accounting-core.createFiscalPeriod",
+        "accounting-core.closeFiscalPeriod",
         "accounting-core.getFiscalPeriod",
         "accounting-core.listFiscalPeriods",
+        "accounting-core.lockFiscalPeriod",
+        "accounting-core.reopenFiscalPeriod",
         "accounting-core.createJournalEntry",
         "accounting-core.postJournalEntry",
         "accounting-core.voidJournalEntry",
@@ -104,6 +107,9 @@ export const manifest = {
       approvalRequiredFor: [
         "accounting-core.createAccount",
         "accounting-core.createFiscalPeriod",
+        "accounting-core.closeFiscalPeriod",
+        "accounting-core.lockFiscalPeriod",
+        "accounting-core.reopenFiscalPeriod",
         "accounting-core.postJournalEntry",
         "accounting-core.voidJournalEntry"
       ]

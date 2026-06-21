@@ -2,23 +2,22 @@ import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect, type Cookies } from "@sveltejs/kit";
 import { recordEvent } from "@microservices-sh/audit-log";
 import {
+  closeFiscalPeriod as closeAccountingFiscalPeriod,
   createAccount,
   createFiscalPeriod,
   createJournalEntry,
   getTrialBalance,
   listAccounts,
   listFiscalPeriods,
+  lockFiscalPeriod as lockAccountingFiscalPeriod,
   postJournalEntry,
-  updateFiscalPeriodStatus,
+  reopenFiscalPeriod as reopenAccountingFiscalPeriod,
   voidJournalEntry,
   type AccountType,
-  type FiscalPeriod,
-  type FiscalPeriodStatus
+  type FiscalPeriod
 } from "@microservices-sh/accounting-core";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
-
-const PERIOD_STATUSES = new Set<FiscalPeriodStatus>(["open", "closed", "locked"]);
 
 function text(value: FormDataEntryValue | null): string {
   return String(value ?? "").trim();
@@ -26,10 +25,6 @@ function text(value: FormDataEntryValue | null): string {
 
 function accountType(value: string): AccountType | null {
   return ["asset", "liability", "equity", "revenue", "expense"].includes(value) ? (value as AccountType) : null;
-}
-
-function periodStatus(value: string): FiscalPeriodStatus | null {
-  return PERIOD_STATUSES.has(value as FiscalPeriodStatus) ? (value as FiscalPeriodStatus) : null;
 }
 
 function dateOnly(value: string): string | null {
@@ -67,6 +62,47 @@ async function requireManageContext(locals: App.Locals, cookies: Cookies, platfo
     permissions,
     actor: { id: locals.user.id, email: locals.user.email, permissions }
   };
+}
+
+type FiscalPeriodTransition = typeof closeAccountingFiscalPeriod;
+
+async function changeFiscalPeriodStatus(
+  request: Request,
+  locals: App.Locals,
+  cookies: Cookies,
+  platform: App.Platform | undefined,
+  transition: FiscalPeriodTransition
+) {
+  const ctx = await requireManageContext(locals, cookies, platform);
+  if (!ctx || !locals.user) return fail(403, { error: "Not signed in to a company." });
+
+  const form = await request.formData();
+  const values = { periodId: text(form.get("periodId")) };
+  if (!values.periodId) return fail(400, { error: "Choose a fiscal period.", values });
+
+  const result = await transition(
+    {
+      tenantId: ctx.org.id,
+      periodId: values.periodId,
+      actorId: locals.user.id
+    },
+    { accountingCoreStore: locals.accountingCoreStore, actor: ctx.actor }
+  );
+  if (!result.ok) return fail(result.status, { error: result.error.message, values });
+
+  await recordEvent(
+    {
+      eventName: "accounting-core.fiscal_period_status_changed",
+      actorId: locals.user.id,
+      entityType: "fiscal_period",
+      entityId: result.data.period.id,
+      source: "app/ledger",
+      payload: { status: result.data.period.status }
+    },
+    { auditStore: locals.auditStore }
+  );
+
+  return { fiscalPeriodStatusUpdated: true, fiscalPeriodStatus: result.data.period.status };
 }
 
 export const load: PageServerLoad = async ({ locals, cookies, parent, platform }) => {
@@ -155,13 +191,11 @@ export const actions: Actions = {
     const values = {
       name: text(form.get("name")),
       startsOn: text(form.get("startsOn")),
-      endsOn: text(form.get("endsOn")),
-      status: text(form.get("status")) || "open"
+      endsOn: text(form.get("endsOn"))
     };
-    const status = periodStatus(values.status);
     const startsOn = dateOnly(values.startsOn);
     const endsOn = dateOnly(values.endsOn);
-    if (!values.name || !startsOn || !endsOn || !status) return fail(400, { error: "Enter period name, dates, and status.", values });
+    if (!values.name || !startsOn || !endsOn) return fail(400, { error: "Enter period name and dates.", values });
 
     const result = await createFiscalPeriod(
       {
@@ -169,7 +203,7 @@ export const actions: Actions = {
         name: values.name,
         startsOn,
         endsOn,
-        status
+        status: "open"
       },
       { accountingCoreStore: locals.accountingCoreStore }
     );
@@ -190,42 +224,14 @@ export const actions: Actions = {
     return { fiscalPeriodCreated: true };
   },
 
-  updateFiscalPeriodStatus: async ({ request, locals, cookies, platform }) => {
-    const ctx = await requireManageContext(locals, cookies, platform);
-    if (!ctx || !locals.user) return fail(403, { error: "Not signed in to a company." });
+  closeFiscalPeriod: async ({ request, locals, cookies, platform }) =>
+    changeFiscalPeriodStatus(request, locals, cookies, platform, closeAccountingFiscalPeriod),
 
-    const form = await request.formData();
-    const values = {
-      periodId: text(form.get("periodId")),
-      status: text(form.get("status"))
-    };
-    const status = periodStatus(values.status);
-    if (!values.periodId || !status) return fail(400, { error: "Choose a fiscal period and status.", values });
+  reopenFiscalPeriod: async ({ request, locals, cookies, platform }) =>
+    changeFiscalPeriodStatus(request, locals, cookies, platform, reopenAccountingFiscalPeriod),
 
-    const result = await updateFiscalPeriodStatus(
-      {
-        tenantId: ctx.org.id,
-        periodId: values.periodId,
-        status
-      },
-      { accountingCoreStore: locals.accountingCoreStore }
-    );
-    if (!result.ok) return fail(result.status, { error: result.error.message, values });
-
-    await recordEvent(
-      {
-        eventName: "accounting-core.fiscal_period_status_changed",
-        actorId: locals.user.id,
-        entityType: "fiscal_period",
-        entityId: result.data.period.id,
-        source: "app/ledger",
-        payload: { status: result.data.period.status }
-      },
-      { auditStore: locals.auditStore }
-    );
-
-    return { fiscalPeriodStatusUpdated: true };
-  },
+  lockFiscalPeriod: async ({ request, locals, cookies, platform }) =>
+    changeFiscalPeriodStatus(request, locals, cookies, platform, lockAccountingFiscalPeriod),
 
   createJournalEntry: async ({ request, locals, cookies, platform }) => {
     const ctx = await requireManageContext(locals, cookies, platform);

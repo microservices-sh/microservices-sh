@@ -133,15 +133,25 @@
                   <td><Badge tone={statusTone(period.status)}>{period.status}</Badge></td>
                   {#if data.canManage}
                     <td>
-                      <form class="inline-form" method="POST" action="?/updateFiscalPeriodStatus" use:enhance>
-                        <input type="hidden" name="periodId" value={period.id} />
-                        <select name="status" aria-label="Period status">
-                          <option value="open" selected={period.status === "open"}>open</option>
-                          <option value="closed" selected={period.status === "closed"}>closed</option>
-                          <option value="locked" selected={period.status === "locked"}>locked</option>
-                        </select>
-                        <Button type="submit" size="sm" variant="ghost">Save</Button>
-                      </form>
+                      <div class="inline-actions">
+                        {#if period.status === "open"}
+                          <form method="POST" action="?/closeFiscalPeriod" use:enhance>
+                            <input type="hidden" name="periodId" value={period.id} />
+                            <Button type="submit" size="sm" variant="ghost">Close</Button>
+                          </form>
+                        {:else if period.status === "closed"}
+                          <form method="POST" action="?/reopenFiscalPeriod" use:enhance>
+                            <input type="hidden" name="periodId" value={period.id} />
+                            <Button type="submit" size="sm" variant="ghost">Reopen</Button>
+                          </form>
+                          <form method="POST" action="?/lockFiscalPeriod" use:enhance>
+                            <input type="hidden" name="periodId" value={period.id} />
+                            <Button type="submit" size="sm" variant="ghost">Lock</Button>
+                          </form>
+                        {:else}
+                          <span>Locked</span>
+                        {/if}
+                      </div>
                     </td>
                   {/if}
                 </tr>
@@ -235,13 +245,6 @@
             <Field label="Starts on" id="period-start"><input id="period-start" name="startsOn" type="date" required value={form?.values?.startsOn ?? data.today} /></Field>
             <Field label="Ends on" id="period-end"><input id="period-end" name="endsOn" type="date" required value={form?.values?.endsOn ?? data.today} /></Field>
           </div>
-          <Field label="Status" id="period-status">
-            <select id="period-status" name="status" required>
-              <option value="open">Open</option>
-              <option value="closed">Closed</option>
-              <option value="locked">Locked</option>
-            </select>
-          </Field>
           <Button type="submit" variant="primary">Create period</Button>
         </form>
       </Card>
@@ -374,11 +377,15 @@
     border-block-end: 0;
     font-weight: 700;
   }
-  .inline-form {
-    display: grid;
-    grid-template-columns: minmax(120px, 1fr) auto;
+  .inline-actions {
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     align-items: center;
+  }
+  .inline-actions > span {
+    color: var(--color-ink-faint);
+    font-size: 0.8rem;
   }
   .form-grid {
     display: grid;

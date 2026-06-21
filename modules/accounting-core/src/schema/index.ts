@@ -11,6 +11,7 @@ export {
   fiscalPeriodInputSchema,
   fiscalPeriodStatusSchema,
   fiscalPeriodStatusUpdateSchema,
+  fiscalPeriodTransitionSchema,
   journalEntryInputSchema,
   journalEntryStatusSchema,
   journalEntryUpdateSchema,

@@ -70,12 +70,17 @@ export const fiscalPeriodInputSchema = z.object({
 export const fiscalPeriodStatusUpdateSchema = z.object({
   tenantId: z.string().min(1),
   periodId: z.string().min(1),
-  status: fiscalPeriodStatusSchema
+  status: fiscalPeriodStatusSchema,
+  actorId: z.string().min(1).nullable().optional()
 });
 
 export const fiscalPeriodIdentitySchema = z.object({
   tenantId: z.string().min(1),
   periodId: z.string().min(1)
+});
+
+export const fiscalPeriodTransitionSchema = fiscalPeriodIdentitySchema.extend({
+  actorId: z.string().min(1).nullable().optional()
 });
 
 export const fiscalPeriodFilterSchema = z.object({

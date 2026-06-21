@@ -1914,6 +1914,24 @@
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 94 accounting fiscal period lifecycle hardening
+
+- **Status:** complete.
+- Goal: align fiscal-period lifecycle behavior with source StackSuite semantics before exposing more setup depth.
+- Added explicit `closeFiscalPeriod`, `reopenFiscalPeriod`, and `lockFiscalPeriod` use cases and kept `updateFiscalPeriodStatus` as a compatibility wrapper that enforces the same transition matrix.
+- Valid transitions are now open to closed, closed to open, and closed to locked; no-op transitions, open to locked, and all locked-period transitions are rejected with `accounting-core.INVALID_FISCAL_PERIOD_TRANSITION`.
+- Updated the Ledger fiscal-period table to render state-specific close/reopen/lock actions, and made manual period creation open-only so template UI cannot bypass lifecycle actions.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounting-core tests | Fiscal-period transition matrix and existing ledger behavior remain green | `pnpm --filter @microservices-sh/accounting-core test` passed, 13/13 | Pass |
+| Accounting-core spec/build | Module docs/OpenAPI/manifest/source guard stay aligned with lifecycle use cases | `pnpm --filter @microservices-sh/accounting-core check:spec` and `pnpm --filter @microservices-sh/accounting-core build` passed | Pass |
+| Accounting template spec | Policy catches lifecycle row actions and open-only period creation | `pnpm --dir templates/accounting-erp-sveltekit check:spec` passed | Pass |
+| Accounting template build | SvelteKit/Cloudflare build compiles after ledger action changes | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Packaged accounting template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and sequential `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 87 commerce sync logs route proof
 
 - **Status:** complete.

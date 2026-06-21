@@ -39,6 +39,8 @@ Tenant-scoped double-entry accounting foundation with chart of accounts, fiscal 
 
 ## Invariants
 - Posted journal entries must balance in integer cents.
+- Fiscal periods transition only from open to closed, closed to open, or closed to locked.
+- Locked fiscal periods cannot transition.
 - Closed or locked fiscal periods reject posting.
 - A posted source reference cannot be posted twice.
 - Posted entries are not edited; voiding creates reversal behavior.

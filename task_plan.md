@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 93
+Phase 94
 
 ## Phases
 
@@ -724,6 +724,16 @@ Phase 93
 - [x] Add read-only `/app/ledger/fiscal-periods/[id]` backed by `getFiscalPeriod`, adjacent-period context, and period trial-balance totals.
 - [x] Link the Ledger fiscal-period rows to the period detail route.
 - [x] Add module and template policy checks for fiscal-period read use cases and read-only detail boundary.
+- [x] Verify accounting-core tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 94: Accounting Fiscal Period Lifecycle Hardening
+- [x] Add explicit `closeFiscalPeriod`, `reopenFiscalPeriod`, and `lockFiscalPeriod` accounting-core use cases.
+- [x] Make `updateFiscalPeriodStatus` enforce source-style transition rules while remaining a compatibility wrapper.
+- [x] Cover valid and invalid open/closed/locked transition matrices with accounting-core tests.
+- [x] Replace the Ledger fiscal-period status dropdown with explicit close, reopen, and lock actions.
+- [x] Make Ledger manual fiscal-period creation default to open so template UI cannot bypass lifecycle actions.
+- [x] Update module docs, manifests, OpenAPI, LLM notes, and policy checks for lifecycle invariants.
 - [x] Verify accounting-core tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 

@@ -15,6 +15,7 @@ export {
   fiscalPeriodInputSchema,
   fiscalPeriodStatusSchema,
   fiscalPeriodStatusUpdateSchema,
+  fiscalPeriodTransitionSchema,
   journalEntryInputSchema,
   journalEntryStatusSchema,
   journalEntryUpdateSchema,
@@ -37,8 +38,11 @@ export { createAccount } from "./use-cases/create-account";
 export { getAccount } from "./use-cases/get-account";
 export { listAccounts } from "./use-cases/list-accounts";
 export { createFiscalPeriod } from "./use-cases/create-fiscal-period";
+export { closeFiscalPeriod } from "./use-cases/close-fiscal-period";
 export { getFiscalPeriod } from "./use-cases/get-fiscal-period";
 export { listFiscalPeriods } from "./use-cases/list-fiscal-periods";
+export { lockFiscalPeriod } from "./use-cases/lock-fiscal-period";
+export { reopenFiscalPeriod } from "./use-cases/reopen-fiscal-period";
 export { updateFiscalPeriodStatus } from "./use-cases/update-fiscal-period-status";
 export { getAccountingSetupStatus, seedChartOfAccounts, seedMonthlyFiscalPeriods } from "./use-cases/setup-accounting";
 export { createJournalEntry } from "./use-cases/create-journal-entry";
