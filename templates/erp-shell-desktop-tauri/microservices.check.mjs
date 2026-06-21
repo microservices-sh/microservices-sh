@@ -27,6 +27,11 @@ export default function check({ assertFileIncludesAll }) {
     "Desktop MVP exports the same app shell and logo primitives as ERP Shell."
   );
   assertFileIncludesAll(
+    "src/lib/ui/Button.svelte",
+    ["text-decoration: none", ".btn:any-link", ".btn:focus-visible"],
+    "Shared button links reset browser link decoration and keep a visible focus state."
+  );
+  assertFileIncludesAll(
     "src-tauri/capabilities/default.json",
     ["core:default", "dialog:default"],
     "Desktop MVP grants the dialog permission needed for native file and folder pickers."
