@@ -14,6 +14,8 @@ This plan covers adopting the StackSuite source projects into `create-microservi
 
 The goal is not to copy the source apps wholesale. The CLI should expose reusable domain modules, compose those modules into focused templates, and keep generated projects upgradeable.
 
+This plan extends the earlier implementation tracker at `plans/34-stacksuite-accounting-commerce-port.md`. That tracker records the initial module/template port; this document captures the remaining adoption work after the first focused templates exist.
+
 ## Current Target Shape
 
 The current repo already has the right foundation:
@@ -24,6 +26,20 @@ The current repo already has the right foundation:
 - CLI bundle closure tests and template spec checks that can prove generated apps include required local packages, migrations, bindings, and module metadata.
 
 Recent focused-template cleanup should be treated as the baseline: do not reintroduce broad ERP-shell modules into the focused accounting or commerce templates unless a route, migration, and module contract actually require them.
+
+## Explorer Findings
+
+Two read-only explorer passes on 2026-06-21 identified the remaining adoption gaps:
+
+- Accounting depth is still thin relative to `accounting-system`: account hierarchy/subtypes, reconcilable flags, fiscal period generation/close/reopen/lock, journal numbering, posting/void/reversal workflows, general ledger, account balances, and full accounting setup are not yet represented.
+- AP has vendors, bills, payments, aging, and a recurring template primitive, but lacks approve/post/void bill flows, draft/post/void payment flows, payment-account handling, recurring bill generation, and pause/resume/cancel lifecycle.
+- AR currently stores invoice snapshots/payments/aging, but donor behavior posts invoices/customer payments into accounting, tracks deposit accounts, payment methods, references, void/reversal metadata, unapplied balances, and customer statements.
+- Banking migrations are richer than the service layer. Missing behavior includes import records/stats, CSV field mapping, duplicate handling, match scoring, confirm/remove/exclude match workflows, clear/unclear reconciliation, summaries/history, and balance updates on completion.
+- BAO invoice documents include commerce-specific projections: sales-order link, product-backed lines, contact/address snapshots, shipping status, shipping fee, discount, terms, payment method, PDF key, Stripe payment-link fields, and external IDs. Keep invoice core lean and put document snapshots in a template projection or an invoice-document extension.
+- BAO fulfillment links invoices, shipment batches, and stock movement. Add invoice-as-shipment-source support in shipment/inventory rather than pushing fulfillment state directly into invoice core.
+- BAO WooCommerce behavior is provider-specific and should become a provider adapter below `commerce-sync`, not core neutral sync storage.
+- BAO MCP/reporting tools are useful, but write-capable tools need scoped tokens, audit logging, and strict provider/tenant wrappers before exposure.
+- Both explorers flagged a focused-template metadata mismatch around `gateway`. That has been closed by declaring gateway in the focused template manifests, locks, enabled-module lists, checks, and migrations while leaving API-key UI as future work.
 
 ## Source Feature Inventory
 
@@ -69,6 +85,7 @@ Use these boundaries when porting:
 
 Port source features into `modules/invoice` before expanding template UI:
 
+- provider-neutral document snapshot extension for commerce/accounting templates.
 - estimates: estimate header, line items, status lifecycle, convert-to-invoice hook.
 - recurring invoices: template create/list/update, next-run calculation, scheduled generation job payloads.
 - send/payment-link state: provider-neutral send attempts, last sent timestamp, payment URL metadata, and delivery events.
@@ -83,14 +100,17 @@ The module already has recurring bill creation storage, but the UI needs more AP
 - update/pause/resume recurring bill templates.
 - generate due bills through a jobs-workflows schedule.
 - expose payment approval thresholds and approval routing as config or hooks.
+- post, void, reverse, and payment-account workflows through accounting-core ports.
 
 ### Accounting Core
 
 Port setup and reporting depth into `modules/accounting-core`:
 
 - chart-of-accounts seed packs for GAAP/IFRS and industry presets.
+- account hierarchy, subtype, system-account, and reconcilable flags.
 - setup wizard use cases for fiscal year, base currency, default AR/AP/income/retained earnings accounts.
 - fiscal-period close/reopen rules.
+- journal numbering, posting, voiding, and reversal contracts.
 - trial balance, income statement, balance sheet, cash flow, and general ledger report contracts.
 
 ### Bank Reconciliation
@@ -98,9 +118,11 @@ Port setup and reporting depth into `modules/accounting-core`:
 Move source banking depth into `modules/bank-reconciliation`:
 
 - bank import sessions with parsed file metadata.
+- CSV field mapping, import stats, and duplicate detection.
 - transaction classification state.
-- reconciliation sessions and match proposals.
+- reconciliation sessions, match scoring, and match proposals.
 - reviewed/accepted match lifecycle.
+- clear/unclear, confirm/remove/exclude, summary/history, and balance update workflows.
 - hooks for OCR/document-extraction output.
 
 ### Commerce Sync
@@ -110,6 +132,7 @@ Extend `modules/commerce-sync` from generic mapping/run storage to production in
 - WooCommerce connection config validation and encrypted credential envelope contract.
 - webhook signature verification port and idempotency keys.
 - order-contact snapshots.
+- SKU/category/status mapping and tenant/provider/connection-scoped external IDs.
 - sync log rollups for created, updated, skipped, and failed records.
 - scheduled sync payloads for jobs-workflows.
 - mapping adapters for customer, product, order, invoice, sales-order, and shipment entities.
@@ -122,6 +145,7 @@ Use the source commerce schema to extend the existing modules:
 - reorder point and reorder quantity.
 - stock movement ledger with reason/source metadata.
 - receive, adjust, and reconcile use cases.
+- persistent inventory reconciliation documents with counted quantities, differences, status, and completion flows.
 - inventory alert read models.
 
 ### Sales Order And Shipment
@@ -140,6 +164,7 @@ Source API-key tables should map to the existing gateway direction:
 - scoped API keys with hash storage, prefix display, expiry, and revocation.
 - request logs with path, status, duration, actor, API key, and truncated request/response metadata.
 - module permission scopes for invoices, bills, customers, products, orders, shipments, and payments.
+- accounting and commerce REST adapters should stay thin route adapters over module use cases.
 
 ### MCP / Agent Operations
 
@@ -266,6 +291,7 @@ Done or in progress:
 - make module enablement, template manifests, locks, migrations, docs, and CLI bundled-deps agree.
 - avoid D1 writes during accounting page loads.
 - expose support-ticket as a real route where it is required by focused templates.
+- declare gateway consistently in the focused templates because hooks use gateway rate-limit stores and `RATE_LIMIT_KV`.
 
 ### Phase 1: Source Gap Closure
 
