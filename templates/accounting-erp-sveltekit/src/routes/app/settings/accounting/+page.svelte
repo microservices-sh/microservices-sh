@@ -5,6 +5,14 @@
 
   const accountTone = $derived(data.setup.accountsConfigured ? "good" : "neutral");
   const periodTone = $derived(data.setup.fiscalPeriodsConfigured ? "good" : "neutral");
+  const settingDefaults = $derived(form?.values ?? data.setup.settings ?? {});
+  const receivableAccounts = $derived(data.accounts.filter((account) => account.type === "asset" && account.active && !account.isHeader));
+  const payableAccounts = $derived(data.accounts.filter((account) => account.type === "liability" && account.active && !account.isHeader));
+  const incomeAccounts = $derived(data.accounts.filter((account) => account.type === "revenue" && account.active && !account.isHeader));
+
+  function accountLabel(account) {
+    return `${account.code} ${account.name}`;
+  }
 </script>
 
 <svelte:head>
@@ -20,6 +28,8 @@
 
   {#if form?.seededAccounts}
     <Alert tone="success">Seeded {form.accountCount} {String(form.standard ?? "gaap").toUpperCase()} chart accounts in {form.baseCurrency}.</Alert>
+  {:else if form?.savedDefaults}
+    <Alert tone="success">Saved default posting accounts.</Alert>
   {:else if form?.seededPeriods}
     <Alert tone="success">Generated {form.periodCount} fiscal periods.</Alert>
   {:else if form?.error}
@@ -38,6 +48,11 @@
           <span>Base currency</span>
           <strong>{data.setup.baseCurrency ?? "-"}</strong>
           <Badge tone={data.setup.baseCurrency ? "good" : "neutral"}>{data.setup.baseCurrency ? "configured" : "empty"}</Badge>
+        </div>
+        <div>
+          <span>Default accounts</span>
+          <strong>{data.setup.defaultAccountsConfigured ? "Ready" : "Open"}</strong>
+          <Badge tone={data.setup.defaultAccountsConfigured ? "good" : "neutral"}>{data.setup.defaultAccountsConfigured ? "configured" : "empty"}</Badge>
         </div>
         <div>
           <span>Fiscal periods</span>
@@ -70,6 +85,38 @@
           <Button type="submit" variant="primary" disabled={data.setup.accountsConfigured}>Seed chart</Button>
         </form>
       {/if}
+    </Card>
+
+    <Card title="Default posting accounts">
+      <form method="POST" action="?/saveDefaults" class="defaults-form">
+        <Field label="Accounts receivable" id="defaultArAccountId">
+          <select id="defaultArAccountId" name="defaultArAccountId" disabled={!data.canManage || !data.setup.accountsConfigured}>
+            <option value="">Not set</option>
+            {#each receivableAccounts as account}
+              <option value={account.id} selected={settingDefaults.defaultArAccountId === account.id}>{accountLabel(account)}</option>
+            {/each}
+          </select>
+        </Field>
+        <Field label="Accounts payable" id="defaultApAccountId">
+          <select id="defaultApAccountId" name="defaultApAccountId" disabled={!data.canManage || !data.setup.accountsConfigured}>
+            <option value="">Not set</option>
+            {#each payableAccounts as account}
+              <option value={account.id} selected={settingDefaults.defaultApAccountId === account.id}>{accountLabel(account)}</option>
+            {/each}
+          </select>
+        </Field>
+        <Field label="Sales revenue" id="defaultIncomeAccountId">
+          <select id="defaultIncomeAccountId" name="defaultIncomeAccountId" disabled={!data.canManage || !data.setup.accountsConfigured}>
+            <option value="">Not set</option>
+            {#each incomeAccounts as account}
+              <option value={account.id} selected={settingDefaults.defaultIncomeAccountId === account.id}>{accountLabel(account)}</option>
+            {/each}
+          </select>
+        </Field>
+        {#if data.canManage}
+          <Button type="submit" variant="primary" disabled={!data.setup.accountsConfigured}>Save defaults</Button>
+        {/if}
+      </form>
     </Card>
 
     <Card title="Fiscal periods">
@@ -129,6 +176,7 @@
   }
   .status-grid div,
   .account-form,
+  .defaults-form,
   .period-form {
     display: grid;
     gap: 10px;

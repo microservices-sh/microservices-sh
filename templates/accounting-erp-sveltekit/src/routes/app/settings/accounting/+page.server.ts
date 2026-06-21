@@ -2,8 +2,10 @@ import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import {
   getAccountingSetupStatus,
+  listAccounts,
   seedChartOfAccounts,
   seedMonthlyFiscalPeriods,
+  updateAccountingSettings,
   type ChartOfAccountsStandard
 } from "@microservices-sh/accounting-core";
 import { recordEvent } from "@microservices-sh/audit-log";
@@ -32,16 +34,24 @@ function currencyCode(value: FormDataEntryValue | null): string | null {
   return /^[A-Z]{3}$/.test(currency) ? currency : null;
 }
 
+function optionalAccountId(value: FormDataEntryValue | null): string | null {
+  const accountId = String(value ?? "").trim();
+  return accountId || null;
+}
+
 export const load: PageServerLoad = async ({ locals, cookies, parent, platform }) => {
   requireModule("accounting-core", platform);
   const { activeOrgId } = await parent();
   if (!activeOrgId || !locals.user) throw redirect(303, "/app");
 
   const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "org.read", locals.rbacStore);
-  const status = await getAccountingSetupStatus(
-    { tenantId: activeOrgId },
-    { accountingCoreStore: locals.accountingCoreStore }
-  );
+  const [status, accounts] = await Promise.all([
+    getAccountingSetupStatus(
+      { tenantId: activeOrgId },
+      { accountingCoreStore: locals.accountingCoreStore }
+    ),
+    listAccounts({ tenantId: activeOrgId, includeInactive: true, limit: 500 }, { accountingCoreStore: locals.accountingCoreStore })
+  ]);
 
   return {
     canManage: permissions.includes("*") || permissions.includes("member.manage"),
@@ -53,9 +63,22 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
           accountsConfigured: false,
           accountCount: 0,
           baseCurrency: null,
+          settingsConfigured: false,
+          settings: null,
+          defaultAccountsConfigured: false,
           fiscalPeriodsConfigured: false,
           fiscalPeriodCount: 0
         },
+    accounts: accounts.ok
+      ? accounts.data.accounts.map((account) => ({
+          id: account.id,
+          code: account.code,
+          name: account.name,
+          type: account.type,
+          active: account.active,
+          isHeader: account.isHeader
+        }))
+      : [],
     chartStandards: CHART_STANDARD_OPTIONS,
     baseCurrencies: BASE_CURRENCIES
   };
@@ -98,6 +121,40 @@ export const actions: Actions = {
     );
 
     return { seededAccounts: true, accountCount: result.data.count, standard: result.data.standard, baseCurrency: currency };
+  },
+
+  saveDefaults: async ({ request, locals, cookies, platform }) => {
+    requireModule("accounting-core", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const values = {
+      defaultArAccountId: optionalAccountId(form.get("defaultArAccountId")),
+      defaultApAccountId: optionalAccountId(form.get("defaultApAccountId")),
+      defaultIncomeAccountId: optionalAccountId(form.get("defaultIncomeAccountId"))
+    };
+    const result = await updateAccountingSettings(
+      { tenantId: org.id, ...values },
+      { accountingCoreStore: locals.accountingCoreStore, now: () => Date.now() }
+    );
+    if (!result.ok) return fail(result.status, { error: result.error.message, values });
+
+    await recordEvent(
+      {
+        eventName: "accounting-core.settings_updated",
+        actorId: locals.user.id,
+        entityType: "organization",
+        entityId: org.id,
+        source: "app/settings/accounting",
+        payload: { setupAction: "updateAccountingSettings", defaultAccountsConfigured: true }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { savedDefaults: true, values };
   },
 
   seedPeriods: async ({ request, locals, cookies, platform }) => {

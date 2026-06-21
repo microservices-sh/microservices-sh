@@ -18,6 +18,7 @@ import {
   reopenFiscalPeriod,
   seedChartOfAccounts,
   seedMonthlyFiscalPeriods,
+  updateAccountingSettings,
   updateFiscalPeriodStatus,
   updateJournalEntry,
   voidJournalEntry,
@@ -47,6 +48,17 @@ CREATE TABLE accounting_accounts (
   is_reconcilable INTEGER NOT NULL DEFAULT 0,
   is_header INTEGER NOT NULL DEFAULT 0,
   active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE accounting_settings (
+  tenant_id TEXT PRIMARY KEY,
+  accounting_standard TEXT NOT NULL DEFAULT 'gaap',
+  fiscal_year_start_month INTEGER NOT NULL DEFAULT 1,
+  base_currency TEXT NOT NULL DEFAULT 'USD',
+  default_ar_account_id TEXT,
+  default_ap_account_id TEXT,
+  default_income_account_id TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -92,6 +104,14 @@ CREATE TABLE accounting_journal_lines (
   description TEXT,
   debit_cents INTEGER NOT NULL DEFAULT 0,
   credit_cents INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE domain_events (
+  id TEXT PRIMARY KEY,
+  event_name TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  payload TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
 `;
@@ -606,11 +626,22 @@ describe("accounting-core: setup", () => {
     const fixedAssets = accounts.find((account) => account.code === "1500");
     const checking = accounts.find((account) => account.code === "1111");
     const ar = accounts.find((account) => account.code === "1200");
+    const ap = accounts.find((account) => account.code === "2110");
+    const income = accounts.find((account) => account.code === "4100");
     const allowance = accounts.find((account) => account.code === "1250");
     expect(assets).toEqual(expect.objectContaining({ isHeader: true, parentId: null }));
     expect(fixedAssets).toEqual(expect.objectContaining({ name: "Fixed Assets", isHeader: true }));
     expect(checking).toEqual(expect.objectContaining({ isReconcilable: true, currency: "USD" }));
     expect(ar).toEqual(expect.objectContaining({ isSystem: true, subtype: "current_asset" }));
+    expect(seeded.data.settings).toEqual(
+      expect.objectContaining({
+        accountingStandard: "gaap",
+        baseCurrency: "USD",
+        defaultArAccountId: ar?.id,
+        defaultApAccountId: ap?.id,
+        defaultIncomeAccountId: income?.id
+      })
+    );
     expect(allowance).toEqual(expect.objectContaining({ normalBalance: "credit" }));
 
     const duplicate = await seedChartOfAccounts({ tenantId: TENANT_ID }, deps);
@@ -623,7 +654,79 @@ describe("accounting-core: setup", () => {
       expect(status.data.status.accountsConfigured).toBe(true);
       expect(status.data.status.accountCount).toBe(seeded.data.count);
       expect(status.data.status.baseCurrency).toBe("USD");
+      expect(status.data.status.settingsConfigured).toBe(true);
+      expect(status.data.status.defaultAccountsConfigured).toBe(true);
+      expect(status.data.status.settings).toEqual(
+        expect.objectContaining({
+          defaultArAccountId: ar?.id,
+          defaultApAccountId: ap?.id,
+          defaultIncomeAccountId: income?.id
+        })
+      );
     }
+  });
+
+  it("updates and validates tenant accounting settings default accounts", async () => {
+    const store = createMemoryAccountingCoreStore();
+    const deps = { accountingCoreStore: store, now: fixedNow() };
+    const asset = await createAccount(
+      { tenantId: TENANT_ID, code: "1200", name: "Accounts Receivable", type: "asset" },
+      deps
+    );
+    const liability = await createAccount(
+      { tenantId: TENANT_ID, code: "2110", name: "Accounts Payable", type: "liability" },
+      deps
+    );
+    const revenue = await createAccount(
+      { tenantId: TENANT_ID, code: "4100", name: "Sales Revenue", type: "revenue" },
+      deps
+    );
+    const header = await createAccount(
+      { tenantId: TENANT_ID, code: "4000", name: "Revenue", type: "revenue", isHeader: true },
+      deps
+    );
+    if (!asset.ok || !liability.ok || !revenue.ok || !header.ok) throw new Error("setup failed");
+
+    const updated = await updateAccountingSettings(
+      {
+        tenantId: TENANT_ID,
+        accountingStandard: "ifrs",
+        fiscalYearStartMonth: 4,
+        baseCurrency: "eur",
+        defaultArAccountId: asset.data.account.id,
+        defaultApAccountId: liability.data.account.id,
+        defaultIncomeAccountId: revenue.data.account.id
+      },
+      deps
+    );
+
+    expect(updated.ok).toBe(true);
+    if (updated.ok) {
+      expect(updated.data.settings).toEqual(
+        expect.objectContaining({
+          accountingStandard: "ifrs",
+          fiscalYearStartMonth: 4,
+          baseCurrency: "EUR",
+          defaultArAccountId: asset.data.account.id,
+          defaultApAccountId: liability.data.account.id,
+          defaultIncomeAccountId: revenue.data.account.id
+        })
+      );
+    }
+
+    const wrongType = await updateAccountingSettings(
+      { tenantId: TENANT_ID, defaultApAccountId: revenue.data.account.id },
+      deps
+    );
+    expect(wrongType.ok).toBe(false);
+    if (!wrongType.ok) expect(wrongType.error.code).toBe("accounting-core.DEFAULT_ACCOUNT_TYPE_MISMATCH");
+
+    const headerAccount = await updateAccountingSettings(
+      { tenantId: TENANT_ID, defaultIncomeAccountId: header.data.account.id },
+      deps
+    );
+    expect(headerAccount.ok).toBe(false);
+    if (!headerAccount.ok) expect(headerAccount.error.code).toBe("accounting-core.DEFAULT_ACCOUNT_IS_HEADER");
   });
 
   it("seeds an IFRS chart variant while preserving operational account flags", async () => {

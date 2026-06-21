@@ -14,6 +14,11 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
     ["ADD COLUMN period_type TEXT NOT NULL DEFAULT 'month'", "ADD COLUMN closed_by_id TEXT"],
     "Accounting Core upgrade migration adds source-parity fiscal-period metadata."
   );
+  assertFileIncludesAll(
+    "migrations/0004_accounting_settings.sql",
+    ["CREATE TABLE IF NOT EXISTS accounting_settings", "default_ar_account_id", "default_ap_account_id", "default_income_account_id"],
+    "Accounting Core persists source-style accounting setup settings and default account IDs."
+  );
   assertFileIncludes(
     "migrations/0001_initial.sql",
     "CREATE TABLE IF NOT EXISTS accounting_journal_entries",
@@ -36,12 +41,14 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
       "fiscalPeriodTransitionSchema",
       "fiscalPeriodTypeSchema",
       "generalLedgerSchema",
+      "accountingSettingsSchema",
       "closeFiscalPeriod",
       "getGeneralLedger",
       "getFiscalPeriod",
       "listFiscalPeriods",
       "lockFiscalPeriod",
       "reopenFiscalPeriod",
+      "updateAccountingSettings",
       "./use-cases/close-fiscal-period",
       "./use-cases/get-general-ledger",
       "./use-cases/get-fiscal-period",
@@ -49,41 +56,61 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
       "./use-cases/lock-fiscal-period",
       "./use-cases/reopen-fiscal-period"
     ],
-    "Accounting Core exports tenant-scoped fiscal-period read and lifecycle transition use cases and schemas."
+    "Accounting Core exports tenant-scoped settings, fiscal-period read, and lifecycle transition use cases and schemas."
   );
   assertFileIncludesAll(
     "src/schemas.ts",
-    ["chartOfAccountsStandardSchema = z.enum([\"gaap\", \"ifrs\"])", "currency: z.string().min(3).max(3).default(\"USD\")"],
-    "Accounting Core setup schema accepts GAAP/IFRS chart seed standards and base currency."
+    [
+      "chartOfAccountsStandardSchema = z.enum([\"gaap\", \"ifrs\"])",
+      "currency: z.string().min(3).max(3).default(\"USD\")",
+      "accountingSettingsSchema",
+      "defaultArAccountId",
+      "defaultApAccountId",
+      "defaultIncomeAccountId"
+    ],
+    "Accounting Core setup schema accepts GAAP/IFRS chart seed standards, base currency, and default account settings."
   );
   assertFileIncludesAll(
     "src/use-cases/setup-accounting.ts",
-    ["IFRS_CHART", "Non-Current Assets", "Property, Plant and Equipment", "baseCurrency"],
-    "Accounting Core setup use case carries source-parity IFRS chart seed and base-currency status metadata."
+    [
+      "IFRS_CHART",
+      "Non-Current Assets",
+      "Property, Plant and Equipment",
+      "baseCurrency",
+      "DEFAULT_ACCOUNT_CODES",
+      "updateAccountingSettings",
+      "defaultArAccountId",
+      "defaultApAccountId",
+      "defaultIncomeAccountId",
+      "DEFAULT_ACCOUNT_TYPE_MISMATCH"
+    ],
+    "Accounting Core setup use case carries source-parity IFRS chart seed, base-currency status metadata, and persisted default account settings."
   );
   assertFileIncludesAll(
     "src/manifest/index.ts",
     [
       "accounting-core.getGeneralLedger",
       "accounting-core.getFiscalPeriod",
+      "accounting-core.updateAccountingSettings",
       "accounting-core.listFiscalPeriods",
       "accounting-core.closeFiscalPeriod",
       "accounting-core.lockFiscalPeriod",
       "accounting-core.reopenFiscalPeriod"
     ],
-    "Accounting Core manifest exposes fiscal-period read and lifecycle tools to agentic surfaces."
+    "Accounting Core manifest exposes settings, fiscal-period read, and lifecycle tools to agentic surfaces."
   );
   assertFileIncludesAll(
     "module.json",
     [
       "accounting-core.getGeneralLedger",
       "accounting-core.getFiscalPeriod",
+      "accounting-core.updateAccountingSettings",
       "accounting-core.listFiscalPeriods",
       "accounting-core.closeFiscalPeriod",
       "accounting-core.lockFiscalPeriod",
       "accounting-core.reopenFiscalPeriod"
     ],
-    "Accounting Core module metadata exposes fiscal-period read and lifecycle tools."
+    "Accounting Core module metadata exposes settings, fiscal-period read, and lifecycle tools."
   );
   assertFileIncludesAll(
     "openapi.json",
@@ -92,6 +119,9 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
       "\"gaap\", \"ifrs\"",
       "\"/general-ledger\"",
       "\"operationId\": \"getGeneralLedger\"",
+      "\"/settings\"",
+      "\"operationId\": \"updateAccountingSettings\"",
+      "\"AccountingSettings\"",
       "\"/fiscal-periods\"",
       "\"operationId\": \"listFiscalPeriods\"",
       "\"/fiscal-periods/{id}\"",
@@ -100,7 +130,22 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
       "\"operationId\": \"lockFiscalPeriod\"",
       "\"operationId\": \"reopenFiscalPeriod\""
     ],
-    "Accounting Core OpenAPI documents fiscal-period list, detail, and lifecycle transition operations."
+    "Accounting Core OpenAPI documents settings, fiscal-period list, detail, and lifecycle transition operations."
+  );
+  assertFileIncludesAll(
+    "src/ports/index.ts",
+    ["getAccountingSettings", "upsertAccountingSettings", "AccountingSettings"],
+    "Accounting Core store port exposes tenant-scoped setup settings persistence."
+  );
+  assertFileIncludesAll(
+    "src/adapters/d1-accounting-core-store.ts",
+    ["accounting_settings", "ON CONFLICT(tenant_id)", "rowToAccountingSettings"],
+    "Accounting Core D1 adapter persists accounting settings with an upsert."
+  );
+  assertFileIncludesAll(
+    "src/adapters/memory-accounting-core-store.ts",
+    ["settingsByTenant", "getAccountingSettings", "upsertAccountingSettings"],
+    "Accounting Core memory adapter mirrors tenant-scoped accounting settings persistence."
   );
   assertFileIncludesAll(
     "src/use-cases/get-general-ledger.ts",

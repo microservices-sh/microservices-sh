@@ -3,6 +3,7 @@ export {
   accountIdentitySchema,
   accountInputSchema,
   accountingCoreConfigSchema,
+  accountingSettingsSchema,
   accountRecordSchema,
   accountTypeSchema,
   accountUpdateSchema,

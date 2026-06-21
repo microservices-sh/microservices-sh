@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 98
+Phase 99
 
 ## Phases
 
@@ -770,6 +770,14 @@ Phase 98
 - [x] Add module metadata, OpenAPI, docs, and policy checks for `getGeneralLedger`.
 - [x] Expose general ledger account/date selection on accounting template reports.
 - [x] Verify accounting-core tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 99: Accounting Setup Default Account Persistence
+- [x] Add tenant-scoped accounting setup settings and D1/template migrations.
+- [x] Auto-map seeded GAAP/IFRS AR/AP/income account codes into persisted settings.
+- [x] Add `updateAccountingSettings` validation for same-tenant active non-header default accounts with compatible account types.
+- [x] Expose default AR/AP/income account selectors on the accounting settings template page.
+- [x] Verify accounting-core tests/spec/build, accounting template spec/build, migration replay, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

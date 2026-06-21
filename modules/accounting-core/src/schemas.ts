@@ -153,6 +153,16 @@ export const setupStatusInputSchema = z.object({
   tenantId: z.string().min(1)
 });
 
+export const accountingSettingsSchema = z.object({
+  tenantId: z.string().min(1),
+  accountingStandard: chartOfAccountsStandardSchema.optional(),
+  fiscalYearStartMonth: z.number().int().min(1).max(12).optional(),
+  baseCurrency: z.string().min(3).max(3).optional(),
+  defaultArAccountId: z.string().min(1).nullable().optional(),
+  defaultApAccountId: z.string().min(1).nullable().optional(),
+  defaultIncomeAccountId: z.string().min(1).nullable().optional()
+});
+
 export const seedChartOfAccountsSchema = z.object({
   tenantId: z.string().min(1),
   standard: chartOfAccountsStandardSchema.default("gaap"),

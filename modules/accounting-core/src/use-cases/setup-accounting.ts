@@ -1,9 +1,17 @@
 import {
+  accountingSettingsSchema,
   seedChartOfAccountsSchema,
   seedMonthlyFiscalPeriodsSchema,
   setupStatusInputSchema
 } from "../schemas";
-import type { AccountSubtype, AccountType, ChartOfAccountsStandard, NormalBalance } from "../types";
+import { isoNow } from "../service";
+import type {
+  AccountingSettings,
+  AccountSubtype,
+  AccountType,
+  ChartOfAccountsStandard,
+  NormalBalance
+} from "../types";
 import { createAccount } from "./create-account";
 import { createFiscalPeriod } from "./create-fiscal-period";
 import { err, ok, type AccountingDeps } from "./shared";
@@ -171,13 +179,113 @@ function setupBaseCurrency(accounts: { currency: string }[]): string | null {
   return currencies.length === 1 ? currencies[0] : null;
 }
 
+type DefaultAccountKey = "defaultArAccountId" | "defaultApAccountId" | "defaultIncomeAccountId";
+
+const DEFAULT_ACCOUNT_CODES: Record<DefaultAccountKey, string> = {
+  defaultArAccountId: "1200",
+  defaultApAccountId: "2110",
+  defaultIncomeAccountId: "4100"
+};
+
+const DEFAULT_ACCOUNT_TYPES: Record<DefaultAccountKey, AccountType> = {
+  defaultArAccountId: "asset",
+  defaultApAccountId: "liability",
+  defaultIncomeAccountId: "revenue"
+};
+
+function cleanCurrency(value: string): string {
+  return value.trim().toUpperCase();
+}
+
+function defaultAccountsConfigured(settings: AccountingSettings | null): boolean {
+  return Boolean(settings?.defaultArAccountId && settings.defaultApAccountId && settings.defaultIncomeAccountId);
+}
+
+function hasOwn(data: object, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(data, key);
+}
+
+function baseSettings(input: {
+  tenantId: string;
+  nowIso: string;
+  existing?: AccountingSettings | null;
+  accountingStandard?: ChartOfAccountsStandard;
+  fiscalYearStartMonth?: number;
+  baseCurrency?: string;
+}): AccountingSettings {
+  return {
+    tenantId: input.tenantId,
+    accountingStandard: input.accountingStandard ?? input.existing?.accountingStandard ?? "gaap",
+    fiscalYearStartMonth: input.fiscalYearStartMonth ?? input.existing?.fiscalYearStartMonth ?? 1,
+    baseCurrency: cleanCurrency(input.baseCurrency ?? input.existing?.baseCurrency ?? "USD"),
+    defaultArAccountId: input.existing?.defaultArAccountId ?? null,
+    defaultApAccountId: input.existing?.defaultApAccountId ?? null,
+    defaultIncomeAccountId: input.existing?.defaultIncomeAccountId ?? null,
+    createdAt: input.existing?.createdAt ?? input.nowIso,
+    updatedAt: input.nowIso
+  };
+}
+
+async function validateDefaultAccount(
+  deps: AccountingDeps,
+  tenantId: string,
+  key: DefaultAccountKey,
+  accountId: string
+) {
+  const account = await deps.accountingCoreStore.getAccount(tenantId, accountId);
+  if (!account) return err(404, "accounting-core.DEFAULT_ACCOUNT_NOT_FOUND", "Default account was not found.");
+  if (!account.active) return err(409, "accounting-core.DEFAULT_ACCOUNT_INACTIVE", "Default account must be active.");
+  if (account.isHeader) return err(409, "accounting-core.DEFAULT_ACCOUNT_IS_HEADER", "Default account must be postable.");
+  if (account.type !== DEFAULT_ACCOUNT_TYPES[key]) {
+    return err(409, "accounting-core.DEFAULT_ACCOUNT_TYPE_MISMATCH", "Default account has the wrong account type.", {
+      field: key,
+      expectedType: DEFAULT_ACCOUNT_TYPES[key],
+      actualType: account.type
+    });
+  }
+  return null;
+}
+
+async function validateDefaultAccounts(deps: AccountingDeps, settings: AccountingSettings) {
+  for (const key of Object.keys(DEFAULT_ACCOUNT_CODES) as DefaultAccountKey[]) {
+    const accountId = settings[key];
+    if (!accountId) continue;
+    const invalid = await validateDefaultAccount(deps, settings.tenantId, key, accountId);
+    if (invalid) return invalid;
+  }
+  return null;
+}
+
+function seededDefaultSettings(
+  tenantId: string,
+  standard: ChartOfAccountsStandard,
+  currency: string,
+  accountIdsByCode: Map<string, string>,
+  existing: AccountingSettings | null,
+  nowIso: string
+): AccountingSettings {
+  const settings = baseSettings({
+    tenantId,
+    existing,
+    nowIso,
+    accountingStandard: standard,
+    baseCurrency: currency
+  });
+  settings.defaultArAccountId = accountIdsByCode.get(DEFAULT_ACCOUNT_CODES.defaultArAccountId) ?? settings.defaultArAccountId;
+  settings.defaultApAccountId = accountIdsByCode.get(DEFAULT_ACCOUNT_CODES.defaultApAccountId) ?? settings.defaultApAccountId;
+  settings.defaultIncomeAccountId =
+    accountIdsByCode.get(DEFAULT_ACCOUNT_CODES.defaultIncomeAccountId) ?? settings.defaultIncomeAccountId;
+  return settings;
+}
+
 export async function getAccountingSetupStatus(input: unknown, deps: AccountingDeps) {
   const parsed = setupStatusInputSchema.safeParse(input);
   if (!parsed.success) {
     return err(400, "accounting-core.INVALID_SETUP_STATUS_INPUT", "Accounting setup status input is invalid.", parsed.error.issues);
   }
 
-  const [accounts, periods] = await Promise.all([
+  const [settings, accounts, periods] = await Promise.all([
+    deps.accountingCoreStore.getAccountingSettings(parsed.data.tenantId),
     deps.accountingCoreStore.listAccounts({ tenantId: parsed.data.tenantId, includeInactive: true, limit: 5000 }),
     deps.accountingCoreStore.listFiscalPeriods({ tenantId: parsed.data.tenantId, limit: 5000 })
   ]);
@@ -187,11 +295,55 @@ export async function getAccountingSetupStatus(input: unknown, deps: AccountingD
       tenantId: parsed.data.tenantId,
       accountsConfigured: accounts.length > 0,
       accountCount: accounts.length,
-      baseCurrency: setupBaseCurrency(accounts),
+      baseCurrency: settings?.baseCurrency ?? setupBaseCurrency(accounts),
+      settingsConfigured: Boolean(settings),
+      settings,
+      defaultAccountsConfigured: defaultAccountsConfigured(settings),
       fiscalPeriodsConfigured: periods.length > 0,
       fiscalPeriodCount: periods.length
     }
   });
+}
+
+export async function updateAccountingSettings(input: unknown, deps: AccountingDeps) {
+  const parsed = accountingSettingsSchema.safeParse(input);
+  if (!parsed.success) {
+    return err(400, "accounting-core.INVALID_ACCOUNTING_SETTINGS_INPUT", "Accounting settings input is invalid.", parsed.error.issues);
+  }
+
+  const existing = await deps.accountingCoreStore.getAccountingSettings(parsed.data.tenantId);
+  const nowIso = isoNow(deps.now);
+  const settings = baseSettings({
+    tenantId: parsed.data.tenantId,
+    existing,
+    nowIso,
+    accountingStandard: parsed.data.accountingStandard,
+    fiscalYearStartMonth: parsed.data.fiscalYearStartMonth,
+    baseCurrency: parsed.data.baseCurrency
+  });
+
+  for (const key of Object.keys(DEFAULT_ACCOUNT_CODES) as DefaultAccountKey[]) {
+    if (hasOwn(parsed.data, key)) settings[key] = parsed.data[key] ?? null;
+  }
+
+  const invalidDefault = await validateDefaultAccounts(deps, settings);
+  if (invalidDefault) return invalidDefault;
+
+  await deps.accountingCoreStore.upsertAccountingSettings(settings);
+  await deps.accountingCoreStore.writeEvent({
+    eventName: "accounting-core.settings_updated",
+    entityType: "accounting_settings",
+    entityId: parsed.data.tenantId,
+    tenantId: parsed.data.tenantId,
+    payload: {
+      accountingStandard: settings.accountingStandard,
+      fiscalYearStartMonth: settings.fiscalYearStartMonth,
+      baseCurrency: settings.baseCurrency,
+      defaultAccountsConfigured: defaultAccountsConfigured(settings)
+    }
+  });
+
+  return ok(200, { settings });
 }
 
 export async function seedChartOfAccounts(input: unknown, deps: AccountingDeps) {
@@ -235,7 +387,21 @@ export async function seedChartOfAccounts(input: unknown, deps: AccountingDeps) 
     accountIdsByCode.set(createdAccount.data.account.code, createdAccount.data.account.id);
   }
 
-  return ok(201, { accounts: created, count: created.length, standard: parsed.data.standard });
+  const nowIso = isoNow(deps.now);
+  const existingSettings = await deps.accountingCoreStore.getAccountingSettings(parsed.data.tenantId);
+  const settings = seededDefaultSettings(
+    parsed.data.tenantId,
+    parsed.data.standard,
+    parsed.data.currency,
+    accountIdsByCode,
+    existingSettings,
+    nowIso
+  );
+  const invalidDefault = await validateDefaultAccounts(deps, settings);
+  if (invalidDefault) return invalidDefault;
+  await deps.accountingCoreStore.upsertAccountingSettings(settings);
+
+  return ok(201, { accounts: created, count: created.length, standard: parsed.data.standard, settings });
 }
 
 export async function seedMonthlyFiscalPeriods(input: unknown, deps: AccountingDeps) {
@@ -272,6 +438,17 @@ export async function seedMonthlyFiscalPeriods(input: unknown, deps: AccountingD
     if (!created.ok) return created;
     periods.push(created.data.period);
   }
+
+  const nowIso = isoNow(deps.now);
+  const existingSettings = await deps.accountingCoreStore.getAccountingSettings(parsed.data.tenantId);
+  await deps.accountingCoreStore.upsertAccountingSettings(
+    baseSettings({
+      tenantId: parsed.data.tenantId,
+      existing: existingSettings,
+      nowIso,
+      fiscalYearStartMonth: parsed.data.fiscalYearStartMonth
+    })
+  );
 
   return ok(201, { periods, count: periods.length, year: parsed.data.year });
 }

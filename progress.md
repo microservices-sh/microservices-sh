@@ -2009,6 +2009,25 @@
 
 Note: an initial `create-microservices-app` test run overlapped with `create-microservices-app build` and reported transient shim drift. `pnpm sync:shims` made no file changes, and the sequential test rerun passed.
 
+### Phase 99 accounting setup default account persistence
+
+- **Status:** complete.
+- Goal: close the source default-account settings gap without copying the donor bug where defaults exist in schema but setup never writes them.
+- Confirmed the source has `defaultArAccountId`, `defaultApAccountId`, and `defaultIncomeAccountId` on settings; invoice/bill posting reads them, but source chart setup does not persist them.
+- Added tenant-scoped `accounting_settings` storage with chart standard, base currency, fiscal-year start month, and default AR/AP/income account IDs.
+- Chart seeding now maps standard account codes `1200`, `2110`, and `4100` into persisted settings automatically.
+- Added `updateAccountingSettings` with same-tenant, active, non-header, account-type-compatible validation and exposed default-account selectors on the accounting settings page.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounting-core tests | Settings persistence, seeded defaults, validation, GL, setup, fiscal periods, posting, CAS, and trial balance behavior remain green | `pnpm --filter @microservices-sh/accounting-core test` passed, 19/19 | Pass |
+| Accounting-core spec/build | Module migrations/docs/OpenAPI/schema/source guard stay aligned with accounting settings behavior | `pnpm --filter @microservices-sh/accounting-core check:spec` and `pnpm --filter @microservices-sh/accounting-core build` passed | Pass |
+| Accounting template spec/build | Settings page exposes default-account controls and Cloudflare/SvelteKit build still compiles | `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Migration replay | Fresh module/template D1 stacks create `accounting_settings` | Module and accounting template SQLite replays returned `accounting_settings` | Pass |
+| Create app package | Bundled accounting template rebuilds and create-app tests remain green when run sequentially | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 87 commerce sync logs route proof
 
 - **Status:** complete.

@@ -3,6 +3,7 @@ import type {
   Account,
   AccountingEvent,
   AccountFilter,
+  AccountingSettings,
   FiscalPeriod,
   FiscalPeriodFilter,
   GeneralLedgerFilter,
@@ -15,6 +16,10 @@ import type {
 
 function cloneAccount(account: Account): Account {
   return { ...account };
+}
+
+function cloneSettings(settings: AccountingSettings): AccountingSettings {
+  return { ...settings };
 }
 
 function clonePeriod(period: FiscalPeriod): FiscalPeriod {
@@ -72,6 +77,7 @@ function generalLedgerEntryVisible(entry: JournalEntry, filter: GeneralLedgerFil
 }
 
 export function createMemoryAccountingCoreStore(): AccountingCoreStore {
+  const settingsByTenant = new Map<string, AccountingSettings>();
   const accounts = new Map<string, Account>();
   const periods = new Map<string, FiscalPeriod>();
   const entries = new Map<string, JournalEntry>();
@@ -79,6 +85,15 @@ export function createMemoryAccountingCoreStore(): AccountingCoreStore {
   const events: AccountingEvent[] = [];
 
   return {
+    async getAccountingSettings(tenantId) {
+      const settings = settingsByTenant.get(tenantId);
+      return settings ? cloneSettings(settings) : null;
+    },
+
+    async upsertAccountingSettings(settings) {
+      settingsByTenant.set(settings.tenantId, cloneSettings(settings));
+    },
+
     async insertAccount(account) {
       accounts.set(account.id, cloneAccount(account));
     },

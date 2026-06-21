@@ -5,7 +5,7 @@ Module ID: `accounting-core`
 Mount: `/accounting`
 
 ## Summary
-Tenant-scoped double-entry accounting foundation with chart of accounts, fiscal periods, balanced posting, voiding, and trial balance.
+Tenant-scoped double-entry accounting foundation with setup settings, chart of accounts, fiscal periods, balanced posting, voiding, and trial balance.
 
 ## Dependencies
 - none required
@@ -40,6 +40,7 @@ Tenant-scoped double-entry accounting foundation with chart of accounts, fiscal 
 ## Invariants
 - Posted journal entries must balance in integer cents.
 - Chart setup supports GAAP and IFRS seed packs and normalizes the chosen base currency onto created accounts.
+- Accounting settings persist chart standard, base currency, fiscal-year start month, and source-style default AR/AP/income accounts.
 - Fiscal periods carry a type (`month`, `quarter`, `year`, or `custom`) and close actor metadata.
 - Fiscal-period lifecycle writes use compare-and-set status guards so stale close/reopen/lock attempts fail without event emission.
 - Fiscal periods transition only from open to closed, closed to open, or closed to locked.

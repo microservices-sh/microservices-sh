@@ -126,8 +126,23 @@ export interface AccountingSetupStatus {
   accountsConfigured: boolean;
   accountCount: number;
   baseCurrency: string | null;
+  settingsConfigured: boolean;
+  settings: AccountingSettings | null;
+  defaultAccountsConfigured: boolean;
   fiscalPeriodsConfigured: boolean;
   fiscalPeriodCount: number;
+}
+
+export interface AccountingSettings {
+  tenantId: string;
+  accountingStandard: ChartOfAccountsStandard;
+  fiscalYearStartMonth: number;
+  baseCurrency: string;
+  defaultArAccountId: string | null;
+  defaultApAccountId: string | null;
+  defaultIncomeAccountId: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TrialBalancePosting {
@@ -201,11 +216,12 @@ export interface AccountingEvent {
     | "accounting-core.account_created"
     | "accounting-core.fiscal_period_created"
     | "accounting-core.fiscal_period_status_changed"
+    | "accounting-core.settings_updated"
     | "accounting-core.journal_entry_created"
     | "accounting-core.journal_entry_updated"
     | "accounting-core.journal_entry_posted"
     | "accounting-core.journal_entry_voided";
-  entityType: "account" | "fiscal_period" | "journal_entry";
+  entityType: "account" | "accounting_settings" | "fiscal_period" | "journal_entry";
   entityId: string;
   tenantId: string;
   payload: Record<string, unknown>;

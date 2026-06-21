@@ -3,6 +3,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const accountsReceivableMigration = readText("migrations/0025_accounts_receivable.sql");
   const bankReconciliationMigration = readText("migrations/0026_bank_reconciliation.sql");
   const accountingFiscalPeriodMetadataMigration = readText("migrations/0030_accounting_fiscal_period_metadata.sql");
+  const accountingSettingsMigration = readText("migrations/0031_accounting_settings.sql");
   const recurringBillDetailServer = readText("src/routes/app/payables/recurring/[id]/+page.server.ts");
   const bankingImportDetailServer = readText("src/routes/app/banking/imports/[id]/+page.server.ts");
   const bankingImportDetailPage = readText("src/routes/app/banking/imports/[id]/+page.svelte");
@@ -338,17 +339,41 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     [
       "type ChartOfAccountsStandard",
       "CHART_STANDARDS",
+      "updateAccountingSettings",
+      "listAccounts",
+      "saveDefaults",
       "\"gaap\", \"ifrs\"",
       "currencyCode",
       "form.get(\"baseCurrency\")",
+      "form.get(\"defaultArAccountId\")",
+      "form.get(\"defaultApAccountId\")",
+      "form.get(\"defaultIncomeAccountId\")",
       "{ tenantId: org.id, standard, currency }"
     ],
-    "Accounting settings seeds chart setup through accounting-core with selected GAAP/IFRS standard and base currency."
+    "Accounting settings seeds chart setup and persists default posting accounts through accounting-core."
   );
   assertFileIncludesAll(
     "src/routes/app/settings/accounting/+page.svelte",
-    ["name=\"standard\"", "name=\"baseCurrency\"", "GAAP", "IFRS", "data.setup.baseCurrency"],
-    "Accounting settings UI exposes chart standard and base-currency setup fields."
+    [
+      "name=\"standard\"",
+      "name=\"baseCurrency\"",
+      "GAAP",
+      "IFRS",
+      "data.setup.baseCurrency",
+      "Default posting accounts",
+      "name=\"defaultArAccountId\"",
+      "name=\"defaultApAccountId\"",
+      "name=\"defaultIncomeAccountId\""
+    ],
+    "Accounting settings UI exposes chart standard, base-currency setup, and default posting account fields."
+  );
+  assert(
+    accountingSettingsMigration.includes("CREATE TABLE IF NOT EXISTS accounting_settings") &&
+      accountingSettingsMigration.includes("default_ar_account_id") &&
+      accountingSettingsMigration.includes("default_ap_account_id") &&
+      accountingSettingsMigration.includes("default_income_account_id"),
+    "Accounting template includes the accounting settings/default-account persistence migration.",
+    "policy:accounting-settings-migration"
   );
   assertFileIncludesAll(
     "src/routes/app/ledger/+page.server.ts",

@@ -6,7 +6,7 @@ export const manifest = {
   status: "draft",
   class: "core",
   summary:
-    "Tenant-scoped double-entry accounting foundation with chart of accounts, fiscal periods, balanced posting, voiding, and trial balance.",
+    "Tenant-scoped double-entry accounting foundation with setup settings, chart of accounts, fiscal periods, balanced posting, voiding, and trial balance.",
   entrypoint: "src/index.ts",
   permissions: [
     "accounting-core.read",
@@ -21,6 +21,7 @@ export const manifest = {
       binding: "DB",
       tables: [
         "accounting_accounts",
+        "accounting_settings",
         "accounting_fiscal_periods",
         "accounting_journal_entries",
         "accounting_journal_lines",
@@ -40,6 +41,7 @@ export const manifest = {
         "accounting-core.account_created",
         "accounting-core.fiscal_period_created",
         "accounting-core.fiscal_period_status_changed",
+        "accounting-core.settings_updated",
         "accounting-core.journal_entry_created",
         "accounting-core.journal_entry_updated",
         "accounting-core.journal_entry_posted",
@@ -93,6 +95,7 @@ export const manifest = {
         "accounting-core.listAccounts",
         "accounting-core.getAccount",
         "accounting-core.createAccount",
+        "accounting-core.updateAccountingSettings",
         "accounting-core.createFiscalPeriod",
         "accounting-core.closeFiscalPeriod",
         "accounting-core.getFiscalPeriod",
@@ -107,6 +110,7 @@ export const manifest = {
       ],
       approvalRequiredFor: [
         "accounting-core.createAccount",
+        "accounting-core.updateAccountingSettings",
         "accounting-core.createFiscalPeriod",
         "accounting-core.closeFiscalPeriod",
         "accounting-core.lockFiscalPeriod",

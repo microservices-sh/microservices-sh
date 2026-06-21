@@ -3,7 +3,7 @@
   "info": {
     "title": "Accounting Core Module",
     "version": "0.1.0",
-    "description": "Boundary shapes for tenant-scoped chart of accounts, fiscal periods, balanced journal posting, voiding, and trial balance reporting."
+    "description": "Boundary shapes for tenant-scoped accounting setup settings, chart of accounts, fiscal periods, balanced journal posting, voiding, and trial balance reporting."
   },
   "paths": {
     "/setup/status": {
@@ -32,6 +32,16 @@
         "responses": {
           "201": { "description": "Fiscal periods seeded" },
           "409": { "description": "Fiscal periods already configured" }
+        }
+      }
+    },
+    "/settings": {
+      "patch": {
+        "summary": "Update tenant accounting setup settings and default accounts",
+        "operationId": "updateAccountingSettings",
+        "responses": {
+          "200": { "description": "Accounting settings updated" },
+          "409": { "description": "Default account is inactive, a header, or the wrong type" }
         }
       }
     },
@@ -220,6 +230,17 @@
           "debitCents": { "$ref": "#/components/schemas/MoneyCents" },
           "creditCents": { "$ref": "#/components/schemas/MoneyCents" },
           "runningBalanceCents": { "$ref": "#/components/schemas/MoneyCents" }
+        }
+      },
+      "AccountingSettings": {
+        "type": "object",
+        "properties": {
+          "accountingStandard": { "$ref": "#/components/schemas/ChartOfAccountsStandard" },
+          "fiscalYearStartMonth": { "type": "integer", "minimum": 1, "maximum": 12 },
+          "baseCurrency": { "type": "string" },
+          "defaultArAccountId": { "type": ["string", "null"] },
+          "defaultApAccountId": { "type": ["string", "null"] },
+          "defaultIncomeAccountId": { "type": ["string", "null"] }
         }
       }
     }

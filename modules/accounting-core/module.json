@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "status": "draft",
   "class": "core",
-  "summary": "Tenant-scoped double-entry accounting foundation with chart of accounts, fiscal periods, balanced posting, voiding, and trial balance.",
+  "summary": "Tenant-scoped double-entry accounting foundation with setup settings, chart of accounts, fiscal periods, balanced posting, voiding, and trial balance.",
   "runtime": {
     "language": "typescript",
     "platform": "cloudflare-workers",
@@ -22,6 +22,7 @@
       "binding": "DB",
       "tables": [
         "accounting_accounts",
+        "accounting_settings",
         "accounting_fiscal_periods",
         "accounting_journal_entries",
         "accounting_journal_lines",
@@ -51,6 +52,7 @@
         "accounting-core.account_created",
         "accounting-core.fiscal_period_created",
         "accounting-core.fiscal_period_status_changed",
+        "accounting-core.settings_updated",
         "accounting-core.journal_entry_created",
         "accounting-core.journal_entry_updated",
         "accounting-core.journal_entry_posted",
@@ -124,6 +126,7 @@
         "accounting-core.listAccounts",
         "accounting-core.getAccount",
         "accounting-core.createAccount",
+        "accounting-core.updateAccountingSettings",
         "accounting-core.createFiscalPeriod",
         "accounting-core.closeFiscalPeriod",
         "accounting-core.getFiscalPeriod",
@@ -141,6 +144,7 @@
       ],
       "approvalRequiredFor": [
         "accounting-core.createAccount",
+        "accounting-core.updateAccountingSettings",
         "accounting-core.createFiscalPeriod",
         "accounting-core.closeFiscalPeriod",
         "accounting-core.lockFiscalPeriod",

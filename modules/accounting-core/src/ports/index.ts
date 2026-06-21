@@ -2,6 +2,7 @@ import type {
   Account,
   AccountingEvent,
   AccountFilter,
+  AccountingSettings,
   FiscalPeriod,
   FiscalPeriodFilter,
   FiscalPeriodStatus,
@@ -14,6 +15,9 @@ import type {
 } from "../types";
 
 export interface AccountingCoreStore {
+  getAccountingSettings(tenantId: string): Promise<AccountingSettings | null>;
+  upsertAccountingSettings(settings: AccountingSettings): Promise<void>;
+
   insertAccount(account: Account): Promise<void>;
   updateAccount(account: Account): Promise<void>;
   getAccount(tenantId: string, accountId: string): Promise<Account | null>;

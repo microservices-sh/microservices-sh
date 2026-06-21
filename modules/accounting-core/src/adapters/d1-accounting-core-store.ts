@@ -4,6 +4,7 @@ import type {
   Account,
   AccountingEvent,
   AccountFilter,
+  AccountingSettings,
   AccountSubtype,
   AccountType,
   FiscalPeriod,
@@ -44,6 +45,20 @@ function rowToAccount(row: Record<string, unknown>): Account {
     isReconcilable: rowBool(row.is_reconcilable),
     isHeader: rowBool(row.is_header),
     active: rowBool(row.active),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at)
+  };
+}
+
+function rowToAccountingSettings(row: Record<string, unknown>): AccountingSettings {
+  return {
+    tenantId: String(row.tenant_id),
+    accountingStandard: String(row.accounting_standard ?? "gaap") as AccountingSettings["accountingStandard"],
+    fiscalYearStartMonth: Number(row.fiscal_year_start_month ?? 1),
+    baseCurrency: String(row.base_currency ?? "USD"),
+    defaultArAccountId: nullableString(row.default_ar_account_id),
+    defaultApAccountId: nullableString(row.default_ap_account_id),
+    defaultIncomeAccountId: nullableString(row.default_income_account_id),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at)
   };
@@ -144,6 +159,8 @@ function rowToGeneralLedgerPosting(row: Record<string, unknown>): GeneralLedgerP
 
 const ACCOUNT_COLS =
   "id, tenant_id, code, name, type, account_subtype, parent_id, currency, normal_balance, description, is_system, is_reconcilable, is_header, active, created_at, updated_at";
+const SETTINGS_COLS =
+  "tenant_id, accounting_standard, fiscal_year_start_month, base_currency, default_ar_account_id, default_ap_account_id, default_income_account_id, created_at, updated_at";
 const PERIOD_COLS =
   "id, tenant_id, name, period_type, starts_on, ends_on, status, closed_by_id, closed_at, locked_at, created_at, updated_at";
 const ENTRY_COLS =
@@ -225,6 +242,41 @@ async function updateJournalEntryRecord(db: D1Database, entry: JournalEntry): Pr
 
 export function createD1AccountingCoreStore(db: D1Database): AccountingCoreStore {
   return {
+    async getAccountingSettings(tenantId) {
+      const row = await db
+        .prepare(`SELECT ${SETTINGS_COLS} FROM accounting_settings WHERE tenant_id = ?`)
+        .bind(tenantId)
+        .first<Record<string, unknown>>();
+      return row ? rowToAccountingSettings(row) : null;
+    },
+
+    async upsertAccountingSettings(settings) {
+      await db
+        .prepare(
+          `INSERT INTO accounting_settings (${SETTINGS_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(tenant_id) DO UPDATE SET
+             accounting_standard = excluded.accounting_standard,
+             fiscal_year_start_month = excluded.fiscal_year_start_month,
+             base_currency = excluded.base_currency,
+             default_ar_account_id = excluded.default_ar_account_id,
+             default_ap_account_id = excluded.default_ap_account_id,
+             default_income_account_id = excluded.default_income_account_id,
+             updated_at = excluded.updated_at`
+        )
+        .bind(
+          settings.tenantId,
+          settings.accountingStandard,
+          settings.fiscalYearStartMonth,
+          settings.baseCurrency,
+          settings.defaultArAccountId,
+          settings.defaultApAccountId,
+          settings.defaultIncomeAccountId,
+          settings.createdAt,
+          settings.updatedAt
+        )
+        .run();
+    },
+
     async insertAccount(account) {
       await db
         .prepare(`INSERT INTO accounting_accounts (${ACCOUNT_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)

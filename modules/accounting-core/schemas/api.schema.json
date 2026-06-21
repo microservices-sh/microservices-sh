@@ -39,6 +39,12 @@
       "items": {
         "enum": ["openingBalanceCents", "runningBalanceCents", "closingBalanceCents"]
       }
+    },
+    "accountingSettingsFields": {
+      "type": "array",
+      "items": {
+        "enum": ["accountingStandard", "baseCurrency", "fiscalYearStartMonth", "defaultArAccountId", "defaultApAccountId", "defaultIncomeAccountId"]
+      }
     }
   }
 }

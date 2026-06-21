@@ -5,6 +5,7 @@ export {
   accountIdentitySchema,
   accountInputSchema,
   accountingCoreConfigSchema,
+  accountingSettingsSchema,
   accountRecordSchema,
   accountSubtypeSchema,
   accountTypeSchema,
@@ -46,7 +47,12 @@ export { listFiscalPeriods } from "./use-cases/list-fiscal-periods";
 export { lockFiscalPeriod } from "./use-cases/lock-fiscal-period";
 export { reopenFiscalPeriod } from "./use-cases/reopen-fiscal-period";
 export { updateFiscalPeriodStatus } from "./use-cases/update-fiscal-period-status";
-export { getAccountingSetupStatus, seedChartOfAccounts, seedMonthlyFiscalPeriods } from "./use-cases/setup-accounting";
+export {
+  getAccountingSetupStatus,
+  seedChartOfAccounts,
+  seedMonthlyFiscalPeriods,
+  updateAccountingSettings
+} from "./use-cases/setup-accounting";
 export { createJournalEntry } from "./use-cases/create-journal-entry";
 export { updateJournalEntry } from "./use-cases/update-journal-entry";
 export { postJournalEntry } from "./use-cases/post-journal-entry";
@@ -56,9 +62,10 @@ export { getTrialBalance } from "./use-cases/get-trial-balance";
 export type { AccountingCoreStore } from "./ports";
 export type {
   Account,
-  AccountingSetupStatus,
   AccountingCoreConfig,
   AccountingEvent,
+  AccountingSettings,
+  AccountingSetupStatus,
   AccountFilter,
   AccountSubtype,
   AccountType,
