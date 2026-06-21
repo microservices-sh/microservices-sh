@@ -20,12 +20,18 @@ SvelteKit template for StackSuite-style commerce operations.
 - `commerce-sync`: provider connections, mappings, sync runs, webhooks.
 - `customer`, `invoice`, `payment`, `file-media`, `jobs-workflows`, `audit-log`:
   inherited ERP shell foundations.
+- `code-memory`: optional control-plane memory for approved reusable Logic
+  Capsules; retrieve through the hosted portal, MCP tools, or
+  `microservices memory search/get`, not as normal commerce CRUD.
 
 ## Architecture Rule
 
 SvelteKit routes are adapters. Domain/API logic lives in detached module use
 cases, and cross-module work should use ports or events rather than direct table
 access.
+When Code Memory is configured, search approved capsules before implementing
+reusable sync, webhook, invoice, D1, or integration helpers, and preserve
+provenance, constraints, tests, and required environment variables.
 
 The UI includes reference pages for product catalog, inventory, sales orders,
 shipments, and commerce sync. The next template-specific slice should prune

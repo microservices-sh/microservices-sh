@@ -30,6 +30,10 @@ Safe first actions:
 - `/admin` is platform super-admin scope, gated by the session `isSuperAdmin`
   flag, not an org role.
 - Do not vendor module internals under `src/lib/server/modules`.
+- When Code Memory is configured, search approved Logic Capsules before writing
+  reusable workflow, knowledge, integration, D1, or auth/session logic. Use the
+  portal, MCP tools, or `microservices memory search/get`; do not copy candidate
+  capsules without approval and provenance.
 
 Do not add payment, email, auth provider, webhook, migration, secret, Hermes
 ingestion, Obsidian export, calendar write-back, AI-provider calls, or production

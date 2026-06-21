@@ -21,12 +21,18 @@ SvelteKit template for StackSuite-style accounting operations.
 - `recurring-documents`: recurring invoice/bill schedules and draft payloads.
 - `invoice`, `payment`, `customer`, `file-media`, `webhook-delivery`,
   `jobs-workflows`, `audit-log`: inherited ERP shell foundations.
+- `code-memory`: optional control-plane memory for approved reusable Logic
+  Capsules; retrieve through the hosted portal, MCP tools, or
+  `microservices memory search/get`, not as normal accounting CRUD.
 
 ## Architecture Rule
 
 SvelteKit routes are adapters. Domain/API logic lives in detached module use
 cases, and cross-module work should use ports or events rather than direct table
 access.
+When Code Memory is configured, search approved capsules before implementing
+reusable invoice numbering, posting, bank import, D1, or integration helpers,
+and preserve provenance, constraints, tests, and required environment variables.
 
 The UI includes reference pages for ledger review, payables, receivables aging,
 bank statement import, reconciliation, quote lifecycle, and recurring document

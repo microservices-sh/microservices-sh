@@ -1958,6 +1958,14 @@ const SHIM_TARGETS = [
   { id: "saas-starter-sveltekit", name: "SaaS Starter SvelteKit", path: "templates/saas-starter-sveltekit/scripts/microservices.js" },
   { id: "client-portal-sveltekit", name: "Client Portal SvelteKit", path: "templates/client-portal-sveltekit/scripts/microservices.js" },
   { id: "erp-shell-sveltekit", name: "ERP Shell SvelteKit", path: "templates/erp-shell-sveltekit/scripts/microservices.js" },
+  { id: "commerce-ops-sveltekit", name: "Commerce Ops SvelteKit", path: "templates/commerce-ops-sveltekit/scripts/microservices.js" },
+  { id: "accounting-erp-sveltekit", name: "Accounting ERP SvelteKit", path: "templates/accounting-erp-sveltekit/scripts/microservices.js" },
+  { id: "erp-shell-sveltekit", name: "ERP Shell SvelteKit", path: "packages/create-microservices-app/templates/erp-shell-sveltekit/scripts/microservices.js" },
+  { id: "commerce-ops-sveltekit", name: "Commerce Ops SvelteKit", path: "packages/create-microservices-app/templates/commerce-ops-sveltekit/scripts/microservices.js" },
+  { id: "accounting-erp-sveltekit", name: "Accounting ERP SvelteKit", path: "packages/create-microservices-app/templates/accounting-erp-sveltekit/scripts/microservices.js" },
+  { id: "saas-starter-sveltekit", name: "SaaS Starter SvelteKit", path: "packages/create-microservices-app/templates/saas-starter-sveltekit/scripts/microservices.js" },
+  { id: "client-portal-sveltekit", name: "Client Portal SvelteKit", path: "packages/create-microservices-app/templates/client-portal-sveltekit/scripts/microservices.js" },
+  { id: "booking-sveltekit", name: "Booking SvelteKit", path: "packages/create-microservices-app/templates/booking-sveltekit/scripts/microservices.js" },
   // Bundled shim consumed by create-microservices-app framework-starter for new
   // framework apps. Kept identical to booking to preserve current behavior.
   { id: "booking-sveltekit", name: "Booking SvelteKit", path: "packages/create-microservices-app/shim/microservices.js" }

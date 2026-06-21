@@ -29,6 +29,9 @@ workflows adapted from Jimmy Dashboard OS.
 - `jobs-workflows` — async job slot
 - `notifications-inapp` — in-app notification slot
 - `operator-work` — tasks, focus blocks, daily reviews, and auditable AI/user edits
+- `code-memory` — optional control-plane memory for approved reusable Logic
+  Capsules; retrieve through the hosted portal, MCP tools, or
+  `microservices memory search/get`, not as normal workspace CRUD.
 
 ## Architecture Rule
 
@@ -38,6 +41,9 @@ module. `/app/knowledge` uses `knowledge-base-rag`. Template-owned workflow
 pages (`/app/calendar`, `/app/content`, `/app/ai-team`) still use
 `src/lib/os-data.ts` sample data and should stay thin until a dedicated module or
 documented D1 table owns their data.
+When Code Memory is configured, search approved capsules before implementing
+reusable workflow, knowledge, integration, D1, or auth/session helpers, and
+preserve provenance, constraints, tests, and required environment variables.
 
 ```txt
 src/routes/signup/+page.server.ts          -> createOrganization

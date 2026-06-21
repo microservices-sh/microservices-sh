@@ -17,6 +17,10 @@ generated app.
 - **Reference pages are samples, not gospel.** The pages shipped here
   (`customers`, `invoices`, …) are a *correct, working starting point*. Copy the
   pattern, then adapt names, fields, columns, and styling to the business.
+- **Code Memory is control-plane/agentic.** It is normally searched from the
+  portal, MCP tools, or `microservices memory search/get` before writing reusable
+  logic. Do not add a normal CRUD screen for it unless the app explicitly owns
+  Code Memory operations.
 
 ## Installed vs enabled
 
@@ -86,6 +90,7 @@ The reference page is deliberately generic. When customizing:
 | accounts-payable | Payables — vendors, bills, aging | ✅ `app/payables` |
 | accounts-receivable | Receivables — open invoices and aging | ✅ `app/receivables` |
 | bank-reconciliation | Banking — statement import and reconciliation | ✅ `app/banking` |
+| code-memory | Approved Logic Capsule retrieval for agents | control-plane/agentic — portal/MCP/CLI, no normal app CRUD |
 | customer | Customers — list + create | ✅ `app/customers` |
 | invoice | Invoices — issue + record payment | ✅ `app/invoices` |
 | support-ticket | Support — list + open + status | ✅ `app/support` |

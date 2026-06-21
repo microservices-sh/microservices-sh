@@ -3733,6 +3733,8 @@ function usage() {
   microservices modules list                     # list installed modules
   microservices add <id[@version]>               # vendor a module into this app
   microservices docs <id>                        # show a module's agent docs
+  microservices memory search <query>            # search approved Code Memory capsules
+  microservices memory get <capsule-id-or-slug>  # inspect an approved Logic Capsule
   microservices setup [id] [--input setup.json]  # guided template/module setup
   microservices upgrade <id[@version]> [--to x] [--plan]  # upgrade or downgrade a module
   microservices check                            # verify the app against its contract
@@ -3758,6 +3760,10 @@ function usageAll() {
   microservices modules list [--json]
   microservices add <id[@version]> [--version x] [--json]
   microservices docs <id> [--json]
+  microservices memory source list [--limit 50] [--json]
+  microservices memory github status [--json]
+  microservices memory search <query> [--limit 25] [--json]
+  microservices memory get <capsule-id-or-slug> [--json]
   microservices setup [id] [--input setup.json] [--plan] [--json]
   microservices upgrade <id[@version]> [--to x] [--plan] [--json]
   microservices check [--json]
@@ -3794,6 +3800,127 @@ function usageAll() {
   microservices deploy disable [deployment-id] [--input deployment.json] --confirm disable [--json]
   microservices deploy cleanup [deployment-id] [--input deployment.json] [--plan] --confirm cleanup [--json]
 `;
+}
+
+function memoryLimit(flags, fallback = 25) {
+  if (flags.limit === null || flags.limit === undefined) return fallback;
+  const limit = Number(flags.limit);
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100) return null;
+  return limit;
+}
+
+function formatMemorySource(source) {
+  const paths = Array.isArray(source.allowedPaths) && source.allowedPaths.length
+    ? ` paths=${source.allowedPaths.join(",")}`
+    : "";
+  return `${source.id} ${source.provider}:${source.repoOwner}/${source.repoName} ${source.repoVisibility ?? "unknown"} ${source.scanStatus ?? "not_scanned"}${paths}`;
+}
+
+function formatMemorySources(result) {
+  const sources = Array.isArray(result.sources) ? result.sources : [];
+  if (!sources.length) return "No Trusted Sources found.\n";
+  return `${sources.map(formatMemorySource).join("\n")}\n`;
+}
+
+function formatMemoryCapsule(capsule) {
+  const provenance = capsule.provenance ?? {};
+  const repo = provenance.repoUrl ?? [provenance.repoOwner, provenance.repoName].filter(Boolean).join("/");
+  return `${capsule.slug ?? capsule.id}: ${capsule.name}
+  ${capsule.purpose}
+  Source: ${repo || "unknown"}${provenance.path ? `/${provenance.path}` : ""}${provenance.ref ? `@${provenance.ref}` : ""}
+  Mode: ${capsule.reuseMode ?? "adapt"}  Status: ${capsule.approvalStatus ?? "approved"}  Visibility: ${capsule.visibility ?? "workspace_private"}`;
+}
+
+function formatMemoryCapsules(result) {
+  const capsules = Array.isArray(result.capsules) ? result.capsules : [];
+  if (!capsules.length) return "No Logic Capsules found.\n";
+  return `${capsules.map(formatMemoryCapsule).join("\n\n")}\n`;
+}
+
+function formatLogicCapsule(result) {
+  const capsule = result.capsule ?? result;
+  const lines = [
+    formatMemoryCapsule(capsule),
+    capsule.files?.length ? `Files:\n${capsule.files.map((item) => `- ${item}`).join("\n")}` : null,
+    capsule.dependencies?.length ? `Dependencies: ${capsule.dependencies.join(", ")}` : null,
+    capsule.requiredEnv?.length ? `Required env: ${capsule.requiredEnv.join(", ")}` : null,
+    capsule.tests?.length ? `Tests:\n${capsule.tests.map((item) => `- ${item}`).join("\n")}` : null,
+    capsule.constraints?.length ? `Constraints:\n${capsule.constraints.map((item) => `- ${item}`).join("\n")}` : null,
+    capsule.doNotUseFor?.length ? `Do not use for:\n${capsule.doNotUseFor.map((item) => `- ${item}`).join("\n")}` : null,
+    capsule.usageNotes ? `Usage notes:\n${capsule.usageNotes}` : null
+  ].filter(Boolean);
+  return `${lines.join("\n")}\n`;
+}
+
+function formatMemoryGithubStatus(result) {
+  const app = result.githubApp ?? {};
+  const installations = Array.isArray(result.installations) ? result.installations : [];
+  return `GitHub App: ${app.configured ? "configured" : "not configured"}
+Installations: ${installations.length ? installations.map((item) => item.accountLogin ?? item.installationId).join(", ") : "none"}
+`;
+}
+
+function readOnlyMemoryResponse(action) {
+  return fail(
+    "MEMORY_COMMAND_READ_ONLY",
+    `Generated app memory command "${action}" is read-only here.`,
+    "Use the hosted portal, MCP tools, or root microservices CLI for Trusted Source mutations and approvals.",
+    { action }
+  );
+}
+
+async function handleMemoryCommand(args, flags) {
+  const [, action = "source", value, extra] = args;
+  const limit = memoryLimit(flags, action === "source" || action === "sources" || action === "trusted-sources" ? 50 : 25);
+  if (limit === null) {
+    emit(fail("INVALID_MEMORY_LIMIT", "--limit must be an integer between 1 and 100.", "Pass --limit 25 or omit it."), null, flags);
+    return;
+  }
+
+  if (action === "source" || action === "sources" || action === "trusted-sources") {
+    if (!value || value === "list") {
+      emit(await apiRequest(flags, pathWithQuery("/memory/sources", { limit: String(limit) })), formatMemorySources, flags);
+      return;
+    }
+    emit(readOnlyMemoryResponse(`source ${value}`), null, flags);
+    return;
+  }
+
+  if (action === "github") {
+    if (!value || value === "status" || value === "list") {
+      emit(await apiRequest(flags, "/memory/github/status"), formatMemoryGithubStatus, flags);
+      return;
+    }
+    emit(readOnlyMemoryResponse(`github ${value}`), null, flags);
+    return;
+  }
+
+  if (action === "search" || action === "capsules") {
+    const query = action === "search" ? value ?? flags.search : flags.search ?? value;
+    emit(await apiRequest(flags, pathWithQuery("/memory/capsules", { q: query, limit: String(limit) })), formatMemoryCapsules, flags);
+    return;
+  }
+
+  if (action === "get" || (action === "capsule" && value === "get")) {
+    const id = action === "get" ? value : extra;
+    if (!id) {
+      emit(fail("MEMORY_CAPSULE_ID_REQUIRED", "Missing Logic Capsule id or slug.", "Run `microservices memory get <capsule-id-or-slug>`."), null, flags);
+      return;
+    }
+    emit(await apiRequest(flags, `/memory/capsules/${encodeURIComponent(id)}`), formatLogicCapsule, flags);
+    return;
+  }
+
+  emit(
+    fail(
+      "UNKNOWN_MEMORY_COMMAND",
+      `Unknown memory command: ${action}.`,
+      "Use `memory source list`, `memory github status`, `memory search`, or `memory get`.",
+      { command: action }
+    ),
+    null,
+    flags
+  );
 }
 
 async function main() {
@@ -3882,6 +4009,8 @@ async function main() {
           : `No docs found for module "${action}". Run "microservices modules list" to see installed modules.`)
       : `Usage: microservices docs <module-id>. Run "microservices modules list" to list installed modules.`;
     emit({ ok: true, data: { id: action ?? null, content } }, (data) => `${data.content}\n`, flags);
+  } else if (resource === "memory" || resource === "code-memory") {
+    await handleMemoryCommand(args, flags);
   } else if (resource === "setup") {
     const startedAt = Date.now();
     const response = await setupResponse(action, flags);

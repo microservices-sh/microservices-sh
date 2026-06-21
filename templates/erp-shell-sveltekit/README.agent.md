@@ -26,6 +26,10 @@ Safe first actions:
   `isSuperAdmin` flag, not an org role.
 - Do not vendor module internals under `src/lib/server/modules`. Depend on the
   module packages and consume their exported use cases, ports, and adapters.
+- When Code Memory is configured, search approved Logic Capsules before writing
+  reusable auth, billing, booking, D1, or integration logic. Use the portal, MCP
+  tools, or `microservices memory search/get`; do not copy candidate capsules
+  without approval and provenance.
 - `project-progress` owns project timelines, access grants, comments, and public
   token snapshots. ERP shell routes may adapt those use cases, but must not write
   project tables directly or expose raw media storage keys on public routes.

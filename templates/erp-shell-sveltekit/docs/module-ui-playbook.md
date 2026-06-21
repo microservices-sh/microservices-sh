@@ -17,6 +17,10 @@ generated app.
 - **Reference pages are samples, not gospel.** The pages shipped here
   (`customers`, `invoices`, …) are a *correct, working starting point*. Copy the
   pattern, then adapt names, fields, columns, and styling to the business.
+- **Code Memory is control-plane/agentic.** It is normally searched from the
+  portal, MCP tools, or `microservices memory search/get` before writing reusable
+  logic. Do not add a normal CRUD screen for it unless the app explicitly owns
+  Code Memory operations.
 
 ## Installed vs enabled
 
@@ -97,4 +101,5 @@ The reference page is deliberately generic. When customizing:
 | project-progress | Projects — customer progress timeline, public snapshot, comments, and access grants (media bytes stay in file-media) | ✅ `app/project-progress`, `project/[accessToken]` |
 | jobs-workflows | Jobs — queue health, manual enqueue, schedules, and catch-up controls | ✅ `app/jobs` |
 | webhook-delivery | Webhooks — endpoints, redacted signing status, delivery log, and safe test delivery | ✅ `app/webhooks` |
+| code-memory | Approved Logic Capsule retrieval for agents | control-plane/agentic — portal/MCP/CLI, no normal app CRUD |
 | auth, identity, email, gateway, audit-log, admin-shell, idempotency | infra | — no user UI by design |

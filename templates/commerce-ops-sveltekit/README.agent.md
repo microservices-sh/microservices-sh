@@ -22,6 +22,10 @@ Safe first actions:
 - Product catalog, inventory, sales orders, shipments, and commerce sync have
   route-level reference UIs. Keep future route work module-backed and guarded.
 - Do not vendor module internals under `src/lib/server/modules`.
+- When Code Memory is configured, search approved Logic Capsules before writing
+  reusable sync, webhook, invoice, D1, or integration logic. Use the portal, MCP
+  tools, or `microservices memory search/get`; do not copy candidate capsules
+  without approval and provenance.
 
 Do not add payment, email, webhook, migration, secret, provider-write, or remote
 deploy behavior without approval.

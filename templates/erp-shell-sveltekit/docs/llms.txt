@@ -20,10 +20,16 @@ mechanism and the module wiring map.
 - `billing-subscriptions` — plans, subscriptions, status, dunning
 - `admin-shell` — generic super-admin table gateway over module tables
 - `audit-log` — append-only event trail
+- `code-memory` — optional control-plane memory for approved reusable Logic
+  Capsules; retrieve through the hosted portal, MCP tools, or
+  `microservices memory search/get`, not as normal app CRUD.
 
 ## Architecture Rule
 
 SvelteKit route files are adapters. Domain/API logic lives in detached use cases.
+When Code Memory is configured, search approved capsules before implementing
+reusable auth, billing, booking, D1, or integration helpers, and preserve
+provenance, constraints, tests, and required environment variables.
 
 ```txt
 src/routes/signup/+page.server.ts        -> createOrganization (org-team-rbac)
