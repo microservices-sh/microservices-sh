@@ -13,6 +13,7 @@ process.env.MICROSERVICES_TELEMETRY = "0";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const tempRoot = await mkdtemp(join(tmpdir(), "microservices-create-smoke-"));
+const SKIP_BUILD = process.argv.includes("--skip-build") || process.env.MICROSERVICES_CREATE_SMOKE_SKIP_BUILD === "1";
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -57,7 +58,11 @@ function parseJsonc(text) {
 }
 
 try {
-  run("pnpm", ["run", "build"], { stdio: "inherit" });
+  if (SKIP_BUILD) {
+    run("node", ["--check", "dist/index.js"], { stdio: "inherit" });
+  } else {
+    run("pnpm", ["run", "build"], { stdio: "inherit" });
+  }
   run("pnpm", ["pack", "--pack-destination", tempRoot], { stdio: "inherit" });
 
   const tarball = (await readdir(tempRoot)).find((entry) => entry.endsWith(".tgz"));

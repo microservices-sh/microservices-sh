@@ -33,6 +33,7 @@ const DEFAULT_CONFIG_PATH = process.env.MICROSERVICES_CONFIG_PATH
 
 function parseArgs(argv) {
   const args = [];
+  let parseError = null;
   const flags = {
     json: false,
     helpAll: false,
@@ -250,12 +251,19 @@ function parseArgs(argv) {
       flags.dryRun = true;
     } else if (value === "--plan") {
       flags.plan = true;
+    } else if (value.startsWith("-")) {
+      parseError ??= failResponse(
+        "CLI_UNKNOWN_OPTION",
+        `Unknown option: ${value}.`,
+        "Run `microservices help all` for supported commands and flags.",
+        { option: value }
+      );
     } else {
       args.push(value);
     }
   }
 
-  return { args, flags };
+  return { args, flags, error: parseError };
 }
 
 function templateInput(templateId, flags) {
@@ -3374,9 +3382,14 @@ ${result.cleanup?.length ? result.cleanup.map((item) => `- ${item.resource.resou
 }
 
 async function main() {
-  const { args, flags } = parseArgs(process.argv.slice(2));
+  const { args, flags, error } = parseArgs(process.argv.slice(2));
   const [resource, action, value] = args;
   let response;
+
+  if (error) {
+    process.exitCode = 1;
+    return flags.json ? writeJson(error) : printHuman(error, () => "");
+  }
 
   if (flags.helpAll || resource === "help-all" || (resource === "help" && action === "all")) {
     process.stdout.write(usageAll());

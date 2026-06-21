@@ -3658,7 +3658,7 @@
           end: 24,
           title: "The OS shell",
           short: "A private operating layer: operate, research, advise, govern.",
-          terminalTitle: "verana-os ▸ os create",
+          terminalTitle: "verana-os ▸ workspace",
           terminalFoot: "business-ready · operate · research · advise",
           browserUrl: "verana-os · console",
           appPill: "Corporate OS",
@@ -3669,9 +3669,9 @@
             { at: 5.4, text: "to operate, research, and advise." }
           ],
           lines: [
-            { text: "$ pnpm microservices os create", type: "prompt" },
-            { text: "Corporate OS · dot-ai-os", type: "ok", note: "workspace · team · knowledge" },
-            { text: "$ pnpm microservices os check", type: "prompt" },
+            { text: "$ pnpm microservices modules list --json", type: "prompt" },
+            { text: "DOT AI OS modules · auth · rbac · knowledge · work", type: "ok", note: "workspace · team · knowledge" },
+            { text: "$ pnpm microservices check --json", type: "prompt" },
             { text: "owner ✓  workflow ✓  roles ✓  approvals ✓", type: "muted" },
             { text: "business-ready", type: "ok", note: "not just code-ready" }
           ]
@@ -3693,7 +3693,7 @@
             { at: 10, text: "Every action logged. No spreadsheets, no chasing." }
           ],
           lines: [
-            { text: "$ pnpm microservices os workflow run client-booking", type: "prompt" },
+            { text: "app: /app/workflows/client-booking", type: "prompt" },
             { text: "▸ intake → booking → confirmation", type: "muted" },
             { text: "▸ payment · invoice · audit-log", type: "muted" },
             { text: "running", type: "ok", note: "work through the OS" }
@@ -3715,7 +3715,7 @@
             { at: 6.4, text: "every finding cited — into one brief." }
           ],
           lines: [
-            { text: "$ pnpm microservices os research \"Sat hours · Riverside\"", type: "prompt" },
+            { text: "app: /app/research · Sat hours · Riverside", type: "prompt" },
             { text: "▸ internal: bookings · capacity · waitlist", type: "muted" },
             { text: "▸ market: demand · competitors · reviews", type: "muted" },
             { text: "brief ready", type: "ok", note: "12 sources · cited" }
@@ -3737,7 +3737,7 @@
             { at: 6.4, text: "that turns into tasks, approvals, a logged decision." }
           ],
           lines: [
-            { text: "$ pnpm microservices os advise --from research", type: "prompt" },
+            { text: "app: /app/decisions · from research", type: "prompt" },
             { text: "▸ recommendation · options · risks · owner", type: "muted" },
             { text: "▸ create: task · approval · review", type: "muted" },
             { text: "decision brief", type: "ok", note: "logged · sources attached" }

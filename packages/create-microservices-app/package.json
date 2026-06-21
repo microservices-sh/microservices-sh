@@ -25,6 +25,7 @@
     "build": "node scripts/build.js && node --check dist/index.js",
     "gen:template-types": "node scripts/gen-template-types.mjs",
     "smoke": "node scripts/smoke-test.js",
+    "smoke:built": "node scripts/smoke-test.js --skip-build",
     "test": "node --test \"tests/*.test.mjs\""
   },
   "devDependencies": {

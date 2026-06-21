@@ -6,7 +6,8 @@ import { dirname, normalize, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { generateProject, listModuleDocs, listModules, listTemplates } from "@microservices-sh/sdk-internal";
-import { loadFrameworks, resolveFramework, buildC3Command, applyFrameworkHook, frameworkNextSteps } from "./framework-starter.js";
+import { resolveFramework, buildC3Command, applyFrameworkHook, frameworkNextSteps } from "./framework-starter.js";
+import { REPO_TEMPLATES, availableTemplateList, isPrivateTemplate, orderedTemplateList } from "./template-registry.js";
 import { BUNDLED_MODULES, BUNDLED_PACKAGES } from "./bundled-deps.js";
 import { track, telemetryNotice } from "./telemetry.js";
 
@@ -15,59 +16,7 @@ const PACKAGE_ROOT = resolve(MODULE_DIR, "..");
 const PACKAGE_VERSION = readOwnPackageVersion(PACKAGE_ROOT);
 const USER_CWD = process.env.INIT_CWD || process.cwd();
 
-// Repo-style templates bundled into the package (see scripts/build.js). These
-// are copied verbatim instead of generated procedurally from module-contract.
 const TEMPLATES_DIR = resolve(PACKAGE_ROOT, "templates");
-const REPO_TEMPLATES = {
-  "booking-sveltekit": {
-    id: "booking-sveltekit",
-    name: "Booking SvelteKit",
-    status: "ready",
-    summary: "Full Cloudflare SvelteKit booking app — public booking flow, admin, D1, typed hooks.",
-  },
-  "company-landing-astro": {
-    id: "company-landing-astro",
-    name: "Company Landing (Astro)",
-    status: "ready",
-    summary: "Static editorial company landing page on Astro — refined light design, content-driven, no backend modules.",
-  },
-  "wordpress-emdash-blog-astro": {
-    id: "wordpress-emdash-blog-astro",
-    name: "WordPress to EmDash Blog (Astro)",
-    status: "experimental",
-    summary: "Cloudflare Astro + EmDash template for content-only WordPress blog migrations with D1/R2 and source probing.",
-  },
-  "saas-starter-sveltekit": {
-    id: "saas-starter-sveltekit",
-    name: "SaaS Starter SvelteKit",
-    status: "ready",
-    summary: "Multi-tenant B2B SaaS starter on Cloudflare SvelteKit — org sign-up, team RBAC, subscriptions, admin, audit log.",
-  },
-  "client-portal-sveltekit": {
-    id: "client-portal-sveltekit",
-    name: "Client Portal SvelteKit",
-    status: "ready",
-    summary: "Cloudflare SvelteKit client portal — customers see their own invoices and files, with auth, customer, and audit-log.",
-  },
-  "dot-ai-os": {
-    id: "dot-ai-os",
-    name: "DOT AI OS",
-    status: "private-pilot",
-    visibility: "private",
-    summary: "Private-pilot operator workspace on Cloudflare SvelteKit - workflows, knowledge, decisions, files, team roles, and module-backed work surfaces.",
-  },
-  "erp-shell-sveltekit": {
-    id: "erp-shell-sveltekit",
-    name: "ERP Shell SvelteKit",
-    status: "ready",
-    summary: "Cloudflare SvelteKit ERP shell - customers, invoices, files, support tickets, teams, admin, and audit log.",
-  },
-};
-const PRIVATE_REPO_TEMPLATE_IDS = new Set(
-  Object.values(REPO_TEMPLATES)
-    .filter((template) => template.visibility === "private" || template.status === "private-pilot")
-    .map((template) => template.id)
-);
 function readOwnPackageVersion(packageRoot) {
   try {
     const packageJson = JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8"));
@@ -76,6 +25,23 @@ function readOwnPackageVersion(packageRoot) {
     return "0.0.0";
   }
 }
+
+function cliTemplateList(options = {}) {
+  const sdk = listTemplates();
+  return availableTemplateList({
+    ...options,
+    proceduralTemplates: sdk.ok ? sdk.data : [],
+  });
+}
+
+function cliOrderedTemplateList(defaultTemplateId, options = {}) {
+  const sdk = listTemplates();
+  return orderedTemplateList(defaultTemplateId, {
+    ...options,
+    proceduralTemplates: sdk.ok ? sdk.data : [],
+  });
+}
+
 function modulePackageName(moduleId) {
   return `@microservices-sh/${moduleId}`;
 }
@@ -212,26 +178,6 @@ function telemetryProps(flags, extra = {}) {
 
 function durationMs(startedAt) {
   return Math.max(0, Date.now() - startedAt);
-}
-
-function availableTemplateList({ includePrivate = false } = {}) {
-  const sdk = listTemplates();
-  const procedural = sdk.ok ? sdk.data : [];
-  const repo = Object.values(REPO_TEMPLATES).filter((template) => includePrivate || !PRIVATE_REPO_TEMPLATE_IDS.has(template.id));
-  const seen = new Set(procedural.map((template) => template.id));
-  const base = [...procedural, ...repo.filter((template) => !seen.has(template.id))];
-  const frameworks = loadFrameworks().map((row) => ({
-    id: row.id,
-    name: `${row.label} (Cloudflare starter)`,
-    status: row.status,
-    summary: `${row.label} on Cloudflare Workers — empty starter, add modules via microservices.sh.`,
-  }));
-  const baseIds = new Set(base.map((t) => t.id));
-  return [...base, ...frameworks.filter((f) => !baseIds.has(f.id))];
-}
-
-function isPrivateTemplate(templateId) {
-  return PRIVATE_REPO_TEMPLATE_IDS.has(templateId);
 }
 
 function parseArgs(argv) {
@@ -465,7 +411,7 @@ async function askGuidedSetup(targetName, flags) {
     }
 
     if (!flags.explicit.template) {
-      const availableTemplates = availableTemplateList();
+      const availableTemplates = cliOrderedTemplateList(nextFlags.template);
       printChoices("Templates", availableTemplates);
       const answer = await ask(`Template number or id [${nextFlags.template}]: `);
       nextFlags.template = resolveChoice(answer, availableTemplates, nextFlags.template, "template");
@@ -748,8 +694,8 @@ async function main() {
   }
 
   const isRepoTemplate = Boolean(REPO_TEMPLATES[flags.template]);
-  const allTemplates = availableTemplateList({ includePrivate: true });
-  const publicTemplates = availableTemplateList();
+  const allTemplates = cliTemplateList({ includePrivate: true });
+  const publicTemplates = cliTemplateList();
   if (!allTemplates.some((template) => template.id === flags.template)) {
     const response = fail(
       "TEMPLATE_NOT_FOUND",

@@ -438,6 +438,13 @@ function parseArgs(argv) {
       const parsed = flagValue(index, value, flags.port);
       flags.port = parsed.value;
       index = parsed.index;
+    } else if (value.startsWith("-")) {
+      parseError ??= fail(
+        "CLI_UNKNOWN_OPTION",
+        `Unknown option: ${value}.`,
+        "Run `microservices --help` or `microservices deploy --help-all` for supported flags.",
+        { option: value }
+      );
     } else {
       args.push(value);
     }
@@ -3733,7 +3740,7 @@ function usage() {
   microservices local setup                      # verify local readiness
   microservices local seed                       # run scripts/seed.mjs to populate local data
   microservices auth login                       # authenticate the CLI
-  microservices deploy run [--plan] [--confirm deploy]   # build + managed deploy to live
+  microservices deploy run [--plan] [--confirm deploy]   # build + managed deploy workflow
   microservices deploy domain add <id> --hostname <host> # attach a custom preview domain
   microservices deploy inspect [deployment-id]   # status, resources, logs, and errors
 
@@ -3764,7 +3771,7 @@ function usageAll() {
   microservices auth login --api-key <key> [--api-url https://api.microservices.sh] [--json]
   microservices auth status [--json]
   microservices auth logout [--json]
-  microservices deploy run [--plan] [--confirm deploy] [--ci] [--timeout 10m] [--json]   # one-command managed deploy (waits for live)
+  microservices deploy run [--plan] [--confirm deploy] [--ci] [--timeout 10m] [--json]   # one-command managed deploy (waits for live when configured)
   microservices deploy doctor [deployment-id] [--json]
   microservices deploy preview [--plan] [--confirm deploy] [--name <name>] [--project-id <id>] [--ci] [--wait] [--timeout 10m] [--output deployment.json] [--json]
   microservices deploy provision [deployment-id] [--input deployment.json] [--plan] --confirm provision [--json]

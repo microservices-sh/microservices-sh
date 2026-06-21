@@ -1,7 +1,8 @@
 {
   "name": "@microservices-sh/cli",
   "version": "0.1.0",
-  "description": "The microservices.sh CLI — scaffold, compose, check, and deploy governed Cloudflare apps.",
+  "private": true,
+  "description": "Internal microservices.sh operator CLI for SDK and control-plane development.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -19,9 +20,6 @@
   "files": [
     "src"
   ],
-  "publishConfig": {
-    "access": "public"
-  },
   "scripts": {
     "cli": "node src/index.js",
     "build": "node --check src/index.js",
