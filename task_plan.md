@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 96
+Phase 97
 
 ## Phases
 
@@ -752,6 +752,15 @@ Phase 96
 - [x] Report configured base currency from accounting setup status.
 - [x] Expose chart standard and base currency controls on the accounting settings route.
 - [x] Add module and template policy checks for setup standard/currency parity.
+- [x] Verify accounting-core tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 97: Accounting Fiscal Period Transition CAS Hardening
+- [x] Add a store-level `updateFiscalPeriodIfCurrentStatus` compare-and-set contract.
+- [x] Implement status-guarded fiscal-period updates in memory and D1 adapters.
+- [x] Return `accounting-core.FISCAL_PERIOD_TRANSITION_CONFLICT` without writing an event when close/reopen/lock loses a race.
+- [x] Add use-case and D1 adapter tests for stale status and tenant mismatch failures.
+- [x] Update module docs and policy checks for fiscal-period compare-and-set lifecycle writes.
 - [x] Verify accounting-core tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 

@@ -4,6 +4,7 @@ import type {
   AccountFilter,
   FiscalPeriod,
   FiscalPeriodFilter,
+  FiscalPeriodStatus,
   JournalEntry,
   JournalLine,
   TrialBalanceFilter,
@@ -19,6 +20,7 @@ export interface AccountingCoreStore {
 
   insertFiscalPeriod(period: FiscalPeriod): Promise<void>;
   updateFiscalPeriod(period: FiscalPeriod): Promise<void>;
+  updateFiscalPeriodIfCurrentStatus(period: FiscalPeriod, expectedStatus: FiscalPeriodStatus): Promise<boolean>;
   getFiscalPeriod(tenantId: string, periodId: string): Promise<FiscalPeriod | null>;
   listFiscalPeriods(filter: FiscalPeriodFilter): Promise<FiscalPeriod[]>;
 

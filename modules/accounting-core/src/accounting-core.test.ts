@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { createTestD1 } from "@microservices-sh/test-utils";
 import {
   createAccount,
   closeFiscalPeriod,
+  createD1AccountingCoreStore,
   createFiscalPeriod,
   createJournalEntry,
   createMemoryAccountingCoreStore,
@@ -17,12 +19,30 @@ import {
   seedMonthlyFiscalPeriods,
   updateFiscalPeriodStatus,
   updateJournalEntry,
-  voidJournalEntry
+  voidJournalEntry,
+  type AccountingCoreStore,
+  type FiscalPeriod
 } from "./index";
 
 const TENANT_ID = "tenant-1";
 const T0 = Date.parse("2026-01-15T12:00:00.000Z");
 const fixedNow = (ms = T0) => () => ms;
+const D1_FISCAL_PERIOD_SCHEMA = `
+CREATE TABLE accounting_fiscal_periods (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  period_type TEXT NOT NULL DEFAULT 'month',
+  starts_on TEXT NOT NULL,
+  ends_on TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  closed_by_id TEXT,
+  closed_at TEXT,
+  locked_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+`;
 
 async function setupLedger(status: "open" | "closed" | "locked" = "open") {
   const store = createMemoryAccountingCoreStore();
@@ -319,6 +339,92 @@ describe("accounting-core: setup", () => {
       expect(result.ok, `${testCase.from} -> ${testCase.to}`).toBe(false);
       if (!result.ok) expect(result.error.code).toBe("accounting-core.INVALID_FISCAL_PERIOD_TRANSITION");
     }
+  });
+
+  it("rejects fiscal period lifecycle writes when the status changed after read", async () => {
+    const store = createMemoryAccountingCoreStore();
+    let raced = false;
+    let eventWrites = 0;
+    const racingStore: AccountingCoreStore = {
+      ...store,
+      async updateFiscalPeriodIfCurrentStatus(period, expectedStatus) {
+        if (!raced) {
+          raced = true;
+          const current = await store.getFiscalPeriod(period.tenantId, period.id);
+          if (current) {
+            await store.updateFiscalPeriod({
+              ...current,
+              status: "closed",
+              closedAt: "2026-01-15T12:00:00.000Z",
+              updatedAt: "2026-01-15T12:00:00.000Z"
+            });
+          }
+        }
+        return store.updateFiscalPeriodIfCurrentStatus(period, expectedStatus);
+      },
+      async writeEvent(event) {
+        eventWrites += 1;
+        await store.writeEvent(event);
+      }
+    };
+    const deps = { accountingCoreStore: racingStore, now: fixedNow() };
+    const created = await createFiscalPeriod(
+      { tenantId: TENANT_ID, name: "January 2026", startsOn: "2026-01-01", endsOn: "2026-01-31" },
+      deps
+    );
+    if (!created.ok) throw new Error(created.error.message);
+    eventWrites = 0;
+
+    const result = await closeFiscalPeriod({ tenantId: TENANT_ID, periodId: created.data.period.id, actorId: "actor-1" }, deps);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("accounting-core.FISCAL_PERIOD_TRANSITION_CONFLICT");
+    expect(eventWrites).toBe(0);
+
+    const stored = await store.getFiscalPeriod(TENANT_ID, created.data.period.id);
+    expect(stored).toEqual(expect.objectContaining({ status: "closed" }));
+  });
+
+  it("guards D1 fiscal period status updates by tenant and expected status", async () => {
+    const { d1 } = createTestD1(D1_FISCAL_PERIOD_SCHEMA);
+    const store = createD1AccountingCoreStore(d1);
+    const period: FiscalPeriod = {
+      id: "per_d1",
+      tenantId: TENANT_ID,
+      name: "January 2026",
+      periodType: "month",
+      startsOn: "2026-01-01",
+      endsOn: "2026-01-31",
+      status: "open",
+      closedById: null,
+      closedAt: null,
+      lockedAt: null,
+      createdAt: "2026-01-15T12:00:00.000Z",
+      updatedAt: "2026-01-15T12:00:00.000Z"
+    };
+    await store.insertFiscalPeriod(period);
+
+    const closed: FiscalPeriod = {
+      ...period,
+      status: "closed",
+      closedById: "actor-1",
+      closedAt: "2026-01-15T12:01:00.000Z",
+      updatedAt: "2026-01-15T12:01:00.000Z"
+    };
+    await expect(store.updateFiscalPeriodIfCurrentStatus(closed, "open")).resolves.toBe(true);
+
+    const staleLock: FiscalPeriod = {
+      ...closed,
+      status: "locked",
+      lockedAt: "2026-01-15T12:02:00.000Z",
+      updatedAt: "2026-01-15T12:02:00.000Z"
+    };
+    await expect(store.updateFiscalPeriodIfCurrentStatus(staleLock, "open")).resolves.toBe(false);
+
+    const wrongTenant: FiscalPeriod = { ...staleLock, tenantId: "tenant-2" };
+    await expect(store.updateFiscalPeriodIfCurrentStatus(wrongTenant, "closed")).resolves.toBe(false);
+
+    const stored = await store.getFiscalPeriod(TENANT_ID, period.id);
+    expect(stored).toEqual(expect.objectContaining({ status: "closed", lockedAt: null }));
   });
 
   it("seeds a donor-derived chart with hierarchy, system flags, reconcilable accounts, and contra balances", async () => {

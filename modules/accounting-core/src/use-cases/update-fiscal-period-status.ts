@@ -36,7 +36,15 @@ export async function transitionFiscalPeriodStatus(
   const now = isoNow(deps.now);
   const updated = applyTransition(period, input.status, now, input.actorId);
 
-  await deps.accountingCoreStore.updateFiscalPeriod(updated);
+  const saved = await deps.accountingCoreStore.updateFiscalPeriodIfCurrentStatus(updated, period.status);
+  if (!saved) {
+    return err(
+      409,
+      "accounting-core.FISCAL_PERIOD_TRANSITION_CONFLICT",
+      "Fiscal period status changed before the transition could be saved."
+    );
+  }
+
   await deps.accountingCoreStore.writeEvent({
     eventName: "accounting-core.fiscal_period_status_changed",
     entityType: "fiscal_period",

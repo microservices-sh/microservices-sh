@@ -1970,6 +1970,25 @@
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 97 accounting fiscal period transition CAS hardening
+
+- **Status:** complete.
+- Goal: close the fiscal close concurrency-hardening backlog item without introducing a general revision system.
+- Added `updateFiscalPeriodIfCurrentStatus(period, expectedStatus)` to the accounting-core store port.
+- Implemented D1 lifecycle writes as `UPDATE ... WHERE tenant_id = ? AND id = ? AND status = ?` with row-count conflict detection.
+- Implemented matching memory-store semantics for local tests and generated-app fallbacks.
+- Close/reopen/lock now return `accounting-core.FISCAL_PERIOD_TRANSITION_CONFLICT` and skip status-change event emission when the fiscal-period status changes after read.
+- Added use-case race coverage and direct D1 adapter CAS coverage for stale expected status and tenant mismatch failures.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounting-core tests | Lifecycle CAS conflict, D1 guarded updates, setup, posting, and trial balance behavior remain green | `pnpm --filter @microservices-sh/accounting-core test` passed, 16/16 | Pass |
+| Accounting-core spec/build | Store port, adapters, docs, and policy checks stay aligned with CAS lifecycle writes | `pnpm --filter @microservices-sh/accounting-core check:spec` and `pnpm --filter @microservices-sh/accounting-core build` passed | Pass |
+| Accounting template spec/build | Accounting template remains compatible with the hardened module lifecycle behavior | `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Bundled template and create-app tests remain green after module package/dependency changes | `pnpm --filter create-microservices-app build` and sequential `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 87 commerce sync logs route proof
 
 - **Status:** complete.

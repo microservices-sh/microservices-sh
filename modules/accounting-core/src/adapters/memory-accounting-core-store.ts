@@ -101,6 +101,13 @@ export function createMemoryAccountingCoreStore(): AccountingCoreStore {
       periods.set(period.id, clonePeriod(period));
     },
 
+    async updateFiscalPeriodIfCurrentStatus(period, expectedStatus) {
+      const current = periods.get(period.id);
+      if (!current || current.tenantId !== period.tenantId || current.status !== expectedStatus) return false;
+      periods.set(period.id, clonePeriod(period));
+      return true;
+    },
+
     async getFiscalPeriod(tenantId, periodId) {
       const period = periods.get(periodId);
       return period && period.tenantId === tenantId ? clonePeriod(period) : null;

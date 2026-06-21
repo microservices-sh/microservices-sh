@@ -113,10 +113,27 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
       "closed",
       "locked",
       "closedById",
+      "updateFiscalPeriodIfCurrentStatus",
+      "accounting-core.FISCAL_PERIOD_TRANSITION_CONFLICT",
       "accounting-core.INVALID_FISCAL_PERIOD_TRANSITION",
       "previousStatus"
     ],
     "Accounting Core fiscal-period status updates enforce source-style open/closed/locked transition rules."
+  );
+  assertFileIncludesAll(
+    "src/ports/index.ts",
+    ["updateFiscalPeriodIfCurrentStatus", "expectedStatus"],
+    "Accounting Core store port exposes compare-and-set fiscal-period status updates."
+  );
+  assertFileIncludesAll(
+    "src/adapters/d1-accounting-core-store.ts",
+    ["AND status = ?", "result.meta?.changes"],
+    "Accounting Core D1 fiscal-period lifecycle updates use row-count compare-and-set semantics."
+  );
+  assertFileIncludesAll(
+    "src/adapters/memory-accounting-core-store.ts",
+    ["updateFiscalPeriodIfCurrentStatus", "current.status !== expectedStatus"],
+    "Accounting Core memory store mirrors fiscal-period compare-and-set semantics."
   );
   assertFileIncludesAll(
     "src/use-cases/close-fiscal-period.ts",
@@ -135,12 +152,12 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
   );
   assertFileIncludesAll(
     "README.md",
-    ["GAAP/IFRS seed packs", "base-currency normalization", "periodType", "closedById", "open periods can close", "closed periods can reopen or lock", "locked periods cannot transition"],
+    ["GAAP/IFRS seed packs", "base-currency normalization", "periodType", "closedById", "compare-and-set", "open periods can close", "closed periods can reopen or lock", "locked periods cannot transition"],
     "Accounting Core README documents fiscal-period lifecycle invariants."
   );
   assertFileIncludesAll(
     "llms.txt",
-    ["GAAP/IFRS chart seed packs normalize base currency", "periodType month|quarter|year|custom", "close actor metadata", "open->closed", "closed->open", "closed->locked", "locked periods cannot transition"],
+    ["GAAP/IFRS chart seed packs normalize base currency", "compare-and-set fiscal-period writes", "periodType month|quarter|year|custom", "close actor metadata", "open->closed", "closed->open", "closed->locked", "locked periods cannot transition"],
     "Accounting Core LLM notes document fiscal-period lifecycle invariants."
   );
 }

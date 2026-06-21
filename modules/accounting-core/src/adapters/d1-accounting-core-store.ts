@@ -339,6 +339,31 @@ export function createD1AccountingCoreStore(db: D1Database): AccountingCoreStore
         .run();
     },
 
+    async updateFiscalPeriodIfCurrentStatus(period, expectedStatus) {
+      const result = await db
+        .prepare(
+          `UPDATE accounting_fiscal_periods SET name = ?, period_type = ?, starts_on = ?, ends_on = ?, status = ?,
+             closed_by_id = ?, closed_at = ?, locked_at = ?, updated_at = ?
+           WHERE tenant_id = ? AND id = ? AND status = ?`
+        )
+        .bind(
+          period.name,
+          period.periodType,
+          period.startsOn,
+          period.endsOn,
+          period.status,
+          period.closedById,
+          period.closedAt,
+          period.lockedAt,
+          period.updatedAt,
+          period.tenantId,
+          period.id,
+          expectedStatus
+        )
+        .run();
+      return Number(result.meta?.changes ?? 0) > 0;
+    },
+
     async getFiscalPeriod(tenantId, periodId) {
       const row = await db
         .prepare(`SELECT ${PERIOD_COLS} FROM accounting_fiscal_periods WHERE tenant_id = ? AND id = ?`)
