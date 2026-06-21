@@ -206,6 +206,36 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Invoice detail payments and voids refresh the Accounts Receivable invoice snapshot."
   );
   assertFileIncludesAll(
+    "src/routes/app/invoices/[id]/+page.server.ts",
+    ["createInvoicePaymentLinkScoped", "sendEmail", "buildInvoiceEmail", "invoice.sent"],
+    "Invoice detail can create payment links and send invoice emails through module ports."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/invoices/[id]/+page.svelte",
+    ["Payment link", "Send invoice", "Create link + send", "Open payment link"],
+    "Invoice detail page exposes payment-link and send-invoice operator controls."
+  );
+  assertFileIncludesAll(
+    "src/hooks.server.ts",
+    ["createStripeInvoicePaymentLinkProvider", "createMemoryInvoicePaymentLinkProvider", "getEmailDeps", "invoicePaymentLinkProvider", "emailProvider"],
+    "Request locals wire Stripe/memory invoice payment links and transactional email providers for invoice collection workflows."
+  );
+  assertFileIncludesAll(
+    "src/routes/api/payments/stripe-webhook/+server.ts",
+    ["request.text()", "verifyWebhookSignature", "parseStripeInvoiceSettlementEvent", "recordPaymentScoped", "syncInvoiceToReceivables", "stripe-signature"],
+    "Stripe webhook route verifies raw signed payloads before recording invoice payments and refreshing receivables snapshots."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/stripe-invoice-settlement.ts",
+    ["checkout.session.completed", "payment_intent.succeeded", "metadata.invoiceId", "amount_received", "amount_total"],
+    "Stripe invoice settlement helper extracts invoice ids and payment amounts from payment-link webhook events."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/invoice-email.ts",
+    ["buildInvoiceEmail", "Pay this invoice online", "Accounting ERP"],
+    "Invoice email helper renders accounting invoice collection emails with optional payment links."
+  );
+  assertFileIncludesAll(
     "src/routes/app/invoices/new/+page.server.ts",
     ["syncInvoiceToReceivables", "getInvoiceScoped", "issueInvoiceScoped"],
     "New invoice issuance creates an Accounts Receivable invoice snapshot from the canonical invoice record."

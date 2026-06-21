@@ -1,13 +1,15 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { error, fail, redirect } from "@sveltejs/kit";
-import { getInvoiceScoped, recordPaymentScoped, voidInvoiceScoped, authContext } from "@microservices-sh/invoice";
+import { createInvoicePaymentLinkScoped, getInvoiceScoped, recordPaymentScoped, voidInvoiceScoped, authContext } from "@microservices-sh/invoice";
 import type { AuthContext } from "@microservices-sh/invoice";
+import { sendEmail } from "@microservices-sh/email";
 import { getCustomer } from "@microservices-sh/customer";
 import { listEvents, recordEvent } from "@microservices-sh/audit-log";
 import { notify } from "@microservices-sh/notifications-inapp";
 import { requireOrgPermission, loadCompanyContext } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 import { money, relativeTime, humanizeEvent } from "$lib/format";
+import { buildInvoiceEmail } from "$lib/server/invoice-email";
 import { syncInvoiceToReceivables } from "$lib/server/accounts-receivable-sync";
 import type { Tone } from "$lib/ui/types";
 
@@ -47,6 +49,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
 
   const cust = await getCustomer({ id: invoice.customerId }, { customerRepository: locals.customerRepository });
   const customerName = cust.ok && cust.data ? cust.data.customer.name : invoice.customerId;
+  const customer = cust.ok && cust.data ? cust.data.customer : null;
   const outstandingCents = invoice.totalCents - invoice.amountPaidCents;
   const overdue = invoice.status === "open" && !!invoice.dueAt && new Date(invoice.dueAt).getTime() < now;
   const events = eventsResult.ok ? eventsResult.data.events : [];
@@ -70,9 +73,18 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
       outstanding: money(outstandingCents, invoice.currency),
       outstandingAmount: (outstandingCents / 100).toFixed(2),
       isVoidable: invoice.status === "open",
+      totalCents: invoice.totalCents,
+      paymentLinkUrl: invoice.paymentLinkUrl,
+      paymentLinkProvider: invoice.paymentLinkProvider,
       issued: invoice.issuedAt ? relativeTime(invoice.issuedAt, now) : null,
       due: invoice.dueAt ? relativeTime(invoice.dueAt, now) : null,
-      paidAt: invoice.paidAt ? relativeTime(invoice.paidAt, now) : null
+      dueAt: invoice.dueAt,
+      paidAt: invoice.paidAt ? relativeTime(invoice.paidAt, now) : null,
+      customer: {
+        name: customer?.name ?? customerName,
+        email: customer?.email ?? null,
+        phone: customer?.phone ?? null
+      }
     },
     timeline: events.map((e) => ({
       title: humanizeEvent(e.eventName),
@@ -170,6 +182,130 @@ export const actions: Actions = {
     );
 
     return { ok: true, paymentRecorded: true, paid, syncWarning };
+  },
+
+  paymentLink: async ({ params, locals, cookies, platform }) => {
+    requireModule("invoice", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+    const ctx = authContext({ orgId: org.id, actorId: locals.user.id, roles: permissions });
+    const invoiceId = params.id;
+    const invoice = await findInvoice(ctx, invoiceId, locals.invoiceStore);
+    if (!invoice) return fail(404, { error: "Invoice not found." });
+
+    const customer = await getCustomer({ id: invoice.customerId }, { customerRepository: locals.customerRepository });
+    const result = await createInvoicePaymentLinkScoped(
+      ctx,
+      { invoiceId, customerEmail: customer.ok && customer.data ? customer.data.customer.email || undefined : undefined },
+      { invoiceStore: locals.invoiceStore, paymentLinkProvider: locals.invoicePaymentLinkProvider }
+    );
+    if (!result.ok || !result.data) {
+      return fail(result.status ?? 400, { error: result.error?.message ?? "Could not create the payment link." });
+    }
+
+    await recordEvent(
+      {
+        eventName: "invoice.payment_link_created",
+        actorId: locals.user.id,
+        entityType: "invoice",
+        entityId: invoiceId,
+        source: "app/invoices/detail",
+        payload: { provider: result.data.provider, idempotent: result.data.idempotent }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { ok: true, paymentLinkCreated: true, paymentLinkUrl: result.data.paymentLinkUrl };
+  },
+
+  sendInvoice: async ({ params, locals, cookies, platform }) => {
+    requireModule("invoice", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+    const ctx = authContext({ orgId: org.id, actorId: locals.user.id, roles: permissions });
+    const invoiceId = params.id;
+    const invoice = await findInvoice(ctx, invoiceId, locals.invoiceStore);
+    if (!invoice) return fail(404, { error: "Invoice not found." });
+
+    const customer = await getCustomer({ id: invoice.customerId }, { customerRepository: locals.customerRepository });
+    if (!customer.ok || !customer.data) return fail(customer.status ?? 404, { error: customer.error?.message ?? "Customer not found." });
+    const recipient = customer.data.customer.email;
+    if (!recipient) return fail(400, { error: "Customer needs an email address before sending this invoice." });
+
+    const link = await createInvoicePaymentLinkScoped(
+      ctx,
+      { invoiceId, customerEmail: recipient },
+      { invoiceStore: locals.invoiceStore, paymentLinkProvider: locals.invoicePaymentLinkProvider }
+    );
+    if (!link.ok || !link.data) {
+      return fail(link.status ?? 400, { error: link.error?.message ?? "Could not create the payment link." });
+    }
+
+    const outstandingCents = Math.max(0, invoice.totalCents - invoice.amountPaidCents);
+    const email = buildInvoiceEmail({
+      invoiceNumber: invoice.number ?? invoice.id,
+      customerName: customer.data.customer.name,
+      totalCents: invoice.totalCents,
+      outstandingCents,
+      currency: invoice.currency,
+      dueAt: invoice.dueAt,
+      paymentLinkUrl: link.data.paymentLinkUrl,
+      companyName: org.name
+    });
+    const sent = await sendEmail(
+      {
+        from: locals.emailFrom,
+        to: [recipient],
+        subject: email.subject,
+        html: email.html,
+        text: email.text,
+        idempotencyKey: `invoice-send:${invoice.id}:${link.data.paymentLinkId}`,
+        tags: [
+          { name: "module", value: "invoice" },
+          { name: "template", value: "accounting-erp-sveltekit" }
+        ],
+        metadata: {
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.number,
+          paymentLinkId: link.data.paymentLinkId,
+          paymentLinkProvider: link.data.provider
+        }
+      },
+      {
+        provider: locals.emailProvider,
+        emailRepository: locals.emailRepository,
+        actor: { id: locals.user.id, email: locals.user.email }
+      }
+    );
+    if (!sent.ok || !sent.data) {
+      return fail(sent.status ?? 400, { error: sent.error?.message ?? "Could not send the invoice email." });
+    }
+
+    await recordEvent(
+      {
+        eventName: "invoice.sent",
+        actorId: locals.user.id,
+        entityType: "invoice",
+        entityId: invoiceId,
+        source: "app/invoices/detail",
+        payload: {
+          to: recipient,
+          emailDeliveryId: sent.data.delivery.id,
+          paymentLinkId: link.data.paymentLinkId,
+          paymentLinkProvider: link.data.provider,
+          paymentLinkIdempotent: link.data.idempotent
+        }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { ok: true, invoiceSent: true, paymentLinkUrl: link.data.paymentLinkUrl, recipient };
   },
 
   void: async ({ params, locals, cookies, platform }) => {
