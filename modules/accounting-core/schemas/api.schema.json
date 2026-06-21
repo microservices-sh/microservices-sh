@@ -10,6 +10,12 @@
         "enum": ["asset", "liability", "equity", "revenue", "expense"]
       }
     },
+    "chartOfAccountsStandards": {
+      "type": "array",
+      "items": {
+        "enum": ["gaap", "ifrs"]
+      }
+    },
     "journalEntryStatuses": {
       "type": "array",
       "items": {

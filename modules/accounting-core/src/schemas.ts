@@ -24,7 +24,7 @@ export const normalBalanceSchema = z.enum(["debit", "credit"]);
 export const fiscalPeriodTypeSchema = z.enum(["month", "quarter", "year", "custom"]);
 export const fiscalPeriodStatusSchema = z.enum(["open", "closed", "locked"]);
 export const journalEntryStatusSchema = z.enum(["draft", "posted", "void"]);
-export const chartOfAccountsStandardSchema = z.enum(["gaap"]);
+export const chartOfAccountsStandardSchema = z.enum(["gaap", "ifrs"]);
 
 export const accountInputSchema = z.object({
   tenantId: z.string().min(1),

@@ -16,7 +16,7 @@ export type NormalBalance = "debit" | "credit";
 export type FiscalPeriodType = "month" | "quarter" | "year" | "custom";
 export type FiscalPeriodStatus = "open" | "closed" | "locked";
 export type JournalEntryStatus = "draft" | "posted" | "void";
-export type ChartOfAccountsStandard = "gaap";
+export type ChartOfAccountsStandard = "gaap" | "ifrs";
 
 export interface AccountingCoreConfig {
   enabled: boolean;
@@ -125,6 +125,7 @@ export interface AccountingSetupStatus {
   tenantId: string;
   accountsConfigured: boolean;
   accountCount: number;
+  baseCurrency: string | null;
   fiscalPeriodsConfigured: boolean;
   fiscalPeriodCount: number;
 }

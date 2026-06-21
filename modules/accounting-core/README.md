@@ -25,7 +25,7 @@ import {
 
 ## Ownership Boundary
 
-The module owns tenant-scoped chart of accounts, fiscal periods, journal entries, journal lines, posting, reversal-based voiding, trial balance, schemas, hooks, events, permissions, resources, and migrations for `accounting-core`.
+The module owns tenant-scoped chart of accounts, GAAP/IFRS seed packs with base-currency normalization, fiscal periods, journal entries, journal lines, posting, reversal-based voiding, trial balance, schemas, hooks, events, permissions, resources, and migrations for `accounting-core`.
 
 Templates own app shell, route adapters, UI layout, auth context extraction, and framework-specific response mapping.
 

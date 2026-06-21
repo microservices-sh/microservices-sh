@@ -329,13 +329,16 @@ describe("accounting-core: setup", () => {
     expect(seeded.ok).toBe(true);
     if (!seeded.ok) throw new Error(seeded.error.message);
     expect(seeded.data.count).toBeGreaterThan(20);
+    expect(seeded.data.standard).toBe("gaap");
 
     const accounts = await store.listAccounts({ tenantId: TENANT_ID, includeInactive: true });
     const assets = accounts.find((account) => account.code === "1000");
+    const fixedAssets = accounts.find((account) => account.code === "1500");
     const checking = accounts.find((account) => account.code === "1111");
     const ar = accounts.find((account) => account.code === "1200");
     const allowance = accounts.find((account) => account.code === "1250");
     expect(assets).toEqual(expect.objectContaining({ isHeader: true, parentId: null }));
+    expect(fixedAssets).toEqual(expect.objectContaining({ name: "Fixed Assets", isHeader: true }));
     expect(checking).toEqual(expect.objectContaining({ isReconcilable: true, currency: "USD" }));
     expect(ar).toEqual(expect.objectContaining({ isSystem: true, subtype: "current_asset" }));
     expect(allowance).toEqual(expect.objectContaining({ normalBalance: "credit" }));
@@ -343,6 +346,34 @@ describe("accounting-core: setup", () => {
     const duplicate = await seedChartOfAccounts({ tenantId: TENANT_ID }, deps);
     expect(duplicate.ok).toBe(false);
     if (!duplicate.ok) expect(duplicate.error.code).toBe("accounting-core.CHART_ALREADY_CONFIGURED");
+
+    const status = await getAccountingSetupStatus({ tenantId: TENANT_ID }, deps);
+    expect(status.ok).toBe(true);
+    if (status.ok) {
+      expect(status.data.status.accountsConfigured).toBe(true);
+      expect(status.data.status.accountCount).toBe(seeded.data.count);
+      expect(status.data.status.baseCurrency).toBe("USD");
+    }
+  });
+
+  it("seeds an IFRS chart variant while preserving operational account flags", async () => {
+    const store = createMemoryAccountingCoreStore();
+    const deps = { accountingCoreStore: store, now: fixedNow() };
+
+    const seeded = await seedChartOfAccounts({ tenantId: TENANT_ID, standard: "ifrs", currency: "EUR" }, deps);
+    expect(seeded.ok).toBe(true);
+    if (!seeded.ok) throw new Error(seeded.error.message);
+    expect(seeded.data.standard).toBe("ifrs");
+
+    const accounts = await store.listAccounts({ tenantId: TENANT_ID, includeInactive: true });
+    const nonCurrentAssets = accounts.find((account) => account.code === "1500");
+    const ppe = accounts.find((account) => account.code === "1510");
+    const checking = accounts.find((account) => account.code === "1111");
+    const ap = accounts.find((account) => account.code === "2110");
+    expect(nonCurrentAssets).toEqual(expect.objectContaining({ name: "Non-Current Assets", isHeader: true, currency: "EUR" }));
+    expect(ppe).toEqual(expect.objectContaining({ name: "Property, Plant and Equipment", parentId: nonCurrentAssets?.id }));
+    expect(checking).toEqual(expect.objectContaining({ isReconcilable: true, currency: "EUR" }));
+    expect(ap).toEqual(expect.objectContaining({ isSystem: true, normalBalance: "credit" }));
   });
 
   it("generates monthly fiscal periods using a fiscal-year start month", async () => {

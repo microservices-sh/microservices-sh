@@ -19,7 +19,7 @@
   />
 
   {#if form?.seededAccounts}
-    <Alert tone="success">Seeded {form.accountCount} chart accounts.</Alert>
+    <Alert tone="success">Seeded {form.accountCount} {String(form.standard ?? "gaap").toUpperCase()} chart accounts in {form.baseCurrency}.</Alert>
   {:else if form?.seededPeriods}
     <Alert tone="success">Generated {form.periodCount} fiscal periods.</Alert>
   {:else if form?.error}
@@ -35,6 +35,11 @@
           <Badge tone={accountTone}>{data.setup.accountsConfigured ? "configured" : "empty"}</Badge>
         </div>
         <div>
+          <span>Base currency</span>
+          <strong>{data.setup.baseCurrency ?? "-"}</strong>
+          <Badge tone={data.setup.baseCurrency ? "good" : "neutral"}>{data.setup.baseCurrency ? "configured" : "empty"}</Badge>
+        </div>
+        <div>
           <span>Fiscal periods</span>
           <strong>{data.setup.fiscalPeriodCount}</strong>
           <Badge tone={periodTone}>{data.setup.fiscalPeriodsConfigured ? "configured" : "empty"}</Badge>
@@ -44,11 +49,25 @@
 
     <Card title="Chart of accounts">
       <p class="muted">
-        GAAP starter chart with account hierarchy, system accounts, reconcilable bank accounts, and contra-account balances.
+        GAAP or IFRS starter chart with account hierarchy, system accounts, reconcilable bank accounts, and contra-account balances.
       </p>
       {#if data.canManage}
-        <form method="POST" action="?/seedAccounts">
-          <Button type="submit" variant="primary" disabled={data.setup.accountsConfigured}>Seed GAAP chart</Button>
+        <form method="POST" action="?/seedAccounts" class="account-form">
+          <Field label="Standard" id="standard">
+            <select id="standard" name="standard" disabled={data.setup.accountsConfigured}>
+              {#each data.chartStandards as standard}
+                <option value={standard.value} selected={(form?.values?.standard ?? "gaap") === standard.value}>{standard.label}</option>
+              {/each}
+            </select>
+          </Field>
+          <Field label="Base currency" id="baseCurrency">
+            <select id="baseCurrency" name="baseCurrency" disabled={data.setup.accountsConfigured}>
+              {#each data.baseCurrencies as currency}
+                <option value={currency} selected={(form?.values?.baseCurrency ?? "USD") === currency}>{currency}</option>
+              {/each}
+            </select>
+          </Field>
+          <Button type="submit" variant="primary" disabled={data.setup.accountsConfigured}>Seed chart</Button>
         </form>
       {/if}
     </Card>
@@ -105,10 +124,11 @@
   }
   .status-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 12px;
   }
   .status-grid div,
+  .account-form,
   .period-form {
     display: grid;
     gap: 10px;

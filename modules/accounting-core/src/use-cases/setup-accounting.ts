@@ -114,6 +114,22 @@ const GAAP_CHART: AccountTemplate[] = [
   { code: "6900", name: "Miscellaneous Expense", type: "expense", subtype: "other_expense", parentCode: "6000" }
 ];
 
+const IFRS_CHART: AccountTemplate[] = GAAP_CHART.map((account) => ({
+  ...account,
+  name:
+    account.code === "1500"
+      ? "Non-Current Assets"
+      : account.code === "1510"
+        ? "Property, Plant and Equipment"
+        : account.name,
+  description:
+    account.code === "1500"
+      ? "IFRS non-current asset grouping"
+      : account.code === "1510"
+        ? "IFRS property, plant, and equipment account"
+        : account.description
+}));
+
 const MONTH_NAMES = [
   "January",
   "February",
@@ -133,6 +149,8 @@ function chartForStandard(standard: ChartOfAccountsStandard): AccountTemplate[] 
   switch (standard) {
     case "gaap":
       return GAAP_CHART;
+    case "ifrs":
+      return IFRS_CHART;
   }
 }
 
@@ -146,6 +164,11 @@ function dateString(year: number, month: number, day: number): string {
 
 function lastDayOfMonth(year: number, month: number): number {
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+function setupBaseCurrency(accounts: { currency: string }[]): string | null {
+  const currencies = [...new Set(accounts.map((account) => account.currency).filter(Boolean))].sort();
+  return currencies.length === 1 ? currencies[0] : null;
 }
 
 export async function getAccountingSetupStatus(input: unknown, deps: AccountingDeps) {
@@ -164,6 +187,7 @@ export async function getAccountingSetupStatus(input: unknown, deps: AccountingD
       tenantId: parsed.data.tenantId,
       accountsConfigured: accounts.length > 0,
       accountCount: accounts.length,
+      baseCurrency: setupBaseCurrency(accounts),
       fiscalPeriodsConfigured: periods.length > 0,
       fiscalPeriodCount: periods.length
     }

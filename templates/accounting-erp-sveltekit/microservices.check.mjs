@@ -325,6 +325,23 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Sidebar exposes the accounting reports surface when accounting-core is enabled."
   );
   assertFileIncludesAll(
+    "src/routes/app/settings/accounting/+page.server.ts",
+    [
+      "type ChartOfAccountsStandard",
+      "CHART_STANDARDS",
+      "\"gaap\", \"ifrs\"",
+      "currencyCode",
+      "form.get(\"baseCurrency\")",
+      "{ tenantId: org.id, standard, currency }"
+    ],
+    "Accounting settings seeds chart setup through accounting-core with selected GAAP/IFRS standard and base currency."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/settings/accounting/+page.svelte",
+    ["name=\"standard\"", "name=\"baseCurrency\"", "GAAP", "IFRS", "data.setup.baseCurrency"],
+    "Accounting settings UI exposes chart standard and base-currency setup fields."
+  );
+  assertFileIncludesAll(
     "src/routes/app/ledger/+page.server.ts",
     [
       "createAccount",

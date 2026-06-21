@@ -185,6 +185,10 @@
         "type": "integer",
         "description": "Signed integer cents. Accounting entries must balance total debit and credit cents."
       },
+      "ChartOfAccountsStandard": {
+        "type": "string",
+        "enum": ["gaap", "ifrs"]
+      },
       "FiscalPeriodStatus": {
         "type": "string",
         "enum": ["open", "closed", "locked"]

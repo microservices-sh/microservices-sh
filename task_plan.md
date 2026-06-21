@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 95
+Phase 96
 
 ## Phases
 
@@ -744,6 +744,15 @@ Phase 95
 - [x] Expose period type and close actor metadata in Ledger period list/detail UI.
 - [x] Add period-type filtering tests and policy checks for metadata migrations/docs/UI.
 - [x] Verify accounting-core tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, migration replay, and whitespace checks.
+- **Status:** complete
+
+### Phase 96: Accounting Setup Standard And Base Currency Parity
+- [x] Add GAAP/IFRS chart seed standard support to accounting-core setup schemas, types, OpenAPI, JSON schema, and docs.
+- [x] Add an IFRS chart variant that preserves source operational flags while applying intended non-current asset terminology.
+- [x] Report configured base currency from accounting setup status.
+- [x] Expose chart standard and base currency controls on the accounting settings route.
+- [x] Add module and template policy checks for setup standard/currency parity.
+- [x] Verify accounting-core tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

@@ -1951,6 +1951,25 @@
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 96 accounting setup standard and base currency parity
+
+- **Status:** complete.
+- Goal: close the next setup-depth gap from the StackSuite source without introducing persistent setup/default-account settings yet.
+- Added `gaap` and `ifrs` as chart seed standards in accounting-core types, schemas, OpenAPI, JSON schema, and docs.
+- Added an IFRS chart variant that preserves tenant-scoped account codes, hierarchy, system flags, reconcilable flags, and normal balances while applying intended non-current asset terminology.
+- Setup status now reports configured `baseCurrency` when the seeded chart uses one currency.
+- Accounting settings now lets operators choose chart standard and base currency before seeding accounts instead of hard-coding GAAP/USD.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounting-core tests | GAAP seed, IFRS seed, base-currency status, fiscal periods, and ledger behavior remain green | `pnpm --filter @microservices-sh/accounting-core test` passed, 14/14 | Pass |
+| Accounting-core spec/build | Module docs/OpenAPI/schema/source guard stay aligned with setup standard and base currency behavior | `pnpm --filter @microservices-sh/accounting-core check:spec` and `pnpm --filter @microservices-sh/accounting-core build` passed | Pass |
+| Accounting template spec | Policy catches chart standard and base-currency settings UI/server wiring | `pnpm --dir templates/accounting-erp-sveltekit check:spec` passed | Pass |
+| Accounting template build | SvelteKit/Cloudflare build compiles after setup settings changes | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Packaged accounting template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and sequential `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 87 commerce sync logs route proof
 
 - **Status:** complete.

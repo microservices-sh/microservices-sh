@@ -39,6 +39,7 @@ Tenant-scoped double-entry accounting foundation with chart of accounts, fiscal 
 
 ## Invariants
 - Posted journal entries must balance in integer cents.
+- Chart setup supports GAAP and IFRS seed packs and normalizes the chosen base currency onto created accounts.
 - Fiscal periods carry a type (`month`, `quarter`, `year`, or `custom`) and close actor metadata.
 - Fiscal periods transition only from open to closed, closed to open, or closed to locked.
 - Locked fiscal periods cannot transition.

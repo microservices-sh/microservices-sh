@@ -49,6 +49,16 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
     "Accounting Core exports tenant-scoped fiscal-period read and lifecycle transition use cases and schemas."
   );
   assertFileIncludesAll(
+    "src/schemas.ts",
+    ["chartOfAccountsStandardSchema = z.enum([\"gaap\", \"ifrs\"])", "currency: z.string().min(3).max(3).default(\"USD\")"],
+    "Accounting Core setup schema accepts GAAP/IFRS chart seed standards and base currency."
+  );
+  assertFileIncludesAll(
+    "src/use-cases/setup-accounting.ts",
+    ["IFRS_CHART", "Non-Current Assets", "Property, Plant and Equipment", "baseCurrency"],
+    "Accounting Core setup use case carries source-parity IFRS chart seed and base-currency status metadata."
+  );
+  assertFileIncludesAll(
     "src/manifest/index.ts",
     [
       "accounting-core.getFiscalPeriod",
@@ -73,6 +83,8 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
   assertFileIncludesAll(
     "openapi.json",
     [
+      "\"ChartOfAccountsStandard\"",
+      "\"gaap\", \"ifrs\"",
       "\"/fiscal-periods\"",
       "\"operationId\": \"listFiscalPeriods\"",
       "\"/fiscal-periods/{id}\"",
@@ -123,12 +135,12 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
   );
   assertFileIncludesAll(
     "README.md",
-    ["periodType", "closedById", "open periods can close", "closed periods can reopen or lock", "locked periods cannot transition"],
+    ["GAAP/IFRS seed packs", "base-currency normalization", "periodType", "closedById", "open periods can close", "closed periods can reopen or lock", "locked periods cannot transition"],
     "Accounting Core README documents fiscal-period lifecycle invariants."
   );
   assertFileIncludesAll(
     "llms.txt",
-    ["periodType month|quarter|year|custom", "close actor metadata", "open->closed", "closed->open", "closed->locked", "locked periods cannot transition"],
+    ["GAAP/IFRS chart seed packs normalize base currency", "periodType month|quarter|year|custom", "close actor metadata", "open->closed", "closed->open", "closed->locked", "locked periods cannot transition"],
     "Accounting Core LLM notes document fiscal-period lifecycle invariants."
   );
 }
