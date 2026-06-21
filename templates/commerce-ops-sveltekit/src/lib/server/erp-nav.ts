@@ -33,6 +33,11 @@ export interface LockModule {
 // management is configuration and lives in the Settings hub.
 const MODULE_NAV: Record<string, NavItem> = {
   customer: { label: "Customers", href: "/app/customers", icon: "users" },
+  "product-catalog": { label: "Products", href: "/app/products", icon: "package" },
+  inventory: { label: "Inventory", href: "/app/inventory", icon: "warehouse" },
+  "sales-order": { label: "Sales orders", href: "/app/sales-orders", icon: "shopping-cart" },
+  shipment: { label: "Shipments", href: "/app/shipments", icon: "truck" },
+  "commerce-sync": { label: "Commerce sync", href: "/app/commerce-sync", icon: "refresh-cw" },
   invoice: { label: "Invoices", href: "/app/invoices", icon: "file-text" },
   payment: { label: "Payments", href: "/app/payments", icon: "credit-card" },
   "billing-subscriptions": { label: "Billing", href: "/app/billing", icon: "receipt" },
@@ -50,6 +55,7 @@ const MODULE_NAV: Record<string, NavItem> = {
 // Thematic groups (ordered). Each lists the ordered module ids it contains;
 // only enabled ones render, and empty groups are dropped.
 const GROUPS: { section: string; modules: string[] }[] = [
+  { section: "Commerce", modules: ["product-catalog", "inventory", "sales-order", "shipment", "commerce-sync"] },
   { section: "Customers", modules: ["customer", "booking", "support-ticket"] },
   { section: "Billing", modules: ["invoice", "payment", "billing-subscriptions"] },
   { section: "Marketing", modules: ["forms-intake", "image-generation", "ads-manager"] },

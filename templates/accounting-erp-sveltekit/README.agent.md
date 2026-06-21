@@ -19,8 +19,8 @@ Safe first actions:
 - Gate every `/app/*` action with `org-team-rbac` authorization.
 - Use integer cents in module APIs and UI boundaries.
 - Treat posting, payment application, and bank matching as idempotent mutations.
-- The initial UI is inherited from the ERP shell. Add accounting route pages in a
-  focused follow-up, then update `src/lib/server/erp-nav.ts`.
+- Ledger, payables, receivables, and banking have route-level reference UIs.
+  Keep future route work module-backed and guarded.
 - Do not vendor module internals under `src/lib/server/modules`.
 
 Do not add payment, email, webhook, migration, secret, provider-write, or remote

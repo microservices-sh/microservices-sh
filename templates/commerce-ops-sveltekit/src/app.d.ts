@@ -3,6 +3,7 @@ import type { TableGateway } from "@microservices-sh/admin-shell/ports";
 import type { AuditEventStore } from "@microservices-sh/audit-log/ports";
 import type { SigningKeyStore } from "@microservices-sh/auth/ports";
 import type { CustomerRepository } from "@microservices-sh/customer/ports";
+import type { TicketStore } from "@microservices-sh/support-ticket/ports";
 import type { InvoiceStore, NumberAllocator } from "@microservices-sh/invoice/ports";
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
 import type { NotificationStore } from "@microservices-sh/notifications-inapp/ports";
@@ -11,6 +12,12 @@ import type { DeliveryLogStore, WebhookEndpointStore } from "@microservices-sh/w
 import type { AccountStore, LoginCodeStore, SessionStore } from "@microservices-sh/identity";
 import type { RateLimitStore } from "@microservices-sh/gateway/ports";
 import type { PaymentRepository, PaymentGateway } from "@microservices-sh/payment/ports";
+import type { BillingStore } from "@microservices-sh/billing-subscriptions/ports";
+import type { ImageStore, ObjectStorage as ImageObjectStorage } from "@microservices-sh/image-generation/ports";
+import type { ProviderRegistry } from "@microservices-sh/image-generation";
+import type { AdsStore } from "@microservices-sh/ads-manager/ports";
+import type { FormStore } from "@microservices-sh/forms-intake/ports";
+import type { BookingRepository } from "@microservices-sh/booking/ports";
 import type { ProductCatalogStore } from "@microservices-sh/product-catalog/ports";
 import type { InventoryStore } from "@microservices-sh/inventory/ports";
 import type { SalesOrderStore } from "@microservices-sh/sales-order/ports";
@@ -26,11 +33,19 @@ declare global {
         RATE_LIMIT_KV?: KVNamespace;
         JOB_QUEUE?: Queue<{ jobId: string }>;
         STRIPE_SECRET_KEY?: string;
+        IMAGE_BUCKET?: R2Bucket;
         DESKTOP_IMPORT_TOKEN?: string;
         DESKTOP_IMPORT_ALLOWED_ORIGIN?: string;
         // Optional Workers Analytics Engine dataset for per-request data points.
         // Absent by default — the observability sink no-ops without it.
         OBSERVABILITY?: AnalyticsEngineDataset;
+        KIEAI_API_KEY?: string;
+        KIEAI_BASE_URL?: string;
+        GEMINI_ENDPOINT?: string;
+        GEMINI_AUTH_TOKEN?: string;
+        OPENAI_API_KEY?: string;
+        GPT_IMAGE_BASE_URL?: string;
+        GPT_IMAGE_MODEL?: string;
         MICROSERVICES_DEPLOYMENT_ID?: string;
         MICROSERVICES_OBSERVABILITY_TOKEN?: string;
         MICROSERVICES_OBSERVABILITY_URL?: string;
@@ -45,6 +60,7 @@ declare global {
       auditStore: AuditEventStore;
       signingKeyStore: SigningKeyStore;
       customerRepository: CustomerRepository;
+      ticketStore: TicketStore;
       invoiceStore: InvoiceStore;
       numberAllocator: NumberAllocator;
       mediaStore: MediaStore;
@@ -65,6 +81,14 @@ declare global {
       // Payments: D1/memory repository + Stripe/memory gateway.
       paymentRepository: PaymentRepository;
       paymentGateway: PaymentGateway;
+      billingStore: BillingStore;
+      // Image generation: store + object storage (R2/memory) + provider registry.
+      imageStore: ImageStore;
+      imageStorage: ImageObjectStorage;
+      imageProviders: ProviderRegistry;
+      adsStore: AdsStore;
+      formStore: FormStore;
+      bookingRepository: BookingRepository;
       productCatalogStore: ProductCatalogStore;
       inventoryStore: InventoryStore;
       salesOrderStore: SalesOrderStore;

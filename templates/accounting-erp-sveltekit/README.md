@@ -29,10 +29,9 @@ Focused modules:
 - `org-team-rbac`
 - `admin-shell`
 
-The current SvelteKit UI is inherited from `erp-shell-sveltekit` and enables the
-accounting module set in `src/lib/modules.config.ts`. Route-level pages for
-ledger review, payables, receivables aging, bank import, and reconciliation are
-the next template-specific UI slice.
+The current SvelteKit UI is inherited from `erp-shell-sveltekit` and extended
+with accounting pages for ledger review, payables, receivables aging, bank
+import, and reconciliation.
 
 ## Routes
 
@@ -43,6 +42,10 @@ the next template-specific UI slice.
 | `/signup` | One-time company setup |
 | `/app` | Operations dashboard |
 | `/app/customers` | Customer book |
+| `/app/ledger` | Chart of accounts and account creation |
+| `/app/payables` | Vendor, bill, and AP aging review |
+| `/app/receivables` | Open receivables and AR aging buckets |
+| `/app/banking` | Statement import and reconciliation review |
 | `/app/invoices` | Invoice ledger |
 | `/app/payments` | Payment review |
 | `/app/files` | Stored files |

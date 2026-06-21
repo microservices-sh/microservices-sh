@@ -82,6 +82,11 @@ The reference page is deliberately generic. When customizing:
 
 | Module | Surface | Reference page |
 |---|---|---|
+| product-catalog | Products — SKU, pricing, and stock policy | ✅ `app/products` |
+| inventory | Inventory — balances, movements, and receiving | ✅ `app/inventory` |
+| sales-order | Sales orders — draft order intake and ledger | ✅ `app/sales-orders` |
+| shipment | Shipments — fulfillment batches and items | ✅ `app/shipments` |
+| commerce-sync | Commerce sync — connection, mapping, sync, webhook review | ✅ `app/commerce-sync` |
 | customer | Customers — list + create | ✅ `app/customers` |
 | invoice | Invoices — issue + record payment | ✅ `app/invoices` |
 | support-ticket | Support — list + open + status | ✅ `app/support` |

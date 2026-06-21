@@ -26,9 +26,10 @@ SvelteKit routes are adapters. Domain/API logic lives in detached module use
 cases, and cross-module work should use ports or events rather than direct table
 access.
 
-The current UI shell is intentionally conservative. The next UI slice should add
-accounting pages for ledger review, payables, receivables aging, bank statement
-import, and reconciliation, then update the sidebar mapping.
+The UI includes reference pages for ledger review, payables, receivables aging,
+bank statement import, and reconciliation. The next template-specific slice
+should prune inherited ERP shell dependencies only after the shared route layer
+no longer imports them.
 
 ## Approval Gates
 

@@ -29,10 +29,9 @@ Focused modules:
 - `org-team-rbac`
 - `admin-shell`
 
-The current SvelteKit UI is inherited from `erp-shell-sveltekit` and enables the
-commerce module set in `src/lib/modules.config.ts`. Route-level pages for product
-catalog, inventory, sales orders, fulfillment, and sync review are the next
-template-specific UI slice.
+The current SvelteKit UI is inherited from `erp-shell-sveltekit` and extended
+with commerce pages for product catalog, inventory, sales orders, fulfillment,
+and sync review.
 
 ## Routes
 
@@ -43,6 +42,11 @@ template-specific UI slice.
 | `/signup` | One-time company setup |
 | `/app` | Operations dashboard |
 | `/app/customers` | Customer book |
+| `/app/products` | Product catalog and stock policy setup |
+| `/app/inventory` | Stock balances, recent movements, and manual receiving |
+| `/app/sales-orders` | Draft sales order intake and order ledger |
+| `/app/shipments` | Fulfillment batches and shipment line review |
+| `/app/commerce-sync` | Provider connection, sync-run, mapping, and webhook contract review |
 | `/app/invoices` | Invoice ledger |
 | `/app/payments` | Payment review |
 | `/app/files` | Stored files |

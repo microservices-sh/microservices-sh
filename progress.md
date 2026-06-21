@@ -1147,7 +1147,7 @@
 - Used subagents for parallel template directory starts, then closed them after partial/racy output and integrated the final version in the main thread.
 - Added `commerce-ops-sveltekit` and `accounting-erp-sveltekit` from the ERP shell with focused manifests, lockfiles, enabled-module sets, StackSuite-specific docs, and unique package/template ids.
 - Registered both templates in create-app template discovery and bundle metadata.
-- Recorded the remaining technical boundary: route-level product, inventory, sales order, shipment, sync, ledger, payables, receivables, and bank reconciliation pages are still pending, so inherited shell deps remain broad for now.
+- Recorded the remaining technical boundary: route-level StackSuite pages are now available, but inherited shell deps remain broad until shared dashboard/store imports are narrowed.
 
 | Check | Expected | Actual | Status |
 |------|----------|--------|--------|
@@ -1156,3 +1156,33 @@
 | Create-app build | Bundled templates include new template ids | `pnpm --filter create-microservices-app build` | Pass |
 | Create-app smoke | New templates generate standalone source trees | Both templates generated under `/tmp` with `--no-install --no-git`; commerce output includes `0006_support_ticket.sql` | Pass |
 | Full spec | Workspace module/template checks pass | `pnpm spec:check:all` passed 51 targets | Pass |
+
+### Phase 46 StackSuite route adoption
+
+- Goal: make the focused commerce and accounting templates use StackSuite modules as first-class app routes instead of only listing them in metadata.
+- Wired `product-catalog`, `inventory`, `sales-order`, and `shipment` stores into the commerce template request locals for both D1 and memory adapters.
+- Added `/app/products` with module-backed product listing/creation, RBAC gating, module gating, and audit events.
+- Added `/app/inventory` with product-joined stock balances, recent stock movements, receive-stock action, inventory product validation, and audit events.
+- Added `/app/sales-orders` with draft order creation and order ledger review.
+- Added `/app/shipments` with shipment batch creation and fulfillment item review.
+- Added `/app/commerce-sync` with connection, sync-run, mapping, and webhook receipt contract review.
+- Wired `accounting-core` and `accounts-payable` stores into the accounting template request locals for both D1 and memory adapters.
+- Added `/app/ledger` with chart-of-accounts listing and account creation.
+- Added `/app/payables` with vendor creation, bill creation, bill ledger, and AP aging metrics.
+- Added `/app/receivables` with AR aging and open receivable contract review.
+- Added `/app/banking` with bank account, statement transaction, and reconciliation contract review.
+- Added commerce/accounting sidebar navigation and icon support for the new route groups.
+- Extended local demo seeding with three commerce products and opening stock movements so fresh dev sessions show usable module data.
+- Declared missing inherited workspace dependencies in `templates/commerce-ops-sveltekit/package.json` so the focused template builds from its own package boundary.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Commerce build | SvelteKit/Cloudflare production build passes | `pnpm --filter @microservices-sh/template-commerce-ops-sveltekit build` passed; existing invoice detail Svelte warning remains non-blocking | Pass |
+| Commerce spec | Shared template checks pass | `pnpm --filter @microservices-sh/template-commerce-ops-sveltekit check:spec` passed | Pass |
+| Accounting build | SvelteKit/Cloudflare production build passes | `pnpm --filter @microservices-sh/template-accounting-erp-sveltekit build` passed; existing invoice detail Svelte warning remains non-blocking | Pass |
+| Accounting spec | Shared template checks pass | `pnpm --filter @microservices-sh/template-accounting-erp-sveltekit check:spec` passed | Pass |
+| Create-app build | Bundled templates rebuild after source/package changes | `pnpm --filter create-microservices-app build` passed | Pass |
+| Create-app tests | Registry and create-package unit tests pass | `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Bundle closure | Generated template module graph remains closed | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 22/22 | Pass |
+| Generated route smoke | Generated templates contain new route files | Both templates generated under `/tmp`; route files verified with `rg` | Pass |
+| Full spec | Workspace module/template checks pass | `pnpm spec:check:all` passed, 51 targets | Pass |

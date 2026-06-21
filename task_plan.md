@@ -346,9 +346,10 @@ Phase 45
 - [x] Add StackSuite-derived modules for commerce, accounting, AP, AR, bank reconciliation, and commerce sync.
 - [x] Add `commerce-ops-sveltekit` and `accounting-erp-sveltekit` repo-style templates derived from `erp-shell-sveltekit`.
 - [x] Register the new templates in create-app template discovery and bundling metadata.
-- [x] Keep current route/UI limitations explicit: the templates are CLI/template-available, but product/inventory/sales/shipment/sync and accounting route pages are still pending.
-- [ ] Add route-level pages and sidebar entries for the StackSuite modules, then prune inherited broad ERP shell deps.
-- **Status:** template split in progress; CLI template availability added, route-level UI pending
+- [x] Add route-level pages and sidebar entries for StackSuite commerce modules: products, inventory, sales orders, shipments, and commerce sync.
+- [x] Add route-level pages and sidebar entries for StackSuite accounting modules: ledger, payables, receivables, and banking.
+- [ ] Prune inherited broad ERP shell deps and migrations once shared dashboard/store imports are narrowed.
+- **Status:** route-level template adoption complete; dependency pruning pending
 
 ## Key Questions
 1. Is the current plan good enough to start an MVP?

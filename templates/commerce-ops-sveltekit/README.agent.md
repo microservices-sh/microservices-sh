@@ -19,8 +19,8 @@ Safe first actions:
 - Gate every `/app/*` action with `org-team-rbac` authorization.
 - Treat commerce sync credentials as secrets; store only secret references in D1.
 - Keep webhook intake idempotent and audit every accepted external payload.
-- The initial UI is inherited from the ERP shell. Add commerce route pages in a
-  focused follow-up, then update `src/lib/server/erp-nav.ts`.
+- Product catalog, inventory, sales orders, shipments, and commerce sync have
+  route-level reference UIs. Keep future route work module-backed and guarded.
 - Do not vendor module internals under `src/lib/server/modules`.
 
 Do not add payment, email, webhook, migration, secret, provider-write, or remote

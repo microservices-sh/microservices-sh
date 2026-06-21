@@ -53,6 +53,16 @@ import type { FormStore } from "@microservices-sh/forms-intake/ports";
 import { createD1BookingRepository } from "@microservices-sh/booking/adapters/d1";
 import { createMemoryBookingRepository } from "@microservices-sh/booking/adapters/memory";
 import type { BookingRepository } from "@microservices-sh/booking/ports";
+import {
+  createD1AccountingCoreStore,
+  createMemoryAccountingCoreStore,
+  type AccountingCoreStore
+} from "@microservices-sh/accounting-core";
+import {
+  createD1AccountsPayableStore,
+  createMemoryAccountsPayableStore,
+  type AccountsPayableStore
+} from "@microservices-sh/accounts-payable";
 
 import type { RbacStore } from "@microservices-sh/org-team-rbac/ports";
 import type { TableGateway } from "@microservices-sh/admin-shell/ports";
@@ -93,6 +103,8 @@ const memoryImageStore = createMemoryImageStore();
 const memoryAdsStore = createMemoryAdsStore();
 const memoryFormStore = createMemoryFormStore();
 const memoryBookingRepository = createMemoryBookingRepository();
+const memoryAccountingCoreStore = createMemoryAccountingCoreStore();
+const memoryAccountsPayableStore = createMemoryAccountsPayableStore();
 
 export interface ServerStores {
   rbacStore: RbacStore;
@@ -119,6 +131,8 @@ export interface ServerStores {
   adsStore: AdsStore;
   formStore: FormStore;
   bookingRepository: BookingRepository;
+  accountingCoreStore: AccountingCoreStore;
+  accountsPayableStore: AccountsPayableStore;
 }
 
 // The platform bindings as declared on App.Platform — referenced via the platform
@@ -154,7 +168,9 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     imageStore: db ? createD1ImageStore(db) : memoryImageStore,
     adsStore: db ? createD1AdsStore(db) : memoryAdsStore,
     formStore: db ? createD1FormStore(db) : memoryFormStore,
-    bookingRepository: db ? createD1BookingRepository(db) : memoryBookingRepository
+    bookingRepository: db ? createD1BookingRepository(db) : memoryBookingRepository,
+    accountingCoreStore: db ? createD1AccountingCoreStore(db) : memoryAccountingCoreStore,
+    accountsPayableStore: db ? createD1AccountsPayableStore(db) : memoryAccountsPayableStore
   };
 }
 
@@ -165,6 +181,8 @@ export const memoryStores = {
   ticketStore: memoryTicketStore,
   invoiceStore: memoryInvoiceStore,
   numberAllocator: memoryNumberAllocator,
+  accountingCoreStore: memoryAccountingCoreStore,
+  accountsPayableStore: memoryAccountsPayableStore,
   mediaStore: memoryMediaStore,
   objectStorage: memoryObjectStorage,
   auditStore: memoryAuditStore

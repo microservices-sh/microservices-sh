@@ -33,6 +33,10 @@ export interface LockModule {
 // management is configuration and lives in the Settings hub.
 const MODULE_NAV: Record<string, NavItem> = {
   customer: { label: "Customers", href: "/app/customers", icon: "users" },
+  "accounting-core": { label: "Ledger", href: "/app/ledger", icon: "book-open" },
+  "accounts-payable": { label: "Payables", href: "/app/payables", icon: "receipt" },
+  "accounts-receivable": { label: "Receivables", href: "/app/receivables", icon: "file-text" },
+  "bank-reconciliation": { label: "Banking", href: "/app/banking", icon: "landmark" },
   invoice: { label: "Invoices", href: "/app/invoices", icon: "file-text" },
   payment: { label: "Payments", href: "/app/payments", icon: "credit-card" },
   "billing-subscriptions": { label: "Billing", href: "/app/billing", icon: "receipt" },
@@ -50,6 +54,7 @@ const MODULE_NAV: Record<string, NavItem> = {
 // Thematic groups (ordered). Each lists the ordered module ids it contains;
 // only enabled ones render, and empty groups are dropped.
 const GROUPS: { section: string; modules: string[] }[] = [
+  { section: "Accounting", modules: ["accounting-core", "accounts-payable", "accounts-receivable", "bank-reconciliation"] },
   { section: "Customers", modules: ["customer", "booking", "support-ticket"] },
   { section: "Billing", modules: ["invoice", "payment", "billing-subscriptions"] },
   { section: "Marketing", modules: ["forms-intake", "image-generation", "ads-manager"] },

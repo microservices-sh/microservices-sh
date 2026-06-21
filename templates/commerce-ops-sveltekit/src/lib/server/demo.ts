@@ -19,6 +19,10 @@ import { createTicket } from "@microservices-sh/support-ticket";
 import type { TicketStore } from "@microservices-sh/support-ticket/ports";
 import { createInvoice, issueInvoice, recordPayment } from "@microservices-sh/invoice";
 import type { InvoiceStore, NumberAllocator } from "@microservices-sh/invoice/ports";
+import { createProduct } from "@microservices-sh/product-catalog";
+import type { ProductCatalogStore } from "@microservices-sh/product-catalog/ports";
+import { stockIn } from "@microservices-sh/inventory";
+import type { InventoryStore } from "@microservices-sh/inventory/ports";
 import { createUploadTicket, completeUpload } from "@microservices-sh/file-media";
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
 import { recordEvent } from "@microservices-sh/audit-log";
@@ -30,6 +34,8 @@ export interface DemoDeps {
 	ticketStore: TicketStore;
 	invoiceStore: InvoiceStore;
 	numberAllocator: NumberAllocator;
+	productCatalogStore: ProductCatalogStore;
+	inventoryStore: InventoryStore;
 	mediaStore: MediaStore;
 	objectStorage: ObjectStorage & {
 		setSize?: (key: string, info: { size: number; contentType?: string }) => void;
@@ -63,6 +69,40 @@ interface CustomerSpec {
 	invoices: InvoiceSpec[];
 	files: Array<{ name: string; contentType: string }>;
 }
+
+const DEMO_PRODUCTS = [
+	{
+		sku: "KIT-STARTER",
+		name: "Starter operations kit",
+		description: "Packaged onboarding kit for new commerce clients.",
+		priceCents: 12900,
+		unit: "kit",
+		reorderPoint: 10,
+		reorderQuantity: 25,
+		openingStock: 42
+	},
+	{
+		sku: "BOX-REFILL",
+		name: "Refill box",
+		description: "Consumable refill inventory used in monthly shipments.",
+		priceCents: 3900,
+		unit: "box",
+		reorderPoint: 20,
+		reorderQuantity: 50,
+		openingStock: 18
+	},
+	{
+		sku: "SVC-INSTALL",
+		name: "Installation service",
+		description: "Non-stock service line for field setup work.",
+		priceCents: 24000,
+		unit: "service",
+		reorderPoint: 0,
+		reorderQuantity: 0,
+		openingStock: 0,
+		trackStock: false
+	}
+];
 
 // Two customers with intentionally different operational shapes so the dashboard
 // shows real signal: Acme has a paid invoice, an overdue one, and a draft;
@@ -153,6 +193,63 @@ export async function seedDemoData(deps: DemoDeps): Promise<void> {
 			{ ...input, actorId: "system:seed", source: "commerce-ops-seed" },
 			{ auditStore: deps.auditStore }
 		);
+
+	for (const spec of DEMO_PRODUCTS) {
+		const created = await createProduct(
+			{
+				tenantId: deps.tenantId,
+				sku: spec.sku,
+				name: spec.name,
+				description: spec.description,
+				priceCents: spec.priceCents,
+				currency: "USD",
+				unit: spec.unit,
+				productType: "simple",
+				trackStock: spec.trackStock ?? true,
+				reorderPoint: spec.reorderPoint,
+				reorderQuantity: spec.reorderQuantity
+			},
+			{
+				productCatalogStore: deps.productCatalogStore,
+				actor: { id: "system:seed" }
+			}
+		);
+		if (!created.ok || !created.data) continue;
+
+		await audit({
+			eventName: "product-catalog.product_created",
+			entityType: "product",
+			entityId: created.data.product.id,
+			payload: { sku: created.data.product.sku, name: created.data.product.name }
+		});
+
+		if (created.data.product.trackStock && spec.openingStock > 0) {
+			const received = await stockIn(
+				{
+					tenantId: deps.tenantId,
+					productId: created.data.product.id,
+					locationId: "default",
+					quantity: spec.openingStock,
+					sourceType: "demo-seed",
+					sourceId: `opening:${spec.sku}`,
+					reason: "Opening demo stock."
+				},
+				{
+					inventoryStore: deps.inventoryStore,
+					actor: { id: "system:seed" }
+				}
+			);
+
+			if (received.ok && received.data) {
+				await audit({
+					eventName: "inventory.stock_received",
+					entityType: "stock_movement",
+					entityId: received.data.movement.id,
+					payload: { sku: spec.sku, quantity: spec.openingStock }
+				});
+			}
+		}
+	}
 
 	for (const profile of DEMO_CUSTOMERS) {
 		const customerResult = await upsertCustomer(

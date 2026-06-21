@@ -153,9 +153,12 @@ Acceptance criteria:
 - Added CLI-discoverable repo templates `commerce-ops-sveltekit` and
   `accounting-erp-sveltekit`, derived from the ERP shell with focused manifests,
   lockfiles, enabled-module sets, docs, and create-app bundle registration.
-- Follow-up route/UI split remains open: add product catalog, inventory, sales
-  order, shipment, sync, ledger, payables, receivables, and bank reconciliation
-  pages, then prune inherited ERP shell deps and migrations.
+- Completed route/UI split: `commerce-ops-sveltekit` now has product catalog,
+  inventory, sales order, shipment, and commerce-sync pages; `accounting-erp-sveltekit`
+  now has ledger, payables, receivables, and banking pages.
+- Follow-up remains open: prune inherited broad ERP shell dependencies and
+  migrations once the shared dashboard/store layer no longer imports them, and
+  add durable adapters for draft service-style modules where needed.
 
 ## Open Questions
 
@@ -166,6 +169,5 @@ Acceptance criteria:
 3. Should `sales-order` convert to the current `invoice` module's cents-based
    invoice records, or should invoice be extended first for shipping/contact
    snapshots?
-4. Should `commerce-ops-sveltekit` and `accounting-erp-sveltekit` stay public
-   while route-level module pages are still inherited from the ERP shell, or
-   should they be hidden until the UI split is complete?
+4. Which inherited ERP shell modules can be safely pruned from the focused
+   templates without breaking shared dashboards, demo seeding, or route imports?

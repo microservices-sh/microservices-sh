@@ -229,4 +229,5 @@
 - Donor app behavior from `accounting-system` and `invoice-system-bao` maps cleanly into module boundaries rather than copied full apps: product catalog, inventory, sales order, shipment, commerce sync, accounting core, accounts payable, accounts receivable, and bank reconciliation.
 - The module extraction is implemented and contract-checked. `erp-shell-sveltekit` now carries the StackSuite module migrations and optional slots.
 - `commerce-ops-sveltekit` and `accounting-erp-sveltekit` are now repo-style create-app templates with focused manifests, lockfiles, enabled-module sets, and StackSuite-specific agent docs.
-- The new templates intentionally keep inherited ERP shell code and broad package deps for now because the SvelteKit route layer still imports shared stores and dashboard behavior. Route-level pages for the StackSuite modules should land before pruning inherited deps/migrations.
+- Route-level StackSuite pages now exist in the focused templates: commerce has products, inventory, sales orders, shipments, and commerce sync; accounting has ledger, payables, receivables, and banking.
+- The new templates intentionally keep inherited ERP shell code and broad package deps for now because the SvelteKit route layer still imports shared stores and dashboard behavior. Pruning inherited deps/migrations is now the remaining template-hardening work.

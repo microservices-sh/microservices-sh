@@ -82,6 +82,10 @@ The reference page is deliberately generic. When customizing:
 
 | Module | Surface | Reference page |
 |---|---|---|
+| accounting-core | Ledger — chart of accounts | ✅ `app/ledger` |
+| accounts-payable | Payables — vendors, bills, aging | ✅ `app/payables` |
+| accounts-receivable | Receivables — open invoices and aging | ✅ `app/receivables` |
+| bank-reconciliation | Banking — statement import and reconciliation | ✅ `app/banking` |
 | customer | Customers — list + create | ✅ `app/customers` |
 | invoice | Invoices — issue + record payment | ✅ `app/invoices` |
 | support-ticket | Support — list + open + status | ✅ `app/support` |

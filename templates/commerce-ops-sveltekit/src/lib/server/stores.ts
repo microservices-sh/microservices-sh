@@ -53,6 +53,10 @@ import type { FormStore } from "@microservices-sh/forms-intake/ports";
 import { createD1BookingRepository } from "@microservices-sh/booking/adapters/d1";
 import { createMemoryBookingRepository } from "@microservices-sh/booking/adapters/memory";
 import type { BookingRepository } from "@microservices-sh/booking/ports";
+import { createD1ProductCatalogStore, createMemoryProductCatalogStore } from "@microservices-sh/product-catalog";
+import { createD1InventoryStore, createMemoryInventoryStore } from "@microservices-sh/inventory";
+import { createD1SalesOrderStore, createMemorySalesOrderStore } from "@microservices-sh/sales-order";
+import { createD1ShipmentStore, createMemoryShipmentStore } from "@microservices-sh/shipment";
 
 import type { RbacStore } from "@microservices-sh/org-team-rbac/ports";
 import type { TableGateway } from "@microservices-sh/admin-shell/ports";
@@ -65,6 +69,10 @@ import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/por
 import type { NotificationStore } from "@microservices-sh/notifications-inapp/ports";
 import type { JobStore, ScheduleStore } from "@microservices-sh/jobs-workflows/ports";
 import type { DeliveryLogStore, WebhookEndpointStore } from "@microservices-sh/webhook-delivery/ports";
+import type { ProductCatalogStore } from "@microservices-sh/product-catalog/ports";
+import type { InventoryStore } from "@microservices-sh/inventory/ports";
+import type { SalesOrderStore } from "@microservices-sh/sales-order/ports";
+import type { ShipmentStore } from "@microservices-sh/shipment/ports";
 
 // Memory singletons for local dev without D1/R2. State persists across requests in
 // a single dev session so the seeded company → employees → customers/invoices/files
@@ -93,6 +101,10 @@ const memoryImageStore = createMemoryImageStore();
 const memoryAdsStore = createMemoryAdsStore();
 const memoryFormStore = createMemoryFormStore();
 const memoryBookingRepository = createMemoryBookingRepository();
+const memoryProductCatalogStore = createMemoryProductCatalogStore();
+const memoryInventoryStore = createMemoryInventoryStore();
+const memorySalesOrderStore = createMemorySalesOrderStore();
+const memoryShipmentStore = createMemoryShipmentStore();
 
 export interface ServerStores {
   rbacStore: RbacStore;
@@ -119,6 +131,10 @@ export interface ServerStores {
   adsStore: AdsStore;
   formStore: FormStore;
   bookingRepository: BookingRepository;
+  productCatalogStore: ProductCatalogStore;
+  inventoryStore: InventoryStore;
+  salesOrderStore: SalesOrderStore;
+  shipmentStore: ShipmentStore;
 }
 
 // The platform bindings as declared on App.Platform — referenced via the platform
@@ -154,7 +170,11 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     imageStore: db ? createD1ImageStore(db) : memoryImageStore,
     adsStore: db ? createD1AdsStore(db) : memoryAdsStore,
     formStore: db ? createD1FormStore(db) : memoryFormStore,
-    bookingRepository: db ? createD1BookingRepository(db) : memoryBookingRepository
+    bookingRepository: db ? createD1BookingRepository(db) : memoryBookingRepository,
+    productCatalogStore: db ? createD1ProductCatalogStore(db) : memoryProductCatalogStore,
+    inventoryStore: db ? createD1InventoryStore(db) : memoryInventoryStore,
+    salesOrderStore: db ? createD1SalesOrderStore(db) : memorySalesOrderStore,
+    shipmentStore: db ? createD1ShipmentStore(db) : memoryShipmentStore
   };
 }
 
@@ -165,6 +185,10 @@ export const memoryStores = {
   ticketStore: memoryTicketStore,
   invoiceStore: memoryInvoiceStore,
   numberAllocator: memoryNumberAllocator,
+  productCatalogStore: memoryProductCatalogStore,
+  inventoryStore: memoryInventoryStore,
+  salesOrderStore: memorySalesOrderStore,
+  shipmentStore: memoryShipmentStore,
   mediaStore: memoryMediaStore,
   objectStorage: memoryObjectStorage,
   auditStore: memoryAuditStore
