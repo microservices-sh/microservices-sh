@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 64
+Phase 66
 
 ## Phases
 
@@ -507,6 +507,25 @@ Phase 64
 - [x] Add memory/D1 store methods, migration tables, schemas, module metadata, OpenAPI/docs, events, exports, scoped wrappers, and tests.
 - [x] Keep pending upload sessions, raw R2 uploads, signed URLs, AI analyses/follow-up questions, billing tokens, WhatsApp, and UI outside the module boundary.
 - [x] Verify build, tests, module spec, migration smoke, JSON parsing, registry build, and whitespace checks for the module slice.
+- **Status:** complete
+
+### Phase 65: StackSuite Accounting And Commerce Parity Hardening
+- [x] Port commerce document export helpers, packing-slip print helpers, and invoice-send/payment-link workflows into `commerce-ops-sveltekit`.
+- [x] Add scheduled runtime glue and guarded HTTP cron fallbacks for both focused StackSuite templates.
+- [x] Align commerce reservation side effects across sales-order confirmation, cancellation, invoice handoff, shipment completion, combo components, and MCP lifecycle tools.
+- [x] Map WooCommerce signed order webhooks and normalized order envelopes through the sales-order, customer, product, inventory, and provider-mapping lifecycle.
+- [x] Add accounting reports for AR aging, AP aging, open receivables, and customer statements.
+- [x] Add accounting invoice collection with payment-link creation, email send, signed Stripe webhook settlement, and AR snapshot refresh.
+- [x] Post manually issued invoices and customer-payment settlement into `accounting-core` journals through request-scoped accounting adapters.
+- [x] Verify focused module tests/builds, focused template checks/builds, full workspace spec checks, create-app build, create-app smoke, and whitespace checks across the committed slices.
+- **Status:** complete
+
+### Phase 66: Recurring Invoice Accounting Job Parity
+- [x] Wire recurring invoice generate-due jobs to post auto-issued generated invoices into `accounting-core`.
+- [x] Sync generated auto-issued recurring invoices into Accounts Receivable snapshots.
+- [x] Pass accounting and receivables stores through both Cloudflare scheduled runtime and operator-run due jobs.
+- [x] Add a focused integration regression for auto-issued recurring invoice GL posting and AR sync.
+- [x] Verify focused scheduled-runtime test, accounting template check, accounting template build, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

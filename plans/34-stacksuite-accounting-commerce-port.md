@@ -177,9 +177,22 @@ Acceptance criteria:
   posting, bank reconciliation, recurring invoice/bill generation, WooCommerce
   sync, shipment/inventory reservation, printable documents, invoice numbering,
   Stripe webhooks, D1 pagination, and auth/session helpers.
-- Follow-up remains open: prune inherited broad ERP shell dependencies and
-  migrations once the shared dashboard/store layer no longer imports them, and
-  add durable adapters for draft service-style modules where needed.
+- Completed parity hardening: commerce document exports, packing-slip and
+  pick-list print helpers, invoice-send/payment-link workflows, scheduled
+  runtime glue, WooCommerce page syncs and signed order webhooks, lifecycle-aware
+  inventory reservations, combo-component stock reservations, MCP lifecycle side
+  effects, and invoice-originated shipment deductions.
+- Completed accounting parity hardening: scheduled runtime glue, ledger journal
+  creation/post/void and trial-balance UI, AP posting through the template-side
+  accounting poster, manual invoice issue/payment/void AR snapshot sync, invoice
+  payment links and email send, signed Stripe settlement webhooks, AR aging, AP
+  aging, customer statements, AR customer-payment settlement posted to
+  `accounting-core`, and recurring invoice jobs posting/syncing generated
+  auto-issued invoices.
+- Remaining follow-up is narrower: prune inherited broad ERP shell dependencies
+  and migrations only after shared dashboard/settings/support routes are
+  intentionally narrowed, and add Code Memory/CLI hardening docs if donor-scan
+  reuse needs to become a generated-app feature.
 
 ## Reusable Candidate Map
 
@@ -200,27 +213,33 @@ Acceptance criteria:
 
 ## Next Implementation Slices
 
-1. Contract alignment: expand `accounting-core` OpenAPI/manifest parity, align
-   AP and bank template lockfiles with current module hooks/events, and add
-   template checks for accounting/AP/AR/bank route-to-module boundaries.
-2. AP-to-ledger posting: wire the existing AP `AccountingPoster` port through a
-   template-side adapter instead of letting routes create journals directly.
-3. AR invoice sync: synchronize AR snapshots from invoice issued/paid/voided
-   workflows while keeping invoice lifecycle state authoritative in `invoice`.
-4. Bank matching parity: align advertised `suggestMatches`/`createMatch`
-   contracts with implemented matching behavior, then expose candidate review in
-   the template workflow.
-5. Accounting-core UI expansion: add journal entry, post/void, fiscal period,
-   and trial balance routes as thin module adapters.
-6. Commerce sync + shipment enhancements: adapt WooCommerce HMAC verification,
-   order contact snapshots, inventory reservation/release, shipment batches, and
-   printable packing-slip flows.
-7. Code Memory and CLI hardening: add local scan docs/examples for the two donor
-   projects, then consider heuristics for order-contact snapshots, scheduled
-   sync, API-key/OpenAPI surfaces, and MCP admin tooling.
-8. Scaffold verification: sync create-app bundled templates and run shim,
-   registry, template closure, spec, and full test passes before closing this
-   adoption thread.
+1. Completed: contract alignment for `accounting-core`, AP, AR, bank
+   reconciliation, and focused template checks now covers ledger, payables,
+   receivables, banking, reports, invoice collection, webhook settlement, and
+   recurring invoice job settlement.
+2. Completed: AP-to-ledger and AR-to-ledger posting now happen through
+   template-side accounting adapters instead of direct route-owned journal
+   creation.
+3. Completed: AR snapshots synchronize from manual invoice issue, payment, void,
+   manual receivables payment, signed Stripe settlement, and recurring
+   auto-issued invoice jobs while `invoice` remains authoritative for invoice
+   lifecycle state.
+4. Completed: bank matching parity now exposes `suggestMatches`, `createMatch`,
+   import history, reconciliation start, and reconciliation completion in the
+   accounting template workflow.
+5. Completed: accounting-core UI now includes fiscal-period creation/status,
+   journal draft creation, post, void/reversal, and trial balance.
+6. Completed: commerce sync and shipment parity now covers WooCommerce HMAC
+   verification, contact snapshots, inventory reservation/release, shipment
+   completion stock deduction, shipment batches, packing slips, and pick lists.
+7. Remaining candidate: prune focused template dependency/migration sets where
+   inherited ERP shell routes are no longer intentionally exposed.
+8. Remaining candidate: add explicit Code Memory/CLI scan docs for the two donor
+   projects if future generated apps should guide agents toward these reuse
+   sources automatically.
+9. Ongoing verification: keep create-app bundled templates, shim checks,
+   registry/spec checks, focused template builds, and integration tests green
+   whenever either focused StackSuite template changes.
 
 ## Open Questions
 

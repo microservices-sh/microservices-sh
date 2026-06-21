@@ -1486,3 +1486,41 @@
 | Support Ticket spec | Module contract check passes | `pnpm --filter @microservices-sh/support-ticket check:spec` passed | Pass |
 | D1 migration | Module migrations load in SQLite | `sqlite3 :memory: ".read modules/support-ticket/migrations/0001_support_ticket.sql" ".read modules/support-ticket/migrations/0002_ticket_thread_share_tokens.sql"` passed | Pass |
 | JSON docs | OpenAPI, manifest, and JSON schemas parse | Node JSON parse check passed | Pass |
+
+### Phase 65 StackSuite accounting and commerce parity hardening
+
+- **Status:** complete.
+- Goal: close the highest-value parity gaps found after the initial StackSuite accounting/commerce module and template split.
+- Added commerce document export helpers, invoice-send/payment-link workflow, Stripe settlement webhook handling, scheduled runtime glue, and WooCommerce signed webhook/order import lifecycle routing.
+- Hardened commerce inventory lifecycle side effects: confirmed sales orders reserve stock, terminal sales-order transitions release reservations, combo products reserve component stock, MCP tools run the same side effects as routes, invoice handoff releases order reservations, and shipment completion deducts on-hand stock for invoice-originated orders.
+- Added accounting scheduled runtime glue, AR/AP aging and customer statement reports, invoice collection/payment-link/email workflow, signed Stripe settlement handling, and ledger posting for manually issued invoices plus applied customer payments.
+- Kept donor behavior adapted through module ports and template-side adapters instead of copying donor app routes or floating-point money persistence.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Commerce lifecycle integration tests | WooCommerce import, MCP lifecycle, sales-order inventory, document export, and invoice-payment workflows pass | Targeted `pnpm vitest run ...commerce...` suites passed across the committed slices | Pass |
+| Accounting AR settlement tests | Accounts Receivable posting and settlement behavior passes | `pnpm --filter @microservices-sh/accounts-receivable test` passed, 4/4 | Pass |
+| Accounting module builds | AR and accounting-core build/typecheck pass | `pnpm --filter @microservices-sh/accounts-receivable build` and `pnpm --filter @microservices-sh/accounting-core build` passed | Pass |
+| Focused template checks | Accounting and commerce template contract checks pass | Focused template checks passed across the committed slices | Pass |
+| Focused template builds | SvelteKit/Cloudflare builds complete with scheduled-handler injection | Focused template builds passed across the committed slices | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed after each committed slice | Pass |
+| Create package | Bundled template closure and generated-app smoke still pass | `pnpm --filter create-microservices-app build` and `smoke:built` passed | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 66 recurring invoice accounting job parity
+
+- **Status:** complete.
+- Goal: close the remaining accounting gap where recurring invoice jobs could auto-issue invoices without the manual invoice issue path's GL posting and AR snapshot sync.
+- Updated the recurring invoice job handler to post every generated non-draft invoice through `postIssuedInvoiceToAccounting` and sync it through `syncInvoiceToReceivables`.
+- Passed accounting and receivables stores into the handler from both Cloudflare scheduled runtime and the operator-run due jobs route.
+- Added a regression test that seeds chart of accounts/fiscal periods, creates an auto-issue recurring invoice template, runs the registered job handler, and asserts a posted AR invoice journal plus open receivable snapshot.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Scheduled runtime regression | Auto-issued recurring invoices post to GL and sync to AR | `pnpm vitest run tests/integration/accounting-scheduled-runtime.test.ts` passed, 2/2 | Pass |
+| Accounting template spec | Template assertions include accounting-aware recurring job handlers | `node packages/workspace-tools/src/index.js check template --path templates/accounting-erp-sveltekit` passed | Pass |
+| Accounting template build | SvelteKit/Cloudflare build compiles the updated scheduled runtime | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Create package build | Bundled create-app artifact builds after template runtime changes | `pnpm --filter create-microservices-app build` passed | Pass |
+| Create package smoke | Built create package can generate/check a project | `pnpm --filter create-microservices-app smoke:built` passed | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

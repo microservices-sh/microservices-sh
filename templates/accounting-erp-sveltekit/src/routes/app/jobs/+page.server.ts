@@ -46,13 +46,16 @@ export const actions: Actions = {
     if (!locals.user) return fail(403, { error: "Not signed in to a company." });
     const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
     if (!org) return fail(403, { error: "Not signed in to a company." });
-    await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
 
     const result = await runDueJobs(
       createRecurringInvoiceJobHandlers({
         invoiceStore: locals.invoiceStore,
         recurringInvoiceStore: locals.recurringInvoiceStore,
-        allocator: locals.numberAllocator
+        allocator: locals.numberAllocator,
+        accountingCoreStore: locals.accountingCoreStore,
+        accountsReceivableService: locals.accountsReceivableService,
+        actor: { id: locals.user.id, email: locals.user.email, permissions }
       }),
       { jobStore: locals.jobStore, runStore: locals.jobRunStore }
     );

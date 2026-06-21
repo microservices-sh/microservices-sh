@@ -127,13 +127,21 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/jobs/+page.server.ts",
-    ["runDueJobs", "createRecurringInvoiceJobHandlers", "jobRunStore"],
-    "Jobs route can run due jobs through the registered recurring invoice handler."
+    ["runDueJobs", "createRecurringInvoiceJobHandlers", "jobRunStore", "accountingCoreStore", "accountsReceivableService"],
+    "Jobs route can run due jobs through the registered recurring invoice handler with accounting and receivables stores."
   );
   assertFileIncludesAll(
     "src/lib/server/scheduled.ts",
-    ["dueScheduledJobs", "runDueJobs", "createRecurringInvoiceJobHandlers", "createCfQueueProducer", "jobs-workflows.cron_run"],
-    "Scheduled runtime catches up recurring schedules and executes due jobs through the same module handlers as the operator UI."
+    [
+      "dueScheduledJobs",
+      "runDueJobs",
+      "createRecurringInvoiceJobHandlers",
+      "accountingCoreStore",
+      "accountsReceivableService",
+      "createCfQueueProducer",
+      "jobs-workflows.cron_run"
+    ],
+    "Scheduled runtime catches up recurring schedules and executes due jobs through the same accounting-aware module handlers as the operator UI."
   );
   assertFileIncludesAll(
     "src/hooks.server.ts",
@@ -159,6 +167,11 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "src/lib/server/recurring-invoice-jobs.ts",
     "invoice.recurring.generate_due",
     "Template registers the recurring invoice generate-due job handler."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/recurring-invoice-jobs.ts",
+    ["postIssuedInvoiceToAccounting", "syncInvoiceToReceivables", "accountsReceivableService", "accountingCoreStore"],
+    "Recurring invoice jobs post and sync auto-issued generated invoices through the accounting and receivables adapters."
   );
   assertFileIncludesAll(
     "src/routes/app/files/+page.server.ts",

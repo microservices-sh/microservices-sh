@@ -33,6 +33,9 @@ export async function runAccountingScheduled(event: ScheduledEventLike, env: Env
       invoiceStore: stores.invoiceStore,
       recurringInvoiceStore: stores.recurringInvoiceStore,
       allocator: stores.numberAllocator,
+      accountingCoreStore: stores.accountingCoreStore,
+      accountsReceivableService: stores.accountsReceivableService,
+      actor: { id: "cloudflare:scheduled", permissions: ["member.manage"] },
       now
     }),
     {
