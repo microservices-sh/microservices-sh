@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { checkUpdates, getModuleDoc, planAddModule, planModuleUpgrade } from "../src/index.js";
+import {
+  checkUpdates,
+  getModuleDoc,
+  getSecretsStatus,
+  listModuleDocs,
+  planAddModule,
+  planModuleUpgrade,
+} from "../src/index.js";
 
 function lockWith(module) {
   return {
@@ -129,5 +136,92 @@ describe("SDK module version planning", () => {
     );
     expect(response.data.markdown).toContain("operator-work.getOperatorWorkbench");
     expect(response.data.markdown).toContain("operator-work.saveDailyReview");
+  });
+
+  it("generates Email docs from the available contract metadata", () => {
+    const docs = listModuleDocs();
+    expect(docs.ok).toBe(true);
+
+    const emailDocs = docs.data.filter((module) => module.id === "email");
+    expect(emailDocs).toHaveLength(1);
+    expect(emailDocs[0]).toMatchObject({
+      status: "available",
+      approvalRisk: "medium",
+      docPath: "docs/modules/email.md",
+    });
+
+    const response = getModuleDoc("email@0.1.0");
+    expect(response.ok).toBe(true);
+    expect(response.data.module).toMatchObject({
+      id: "email",
+      status: "available",
+      secrets: ["RESEND_API_KEY", "EMAIL_SERVICE_API_KEY"],
+      resources: ["D1"],
+      hooks: ["beforeEmailSend", "afterEmailQueued", "afterEmailFailed"],
+      events: ["email.queued", "email.sent", "email.failed"],
+    });
+    expect(response.data.markdown).toContain("Status: available");
+    expect(response.data.markdown).toContain("RESEND_API_KEY");
+    expect(response.data.markdown).not.toContain("EMAIL_PROVIDER_API_KEY");
+
+    const plan = planAddModule({ moduleId: "email@0.1.0", installedModules: [] });
+    expect(plan.ok).toBe(true);
+    expect(plan.data.action).toBe("install");
+    expect(plan.data.requiredSecrets).toEqual(["RESEND_API_KEY", "EMAIL_SERVICE_API_KEY"]);
+
+    const secrets = getSecretsStatus({ installedModules: ["email"] });
+    expect(secrets.ok).toBe(true);
+    expect(secrets.data.secrets.filter((secret) => secret.module === "email").map((secret) => secret.name)).toEqual([
+      "RESEND_API_KEY",
+      "EMAIL_SERVICE_API_KEY",
+    ]);
+  });
+
+  it("includes StackSuite commerce and accounting modules in generated docs", () => {
+    const docs = listModuleDocs();
+    expect(docs.ok).toBe(true);
+    expect(docs.data.map((module) => module.id)).toEqual(
+      expect.arrayContaining([
+        "product-catalog",
+        "inventory",
+        "sales-order",
+        "estimate-quote",
+        "recurring-documents",
+        "shipment",
+        "commerce-sync",
+        "accounting-core",
+        "accounts-payable",
+        "accounts-receivable",
+        "bank-reconciliation",
+      ])
+    );
+
+    const productCatalog = getModuleDoc("product-catalog@0.1.0");
+    expect(productCatalog.ok).toBe(true);
+    expect(productCatalog.data.module).toMatchObject({
+      id: "product-catalog",
+      status: "draft",
+      mount: "/products",
+      events: expect.arrayContaining([
+        "product-catalog.product_created",
+        "product-catalog.combo_updated",
+      ]),
+    });
+
+    const recurringDocuments = getModuleDoc("recurring-documents@0.1.0");
+    expect(recurringDocuments.ok).toBe(true);
+    expect(recurringDocuments.data.module).toMatchObject({
+      id: "recurring-documents",
+      status: "draft",
+      mount: "/recurring-documents",
+      events: expect.arrayContaining(["recurring-documents.generated"]),
+    });
+
+    const receivables = planAddModule({
+      moduleId: "accounts-receivable@0.1.0",
+      installedModules: ["auth", "customer"],
+    });
+    expect(receivables.ok).toBe(true);
+    expect(receivables.data.missingDependencies).toEqual(["invoice"]);
   });
 });

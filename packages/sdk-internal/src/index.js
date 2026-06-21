@@ -72,25 +72,7 @@ function json(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
-const PLANNED_MODULE_DOCS = Object.freeze([
-  {
-    id: "email",
-    name: "Email",
-    version: "0.1.0",
-    status: "planned",
-    class: "provider-capable core",
-    mount: "/emails",
-    summary: "Transactional email templates, provider adapters, delivery jobs, and delivery events.",
-    requires: [],
-    permissions: ["email.read", "email.write", "email.admin"],
-    approvalRisk: "high",
-    secrets: ["EMAIL_PROVIDER_API_KEY"],
-    resources: ["Queue for delivery jobs", "outbound fetch to provider API"],
-    hooks: ["renderEmailTemplate", "beforeEmailSend", "afterEmailDelivered"],
-    events: ["email.queued", "email.sent", "email.failed"],
-    statusNote: "Planned provider-capable module. Start with test mode and approval-gated sends.",
-  },
-]);
+const PLANNED_MODULE_DOCS = Object.freeze([]);
 
 function docPathFor(moduleId) {
   return `docs/modules/${moduleId}.md`;

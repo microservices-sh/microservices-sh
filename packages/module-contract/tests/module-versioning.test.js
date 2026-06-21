@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { composeApp, inspectModule, moduleReleaseTag, moduleSourceRef, parseModuleRef, resolveModuleIds } from "../src/index.js";
+import { composeApp, inspectModule, listModules, moduleReleaseTag, moduleSourceRef, parseModuleRef, resolveModuleIds } from "../src/index.js";
 
 const BILLING_SUBSCRIPTION_PERMISSIONS = [
   "billing.read",
@@ -15,6 +15,20 @@ const BILLING_SUBSCRIPTION_EVENTS = [
   "subscription.past_due",
   "subscription.canceled",
   "subscription.plan_changed",
+];
+
+const STACKSUITE_CATALOG_IDS = [
+  "product-catalog",
+  "inventory",
+  "sales-order",
+  "estimate-quote",
+  "recurring-documents",
+  "shipment",
+  "commerce-sync",
+  "accounting-core",
+  "accounts-payable",
+  "accounts-receivable",
+  "bank-reconciliation",
 ];
 
 describe("module version selectors", () => {
@@ -200,6 +214,85 @@ describe("module version selectors", () => {
         "identity.requestLoginCode",
         "identity.destroySession",
       ]),
+    });
+  });
+
+  it("exposes StackSuite commerce and accounting modules in the static contract catalog", () => {
+    expect(listModules().map((module) => module.id)).toEqual(expect.arrayContaining(STACKSUITE_CATALOG_IDS));
+
+    expect(inspectModule("product-catalog@0.1.0")).toMatchObject({
+      id: "product-catalog",
+      status: "draft",
+      category: "core",
+      runtime: { mount: "/products" },
+      optional: expect.arrayContaining(["auth", "audit-log"]),
+      permissions: expect.arrayContaining(["product-catalog.read", "product-catalog.write"]),
+      rpc: expect.arrayContaining([
+        { method: "listProducts", scope: "product-catalog.read", public: false },
+        { method: "createProduct", scope: "product-catalog.write", public: false },
+      ]),
+      eventsEmitted: expect.arrayContaining([
+        "product-catalog.product_created",
+        "product-catalog.combo_updated",
+      ]),
+    });
+
+    expect(inspectModule("accounts-receivable@0.1.0")).toMatchObject({
+      id: "accounts-receivable",
+      status: "draft",
+      requires: ["customer", "invoice"],
+      runtime: { mount: "/receivables" },
+      eventsEmitted: expect.arrayContaining(["accounts-receivable.payment_applied"]),
+    });
+    expect(resolveModuleIds(["accounts-receivable@0.1.0"])).toEqual([
+      "auth",
+      "customer",
+      "invoice",
+      "accounts-receivable",
+    ]);
+
+    expect(inspectModule("estimate-quote@0.1.0")).toMatchObject({
+      id: "estimate-quote",
+      status: "draft",
+      runtime: { mount: "/estimate-quote" },
+      optional: expect.arrayContaining(["auth", "audit-log", "invoice"]),
+      eventsEmitted: expect.arrayContaining([
+        "estimate-quote.accepted",
+        "estimate-quote.converted",
+      ]),
+    });
+    expect(inspectModule("recurring-documents@0.1.0")).toMatchObject({
+      id: "recurring-documents",
+      status: "draft",
+      runtime: { mount: "/recurring-documents" },
+      optional: expect.arrayContaining(["invoice", "accounts-payable", "jobs-workflows"]),
+      eventsEmitted: expect.arrayContaining([
+        "recurring-documents.generated",
+        "recurring-documents.completed",
+      ]),
+    });
+  });
+
+  it("models Email as an available provider module with current secrets", () => {
+    const module = inspectModule("email@0.1.0");
+
+    expect(module).toMatchObject({
+      id: "email",
+      status: "available",
+      category: "provider",
+      approvalRisk: "medium",
+      optional: expect.arrayContaining(["auth", "audit-log", "customer"]),
+      runtime: { mount: "/emails" },
+      secrets: ["RESEND_API_KEY", "EMAIL_SERVICE_API_KEY"],
+      hooks: expect.arrayContaining([
+        expect.objectContaining({ name: "beforeEmailSend", timing: "pre" }),
+        expect.objectContaining({ name: "afterEmailQueued", timing: "post" }),
+      ]),
+      eventsEmitted: ["email.queued", "email.sent", "email.failed"],
+    });
+    expect(module.surfaces.agentic).toMatchObject({
+      applicable: true,
+      approvalRequired: ["email.sendEmail"],
     });
   });
 

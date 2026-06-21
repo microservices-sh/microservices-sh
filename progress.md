@@ -1741,3 +1741,21 @@
 | Docs presence | Public module docs exist and are linked from the index and LLM guide | `rg` checks passed for new docs/index references | Pass |
 | Workspace specs | All module/template specs remain green after docs updates | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 79 Internal StackSuite catalog closure
+
+- **Status:** complete.
+- Goal: align the internal SDK/module-contract catalog with the StackSuite modules and current email provider metadata so generated app docs and add/upgrade plans do not use stale fallback rows.
+- Added internal module-contract rows for StackSuite commerce/accounting modules, `estimate-quote`, `recurring-documents`, current `email`, and an `invoice` dependency support row.
+- Removed stale planned email fallback docs from `sdk-internal`.
+- Added module-contract tests for StackSuite module visibility, dependency resolution, and current email secrets/status.
+- Added SDK tests for duplicate-free available email docs and StackSuite generated-doc visibility.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Package builds | Internal package entrypoints remain syntactically valid | `pnpm --filter @microservices-sh/module-contract build` and `pnpm --filter @microservices-sh/sdk-internal build` passed | Pass |
+| Focused catalog tests | Module-contract and SDK catalog/versioning tests cover StackSuite and email metadata | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js packages/sdk-internal/tests/module-versioning.test.js` passed, 24/24 | Pass |
+| Internal catalog sanity | No duplicate internal module ids; StackSuite quote/recurring/email rows are inspectable | Node sanity script passed | Pass |
+| Workspace specs | All module/template specs remain green after package catalog updates | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Create app package | Create package still builds and tests against the refreshed internal catalog | `pnpm --filter create-microservices-app build` and serial `pnpm --filter create-microservices-app test` passed | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

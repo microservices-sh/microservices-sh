@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 78
+Phase 79
 
 ## Phases
 
@@ -609,6 +609,13 @@ Phase 78
 - [x] Correct stale commerce-sync and email secret/status wording.
 - [x] Update StackSuite planning docs so quote/recurring route proof is complete and remaining work is catalog/promotion guardrail work.
 - [x] Verify catalog JSON, docs presence, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 79: Internal StackSuite Catalog Closure
+- [x] Add StackSuite commerce/accounting modules, quote/recurring modules, invoice dependency support, and current email metadata to the internal module-contract catalog.
+- [x] Remove stale planned email docs from the SDK fallback path so generated app docs derive email from the current contract metadata.
+- [x] Add module-contract and SDK tests for StackSuite visibility, dependency resolution, duplicate-free email docs, and current email secrets.
+- [x] Verify package builds, focused catalog tests, internal catalog sanity, workspace specs, create-app build/test, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions
