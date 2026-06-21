@@ -6,3 +6,5 @@ Purpose: Provider-neutral commerce connections, mappings, sync runs, webhook rec
 Entrypoint: src/index.ts
 Check: pnpm check:spec
 Build: pnpm build
+Primary use cases: createCommerceConnection, recordProviderMapping, startSyncRun, completeSyncRun, recordWebhookReceipt, normalizeCommercePayload, normalizeCommerceProviderPayload.
+WooCommerce normalization: customers use billing contact fallback, products use WC-ID SKU fallback and cent prices, orders map WC statuses and preserve billing/shipping, line, shipping, coupon, tax, discount, and total cents.

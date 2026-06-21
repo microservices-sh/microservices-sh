@@ -47,6 +47,116 @@ export interface NormalizeCommercePayloadInput {
   payload: unknown;
 }
 
+export interface NormalizedCommerceAddress {
+  name?: string;
+  company?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface NormalizedCommerceCustomerPayload {
+  provider: "woocommerce";
+  resourceType: "customer";
+  externalId: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  username?: string;
+  billingAddress?: NormalizedCommerceAddress;
+  shippingAddress?: NormalizedCommerceAddress;
+  createdAt?: string;
+  modifiedAt?: string;
+}
+
+export interface NormalizedCommerceCategoryRef {
+  externalId: string;
+  name: string;
+  slug?: string;
+}
+
+export interface NormalizedCommerceProductPayload {
+  provider: "woocommerce";
+  resourceType: "product";
+  externalId: string;
+  name: string;
+  slug?: string;
+  sku: string;
+  description?: string;
+  shortDescription?: string;
+  priceCents: number;
+  regularPriceCents?: number;
+  salePriceCents?: number;
+  status?: string;
+  productType?: string;
+  active: boolean;
+  categories: NormalizedCommerceCategoryRef[];
+  createdAt?: string;
+  modifiedAt?: string;
+}
+
+export type NormalizedOrderStatus = "draft" | "confirmed" | "invoiced" | "cancelled";
+
+export interface NormalizedCommerceOrderLine {
+  externalLineId: string;
+  productExternalId?: string;
+  sku?: string;
+  name: string;
+  quantity: number;
+  unitPriceCents: number;
+  subtotalCents: number;
+  totalCents: number;
+}
+
+export interface NormalizedCommerceShippingLine {
+  externalLineId: string;
+  methodId?: string;
+  methodTitle: string;
+  totalCents: number;
+}
+
+export interface NormalizedCommerceCouponLine {
+  externalLineId: string;
+  code: string;
+  discountCents: number;
+  discountTaxCents: number;
+}
+
+export interface NormalizedCommerceOrderPayload {
+  provider: "woocommerce";
+  resourceType: "order";
+  externalId: string;
+  status: string;
+  mappedStatus: NormalizedOrderStatus;
+  currency: string;
+  customerExternalId?: string;
+  billingAddress?: NormalizedCommerceAddress;
+  shippingAddress?: NormalizedCommerceAddress;
+  subtotalCents: number;
+  discountCents: number;
+  taxCents: number;
+  shippingCents: number;
+  totalCents: number;
+  lineItems: NormalizedCommerceOrderLine[];
+  shippingLines: NormalizedCommerceShippingLine[];
+  couponLines: NormalizedCommerceCouponLine[];
+  createdAt?: string;
+  modifiedAt?: string;
+}
+
+export type CommerceRawPayload = Record<string, unknown> | unknown[] | string | number | boolean | null;
+
+export type NormalizedCommercePayload =
+  | NormalizedCommerceCustomerPayload
+  | NormalizedCommerceProductPayload
+  | NormalizedCommerceOrderPayload
+  | CommerceRawPayload;
+
 export interface CommerceConnection {
   id: string;
   tenantId: string;
@@ -106,7 +216,7 @@ export interface NormalizedCommerceEnvelope {
   connectionId: string;
   resourceType: CommerceResourceType;
   externalId: string;
-  payload: unknown;
+  payload: NormalizedCommercePayload;
   receivedAt: string;
 }
 

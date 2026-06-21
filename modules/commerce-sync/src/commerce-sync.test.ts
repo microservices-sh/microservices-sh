@@ -159,4 +159,131 @@ describe("commerce-sync", () => {
       externalId: "sku-1"
     });
   });
+
+  it("normalizes WooCommerce customer, product, and order envelopes", async () => {
+    const service = createCommerceSyncService({
+      store: createMemoryCommerceSyncStore(),
+      idGenerator: sequenceIds()
+    });
+    const connection = await service.createCommerceConnection(ctx, {
+      provider: "woocommerce",
+      name: "Woo Store",
+      baseUrl: "https://store.example.test",
+      secretRef: "secret://commerce/woo"
+    });
+    expect(connection.ok).toBe(true);
+
+    const customer = await service.normalizeCommercePayload(ctx, {
+      connectionId: connection.data!.id,
+      resourceType: "customer",
+      externalId: "12",
+      payload: {
+        id: 12,
+        email: "buyer@example.test",
+        first_name: "Ada",
+        last_name: "Lovelace",
+        username: "ada",
+        billing: {
+          first_name: "Ada",
+          last_name: "Lovelace",
+          address_1: "1 Algorithm Ave",
+          city: "London",
+          postcode: "SW1A",
+          country: "GB",
+          phone: "+44 20"
+        },
+        shipping: { first_name: "Ada", last_name: "Lovelace", city: "London", country: "GB" },
+        date_created_gmt: "2026-06-20T08:00:00"
+      }
+    });
+    expect(customer.data!.payload).toMatchObject({
+      provider: "woocommerce",
+      resourceType: "customer",
+      externalId: "12",
+      name: "Ada Lovelace",
+      email: "buyer@example.test",
+      phone: "+44 20",
+      billingAddress: { address1: "1 Algorithm Ave", postalCode: "SW1A" },
+      createdAt: "2026-06-20T08:00:00.000Z"
+    });
+
+    const product = await service.normalizeCommercePayload(ctx, {
+      connectionId: connection.data!.id,
+      resourceType: "product",
+      externalId: "44",
+      payload: {
+        id: 44,
+        name: "Coffee Beans",
+        sku: "",
+        price: "12.50",
+        regular_price: "15.00",
+        sale_price: "12.50",
+        short_description: "Roasted beans",
+        status: "publish",
+        type: "simple",
+        categories: [{ id: 9, name: "Beans", slug: "beans" }]
+      }
+    });
+    expect(product.data!.payload).toMatchObject({
+      provider: "woocommerce",
+      resourceType: "product",
+      externalId: "44",
+      sku: "WC-44",
+      priceCents: 1250,
+      regularPriceCents: 1500,
+      salePriceCents: 1250,
+      active: true,
+      categories: [{ externalId: "9", name: "Beans", slug: "beans" }]
+    });
+
+    const order = await service.normalizeCommercePayload(ctx, {
+      connectionId: connection.data!.id,
+      resourceType: "order",
+      externalId: "1001",
+      payload: {
+        id: 1001,
+        status: "processing",
+        currency: "USD",
+        customer_id: 12,
+        total: "116.50",
+        total_tax: "6.50",
+        shipping_total: "10.00",
+        discount_total: "5.00",
+        billing: {
+          first_name: "Ada",
+          last_name: "Lovelace",
+          email: "buyer@example.test",
+          phone: "+44 20",
+          address_1: "1 Algorithm Ave",
+          city: "London",
+          postcode: "SW1A",
+          country: "GB"
+        },
+        shipping: {},
+        line_items: [
+          { id: 1, product_id: 44, quantity: 2, subtotal: "100.00", total: "100.00", price: 50, sku: "COFFEE", name: "Coffee Beans" }
+        ],
+        shipping_lines: [{ id: 2, method_title: "Flat rate", method_id: "flat_rate", total: "10.00" }],
+        coupon_lines: [{ id: 3, code: "WELCOME", discount: "5.00", discount_tax: "0.00" }],
+        date_created_gmt: "2026-06-21T09:00:00"
+      }
+    });
+    expect(order.data!.payload).toMatchObject({
+      provider: "woocommerce",
+      resourceType: "order",
+      externalId: "1001",
+      mappedStatus: "confirmed",
+      customerExternalId: "12",
+      subtotalCents: 11000,
+      discountCents: 500,
+      taxCents: 650,
+      shippingCents: 1000,
+      totalCents: 11650,
+      lineItems: [{ productExternalId: "44", quantity: 2, unitPriceCents: 5000, totalCents: 10000 }],
+      shippingLines: [{ methodTitle: "Flat rate", totalCents: 1000 }],
+      couponLines: [{ code: "WELCOME", discountCents: 500 }],
+      shippingAddress: { email: "buyer@example.test" },
+      createdAt: "2026-06-21T09:00:00.000Z"
+    });
+  });
 });

@@ -1,3 +1,11 @@
 # Commerce Sync Use Cases
 
-Add framework-neutral use cases here. Do not import SvelteKit, Hono, provider clients, or secret values directly in use cases.
+- `createCommerceConnection`
+- `recordProviderMapping`
+- `startSyncRun`
+- `completeSyncRun`
+- `recordWebhookReceipt`
+- `normalizeCommercePayload`
+- `normalizeCommerceProviderPayload`
+
+Do not import SvelteKit, Hono, provider clients, or secret values directly in use cases.

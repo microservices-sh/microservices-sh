@@ -2,6 +2,7 @@ import type { CommerceSyncStore } from "../ports";
 import type {
   CommerceConnection,
   CommerceProvider,
+  CommerceRawPayload,
   CommerceResourceType,
   CommerceSyncIdGenerator,
   CommerceSyncMemoryService,
@@ -9,8 +10,12 @@ import type {
   CompleteSyncRunInput,
   CreateCommerceConnectionInput,
   ModuleResult,
+  NormalizedCommerceAddress,
+  NormalizedCommerceCategoryRef,
   NormalizedCommerceEnvelope,
+  NormalizedCommercePayload,
   NormalizeCommercePayloadInput,
+  NormalizedOrderStatus,
   ProviderMapping,
   RecordProviderMappingInput,
   RecordWebhookReceiptInput,
@@ -47,6 +52,220 @@ function durableId(prefix: string): string {
 
 function uniqueConstraintFailed(error: unknown): boolean {
   return error instanceof Error && error.message.includes("UNIQUE constraint failed");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function recordValue(record: Record<string, unknown>, key: string): Record<string, unknown> | undefined {
+  const value = record[key];
+  return isRecord(value) ? value : undefined;
+}
+
+function recordArray(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value) ? value.filter(isRecord) : [];
+}
+
+function text(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  const trimmed = String(value).trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function numberValue(value: unknown): number | undefined {
+  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim().replace(/[$,\s]/g, "");
+  if (!normalized) return undefined;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function moneyCents(value: unknown): number {
+  const amount = numberValue(value);
+  return amount == null ? 0 : Math.round(amount * 100);
+}
+
+function fullName(firstName: unknown, lastName: unknown): string | undefined {
+  return text([text(firstName), text(lastName)].filter(Boolean).join(" "));
+}
+
+function dateString(value: unknown): string | undefined {
+  const raw = text(value);
+  if (!raw) return undefined;
+  const candidate = raw.includes("T") && !/(z|[+-]\d{2}:?\d{2})$/i.test(raw) ? `${raw}Z` : raw;
+  const parsed = new Date(candidate);
+  return Number.isNaN(parsed.getTime()) ? raw : parsed.toISOString();
+}
+
+function wooDate(record: Record<string, unknown>, field: string): string | undefined {
+  return dateString(record[`${field}_gmt`]) ?? dateString(record[field]);
+}
+
+function wooAddress(address: Record<string, unknown> | undefined): NormalizedCommerceAddress | undefined {
+  if (!address) return undefined;
+  const normalized: NormalizedCommerceAddress = {
+    name: fullName(address.first_name, address.last_name),
+    company: text(address.company),
+    address1: text(address.address_1),
+    address2: text(address.address_2),
+    city: text(address.city),
+    state: text(address.state),
+    postalCode: text(address.postcode),
+    country: text(address.country),
+    email: text(address.email),
+    phone: text(address.phone)
+  };
+  return Object.values(normalized).some(Boolean) ? normalized : undefined;
+}
+
+function wooCategories(value: unknown): NormalizedCommerceCategoryRef[] {
+  return recordArray(value).map((category) => {
+    const externalId = text(category.id) ?? text(category.slug) ?? text(category.name) ?? "unknown";
+    return {
+      externalId,
+      name: text(category.name) ?? `Category ${externalId}`,
+      slug: text(category.slug)
+    };
+  });
+}
+
+function wooOrderStatus(status: string): NormalizedOrderStatus {
+  switch (status) {
+    case "completed":
+      return "invoiced";
+    case "processing":
+    case "pending":
+    case "on-hold":
+      return "confirmed";
+    case "cancelled":
+    case "refunded":
+    case "failed":
+      return "cancelled";
+    default:
+      return "draft";
+  }
+}
+
+function normalizeWooCustomer(externalId: string, payload: Record<string, unknown>): NormalizedCommercePayload {
+  const billingAddress = wooAddress(recordValue(payload, "billing"));
+  const shippingAddress = wooAddress(recordValue(payload, "shipping"));
+  const name =
+    fullName(payload.first_name, payload.last_name) ??
+    billingAddress?.name ??
+    text(payload.email) ??
+    `WooCommerce customer ${externalId}`;
+
+  return {
+    provider: "woocommerce",
+    resourceType: "customer",
+    externalId,
+    name,
+    email: text(payload.email) ?? billingAddress?.email,
+    phone: billingAddress?.phone,
+    username: text(payload.username),
+    billingAddress,
+    shippingAddress,
+    createdAt: wooDate(payload, "date_created"),
+    modifiedAt: wooDate(payload, "date_modified")
+  };
+}
+
+function normalizeWooProduct(externalId: string, payload: Record<string, unknown>): NormalizedCommercePayload {
+  const sku = text(payload.sku) ?? `WC-${externalId}`;
+  const status = text(payload.status);
+  const description = text(payload.description);
+
+  return {
+    provider: "woocommerce",
+    resourceType: "product",
+    externalId,
+    name: text(payload.name) ?? sku,
+    slug: text(payload.slug),
+    sku,
+    description: text(payload.short_description) ?? description?.slice(0, 500),
+    shortDescription: text(payload.short_description),
+    priceCents: moneyCents(payload.price ?? payload.regular_price),
+    regularPriceCents: payload.regular_price == null ? undefined : moneyCents(payload.regular_price),
+    salePriceCents: payload.sale_price == null ? undefined : moneyCents(payload.sale_price),
+    status,
+    productType: text(payload.type),
+    active: status ? status === "publish" : true,
+    categories: wooCategories(payload.categories),
+    createdAt: wooDate(payload, "date_created"),
+    modifiedAt: wooDate(payload, "date_modified")
+  };
+}
+
+function normalizeWooOrder(externalId: string, payload: Record<string, unknown>): NormalizedCommercePayload {
+  const status = text(payload.status) ?? "draft";
+  const lineItems = recordArray(payload.line_items).map((item, index) => {
+    const quantity = numberValue(item.quantity) ?? 0;
+    const totalCents = moneyCents(item.total);
+    const unitPriceCents = moneyCents(item.price) || (quantity > 0 ? Math.round(totalCents / quantity) : 0);
+    return {
+      externalLineId: text(item.id) ?? `${externalId}-line-${index + 1}`,
+      productExternalId: text(item.product_id),
+      sku: text(item.sku),
+      name: text(item.name) ?? "Line item",
+      quantity,
+      unitPriceCents,
+      subtotalCents: moneyCents(item.subtotal),
+      totalCents
+    };
+  });
+  const shippingLines = recordArray(payload.shipping_lines).map((line, index) => ({
+    externalLineId: text(line.id) ?? `${externalId}-shipping-${index + 1}`,
+    methodId: text(line.method_id),
+    methodTitle: text(line.method_title) ?? "Shipping",
+    totalCents: moneyCents(line.total)
+  }));
+  const couponLines = recordArray(payload.coupon_lines).map((line, index) => ({
+    externalLineId: text(line.id) ?? `${externalId}-coupon-${index + 1}`,
+    code: text(line.code) ?? "coupon",
+    discountCents: moneyCents(line.discount),
+    discountTaxCents: moneyCents(line.discount_tax)
+  }));
+  const shippingCents = moneyCents(payload.shipping_total) || shippingLines.reduce((sum, line) => sum + line.totalCents, 0);
+  const lineSubtotalCents = lineItems.reduce((sum, item) => sum + (item.subtotalCents || item.totalCents), 0);
+  const billingAddress = wooAddress(recordValue(payload, "billing"));
+  const shippingAddress = wooAddress(recordValue(payload, "shipping"));
+
+  return {
+    provider: "woocommerce",
+    resourceType: "order",
+    externalId,
+    status,
+    mappedStatus: wooOrderStatus(status),
+    currency: text(payload.currency) ?? "USD",
+    customerExternalId: text(payload.customer_id),
+    billingAddress,
+    shippingAddress: shippingAddress ?? billingAddress,
+    subtotalCents: lineSubtotalCents + shippingCents,
+    discountCents: moneyCents(payload.discount_total),
+    taxCents: moneyCents(payload.total_tax),
+    shippingCents,
+    totalCents: moneyCents(payload.total),
+    lineItems,
+    shippingLines,
+    couponLines,
+    createdAt: wooDate(payload, "date_created"),
+    modifiedAt: wooDate(payload, "date_modified")
+  };
+}
+
+export function normalizeCommerceProviderPayload(
+  provider: CommerceProvider,
+  resourceType: CommerceResourceType,
+  externalId: string,
+  payload: unknown
+): NormalizedCommercePayload {
+  if (provider !== "woocommerce" || !isRecord(payload)) return payload as CommerceRawPayload;
+  if (resourceType === "customer") return normalizeWooCustomer(externalId, payload);
+  if (resourceType === "product") return normalizeWooProduct(externalId, payload);
+  if (resourceType === "order") return normalizeWooOrder(externalId, payload);
+  return payload as CommerceRawPayload;
 }
 
 export function createCommerceSyncService(options: CreateCommerceSyncServiceOptions): CommerceSyncService {
@@ -193,14 +412,15 @@ export function createCommerceSyncService(options: CreateCommerceSyncServiceOpti
     },
 
     async normalizeCommercePayload(ctx, input) {
-      if (!(await requireConnection(ctx, input.connectionId))) return fail("connection_not_found", "Commerce connection not found.");
+      const connection = await requireConnection(ctx, input.connectionId);
+      if (!connection) return fail("connection_not_found", "Commerce connection not found.");
       const envelope: NormalizedCommerceEnvelope = {
         id: idGenerator("csenv"),
         tenantId: ctx.tenantId,
         connectionId: input.connectionId,
         resourceType: input.resourceType,
         externalId: input.externalId,
-        payload: input.payload,
+        payload: normalizeCommerceProviderPayload(connection.provider, input.resourceType, input.externalId, input.payload),
         receivedAt: now(ctx)
       };
       await store.insertEnvelope(envelope);
@@ -357,14 +577,15 @@ export function createCommerceSyncMemoryService(): CommerceSyncMemoryService {
     },
 
     normalizeCommercePayload(ctx: TenantContext, input: NormalizeCommercePayloadInput): ModuleResult<NormalizedCommerceEnvelope> {
-      if (!requireConnection(ctx, input.connectionId)) return fail("connection_not_found", "Commerce connection not found.");
+      const connection = requireConnection(ctx, input.connectionId);
+      if (!connection) return fail("connection_not_found", "Commerce connection not found.");
       const envelope: NormalizedCommerceEnvelope = {
         id: sequenceId("csenv", ++envelopeSequence),
         tenantId: ctx.tenantId,
         connectionId: input.connectionId,
         resourceType: input.resourceType,
         externalId: input.externalId,
-        payload: input.payload,
+        payload: normalizeCommerceProviderPayload(connection.provider, input.resourceType, input.externalId, input.payload),
         receivedAt: now(ctx)
       };
       envelopes.set(envelope.id, envelope);

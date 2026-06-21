@@ -4,6 +4,7 @@ import type {
   CommerceProvider,
   CommerceResourceType,
   NormalizedCommerceEnvelope,
+  NormalizedCommercePayload,
   ProviderMapping,
   SyncRun,
   SyncRunStatus,
@@ -92,7 +93,7 @@ function rowToEnvelope(row: Record<string, unknown>): NormalizedCommerceEnvelope
     connectionId: String(row.connection_id),
     resourceType: String(row.resource_type) as CommerceResourceType,
     externalId: String(row.external_id),
-    payload: parseJson(row.payload),
+    payload: parseJson(row.payload) as NormalizedCommercePayload,
     receivedAt: String(row.received_at)
   };
 }

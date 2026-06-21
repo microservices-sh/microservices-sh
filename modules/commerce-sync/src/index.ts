@@ -6,12 +6,18 @@ export { commerceSyncPermissions } from "./permissions";
 export { commerceSyncResources } from "./resources";
 export { createD1CommerceSyncStore } from "./adapters/d1-commerce-sync-store";
 export { createMemoryCommerceSyncStore } from "./adapters/memory-commerce-sync-store";
-export { createCommerceSyncMemoryService, createCommerceSyncService, getCommerceSyncModuleStatus } from "./service";
+export {
+  createCommerceSyncMemoryService,
+  createCommerceSyncService,
+  getCommerceSyncModuleStatus,
+  normalizeCommerceProviderPayload
+} from "./service";
 export type { CreateCommerceSyncServiceOptions } from "./service";
 export type { CommerceSyncStore } from "./ports";
 export type {
   CommerceConnection,
   CommerceProvider,
+  CommerceRawPayload,
   CommerceResourceType,
   CommerceSyncConfig,
   CommerceSyncIdGenerator,
@@ -21,7 +27,17 @@ export type {
   CompleteSyncRunInput,
   CreateCommerceConnectionInput,
   ModuleResult,
+  NormalizedCommerceAddress,
+  NormalizedCommerceCategoryRef,
+  NormalizedCommerceCouponLine,
   NormalizedCommerceEnvelope,
+  NormalizedCommerceOrderLine,
+  NormalizedCommerceOrderPayload,
+  NormalizedCommercePayload,
+  NormalizedCommerceProductPayload,
+  NormalizedCommerceCustomerPayload,
+  NormalizedCommerceShippingLine,
+  NormalizedOrderStatus,
   NormalizeCommercePayloadInput,
   ProviderMapping,
   RecordProviderMappingInput,

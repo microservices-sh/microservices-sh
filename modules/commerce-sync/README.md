@@ -12,7 +12,8 @@ import {
   createD1CommerceSyncStore,
   createCommerceSyncService,
   createCommerceSyncMemoryService,
-  createMemoryCommerceSyncStore
+  createMemoryCommerceSyncStore,
+  normalizeCommerceProviderPayload
 } from "@microservices-sh/commerce-sync";
 ```
 
@@ -27,6 +28,11 @@ unit tests and non-D1 runtimes. `createD1CommerceSyncStore(DB)` provides the Clo
 D1 and memory adapters are available behind the same `CommerceSyncStore` port. The D1 migration owns provider
 connections, provider mappings, sync runs, webhook receipts, normalized commerce envelopes, and domain events.
 Webhook payloads and normalized envelopes are serialized as JSON text.
+
+WooCommerce customer, product, and order payloads are normalized into stable customer,
+catalog, and order envelope shapes. The normalizer mirrors the StackSuite WooCommerce
+sync behavior for billing/shipping contact snapshots, SKU fallbacks, category refs,
+order status mapping, and cent-based totals.
 
 ## Ownership Boundary
 

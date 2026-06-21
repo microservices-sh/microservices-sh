@@ -4,5 +4,12 @@
     "title": "Commerce Sync Module",
     "version": "0.1.0"
   },
-  "paths": {}
+  "paths": {
+    "/payloads/normalize": {
+      "post": {
+        "summary": "Normalize a provider commerce payload",
+        "operationId": "normalizeCommercePayload"
+      }
+    }
+  }
 }
