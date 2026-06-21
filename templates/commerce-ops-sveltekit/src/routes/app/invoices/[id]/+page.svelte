@@ -1,9 +1,32 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
+  import {
+    downloadCsv,
+    generateInvoiceLineItemsCsv,
+    generateInvoicePrintHtml,
+    printDocumentHtml,
+    safeDocumentFilename,
+    type InvoiceDocumentData
+  } from "$lib/document-export";
   import { PageHeader, Card, Badge, Button, Field, Alert, FormActions, WorkflowTimeline } from "$lib/ui";
 
   let { data, form } = $props();
   const inv = $derived(data.invoice);
+  const invoiceDocument = $derived<InvoiceDocumentData>({
+    number: inv.number,
+    status: inv.status,
+    currency: inv.currency,
+    customer: inv.customer,
+    issuedAt: inv.issuedAt,
+    dueAt: inv.dueAt,
+    paidAt: inv.paidAtIso,
+    notes: inv.notes,
+    subtotalCents: inv.subtotalCents,
+    taxCents: inv.taxCents,
+    totalCents: inv.totalCents,
+    amountPaidCents: inv.amountPaidCents,
+    lineItems: inv.lineItems
+  });
 
   let payAmount = $state("");
   let submitting = $state(false);
@@ -19,6 +42,23 @@
       await update();
     };
   }
+
+  function printInvoice() {
+    printDocumentHtml(generateInvoicePrintHtml(invoiceDocument), "Please allow pop-ups to print invoices.");
+  }
+
+  function exportInvoiceLines() {
+    downloadCsv(
+      safeDocumentFilename({
+        prefix: "invoice",
+        number: inv.number,
+        customerName: inv.customerName,
+        date: inv.issuedAt,
+        extension: "csv"
+      }),
+      generateInvoiceLineItemsCsv(invoiceDocument)
+    );
+  }
 </script>
 
 <svelte:head>
@@ -28,6 +68,8 @@
 <main class="section">
   <PageHeader eyebrow="Invoice" title={inv.number}>
     {#snippet actions()}
+      <Button type="button" variant="ghost" onclick={exportInvoiceLines}>CSV</Button>
+      <Button type="button" variant="primary" onclick={printInvoice}>Print</Button>
       <Button href="/app/invoices" variant="ghost">← Ledger</Button>
     {/snippet}
     {#snippet meta()}

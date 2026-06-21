@@ -1,10 +1,20 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
+  import {
+    downloadCsv,
+    generateSalesOrderLedgerCsv,
+    generateSalesOrderLineItemsCsv,
+    generateSalesOrderPrintHtml,
+    printDocumentHtml,
+    safeDocumentFilename,
+    type SalesOrderDocumentData
+  } from "$lib/document-export";
   import { money, relativeTime } from "$lib/format";
   import { Alert, Badge, Button, Card, Field, MetricStrip, PageHeader } from "$lib/ui";
   import type { Metric } from "$lib/ui/types";
 
   let { data, form } = $props();
+  type SalesOrderRow = (typeof data.orders)[number];
 
   const openOrders = $derived(data.orders.filter((order) => order.status === "draft" || order.status === "confirmed"));
   const orderValue = $derived(openOrders.reduce((total, order) => total + order.totalCents, 0));
@@ -20,6 +30,54 @@
     if (status === "confirmed") return "warn";
     return "neutral";
   }
+
+  function salesOrderDocument(order: SalesOrderRow): SalesOrderDocumentData {
+    return {
+      orderNumber: order.orderNumber ?? order.id,
+      status: order.status,
+      currency: order.currency,
+      customer: {
+        name: order.customerSnapshot?.displayName ?? "Walk-in customer",
+        email: order.customerSnapshot?.email ?? null,
+        phone: order.customerSnapshot?.phone ?? null,
+        billingAddress: order.customerSnapshot?.billingAddress ?? null,
+        shippingAddress: order.customerSnapshot?.shippingAddress ?? null,
+        taxId: order.customerSnapshot?.taxId ?? null
+      },
+      orderDate: order.createdAt,
+      notes: order.notes,
+      subtotalCents: order.subtotalCents,
+      discountCents: order.discountCents,
+      taxCents: order.taxCents,
+      totalCents: order.totalCents,
+      lineItems: order.lineItems
+    };
+  }
+
+  function printSalesOrder(order: SalesOrderRow) {
+    printDocumentHtml(generateSalesOrderPrintHtml(salesOrderDocument(order)), "Please allow pop-ups to print sales orders.");
+  }
+
+  function exportSalesOrder(order: SalesOrderRow) {
+    const doc = salesOrderDocument(order);
+    downloadCsv(
+      safeDocumentFilename({
+        prefix: "sales-order",
+        number: doc.orderNumber,
+        customerName: doc.customer.name,
+        date: doc.orderDate,
+        extension: "csv"
+      }),
+      generateSalesOrderLineItemsCsv(doc)
+    );
+  }
+
+  function exportSalesOrders() {
+    downloadCsv(
+      safeDocumentFilename({ prefix: "sales-orders", number: "ledger", date: new Date(), extension: "csv" }),
+      generateSalesOrderLedgerCsv(data.orders)
+    );
+  }
 </script>
 
 <svelte:head>
@@ -33,6 +91,9 @@
     description="Draft and inspect customer orders before reservation, fulfillment, and invoicing."
   >
     {#snippet actions()}
+      {#if data.orders.length > 0}
+        <Button type="button" variant="ghost" onclick={exportSalesOrders}>Export CSV</Button>
+      {/if}
       <Button href="/app/shipments" variant="ghost">Shipments</Button>
     {/snippet}
   </PageHeader>
@@ -73,7 +134,7 @@
                 <th scope="col">Reservation</th>
                 <th scope="col">Status</th>
                 <th scope="col">Created</th>
-                {#if data.canManage}<th scope="col">Action</th>{/if}
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -86,25 +147,25 @@
                   <td>{#if order.inventoryReservationId}<code>{order.inventoryReservationId}</code>{:else}<span class="muted">none</span>{/if}</td>
                   <td><Badge tone={orderTone(order.status)}>{order.status}</Badge></td>
                   <td>{relativeTime(order.createdAt)}</td>
-                  {#if data.canManage}
-                    <td>
-                      {#if order.status === "draft"}
+                  <td>
+                    <div class="row-actions">
+                      <Button type="button" variant="ghost" size="sm" onclick={() => printSalesOrder(order)}>Print</Button>
+                      <Button type="button" variant="ghost" size="sm" onclick={() => exportSalesOrder(order)}>CSV</Button>
+                      {#if data.canManage && order.status === "draft"}
                         <form class="action-form" method="POST" action="?/confirm" use:enhance>
                           <input type="hidden" name="orderId" value={order.id} />
                           <Button type="submit" variant="primary" size="sm">Confirm</Button>
                         </form>
-                      {:else if order.status === "confirmed"}
+                      {:else if data.canManage && order.status === "confirmed"}
                         <form class="action-form" method="POST" action="?/invoice" use:enhance>
                           <input type="hidden" name="orderId" value={order.id} />
                           <Button type="submit" variant="primary" size="sm">Invoice</Button>
                         </form>
-                      {:else if order.status === "invoiced" && order.invoiceId}
+                      {:else if data.canManage && order.status === "invoiced" && order.invoiceId}
                         <Button href={`/app/invoices/${order.invoiceId}`} variant="ghost" size="sm">Open</Button>
-                      {:else}
-                        <span class="muted">—</span>
                       {/if}
-                    </td>
-                  {/if}
+                    </div>
+                  </td>
                 </tr>
               {/each}
             </tbody>
@@ -177,7 +238,7 @@
   }
   table {
     width: 100%;
-    min-width: 720px;
+    min-width: 840px;
     border-collapse: collapse;
   }
   caption {
@@ -211,6 +272,12 @@
   }
   .action-form {
     margin: 0;
+  }
+  .row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
   }
   .form-row {
     display: grid;

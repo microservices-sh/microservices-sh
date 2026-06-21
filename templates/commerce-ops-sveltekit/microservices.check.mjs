@@ -145,6 +145,31 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Packing slip helper renders standalone print documents with item checkboxes and fulfillment signatures."
   );
   assertFileIncludesAll(
+    "src/lib/document-export.ts",
+    ["generateInvoicePrintHtml", "generateSalesOrderPrintHtml", "generateCsv", "safeDocumentFilename", "printDocumentHtml", "downloadCsv"],
+    "Document export helper renders invoice and sales-order print documents and CSV downloads using escaped standalone artifacts."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/invoices/[id]/+page.server.ts",
+    ["lineItems: lineItems.map", "subtotalCents", "issuedAt", "paymentLinkUrl"],
+    "Invoice detail load exposes scoped raw document data for print and CSV exports."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/invoices/[id]/+page.svelte",
+    ["generateInvoicePrintHtml", "generateInvoiceLineItemsCsv", "printInvoice", "exportInvoiceLines", "Print", "CSV"],
+    "Invoice detail page exposes StackSuite-style print and CSV actions."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/invoices/+page.svelte",
+    ["generateInvoiceLedgerCsv", "exportInvoices", "Export CSV"],
+    "Invoice ledger can export the current scoped invoice list as CSV."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/sales-orders/+page.svelte",
+    ["generateSalesOrderPrintHtml", "generateSalesOrderLedgerCsv", "generateSalesOrderLineItemsCsv", "printSalesOrder", "exportSalesOrder", "Export CSV"],
+    "Sales order ledger exposes row-level print and CSV document actions."
+  );
+  assertFileIncludesAll(
     "src/lib/server/demo.ts",
     ["demoInventoryReservationPort", "reserveStock", "inventoryReservationPort"],
     "Commerce demo seeding confirms orders through the same inventory reservation bridge as the route adapter."

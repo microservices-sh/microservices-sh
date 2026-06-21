@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from "$app/stores";
+  import { downloadCsv, generateInvoiceLedgerCsv, safeDocumentFilename } from "$lib/document-export";
   import { PageHeader, Card, Badge, Button, Alert, ResourceTable, EmptyState } from "$lib/ui";
 
   let { data } = $props();
@@ -23,6 +24,13 @@
 
   // Flash from the /new page redirect (?issued=<number>).
   const issued = $derived($page.url.searchParams.get("issued"));
+
+  function exportInvoices() {
+    downloadCsv(
+      safeDocumentFilename({ prefix: "invoices", number: "ledger", date: new Date(), extension: "csv" }),
+      generateInvoiceLedgerCsv(data.invoices)
+    );
+  }
 </script>
 
 <svelte:head>
@@ -36,6 +44,9 @@
     description="Issue and track invoices for your company, powered by the invoice module."
   >
     {#snippet actions()}
+      {#if data.invoices.length > 0}
+        <Button type="button" variant="ghost" onclick={exportInvoices}>Export CSV</Button>
+      {/if}
       <Button href="/app/invoices/recurring" variant="ghost">Recurring invoices</Button>
       {#if data.canManage}
         <Button href="/app/invoices/new" variant="primary">New invoice</Button>
