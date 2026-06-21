@@ -12,6 +12,7 @@ export const enabledModules: string[] | null = [
   "accounts-payable",
   "accounts-receivable",
   "bank-reconciliation",
+  "recurring-documents",
   "jobs-workflows",
   "webhook-delivery",
   "notifications-inapp"

@@ -65,6 +65,42 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Sidebar exposes the estimate-quote module as a dedicated Quotes billing surface."
   );
   assertFileIncludesAll(
+    "src/routes/app/recurring-documents/+page.server.ts",
+    [
+      "@microservices-sh/recurring-documents",
+      "createRecurringDocumentsService",
+      "listRecurringDocumentTemplates",
+      "getRecurringDocumentStats",
+      "createRecurringDocumentTemplate",
+      "pauseRecurringDocumentTemplate",
+      "resumeRecurringDocumentTemplate",
+      "cancelRecurringDocumentTemplate",
+      "generateDueRecurringDocuments",
+      "recordEvent"
+    ],
+    "Recurring documents route uses module service APIs for schedule lifecycle and draft generation."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/stores.ts",
+    ["createD1RecurringDocumentsStore", "createRecurringDocumentsMemoryStore", "recurringDocumentsStore"],
+    "Template wires recurring-documents D1 and memory stores through the server store resolver."
+  );
+  assertFileIncludes(
+    "src/hooks.server.ts",
+    "event.locals.recurringDocumentsStore = stores.recurringDocumentsStore",
+    "Request locals expose the recurring-documents store to route adapters."
+  );
+  assertFileIncludesAll(
+    "migrations/0029_recurring_documents.sql",
+    ["CREATE TABLE IF NOT EXISTS recurring_document_templates", "CREATE TABLE IF NOT EXISTS recurring_document_lines", "idx_recurring_document_templates_tenant_due"],
+    "Template keeps recurring document tables aligned with the recurring-documents module."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/erp-nav.ts",
+    ["\"recurring-documents\": { label: \"Schedules\", href: \"/app/recurring-documents\"", "\"estimate-quote\", \"recurring-documents\", \"invoice\""],
+    "Sidebar exposes recurring documents as the document schedule surface between quotes and invoices."
+  );
+  assertFileIncludesAll(
     "migrations/0004_invoice.sql",
     ["CREATE TABLE IF NOT EXISTS invoice_recurring_templates", "idx_invoices_recurring_occurrence"],
     "Template keeps recurring invoice tables and occurrence dedupe index aligned with the invoice module."

@@ -182,7 +182,7 @@ try {
   const svelteAuthPackage = JSON.parse(readFileSync(join(svelteRoot, "modules", "auth", "package.json"), "utf8"));
   const sveltePaymentPackage = JSON.parse(readFileSync(join(svelteRoot, "modules", "payment", "package.json"), "utf8"));
   for (const moduleId of ["audit-log", "auth", "booking", "customer", "email", "gateway", "payment"]) {
-    if (sveltePackage.dependencies?.[`@microservices-sh/${moduleId}`] !== `file:./modules/${moduleId}`) {
+    if (sveltePackage.dependencies?.[`@microservices-sh/${moduleId}`] !== `link:./modules/${moduleId}`) {
       throw new Error(`SvelteKit generated app should depend on local ${moduleId} module source.`);
     }
   }

@@ -38,6 +38,7 @@ const MODULE_NAV: Record<string, NavItem> = {
   "accounts-receivable": { label: "Receivables", href: "/app/receivables", icon: "file-text" },
   "bank-reconciliation": { label: "Banking", href: "/app/banking", icon: "landmark" },
   "estimate-quote": { label: "Quotes", href: "/app/quotes", icon: "clipboard" },
+  "recurring-documents": { label: "Schedules", href: "/app/recurring-documents", icon: "calendar-clock" },
   invoice: { label: "Invoices", href: "/app/invoices", icon: "file-text" },
   payment: { label: "Payments", href: "/app/payments", icon: "credit-card" },
   "support-ticket": { label: "Support", href: "/app/support", icon: "life-buoy" },
@@ -52,7 +53,7 @@ const MODULE_NAV: Record<string, NavItem> = {
 const GROUPS: { section: string; modules: string[] }[] = [
   { section: "Accounting", modules: ["accounting-core", "accounts-payable", "accounts-receivable", "bank-reconciliation"] },
   { section: "Customers", modules: ["customer", "support-ticket"] },
-  { section: "Billing", modules: ["estimate-quote", "invoice", "payment"] },
+  { section: "Billing", modules: ["estimate-quote", "recurring-documents", "invoice", "payment"] },
   { section: "Automation", modules: ["jobs-workflows", "webhook-delivery"] },
   { section: "Workspace", modules: ["file-media"] }
 ];

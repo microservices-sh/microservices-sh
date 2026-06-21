@@ -70,7 +70,7 @@ const templates = readdirSync(templatesDir).filter((dir) =>
 
 describe("template bundle closure (generated apps install standalone)", () => {
   // Half 1 — "rewritten": every dep in the closure is bundleable, so the
-  // scaffolder rewrites it to a file: path instead of leaving it `workspace:*`.
+  // scaffolder rewrites it to a local path instead of leaving it `workspace:*`.
   it.each(templates)("%s bundles every @microservices-sh dependency", (tpl) => {
     const unbundled = depClosure(tpl).filter((name) => !allowed.has(name)).sort();
     expect(
@@ -93,7 +93,7 @@ describe("template bundle closure (generated apps install standalone)", () => {
   });
 
   // Half 2 — "copied": every module/package in a scaffoldable template's closure
-  // is in its copy list, so the file: dep the scaffolder writes points at source
+  // is in its copy list, so the local dep the scaffolder writes points at source
   // that actually got bundled (not a missing dir).
   it.each(REPO_TEMPLATES)("%s copies the source for every dep it rewrites", (tpl) => {
     const closure = depClosure(tpl);
@@ -112,7 +112,7 @@ describe("template bundle closure (generated apps install standalone)", () => {
 
     expect(
       { missingModules, missingPackages },
-      `${tpl}: these deps are rewritten to file: paths but their source isn't copied ` +
+      `${tpl}: these deps are rewritten to local paths but their source isn't copied ` +
         `(add to REPO_TEMPLATE_MODULES/PACKAGES in src/bundled-deps.js): ` +
         `modules=${missingModules.join(",") || "none"} packages=${missingPackages.join(",") || "none"}`
     ).toEqual({ missingModules: [], missingPackages: [] });

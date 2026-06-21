@@ -44,6 +44,7 @@
     "@microservices-sh/notifications-inapp": "workspace:*",
     "@microservices-sh/org-team-rbac": "workspace:*",
     "@microservices-sh/payment": "workspace:*",
+    "@microservices-sh/recurring-documents": "workspace:*",
     "@microservices-sh/support-ticket": "workspace:*",
     "@microservices-sh/webhook-delivery": "workspace:*",
     "@sveltejs/adapter-cloudflare": "^7.2.4",

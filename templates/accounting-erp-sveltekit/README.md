@@ -5,7 +5,8 @@ Status: `ready`
 A StackSuite-derived accounting ERP shell for Cloudflare SvelteKit. It starts
 from the ERP shell runtime and focuses the generated app around chart of
 accounts, fiscal periods, journals, payables, receivables, bank reconciliation,
-invoices, payments, files, webhooks, and background jobs.
+quotes, recurring document schedules, invoices, payments, files, webhooks, and
+background jobs.
 
 The template is source-visible and lock-driven. Domain behavior lives in module
 packages; the template owns routes, layout, shell composition, local setup, and
@@ -20,6 +21,8 @@ Focused modules:
 - `accounts-payable`
 - `accounts-receivable`
 - `bank-reconciliation`
+- `estimate-quote`
+- `recurring-documents`
 - `invoice`
 - `payment`
 - `customer`
@@ -33,7 +36,7 @@ Focused modules:
 
 The current SvelteKit UI is inherited from `erp-shell-sveltekit` and extended
 with accounting pages for ledger review, payables, receivables aging, bank
-import, and reconciliation.
+import, reconciliation, quotes, and recurring document schedules.
 
 ## Routes
 
@@ -49,6 +52,8 @@ import, and reconciliation.
 | `/app/payables` | Vendor, bill, and AP aging review |
 | `/app/receivables` | Open receivables and AR aging buckets |
 | `/app/banking` | Statement import and reconciliation review |
+| `/app/quotes` | Estimate quote pipeline and invoice draft preview |
+| `/app/recurring-documents` | Recurring invoice and bill schedules with generated draft payloads |
 | `/app/invoices` | Invoice ledger |
 | `/app/payments` | Payment review |
 | `/app/files` | Stored files |

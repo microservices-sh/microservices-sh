@@ -17,6 +17,8 @@ SvelteKit template for StackSuite-style accounting operations.
 - `accounts-payable`: vendors, bills, bill payments, recurring bills.
 - `accounts-receivable`: customer payments, applications, aging, statements.
 - `bank-reconciliation`: bank accounts, statement imports, matching, closeout.
+- `estimate-quote`: estimate quote lifecycle and invoice draft handoff.
+- `recurring-documents`: recurring invoice/bill schedules and draft payloads.
 - `invoice`, `payment`, `customer`, `file-media`, `webhook-delivery`,
   `jobs-workflows`, `audit-log`: inherited ERP shell foundations.
 
@@ -27,9 +29,9 @@ cases, and cross-module work should use ports or events rather than direct table
 access.
 
 The UI includes reference pages for ledger review, payables, receivables aging,
-bank statement import, and reconciliation. The next template-specific slice
-should prune inherited ERP shell dependencies only after the shared route layer
-no longer imports them.
+bank statement import, reconciliation, quote lifecycle, and recurring document
+schedules. Prune inherited ERP shell dependencies only after the shared route
+layer no longer imports them.
 
 ## Approval Gates
 

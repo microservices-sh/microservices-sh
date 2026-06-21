@@ -65,6 +65,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.accountsReceivableService = stores.accountsReceivableService;
   event.locals.bankReconciliationService = stores.bankReconciliationService;
   event.locals.estimateQuoteStore = stores.estimateQuoteStore;
+  event.locals.recurringDocumentsStore = stores.recurringDocumentsStore;
   event.locals.user = await getCurrentUser(event.cookies, {
     accountStore: stores.accountStore,
     sessionStore: stores.sessionStore

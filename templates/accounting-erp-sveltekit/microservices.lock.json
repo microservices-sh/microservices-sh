@@ -551,6 +551,45 @@
       }
     },
     {
+      "id": "recurring-documents",
+      "version": "0.1.0",
+      "source": "registry:recurring-documents@0.1.0",
+      "checksum": "sha256:preview-recurring-documents-0.1.0",
+      "customizationMode": "config-hooks",
+      "mode": "embedded",
+      "contract": {
+        "mount": "/recurring-documents",
+        "bindings": [
+          "DB"
+        ],
+        "resources": [
+          "D1"
+        ],
+        "permissions": [
+          "recurring-documents.read",
+          "recurring-documents.write",
+          "recurring-documents.admin",
+          "recurring-documents.extend",
+          "recurring-documents.observe"
+        ],
+        "rpc": [],
+        "hooks": [
+          "beforeRecurringDocumentsCreate",
+          "afterRecurringDocumentsUpdated"
+        ],
+        "events": [
+          "recurring-documents.created",
+          "recurring-documents.updated",
+          "recurring-documents.paused",
+          "recurring-documents.resumed",
+          "recurring-documents.cancelled",
+          "recurring-documents.completed",
+          "recurring-documents.generated"
+        ],
+        "requires": []
+      }
+    },
+    {
       "id": "invoice",
       "version": "0.1.0",
       "source": "registry:invoice@0.1.0",

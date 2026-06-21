@@ -72,6 +72,11 @@ import {
   createEstimateQuoteMemoryStore,
   type EstimateQuoteStore
 } from "@microservices-sh/estimate-quote";
+import {
+  createD1RecurringDocumentsStore,
+  createRecurringDocumentsMemoryStore,
+  type RecurringDocumentsStore
+} from "@microservices-sh/recurring-documents";
 
 import type { RbacStore } from "@microservices-sh/org-team-rbac/ports";
 import type { TableGateway } from "@microservices-sh/admin-shell/ports";
@@ -116,6 +121,7 @@ const memoryAccountsReceivableService = createAccountsReceivableService({ store:
 const memoryBankReconciliationStore = createMemoryBankReconciliationStore();
 const memoryBankReconciliationService = createBankReconciliationService({ store: memoryBankReconciliationStore });
 const memoryEstimateQuoteStore = createEstimateQuoteMemoryStore();
+const memoryRecurringDocumentsStore = createRecurringDocumentsMemoryStore();
 
 export interface ServerStores {
   rbacStore: RbacStore;
@@ -144,6 +150,7 @@ export interface ServerStores {
   accountsReceivableService: AccountsReceivableService;
   bankReconciliationService: BankReconciliationService;
   estimateQuoteStore: EstimateQuoteStore;
+  recurringDocumentsStore: RecurringDocumentsStore;
 }
 
 // The platform bindings as declared on App.Platform — referenced via the platform
@@ -185,7 +192,8 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     bankReconciliationService: db
       ? createBankReconciliationService({ store: createD1BankReconciliationStore(db) })
       : memoryBankReconciliationService,
-    estimateQuoteStore: db ? createD1EstimateQuoteStore(db) : memoryEstimateQuoteStore
+    estimateQuoteStore: db ? createD1EstimateQuoteStore(db) : memoryEstimateQuoteStore,
+    recurringDocumentsStore: db ? createD1RecurringDocumentsStore(db) : memoryRecurringDocumentsStore
   };
 }
 
@@ -202,6 +210,7 @@ export const memoryStores = {
   accountsReceivableService: memoryAccountsReceivableService,
   bankReconciliationService: memoryBankReconciliationService,
   estimateQuoteStore: memoryEstimateQuoteStore,
+  recurringDocumentsStore: memoryRecurringDocumentsStore,
   mediaStore: memoryMediaStore,
   objectStorage: memoryObjectStorage,
   auditStore: memoryAuditStore

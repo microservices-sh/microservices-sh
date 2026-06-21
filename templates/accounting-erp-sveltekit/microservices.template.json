@@ -28,6 +28,7 @@
       "customer",
       "support-ticket",
       "estimate-quote",
+      "recurring-documents",
       "invoice",
       "payment",
       "file-media",
@@ -99,6 +100,13 @@
       "activeModule": "estimate-quote",
       "allowedModules": [
         "estimate-quote"
+      ],
+      "approvalRisk": "medium"
+    },
+    "documentSchedules": {
+      "activeModule": "recurring-documents",
+      "allowedModules": [
+        "recurring-documents"
       ],
       "approvalRisk": "medium"
     },

@@ -42,8 +42,8 @@ Remaining gaps are mostly add-on business workflows, not more full-app cloning.
 |---|---|---|---|
 | P0 | `sms-campaigns` module | `sms-crm` contacts, groups, templates, vendor configs, campaigns, recipients, SMS logs | Implemented as a contract-checked module; add an `sms-crm-sveltekit` template only when route proof is needed. |
 | P0 | Support inbox/widget hardening | HelpGrid widget settings, quick actions, conversations, messages, channel metadata, agent takeover | Implemented as `support-inbox`; `support-ticket` now owns comments, attachment metadata, share tokens, and per-tenant ticket numbers. |
-| P1 | Membership and customer credits | Booking membership tiers, customer memberships, credits, credit transactions, membership history | Implemented as `membership-credits`; route proof can extend `booking-sveltekit` later. |
-| P1 | Estimates/quotes and recurring invoice templates | Accounting Chiangs estimates, accepted/converted lifecycle, recurring invoices, recurring items, send/post/void schemas | `estimate-quote` and `recurring-documents` implemented; route proof can extend `accounting-erp-sveltekit` later. |
+| P1 | Membership and customer credits | Booking membership tiers, customer memberships, credits, credit transactions, membership history | Implemented as `membership-credits`; route proof now extends `booking-sveltekit`. |
+| P1 | Estimates/quotes and recurring invoice templates | Accounting Chiangs estimates, accepted/converted lifecycle, recurring invoices, recurring items, send/post/void schemas | `estimate-quote` and `recurring-documents` implemented; route proof now extends `accounting-erp-sveltekit`. |
 | P1 | Storage entitlements and expiring share links | DashDrive files, short IDs, expiry, download count, storage packages, purchases | `storage-entitlements` implemented; integrate with `file-media` or client portal routes later. |
 | P1 | HR people ops | HR employees, departments, positions, leave balances/requests, attendance | `hr-people-ops` implemented; template later, not before focused route proof demand. |
 | P1 | Project/field progress | EPMIS projects, worker access, progress logs, media files, comments, public access tokens | `project-progress` implemented; route proof later only if a project/customer portal demo needs it. |
@@ -185,7 +185,7 @@ Integrations:
 - `invoice`, `email`, `file-media`, `accounts-receivable`, `jobs-workflows`, `audit-log`.
 
 Template impact:
-- Add quote and recurring invoice routes to `accounting-erp-sveltekit` after the module surface exists.
+- Added quote and recurring document routes to `accounting-erp-sveltekit` after the module surfaces existed.
 
 ## P1 Plan: Storage Entitlements And Expiring Shares
 

@@ -64,9 +64,10 @@ export const PUBLISHED_ALLOWLIST = ["@microservices-sh/sdk-internal", "@microser
 
 // Per-scaffoldable-template manifest: which module/package SOURCE gets copied into
 // the bundle (consumed by scripts/build.js). This is the "copied" half; BUNDLED_*
-// above is the "rewritten to file:" half. They must agree — a dep rewritten to
-// file:./modules/<x> whose source isn't copied points at a missing dir. The
-// closure test asserts each template's dependency closure is covered by BOTH.
+// above is the "rewritten to local path:" half. They must agree: a dep rewritten
+// to link:./modules/<x> or file:../<x> whose source isn't copied points at a
+// missing dir. The closure test asserts each template's dependency closure is
+// covered by BOTH.
 export const REPO_TEMPLATES = [
   "booking-sveltekit",
   "company-landing-astro",
