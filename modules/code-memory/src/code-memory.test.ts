@@ -168,6 +168,75 @@ describe("code-memory service", () => {
     expect(scan.candidates[2]?.tests).toEqual(["test/booking/availability.test.ts"]);
   });
 
+  it("recognizes StackSuite accounting and invoice port candidates", async () => {
+    const suggestions = suggestLogicCapsulesFromFiles({
+      sourceId: "cmsrc_stacksuite",
+      ref: "local",
+      files: [
+        {
+          path: "src/lib/db/queries/journal-entries.ts",
+          content: "createJournalEntry requires debit and credit lines to be balanced before posting to the fiscal ledger and trial balance."
+        },
+        {
+          path: "src/lib/db/queries/bank-reconciliations.ts",
+          content: "import bank statement csv transactions, match cleared ledger records, reconcile ending balance, and keep unresolved differences open."
+        },
+        {
+          path: "src/lib/db/queries/recurring-bills.ts",
+          content: "generateDueRecurringBills from a recurring bill template using frequency, schedule, and nextRunAt idempotency."
+        },
+        {
+          path: "src/lib/integrations/woocommerce-webhooks.ts",
+          content: "Verify WooCommerce webhook signature, process WCOrder WCCustomer WCProduct payloads, and sync externalSource records."
+        },
+        {
+          path: "src/lib/db/queries/inventory.ts",
+          content: "Reserve stock for shipment batches, compute onHand available balances, record invoice_reserved stockMovements, and release reservations."
+        },
+        {
+          path: "src/lib/utils/print-invoice.ts",
+          content: "generateInvoiceHTML returns a printable document with escapeHtml, filename helpers, download metadata, and html2pdf support."
+        },
+        {
+          path: "tests/accounting/journal-entries.test.ts",
+          content: "rejects unbalanced debit and credit journal entries"
+        },
+        {
+          path: "tests/banking/reconciliation.test.ts",
+          content: "keeps bank reconciliation open when statement difference remains"
+        },
+        {
+          path: "tests/integrations/woocommerce-webhooks.test.ts",
+          content: "rejects invalid WooCommerce webhook signatures"
+        },
+        {
+          path: "tests/printing/print-invoice.test.ts",
+          content: "escapes invoice customer text before rendering printable HTML"
+        }
+      ],
+      maxCandidates: 10
+    });
+
+    expect(suggestions.scanSummary).toMatchObject({
+      fileCount: 10,
+      candidateCount: 6,
+      heuristics: [
+        "accounting-journal-posting",
+        "bank-reconciliation-workflow",
+        "recurring-invoice-generator",
+        "woocommerce-sync-adapter",
+        "shipment-inventory-reservation",
+        "printable-document-renderer"
+      ]
+    });
+    expect(suggestions.candidates.map((candidate) => candidate.reuseMode)).toEqual(["module", "module", "adapt", "adapt", "module", "adapt"]);
+    expect(suggestions.candidates.find((candidate) => candidate.slug === "accounting-journal-posting")?.tests).toEqual(["tests/accounting/journal-entries.test.ts"]);
+    expect(suggestions.candidates.find((candidate) => candidate.slug === "woocommerce-sync-adapter")?.tests).toEqual(["tests/integrations/woocommerce-webhooks.test.ts"]);
+    expect(suggestions.candidates.find((candidate) => candidate.slug === "printable-document-renderer")?.constraints).toContain(
+      "Never render unescaped customer or line-item text into HTML."
+    );
+  });
+
   it("adapts service methods to governed tool handler names", async () => {
     const memory = service();
     const handlers = createCodeMemoryToolHandlers({ service: memory });

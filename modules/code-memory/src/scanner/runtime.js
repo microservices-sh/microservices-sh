@@ -34,12 +34,62 @@ const HEURISTICS = [
     testKeywords: ["invoice", "number", "sequence"]
   },
   {
+    slug: "accounting-journal-posting",
+    name: "Accounting journal posting",
+    purpose: "Create, post, void, or report balanced double-entry journal entries.",
+    reuseMode: "module",
+    signals: [/(journal|ledger|trial\s*balance|chart\s*of\s*accounts|accounting)/i, /(debit|credit|balanced|post|void|fiscal)/i],
+    pathBonus: /(accounting|journal|ledger|trial-balance|chart-of-accounts|fiscal)/i,
+    dependencies: [],
+    requiredEnv: [],
+    inputs: ["Tenant id", "Fiscal period", "Journal lines with debit and credit amounts"],
+    outputs: ["Balanced journal entry, posting result, or trial balance"],
+    usageNotes: "Port invariants and tests before adapting storage; ledger writes must stay immutable after posting.",
+    constraints: ["Total debits must equal total credits.", "Posting and voiding require explicit approval."],
+    doNotUseFor: ["Jurisdiction-specific tax or statutory reporting without separate review."],
+    testKeywords: ["journal", "ledger", "debit", "credit", "trial balance"]
+  },
+  {
+    slug: "bank-reconciliation-workflow",
+    name: "Bank reconciliation workflow",
+    purpose: "Import bank transactions, match them to ledger records, and close reconciliations with statement balances.",
+    reuseMode: "module",
+    signals: [/(bank|statement)/i, /(match|cleared|import|csv|ofx|reconcile|reconciliation|ending\s*balance)/i],
+    requiredPath: /(bank|statement)/i,
+    pathBonus: /(bank|reconciliation|statement|transaction|import)/i,
+    dependencies: [],
+    requiredEnv: [],
+    inputs: ["Bank account", "Statement dates and balances", "Imported bank transactions"],
+    outputs: ["Matched transactions and reconciliation status"],
+    usageNotes: "Adapt matching rules separately from storage so templates can expose review workflows without owning reconciliation internals.",
+    constraints: ["Never auto-close a reconciliation with an unresolved difference."],
+    doNotUseFor: ["Payment settlement or fraud review without additional controls."],
+    testKeywords: ["bank", "reconciliation", "statement", "match"]
+  },
+  {
+    slug: "recurring-invoice-generator",
+    name: "Recurring invoice generator",
+    purpose: "Generate due invoices or bills from recurring templates on a schedule.",
+    reuseMode: "adapt",
+    signals: [/(recurring|frequency|next_invoice_at|nextInvoiceAt|generateDue|next\s+invoice\s+at)/i, /(invoice|bill|template)/i],
+    pathBonus: /(recurring|scheduled).*(invoice|bill)|(invoice|bill).*recurring/i,
+    dependencies: [],
+    requiredEnv: [],
+    inputs: ["Recurring template", "Current time", "Generation limit"],
+    outputs: ["Generated invoices or bills and updated next-run state"],
+    usageNotes: "Preserve idempotency and next-date calculation tests when adapting scheduled generation.",
+    constraints: ["Generation must be idempotent for the same due window."],
+    doNotUseFor: ["Subscription billing with external tax or payment mandates without provider-specific review."],
+    testKeywords: ["recurring", "invoice", "bill", "schedule"]
+  },
+  {
     slug: "booking-overlap-checker",
     name: "Booking overlap checker",
     purpose: "Detect booking slot conflicts and preserve adjacent-slot boundary behavior.",
     reuseMode: "adapt",
-    signals: [/(booking|availability|calendar|slot)/i, /(overlap|conflict|available|availability|slot)/i],
-    pathBonus: /(booking|availability|calendar|slot)/i,
+    signals: [/(booking|calendar)/i, /(overlap|conflict|unavailable|availability)/i],
+    requiredPath: /(booking|calendar|availability)/i,
+    pathBonus: /(booking|availability|calendar)/i,
     dependencies: [],
     requiredEnv: [],
     inputs: ["Requested time range", "Existing booking ranges"],
@@ -64,6 +114,55 @@ const HEURISTICS = [
     constraints: ["Always include tenant_id in scoped queries."],
     doNotUseFor: ["Cross-tenant analytics queries without an explicit access policy."],
     testKeywords: ["d1", "pagination", "cursor", "limit"]
+  },
+  {
+    slug: "woocommerce-sync-adapter",
+    name: "WooCommerce sync adapter",
+    purpose: "Sync WooCommerce customers, products, orders, categories, or webhooks into tenant-scoped commerce records.",
+    reuseMode: "adapt",
+    signals: [/(woocommerce|wcorder|wcproduct|wccustomer|wc_product|wc_order)/i, /(sync|webhook|externalSource|external_id|order|product|customer|signature)/i],
+    pathBonus: /(woocommerce|commerce-sync|integrations\/sync|webhook)/i,
+    dependencies: [],
+    requiredEnv: ["WOOCOMMERCE_URL", "WOOCOMMERCE_CONSUMER_KEY", "WOOCOMMERCE_CONSUMER_SECRET"],
+    inputs: ["WooCommerce credentials or webhook payload", "Tenant id"],
+    outputs: ["Synced customers, products, orders, or categories"],
+    usageNotes: "Separate credential parsing, webhook verification, and upsert mapping before adapting to commerce-sync ports.",
+    constraints: ["Webhook signatures must be verified before processing payloads.", "External ids must be tenant-scoped."],
+    doNotUseFor: ["Other commerce providers without a provider-specific adapter."],
+    testKeywords: ["woocommerce", "webhook", "sync", "external"]
+  },
+  {
+    slug: "shipment-inventory-reservation",
+    name: "Shipment inventory reservation",
+    purpose: "Reserve, release, and deduct inventory for invoiced orders and shipment batches.",
+    reuseMode: "module",
+    signals: [/(shipment|packing\s*slip|stock|inventory|reserved|onHand)/i, /(invoice_reserved|invoice_unreserved|stockMovements|stock\s*movement|pick\s*list|shipment\s*batch|batchId)/i],
+    requiredPath: /(shipment|inventory|stock|packing)/i,
+    pathBonus: /(shipment|inventory|stock|packing-slip|pick-list)/i,
+    dependencies: [],
+    requiredEnv: [],
+    inputs: ["Invoice or order lines", "Current stock balances", "Shipment batch"],
+    outputs: ["Inventory reservations, stock movements, and shipment batch status"],
+    usageNotes: "Keep reservation and release semantics together so invoice, inventory, and shipment modules do not drift.",
+    constraints: ["Do not allow shipment deduction to drive available stock below zero unless explicitly configured."],
+    doNotUseFor: ["Warehouse routing or carrier label purchase without separate fulfillment logic."],
+    testKeywords: ["shipment", "inventory", "stock", "reservation"]
+  },
+  {
+    slug: "printable-document-renderer",
+    name: "Printable document renderer",
+    purpose: "Generate printable invoice, sales order, or packing-slip HTML with escaping and filename helpers.",
+    reuseMode: "adapt",
+    signals: [/(generate.*html|print|html2pdf|packing\s*slip|sales\s*order)/i, /(escapeHtml|filename|document|download|printable)/i],
+    pathBonus: /(print|pdf|packing-slip|sales-order|invoice)/i,
+    dependencies: [],
+    requiredEnv: [],
+    inputs: ["Document data", "Company settings", "Line items"],
+    outputs: ["Escaped standalone HTML or print/download metadata"],
+    usageNotes: "Port escaping and formatting tests with the renderer; UI templates can call this through module ports.",
+    constraints: ["Never render unescaped customer or line-item text into HTML."],
+    doNotUseFor: ["Legally compliant tax invoices without jurisdiction-specific template review."],
+    testKeywords: ["print", "invoice", "packing", "escape"]
   },
   {
     slug: "auth-session-token-helper",
@@ -113,9 +212,14 @@ function clampMaxCandidates(value) {
 }
 
 function scoreFile(file, heuristic) {
+  if (heuristic.requiredPath && !heuristic.requiredPath.test(file.lowerPath)) return 0;
   if (!heuristic.signals.every((signal) => signal.test(file.haystack))) return 0;
   const signalScore = heuristic.signals.reduce((score, signal) => score + (signal.test(file.haystack) ? 2 : 0), 0);
-  return signalScore + (heuristic.pathBonus.test(file.lowerPath) ? 3 : 0);
+  const preferredCodePath = /^(src\/lib\/(db|integrations|server|utils)|src\/routes\/api|modules\/)/.test(file.lowerPath) ? 2 : 0;
+  const docsPenalty = /^(docs|claudedocs)\//.test(file.lowerPath) || /\.(md)$/i.test(file.lowerPath) ? -3 : 0;
+  const generatedPenalty = /(^|\/)(migrations\/meta|\.claude)\//.test(file.lowerPath) ? -2 : 0;
+  const componentPenalty = /\/components\//.test(file.lowerPath) ? -1 : 0;
+  return signalScore + (heuristic.pathBonus.test(file.lowerPath) ? 3 : 0) + preferredCodePath + docsPenalty + generatedPenalty + componentPenalty;
 }
 
 function fileBaseName(path) {
