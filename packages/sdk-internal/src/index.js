@@ -16,6 +16,13 @@ import {
 } from "./rpc-codegen.js";
 
 export { generateRpcEntrypoint, generateRpcClient, serviceClassName } from "./rpc-codegen.js";
+export {
+  generateToolManifest,
+  generateToolManifestFile,
+  toolDescriptor,
+  toolName,
+  isReadMethod,
+} from "./tool-codegen.js";
 
 function requestId() {
   return `local_${Date.now().toString(36)}`;
