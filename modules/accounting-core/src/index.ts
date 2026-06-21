@@ -5,8 +5,10 @@ export {
   accountInputSchema,
   accountingCoreConfigSchema,
   accountRecordSchema,
+  accountSubtypeSchema,
   accountTypeSchema,
   accountUpdateSchema,
+  chartOfAccountsStandardSchema,
   fiscalPeriodFilterSchema,
   fiscalPeriodInputSchema,
   fiscalPeriodStatusSchema,
@@ -17,6 +19,9 @@ export {
   journalLineInputSchema,
   normalBalanceSchema,
   postJournalEntrySchema,
+  seedChartOfAccountsSchema,
+  seedMonthlyFiscalPeriodsSchema,
+  setupStatusInputSchema,
   trialBalanceSchema,
   voidJournalEntrySchema
 } from "./schemas";
@@ -30,6 +35,7 @@ export { createAccount } from "./use-cases/create-account";
 export { listAccounts } from "./use-cases/list-accounts";
 export { createFiscalPeriod } from "./use-cases/create-fiscal-period";
 export { updateFiscalPeriodStatus } from "./use-cases/update-fiscal-period-status";
+export { getAccountingSetupStatus, seedChartOfAccounts, seedMonthlyFiscalPeriods } from "./use-cases/setup-accounting";
 export { createJournalEntry } from "./use-cases/create-journal-entry";
 export { updateJournalEntry } from "./use-cases/update-journal-entry";
 export { postJournalEntry } from "./use-cases/post-journal-entry";
@@ -38,11 +44,14 @@ export { getTrialBalance } from "./use-cases/get-trial-balance";
 export type { AccountingCoreStore } from "./ports";
 export type {
   Account,
+  AccountingSetupStatus,
   AccountingCoreConfig,
   AccountingEvent,
   AccountFilter,
+  AccountSubtype,
   AccountType,
   Actor,
+  ChartOfAccountsStandard,
   FiscalPeriod,
   FiscalPeriodFilter,
   FiscalPeriodStatus,

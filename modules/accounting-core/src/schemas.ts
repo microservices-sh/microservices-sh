@@ -6,16 +6,38 @@ export const accountingCoreConfigSchema = z.object({
 });
 
 export const accountTypeSchema = z.enum(["asset", "liability", "equity", "revenue", "expense"]);
+export const accountSubtypeSchema = z.enum([
+  "current_asset",
+  "fixed_asset",
+  "other_asset",
+  "current_liability",
+  "long_term_liability",
+  "owner_equity",
+  "retained_earnings",
+  "operating_revenue",
+  "other_revenue",
+  "operating_expense",
+  "cogs",
+  "other_expense"
+]);
 export const normalBalanceSchema = z.enum(["debit", "credit"]);
 export const fiscalPeriodStatusSchema = z.enum(["open", "closed", "locked"]);
 export const journalEntryStatusSchema = z.enum(["draft", "posted", "void"]);
+export const chartOfAccountsStandardSchema = z.enum(["gaap"]);
 
 export const accountInputSchema = z.object({
   tenantId: z.string().min(1),
   code: z.string().min(1),
   name: z.string().min(1),
   type: accountTypeSchema,
+  subtype: accountSubtypeSchema.nullable().optional(),
+  parentId: z.string().min(1).nullable().optional(),
+  currency: z.string().min(3).max(3).default("USD"),
+  normalBalance: normalBalanceSchema.optional(),
   description: z.string().nullable().optional(),
+  isSystem: z.boolean().default(false),
+  isReconcilable: z.boolean().default(false),
+  isHeader: z.boolean().default(false),
   active: z.boolean().default(true)
 });
 
@@ -100,13 +122,35 @@ export const trialBalanceSchema = z.object({
   includeZero: z.boolean().optional()
 });
 
+export const setupStatusInputSchema = z.object({
+  tenantId: z.string().min(1)
+});
+
+export const seedChartOfAccountsSchema = z.object({
+  tenantId: z.string().min(1),
+  standard: chartOfAccountsStandardSchema.default("gaap"),
+  currency: z.string().min(3).max(3).default("USD")
+});
+
+export const seedMonthlyFiscalPeriodsSchema = z.object({
+  tenantId: z.string().min(1),
+  year: z.number().int().min(1900).max(9999),
+  fiscalYearStartMonth: z.number().int().min(1).max(12).default(1)
+});
+
 export const accountRecordSchema = z.object({
   id: z.string().min(1),
   tenantId: z.string().min(1),
   code: z.string().min(1),
   name: z.string().min(1),
   type: accountTypeSchema,
+  subtype: accountSubtypeSchema.nullable(),
+  parentId: z.string().nullable(),
+  currency: z.string().min(3).max(3),
   normalBalance: normalBalanceSchema,
+  isSystem: z.boolean(),
+  isReconcilable: z.boolean(),
+  isHeader: z.boolean(),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1)
 });

@@ -23,8 +23,14 @@ export async function createAccount(input: unknown, deps: AccountingDeps & { act
     code,
     name: parsed.data.name.trim(),
     type: parsed.data.type,
-    normalBalance: normalBalanceForType(parsed.data.type),
+    subtype: parsed.data.subtype ?? null,
+    parentId: normalizeOptional(parsed.data.parentId),
+    currency: parsed.data.currency.trim().toUpperCase(),
+    normalBalance: parsed.data.normalBalance ?? normalBalanceForType(parsed.data.type),
     description: normalizeOptional(parsed.data.description),
+    isSystem: parsed.data.isSystem,
+    isReconcilable: parsed.data.isReconcilable,
+    isHeader: parsed.data.isHeader,
     active: parsed.data.active,
     createdAt: now,
     updatedAt: now
@@ -36,7 +42,7 @@ export async function createAccount(input: unknown, deps: AccountingDeps & { act
     entityType: "account",
     entityId: account.id,
     tenantId: account.tenantId,
-    payload: { actorId: deps.actor?.id ?? null, code: account.code, type: account.type }
+    payload: { actorId: deps.actor?.id ?? null, code: account.code, type: account.type, subtype: account.subtype }
   });
 
   return ok(201, { account });

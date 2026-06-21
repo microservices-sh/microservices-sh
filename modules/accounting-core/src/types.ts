@@ -1,7 +1,21 @@
 export type AccountType = "asset" | "liability" | "equity" | "revenue" | "expense";
+export type AccountSubtype =
+  | "current_asset"
+  | "fixed_asset"
+  | "other_asset"
+  | "current_liability"
+  | "long_term_liability"
+  | "owner_equity"
+  | "retained_earnings"
+  | "operating_revenue"
+  | "other_revenue"
+  | "operating_expense"
+  | "cogs"
+  | "other_expense";
 export type NormalBalance = "debit" | "credit";
 export type FiscalPeriodStatus = "open" | "closed" | "locked";
 export type JournalEntryStatus = "draft" | "posted" | "void";
+export type ChartOfAccountsStandard = "gaap";
 
 export interface AccountingCoreConfig {
   enabled: boolean;
@@ -20,8 +34,14 @@ export interface Account {
   code: string;
   name: string;
   type: AccountType;
+  subtype: AccountSubtype | null;
+  parentId: string | null;
+  currency: string;
   normalBalance: NormalBalance;
   description: string | null;
+  isSystem: boolean;
+  isReconcilable: boolean;
+  isHeader: boolean;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -95,6 +115,14 @@ export interface TrialBalanceFilter {
   periodId?: string;
   asOfDate?: string;
   includeZero?: boolean;
+}
+
+export interface AccountingSetupStatus {
+  tenantId: string;
+  accountsConfigured: boolean;
+  accountCount: number;
+  fiscalPeriodsConfigured: boolean;
+  fiscalPeriodCount: number;
 }
 
 export interface TrialBalancePosting {

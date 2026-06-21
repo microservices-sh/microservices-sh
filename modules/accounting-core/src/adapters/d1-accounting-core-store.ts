@@ -4,6 +4,7 @@ import type {
   Account,
   AccountingEvent,
   AccountFilter,
+  AccountSubtype,
   AccountType,
   FiscalPeriod,
   FiscalPeriodFilter,
@@ -31,8 +32,14 @@ function rowToAccount(row: Record<string, unknown>): Account {
     code: String(row.code),
     name: String(row.name),
     type: String(row.type) as AccountType,
+    subtype: nullableString(row.account_subtype) as AccountSubtype | null,
+    parentId: nullableString(row.parent_id),
+    currency: String(row.currency ?? "USD"),
     normalBalance: String(row.normal_balance) as NormalBalance,
     description: nullableString(row.description),
+    isSystem: rowBool(row.is_system),
+    isReconcilable: rowBool(row.is_reconcilable),
+    isHeader: rowBool(row.is_header),
     active: rowBool(row.active),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at)
@@ -98,8 +105,14 @@ function rowToTrialBalancePosting(row: Record<string, unknown>): TrialBalancePos
       code: String(row.code),
       name: String(row.name),
       type: String(row.type) as AccountType,
+      subtype: nullableString(row.account_subtype) as AccountSubtype | null,
+      parentId: nullableString(row.parent_id),
+      currency: String(row.currency ?? "USD"),
       normalBalance: String(row.normal_balance) as NormalBalance,
       description: nullableString(row.description),
+      isSystem: rowBool(row.is_system),
+      isReconcilable: rowBool(row.is_reconcilable),
+      isHeader: rowBool(row.is_header),
       active: rowBool(row.active),
       createdAt: String(row.created_at),
       updatedAt: String(row.updated_at)
@@ -110,7 +123,7 @@ function rowToTrialBalancePosting(row: Record<string, unknown>): TrialBalancePos
 }
 
 const ACCOUNT_COLS =
-  "id, tenant_id, code, name, type, normal_balance, description, active, created_at, updated_at";
+  "id, tenant_id, code, name, type, account_subtype, parent_id, currency, normal_balance, description, is_system, is_reconcilable, is_header, active, created_at, updated_at";
 const PERIOD_COLS =
   "id, tenant_id, name, starts_on, ends_on, status, closed_at, locked_at, created_at, updated_at";
 const ENTRY_COLS =
@@ -194,15 +207,21 @@ export function createD1AccountingCoreStore(db: D1Database): AccountingCoreStore
   return {
     async insertAccount(account) {
       await db
-        .prepare(`INSERT INTO accounting_accounts (${ACCOUNT_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .prepare(`INSERT INTO accounting_accounts (${ACCOUNT_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .bind(
           account.id,
           account.tenantId,
           account.code,
           account.name,
           account.type,
+          account.subtype,
+          account.parentId,
+          account.currency,
           account.normalBalance,
           account.description,
+          account.isSystem ? 1 : 0,
+          account.isReconcilable ? 1 : 0,
+          account.isHeader ? 1 : 0,
           account.active ? 1 : 0,
           account.createdAt,
           account.updatedAt
@@ -213,7 +232,8 @@ export function createD1AccountingCoreStore(db: D1Database): AccountingCoreStore
     async updateAccount(account) {
       await db
         .prepare(
-          `UPDATE accounting_accounts SET code = ?, name = ?, type = ?, normal_balance = ?, description = ?,
+          `UPDATE accounting_accounts SET code = ?, name = ?, type = ?, account_subtype = ?, parent_id = ?, currency = ?,
+             normal_balance = ?, description = ?, is_system = ?, is_reconcilable = ?, is_header = ?,
              active = ?, updated_at = ?
            WHERE tenant_id = ? AND id = ?`
         )
@@ -221,8 +241,14 @@ export function createD1AccountingCoreStore(db: D1Database): AccountingCoreStore
           account.code,
           account.name,
           account.type,
+          account.subtype,
+          account.parentId,
+          account.currency,
           account.normalBalance,
           account.description,
+          account.isSystem ? 1 : 0,
+          account.isReconcilable ? 1 : 0,
+          account.isHeader ? 1 : 0,
           account.active ? 1 : 0,
           account.updatedAt,
           account.tenantId,
@@ -397,8 +423,14 @@ export function createD1AccountingCoreStore(db: D1Database): AccountingCoreStore
              a.code AS code,
              a.name AS name,
              a.type AS type,
+             a.account_subtype AS account_subtype,
+             a.parent_id AS parent_id,
+             a.currency AS currency,
              a.normal_balance AS normal_balance,
              a.description AS description,
+             a.is_system AS is_system,
+             a.is_reconcilable AS is_reconcilable,
+             a.is_header AS is_header,
              a.active AS active,
              a.created_at AS created_at,
              a.updated_at AS updated_at,
@@ -408,7 +440,8 @@ export function createD1AccountingCoreStore(db: D1Database): AccountingCoreStore
            JOIN accounting_journal_entries e ON e.tenant_id = l.tenant_id AND e.id = l.entry_id
            JOIN accounting_accounts a ON a.tenant_id = l.tenant_id AND a.id = l.account_id
            WHERE ${clauses.join(" AND ")}
-           GROUP BY a.id, a.tenant_id, a.code, a.name, a.type, a.normal_balance, a.description, a.active, a.created_at, a.updated_at
+           GROUP BY a.id, a.tenant_id, a.code, a.name, a.type, a.account_subtype, a.parent_id, a.currency,
+             a.normal_balance, a.description, a.is_system, a.is_reconcilable, a.is_header, a.active, a.created_at, a.updated_at
            ORDER BY a.code ASC`
         )
         .bind(...binds)

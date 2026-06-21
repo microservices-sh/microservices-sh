@@ -4,8 +4,11 @@ import {
   createFiscalPeriod,
   createJournalEntry,
   createMemoryAccountingCoreStore,
+  getAccountingSetupStatus,
   getTrialBalance,
   postJournalEntry,
+  seedChartOfAccounts,
+  seedMonthlyFiscalPeriods,
   updateJournalEntry,
   voidJournalEntry
 } from "./index";
@@ -75,6 +78,40 @@ async function createBalancedEntry(
 }
 
 describe("accounting-core: posting", () => {
+  it("rejects journal lines posted directly to donor-style header accounts", async () => {
+    const store = createMemoryAccountingCoreStore();
+    const deps = { accountingCoreStore: store, now: fixedNow() };
+    const header = await createAccount(
+      { tenantId: TENANT_ID, code: "1000", name: "Assets", type: "asset", isHeader: true },
+      deps
+    );
+    const revenue = await createAccount(
+      { tenantId: TENANT_ID, code: "4000", name: "Sales Revenue", type: "revenue" },
+      deps
+    );
+    const period = await createFiscalPeriod(
+      { tenantId: TENANT_ID, name: "January 2026", startsOn: "2026-01-01", endsOn: "2026-01-31" },
+      deps
+    );
+    if (!header.ok || !revenue.ok || !period.ok) throw new Error("setup failed");
+
+    const result = await createJournalEntry(
+      {
+        tenantId: TENANT_ID,
+        periodId: period.data.period.id,
+        entryDate: "2026-01-15",
+        lines: [
+          { accountId: header.data.account.id, debitCents: 1000 },
+          { accountId: revenue.data.account.id, creditCents: 1000 }
+        ]
+      },
+      deps
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("accounting-core.HEADER_ACCOUNT_NOT_POSTABLE");
+  });
+
   it("posts balanced journal entries and freezes posted entries", async () => {
     const setup = await setupLedger();
     const entry = await createBalancedEntry(setup);
@@ -133,6 +170,58 @@ describe("accounting-core: posting", () => {
 
     expect(duplicate.ok).toBe(false);
     if (!duplicate.ok) expect(duplicate.error.code).toBe("accounting-core.SOURCE_REF_CONFLICT");
+  });
+});
+
+describe("accounting-core: setup", () => {
+  it("seeds a donor-derived chart with hierarchy, system flags, reconcilable accounts, and contra balances", async () => {
+    const store = createMemoryAccountingCoreStore();
+    const deps = { accountingCoreStore: store, now: fixedNow() };
+
+    const seeded = await seedChartOfAccounts({ tenantId: TENANT_ID, standard: "gaap", currency: "usd" }, deps);
+    expect(seeded.ok).toBe(true);
+    if (!seeded.ok) throw new Error(seeded.error.message);
+    expect(seeded.data.count).toBeGreaterThan(20);
+
+    const accounts = await store.listAccounts({ tenantId: TENANT_ID, includeInactive: true });
+    const assets = accounts.find((account) => account.code === "1000");
+    const checking = accounts.find((account) => account.code === "1111");
+    const ar = accounts.find((account) => account.code === "1200");
+    const allowance = accounts.find((account) => account.code === "1250");
+    expect(assets).toEqual(expect.objectContaining({ isHeader: true, parentId: null }));
+    expect(checking).toEqual(expect.objectContaining({ isReconcilable: true, currency: "USD" }));
+    expect(ar).toEqual(expect.objectContaining({ isSystem: true, subtype: "current_asset" }));
+    expect(allowance).toEqual(expect.objectContaining({ normalBalance: "credit" }));
+
+    const duplicate = await seedChartOfAccounts({ tenantId: TENANT_ID }, deps);
+    expect(duplicate.ok).toBe(false);
+    if (!duplicate.ok) expect(duplicate.error.code).toBe("accounting-core.CHART_ALREADY_CONFIGURED");
+  });
+
+  it("generates monthly fiscal periods using a fiscal-year start month", async () => {
+    const store = createMemoryAccountingCoreStore();
+    const deps = { accountingCoreStore: store, now: fixedNow() };
+
+    const seeded = await seedMonthlyFiscalPeriods(
+      { tenantId: TENANT_ID, year: 2026, fiscalYearStartMonth: 4 },
+      deps
+    );
+    expect(seeded.ok).toBe(true);
+    if (!seeded.ok) throw new Error(seeded.error.message);
+    expect(seeded.data.periods).toHaveLength(12);
+    expect(seeded.data.periods[0]).toEqual(
+      expect.objectContaining({ name: "April 2026", startsOn: "2026-04-01", endsOn: "2026-04-30" })
+    );
+    expect(seeded.data.periods[11]).toEqual(
+      expect.objectContaining({ name: "March 2027", startsOn: "2027-03-01", endsOn: "2027-03-31" })
+    );
+
+    const status = await getAccountingSetupStatus({ tenantId: TENANT_ID }, deps);
+    expect(status.ok).toBe(true);
+    if (status.ok) {
+      expect(status.data.status.fiscalPeriodsConfigured).toBe(true);
+      expect(status.data.status.fiscalPeriodCount).toBe(12);
+    }
   });
 });
 

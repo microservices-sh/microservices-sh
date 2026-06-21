@@ -87,6 +87,9 @@ export async function resolveLineAccounts(
       if (!found.active) {
         return err(409, "accounting-core.INACTIVE_ACCOUNT", `Account is inactive: ${found.code}`);
       }
+      if (found.isHeader) {
+        return err(409, "accounting-core.HEADER_ACCOUNT_NOT_POSTABLE", `Header account is not postable: ${found.code}`);
+      }
       account = found;
       seen.set(account.id, account);
     }
