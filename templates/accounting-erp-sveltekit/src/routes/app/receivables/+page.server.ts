@@ -1,47 +1,163 @@
-import type { PageServerLoad } from "./$types";
-import { redirect } from "@sveltejs/kit";
+import type { Actions, PageServerLoad } from "./$types";
+import { fail, redirect } from "@sveltejs/kit";
 import { getAccountsReceivableModuleStatus } from "@microservices-sh/accounts-receivable";
-import { requireOrgPermission } from "$lib/server/org-context";
+import type { AccountsReceivableService, InvoiceSnapshot, TenantContext } from "@microservices-sh/accounts-receivable";
+import { recordEvent } from "@microservices-sh/audit-log";
+import { listCustomers } from "@microservices-sh/customer";
+import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
+
+const REPORT_DATE = "2026-06-21T00:00:00.000Z";
+const REPORT_DAY = REPORT_DATE.slice(0, 10);
+
+const DEMO_RECEIVABLES: Array<Omit<InvoiceSnapshot, "tenantId">> = [
+  {
+    id: "ar-demo-1001",
+    customerId: "cust-demo-1",
+    invoiceNumber: "INV-1001",
+    issuedAt: "2026-05-20T00:00:00.000Z",
+    dueDate: "2026-06-19T00:00:00.000Z",
+    totalCents: 180000,
+    amountPaidCents: 50000,
+    amountDueCents: 130000,
+    status: "open"
+  },
+  {
+    id: "ar-demo-1002",
+    customerId: "cust-demo-2",
+    invoiceNumber: "INV-1002",
+    issuedAt: "2026-06-10T00:00:00.000Z",
+    dueDate: "2026-07-10T00:00:00.000Z",
+    totalCents: 72500,
+    amountPaidCents: 0,
+    amountDueCents: 72500,
+    status: "open"
+  }
+];
+
+const demoReceivablesSeeded = new Set<string>();
+
+function text(value: FormDataEntryValue | null): string {
+  return String(value ?? "").trim();
+}
+
+function cents(value: string): number | null {
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) : null;
+}
+
+function dateToIso(value: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  return new Date(`${value}T00:00:00.000Z`).toISOString();
+}
+
+function createPaymentKey(invoiceId: string): string {
+  const randomId = globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+  return `ar-payment:${invoiceId}:${randomId}`;
+}
+
+async function seedDemoReceivables(service: AccountsReceivableService, ctx: TenantContext, hasDb: boolean): Promise<void> {
+  if (hasDb) return;
+  if (demoReceivablesSeeded.has(ctx.tenantId)) return;
+  await Promise.all(DEMO_RECEIVABLES.map((invoice) => service.upsertInvoiceSnapshot(ctx, invoice)));
+  demoReceivablesSeeded.add(ctx.tenantId);
+}
 
 export const load: PageServerLoad = async ({ locals, cookies, parent, platform }) => {
   requireModule("accounts-receivable", platform);
   const { activeOrgId } = await parent();
   if (!activeOrgId || !locals.user) throw redirect(303, "/app");
-  await requireOrgPermission(cookies, locals.user.id, activeOrgId, "org.read", locals.rbacStore);
+  const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "org.read", locals.rbacStore);
 
   const service = locals.accountsReceivableService;
-  const ctx = { tenantId: activeOrgId, now: "2026-06-21T00:00:00.000Z" };
-  if (!platform?.env?.DB) {
-    await service.upsertInvoiceSnapshot(ctx, {
-      id: "ar-demo-1001",
-      customerId: "cust-demo-1",
-      invoiceNumber: "INV-1001",
-      issuedAt: "2026-05-20T00:00:00.000Z",
-      dueDate: "2026-06-19T00:00:00.000Z",
-      totalCents: 180000,
-      amountPaidCents: 50000,
-      amountDueCents: 130000,
-      status: "open"
-    });
-    await service.upsertInvoiceSnapshot(ctx, {
-      id: "ar-demo-1002",
-      customerId: "cust-demo-2",
-      invoiceNumber: "INV-1002",
-      issuedAt: "2026-06-10T00:00:00.000Z",
-      dueDate: "2026-07-10T00:00:00.000Z",
-      totalCents: 72500,
-      amountPaidCents: 0,
-      amountDueCents: 72500,
-      status: "open"
-    });
-  }
-  const receivables = await service.listOpenReceivables(ctx);
-  const aging = await service.getReceivableAging(ctx, "2026-06-21T00:00:00.000Z");
+  const ctx = { tenantId: activeOrgId, actorId: locals.user.id, now: REPORT_DATE };
+  await seedDemoReceivables(service, ctx, Boolean(platform?.env?.DB));
+
+  const [receivables, aging, customers] = await Promise.all([
+    service.listOpenReceivables(ctx),
+    service.getReceivableAging(ctx, REPORT_DATE),
+    listCustomers({ customerRepository: locals.customerRepository })
+  ]);
+  const customerNameById = new Map(customers.data.customers.map((customer) => [customer.id, customer.name]));
 
   return {
+    canManage: permissions.includes("*") || permissions.includes("member.manage"),
+    reportDate: REPORT_DAY,
     status: getAccountsReceivableModuleStatus(),
-    receivables: receivables.ok ? receivables.data : [],
+    receivables: receivables.ok
+      ? receivables.data.map((invoice) => ({
+          ...invoice,
+          customerName: customerNameById.get(invoice.customerId) ?? invoice.customerId,
+          paymentKey: createPaymentKey(invoice.id)
+        }))
+      : [],
     aging: aging.ok ? aging.data : null
   };
+};
+
+export const actions: Actions = {
+  recordPayment: async ({ request, locals, cookies, platform }) => {
+    requireModule("accounts-receivable", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const values = {
+      invoiceId: text(form.get("invoiceId")),
+      amount: text(form.get("amount")),
+      paymentDate: text(form.get("paymentDate")),
+      paymentKey: text(form.get("paymentKey"))
+    };
+    const amountCents = cents(values.amount);
+    const paymentDate = dateToIso(values.paymentDate);
+    if (!values.invoiceId || amountCents == null || !paymentDate) {
+      return fail(400, { error: "Choose an invoice, payment date, and amount greater than zero.", values });
+    }
+
+    const service = locals.accountsReceivableService;
+    const ctx = { tenantId: org.id, actorId: locals.user.id, now: REPORT_DATE };
+    await seedDemoReceivables(service, ctx, Boolean(platform?.env?.DB));
+    const receivables = await service.listOpenReceivables(ctx);
+    if (!receivables.ok) return fail(400, { error: receivables.error?.message ?? "Could not load open receivables.", values });
+    const invoice = receivables.data.find((item) => item.id === values.invoiceId);
+    if (!invoice) return fail(404, { error: "Open receivable not found.", values });
+    if (amountCents > invoice.amountDueCents) return fail(400, { error: "Payment exceeds the invoice open balance.", values });
+
+    const idempotencyKey = `${values.paymentKey || createPaymentKey(invoice.id)}:${values.paymentDate}:${amountCents}`;
+    const payment = await service.recordCustomerPayment(ctx, {
+      customerId: invoice.customerId,
+      amountCents,
+      paymentDate,
+      idempotencyKey
+    });
+    if (!payment.ok || !payment.data) {
+      return fail(400, { error: payment.error?.message ?? "Could not record the customer payment.", values });
+    }
+
+    if (payment.data.unappliedCents >= amountCents) {
+      const applied = await service.applyCustomerPayment(ctx, {
+        paymentId: payment.data.id,
+        applications: [{ invoiceId: invoice.id, amountCents }]
+      });
+      if (!applied.ok) return fail(400, { error: applied.error?.message ?? "Could not apply the payment.", values });
+    } else if (payment.data.unappliedCents > 0) {
+      return fail(409, { error: "Payment key was already used for a different amount.", values });
+    }
+
+    await recordEvent(
+      {
+        eventName: "accounts-receivable.payment_applied",
+        actorId: locals.user.id,
+        entityType: "invoice",
+        entityId: invoice.id,
+        source: "app/receivables",
+        payload: { amountCents, customerId: invoice.customerId, paymentId: payment.data.id }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { paymentRecorded: true };
+  }
 };

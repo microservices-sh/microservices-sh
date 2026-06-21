@@ -39,6 +39,12 @@
 
   {#if form?.created}
     <Alert tone="success">Sales order created.</Alert>
+  {:else if form?.confirmed}
+    <Alert tone="success">Sales order confirmed.</Alert>
+  {:else if form?.invoiced}
+    <Alert tone="success">
+      Invoice issued.{#if form.invoiceId} <a href={`/app/invoices/${form.invoiceId}`}>Open invoice</a>{/if}
+    </Alert>
   {:else if form?.error}
     <Alert tone="error">{form.error}</Alert>
   {/if}
@@ -66,6 +72,7 @@
                 <th scope="col">Total</th>
                 <th scope="col">Status</th>
                 <th scope="col">Created</th>
+                {#if data.canManage}<th scope="col">Action</th>{/if}
               </tr>
             </thead>
             <tbody>
@@ -77,6 +84,25 @@
                   <td>{money(order.totalCents, order.currency)}</td>
                   <td><Badge tone={orderTone(order.status)}>{order.status}</Badge></td>
                   <td>{relativeTime(order.createdAt)}</td>
+                  {#if data.canManage}
+                    <td>
+                      {#if order.status === "draft"}
+                        <form class="action-form" method="POST" action="?/confirm" use:enhance>
+                          <input type="hidden" name="orderId" value={order.id} />
+                          <Button type="submit" variant="primary" size="sm">Confirm</Button>
+                        </form>
+                      {:else if order.status === "confirmed"}
+                        <form class="action-form" method="POST" action="?/invoice" use:enhance>
+                          <input type="hidden" name="orderId" value={order.id} />
+                          <Button type="submit" variant="primary" size="sm">Invoice</Button>
+                        </form>
+                      {:else if order.status === "invoiced" && order.invoiceId}
+                        <Button href={`/app/invoices/${order.invoiceId}`} variant="ghost" size="sm">Open</Button>
+                      {:else}
+                        <span class="muted">—</span>
+                      {/if}
+                    </td>
+                  {/if}
                 </tr>
               {/each}
             </tbody>
@@ -92,6 +118,18 @@
     <div class="content-grid mt-6">
       <Card title="Create draft order">
         <form method="POST" action="?/create" use:enhance>
+          {#if data.customers.length > 0}
+            <Field label="Existing customer" id="order-customer-id">
+              <select id="order-customer-id" name="customerId">
+                <option value="">New customer</option>
+                {#each data.customers as customer (customer.id)}
+                  <option value={customer.id} selected={form?.values?.customerId === customer.id}>
+                    {customer.name} · {customer.email}
+                  </option>
+                {/each}
+              </select>
+            </Field>
+          {/if}
           <div class="form-row">
             <Field label="Customer" id="order-customer"><input id="order-customer" name="customerName" placeholder="Acme Retail" value={form?.values?.customerName ?? ""} /></Field>
             <Field label="Email" id="order-email"><input id="order-email" name="customerEmail" type="email" placeholder="buyer@example.com" value={form?.values?.customerEmail ?? ""} /></Field>
@@ -165,6 +203,12 @@
   code {
     font-family: var(--font-mono);
     font-size: 0.78rem;
+  }
+  .muted {
+    color: var(--color-ink-faint);
+  }
+  .action-form {
+    margin: 0;
   }
   .form-row {
     display: grid;

@@ -383,6 +383,20 @@ Phase 49
 - [x] Verify focused module tests/build/specs, migrations, focused template specs/builds, create-app build, bundle closure, full workspace spec, and whitespace checks.
 - **Status:** complete
 
+### Phase 50: Accounts Receivable Route Write Workflow
+- [x] Add a manager-gated `/app/receivables` payment action that records and applies customer payments through the accounts-receivable service.
+- [x] Add per-invoice receivables payment forms with amount/date inputs and feedback.
+- [x] Guard demo receivable seeding so local payments persist across reloads.
+- [x] Verify accounting template build/spec, accounts-receivable build/test/spec, create-app build, bundle closure, create-app tests, and whitespace checks.
+- **Status:** complete
+
+### Phase 51: Broader StackSuite App Adoption Audit
+- [x] Review remaining StackSuite apps beyond accounting and commerce by schema/docs evidence.
+- [x] Rank reusable module/template candidates and avoid full-app cloning.
+- [x] Add `plans/35-stacksuite-broader-adoption-plan.md`.
+- [x] Link the plan from `plans/README.md`, `findings.md`, and `progress.md`.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

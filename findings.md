@@ -237,3 +237,13 @@
 - Commerce sync now has memory and D1 store adapters. The D1 migration owns provider connections, mappings, sync runs, webhook receipts, and normalized commerce envelopes with JSON payload persistence.
 - The focused accounting template now uses D1-backed receivables, bank reconciliation, accounting core, and AP stores when a DB binding exists, with memory fallbacks for local development.
 - The focused commerce template now uses the D1-backed commerce sync store when a DB binding exists. Local development seeds a Shopify connection, sync run, mapping, and webhook receipt through the same service so the page reads persisted module state.
+
+## Broader StackSuite Adoption Findings
+- The remaining StackSuite apps have value, but mostly as module/workflow donors rather than full templates. The strongest net-new module candidate is `sms-campaigns`, based on `sms-crm` contacts, groups, templates, provider configs, campaigns, recipients, and delivery logs.
+- HelpGrid shows the next support gap: widget settings, quick actions, conversations, messages, ticket comments, ticket attachments, pending attachments, share tokens, WhatsApp channel metadata, and analytics. This should harden `support-ticket`, `knowledge-base-rag`, and possibly a separate `support-inbox`; do not put ungated grounded replies back inside the ticket module.
+- Booking variants add a useful membership/credits domain: membership tiers, customer memberships, customer credit balances, credit transactions, and membership history. This should become a booking/customer/payment add-on module rather than being embedded in the booking core.
+- Accounting variants still have valuable add-ons after the current port: estimates/quotes with accept/decline/convert lifecycle, recurring invoice templates, and send/post/void document APIs. These should become `estimate-quote` plus invoice/recurring-document extensions.
+- DashDrive contributes a focused storage entitlement pattern: expiring share links, short public ids, download counts, storage packages, and one-time purchases. This should extend `file-media` via a `storage-entitlements` module rather than replacing the existing upload-ticket design.
+- HR System is coherent enough for a future `hr-people-ops` module, covering employees, departments, positions, leave balances/requests, and attendance. It is P1/P2 because it does not strengthen the immediate accounting/commerce launch proof.
+- Utility apps such as URL shortener, QR generator, document renderer, HTML renderer, CMS/blog/magazine, web builder, and video maker should stay P2/free-tool candidates until the System Harness quickstart and focused templates are cleaner.
+- New source of truth: `plans/35-stacksuite-broader-adoption-plan.md`.

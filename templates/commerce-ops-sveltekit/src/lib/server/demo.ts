@@ -23,6 +23,8 @@ import { createProduct } from "@microservices-sh/product-catalog";
 import type { ProductCatalogStore } from "@microservices-sh/product-catalog/ports";
 import { stockIn } from "@microservices-sh/inventory";
 import type { InventoryStore } from "@microservices-sh/inventory/ports";
+import { confirmOrder, createDraftOrder } from "@microservices-sh/sales-order";
+import type { SalesOrderStore } from "@microservices-sh/sales-order/ports";
 import type { CommerceSyncService } from "@microservices-sh/commerce-sync";
 import { createUploadTicket, completeUpload } from "@microservices-sh/file-media";
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
@@ -37,6 +39,7 @@ export interface DemoDeps {
 	numberAllocator: NumberAllocator;
 	productCatalogStore: ProductCatalogStore;
 	inventoryStore: InventoryStore;
+	salesOrderStore: SalesOrderStore;
 	commerceSyncService: CommerceSyncService;
 	mediaStore: MediaStore;
 	objectStorage: ObjectStorage & {
@@ -196,7 +199,8 @@ export async function seedDemoData(deps: DemoDeps): Promise<void> {
 			{ auditStore: deps.auditStore }
 		);
 
-	const seededProducts: Array<{ id: string; sku: string; name: string }> = [];
+	const seededProducts: Array<{ id: string; sku: string; name: string; priceCents: number; trackStock: boolean }> = [];
+	const seededCustomers: Array<{ id: string; name: string; email: string }> = [];
 
 	for (const spec of DEMO_PRODUCTS) {
 		const created = await createProduct(
@@ -222,7 +226,9 @@ export async function seedDemoData(deps: DemoDeps): Promise<void> {
 		seededProducts.push({
 			id: created.data.product.id,
 			sku: created.data.product.sku,
-			name: created.data.product.name
+			name: created.data.product.name,
+			priceCents: created.data.product.priceCents,
+			trackStock: created.data.product.trackStock
 		});
 
 		await audit({
@@ -308,6 +314,7 @@ export async function seedDemoData(deps: DemoDeps): Promise<void> {
 		);
 		if (!customerResult.ok || !customerResult.data) continue;
 		const customer = customerResult.data.customer;
+		seededCustomers.push({ id: customer.id, name: customer.name, email: customer.email ?? profile.email });
 
 		await audit({
 			eventName: "customer.created",
@@ -394,6 +401,62 @@ export async function seedDemoData(deps: DemoDeps): Promise<void> {
 					entityType: "customer",
 					entityId: customer.id,
 					payload: { originalName: file.name }
+				});
+			}
+		}
+	}
+
+	if (seededProducts.length > 0 && seededCustomers.length > 0) {
+		const customer = seededCustomers[0];
+		const stockProduct = seededProducts.find((product) => product.trackStock) ?? seededProducts[0];
+		const order = await createDraftOrder(
+			{
+				tenantId: deps.tenantId,
+				orderNumber: "SO-DEMO-1001",
+				customerId: customer.id,
+				customerSnapshot: {
+					displayName: customer.name,
+					email: customer.email
+				},
+				currency: "USD",
+				notes: "Demo order ready for fulfillment.",
+				lineItems: [
+					{
+						productId: stockProduct.id,
+						sku: stockProduct.sku,
+						name: stockProduct.name,
+						quantity: 2,
+						unitPriceCents: stockProduct.priceCents
+					}
+				]
+			},
+			{
+				salesOrderStore: deps.salesOrderStore,
+				actor: { id: "system:seed" }
+			}
+		);
+
+		if (order.ok && order.data) {
+			await audit({
+				eventName: "sales-order.order_created",
+				entityType: "sales-order",
+				entityId: order.data.order.id,
+				payload: { orderNumber: order.data.order.orderNumber, totalCents: order.data.order.totalCents }
+			});
+
+			const confirmed = await confirmOrder(
+				{ tenantId: deps.tenantId, orderId: order.data.order.id },
+				{
+					salesOrderStore: deps.salesOrderStore,
+					actor: { id: "system:seed" }
+				}
+			);
+			if (confirmed.ok && confirmed.data) {
+				await audit({
+					eventName: "sales-order.order_confirmed",
+					entityType: "sales-order",
+					entityId: confirmed.data.order.id,
+					payload: { orderNumber: confirmed.data.order.orderNumber, totalCents: confirmed.data.order.totalCents }
 				});
 			}
 		}

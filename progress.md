@@ -1163,8 +1163,8 @@
 - Wired `product-catalog`, `inventory`, `sales-order`, and `shipment` stores into the commerce template request locals for both D1 and memory adapters.
 - Added `/app/products` with module-backed product listing/creation, RBAC gating, module gating, and audit events.
 - Added `/app/inventory` with product-joined stock balances, recent stock movements, receive-stock action, inventory product validation, and audit events.
-- Added `/app/sales-orders` with draft order creation and order ledger review.
-- Added `/app/shipments` with confirmed sales-order batch creation, fulfillment item review, and shipment completion.
+- Added `/app/sales-orders` with customer-backed draft order creation, order confirmation, issued-invoice handoff, and order ledger review.
+- Added `/app/shipments` with ready sales-order batch creation, fulfillment item review, and idempotent shipment completion that deducts tracked stock through the inventory module.
 - Added `/app/commerce-sync` with read-only connection, sync-run, mapping, and webhook receipt contract review.
 - Wired `accounting-core` and `accounts-payable` stores into the accounting template request locals for both D1 and memory adapters.
 - Added `/app/ledger` with chart-of-accounts listing and account creation.
@@ -1172,12 +1172,12 @@
 - Added `/app/receivables` with AR aging and open receivable contract review.
 - Added `/app/banking` with bank account, statement transaction, and reconciliation contract review.
 - Added commerce/accounting sidebar navigation and icon support for the new route groups.
-- Extended local demo seeding with three commerce products, opening stock movements, and commerce-sync demo records so fresh dev sessions show usable module data.
+- Extended local demo seeding with three commerce products, opening stock movements, one confirmed sales order, and commerce-sync demo records so fresh dev sessions show usable module data.
 - Declared missing inherited workspace dependencies in `templates/commerce-ops-sveltekit/package.json` so the focused template builds from its own package boundary.
 
 | Check | Expectation | Result | Status |
 |---|---|---|---|
-| Commerce build | SvelteKit/Cloudflare production build passes | `pnpm --filter @microservices-sh/template-commerce-ops-sveltekit build` passed; existing invoice detail Svelte warning remains non-blocking | Pass |
+| Commerce build | SvelteKit/Cloudflare production build passes | `pnpm --filter @microservices-sh/template-commerce-ops-sveltekit build` passed; invoice detail state warning fixed | Pass |
 | Commerce spec | Shared template checks pass | `pnpm --filter @microservices-sh/template-commerce-ops-sveltekit check:spec` passed | Pass |
 | Accounting build | SvelteKit/Cloudflare production build passes | `pnpm --filter @microservices-sh/template-accounting-erp-sveltekit build` passed; existing invoice detail Svelte warning remains non-blocking | Pass |
 | Accounting spec | Shared template checks pass | `pnpm --filter @microservices-sh/template-accounting-erp-sveltekit check:spec` passed | Pass |
@@ -1208,6 +1208,36 @@
 | Commerce sync build/spec | Typecheck and module contract pass | `pnpm --dir modules/commerce-sync build`; `pnpm --dir modules/commerce-sync check:spec` | Pass |
 | Full spec | Workspace module/template checks pass | `pnpm spec:check:all` passed, 51 targets | Pass |
 | Whitespace | No diff whitespace errors | `git diff --check` passed | Pass |
+
+### Phase 50 Accounts receivable route write workflow
+
+- **Status:** complete.
+- Goal: make the accounting ERP receivables page demonstrate the accounts-receivable module's customer-payment write path, not only AR aging reads.
+- Added a manager-gated `recordPayment` action to `/app/receivables` that validates open invoice snapshots, records an idempotent customer payment, applies it to the selected invoice, and records an audit event.
+- Added per-invoice payment forms to the receivables page with amount/date inputs, success/error feedback, current customer display fallback, and mobile-safe layout.
+- Guarded local demo receivable seeding so development payments are not reset on every page reload.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounting template build | SvelteKit/Cloudflare production build passes | `pnpm --filter @microservices-sh/template-accounting-erp-sveltekit build` passed | Pass |
+| Accounting template spec | Shared template check passes | `pnpm --filter @microservices-sh/template-accounting-erp-sveltekit check:spec` passed | Pass |
+| Accounts receivable module | Build, tests, and spec stay green | `build`, `test` 3/3, and `check:spec` passed | Pass |
+| Create-app build | Bundled repo templates rebuild | `pnpm --filter create-microservices-app build` passed | Pass |
+| Bundle closure | Generated template module graph remains closed | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 22/22 | Pass |
+
+### Phase 51 Broader StackSuite app adoption audit
+
+- **Status:** complete.
+- Goal: review the remaining StackSuite apps for reusable value beyond the accounting and commerce ports.
+- Audited high-signal schemas, migrations, and docs from SMS CRM, DashDrive, booking variants, HelpGrid, HR System, and accounting/invoice variants.
+- Identified the next best adoption candidates as modules rather than direct app clones: `sms-campaigns`, support inbox/widget hardening, `membership-credits`, `estimate-quote`/recurring documents, storage entitlements/share links, and HR people ops.
+- Captured lower-priority utility candidates: content CMS, URL shortener, QR code, document renderer, video generation, and web builder.
+- Added `plans/35-stacksuite-broader-adoption-plan.md` and linked it from the planning index.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Source inventory | Remaining StackSuite domains are reviewed by schema/docs evidence | SMS CRM, DashDrive, booking membership/credits, HelpGrid support/KB/widget, HR, accounting estimates/recurring docs reviewed | Pass |
+| Planning artifact | Technical adoption plan is captured in repo | `plans/35-stacksuite-broader-adoption-plan.md` added | Pass |
 
 ### Phase 48 Focused template durable service wiring
 

@@ -1,9 +1,10 @@
 <script lang="ts">
+  import { enhance } from "$app/forms";
   import { money } from "$lib/format";
-  import { Badge, Card, MetricStrip, PageHeader } from "$lib/ui";
+  import { Alert, Badge, Button, Card, Field, MetricStrip, PageHeader } from "$lib/ui";
   import type { Metric } from "$lib/ui/types";
 
-  let { data } = $props();
+  let { data, form } = $props();
 
   const totalOpen = $derived(data.aging?.totalOpenCents ?? 0);
   const overdue = $derived((data.aging?.days1To30Cents ?? 0) + (data.aging?.days31To60Cents ?? 0) + (data.aging?.days61To90Cents ?? 0) + (data.aging?.days90PlusCents ?? 0));
@@ -12,6 +13,14 @@
     { label: "Overdue", value: money(overdue), tone: overdue > 0 ? "bad" : "good", hint: "past due buckets" },
     { label: "Current", value: money(data.aging?.currentCents ?? 0), tone: "good", hint: data.status.status }
   ]);
+
+  function inputId(prefix: string, invoiceId: string): string {
+    return `${prefix}-${invoiceId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+  }
+
+  function amountInputValue(amountDueCents: number): string {
+    return (amountDueCents / 100).toFixed(2);
+  }
 </script>
 
 <svelte:head>
@@ -25,6 +34,12 @@
     description="Open invoice snapshots, customer payment application, and AR aging contract surface."
   />
 
+  {#if form?.paymentRecorded}
+    <Alert tone="success">Customer payment recorded and applied.</Alert>
+  {:else if form?.error}
+    <Alert tone="error">{form.error}</Alert>
+  {/if}
+
   <MetricStrip {metrics} />
 
   <div class="grid mt-6">
@@ -33,11 +48,36 @@
         <ul class="list">
           {#each data.receivables as invoice (invoice.id)}
             <li class="list-item row-item">
-              <div>
+              <div class="invoice-copy">
                 <strong>{invoice.invoiceNumber}</strong>
-                <p>{invoice.customerId} · due {new Date(invoice.dueDate).toLocaleDateString()}</p>
+                <p>{invoice.customerName} · due {new Date(invoice.dueDate).toLocaleDateString()}</p>
               </div>
-              <Badge tone={Date.parse(invoice.dueDate) < Date.parse("2026-06-21T00:00:00.000Z") ? "bad" : "warn"}>{money(invoice.amountDueCents)}</Badge>
+              <div class="invoice-actions">
+                <Badge tone={Date.parse(invoice.dueDate) < Date.parse(`${data.reportDate}T00:00:00.000Z`) ? "bad" : "warn"}>{money(invoice.amountDueCents)}</Badge>
+                {#if data.canManage}
+                  <form class="payment-form" method="POST" action="?/recordPayment" use:enhance>
+                    <input type="hidden" name="invoiceId" value={invoice.id} />
+                    <input type="hidden" name="paymentKey" value={invoice.paymentKey} />
+                    <div class="payment-fields">
+                      <Field label="Amount" id={inputId("payment-amount", invoice.id)}>
+                        <input
+                          id={inputId("payment-amount", invoice.id)}
+                          name="amount"
+                          type="number"
+                          min="0.01"
+                          max={amountInputValue(invoice.amountDueCents)}
+                          step="0.01"
+                          value={amountInputValue(invoice.amountDueCents)}
+                        />
+                      </Field>
+                      <Field label="Date" id={inputId("payment-date", invoice.id)}>
+                        <input id={inputId("payment-date", invoice.id)} name="paymentDate" type="date" value={data.reportDate} />
+                      </Field>
+                    </div>
+                    <Button type="submit" variant="primary" size="sm">Apply</Button>
+                  </form>
+                {/if}
+              </div>
             </li>
           {/each}
         </ul>
@@ -89,6 +129,34 @@
   .stats dd {
     margin: 0;
   }
+  .row-item {
+    align-items: flex-start;
+    gap: 18px;
+  }
+  .invoice-copy {
+    min-inline-size: 0;
+  }
+  .invoice-actions {
+    display: grid;
+    justify-items: end;
+    gap: 10px;
+    min-inline-size: min(100%, 360px);
+  }
+  .payment-form {
+    display: grid;
+    gap: 10px;
+    justify-items: end;
+    inline-size: 100%;
+  }
+  .payment-fields {
+    display: grid;
+    grid-template-columns: minmax(100px, 1fr) minmax(132px, 1fr);
+    gap: 10px;
+    inline-size: 100%;
+  }
+  .payment-form :global(.field) {
+    margin-block-end: 0;
+  }
   .empty,
   p {
     color: var(--color-ink-faint);
@@ -96,6 +164,14 @@
   }
   @media (max-width: 860px) {
     .grid {
+      grid-template-columns: 1fr;
+    }
+    .row-item,
+    .invoice-actions,
+    .payment-form {
+      justify-items: stretch;
+    }
+    .payment-fields {
       grid-template-columns: 1fr;
     }
   }

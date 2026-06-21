@@ -39,6 +39,8 @@
 
   {#if form?.created}
     <Alert tone="success">Shipment created.</Alert>
+  {:else if form?.completed}
+    <Alert tone="success">Shipment completed and stock deducted.</Alert>
   {:else if form?.error}
     <Alert tone="error">{form.error}</Alert>
   {/if}
@@ -63,11 +65,19 @@
                   <strong>{shipment.shipmentNumber ?? shipment.id}</strong>
                   <p>{shipment.carrier ?? "No carrier"}{shipment.trackingNumber ? ` · ${shipment.trackingNumber}` : ""}</p>
                 </div>
-                <Badge tone={shipmentTone(shipment.status)}>{shipment.status}</Badge>
+                <div class="shipment-actions">
+                  <Badge tone={shipmentTone(shipment.status)}>{shipment.status}</Badge>
+                  {#if data.canManage && shipment.status !== "completed" && shipment.status !== "cancelled"}
+                    <form method="POST" action="?/complete" use:enhance>
+                      <input type="hidden" name="shipmentId" value={shipment.id} />
+                      <Button type="submit" variant="primary" size="sm">Complete</Button>
+                    </form>
+                  {/if}
+                </div>
               </div>
               <div class="shipment-items">
                 {#each shipment.items as item (item.id)}
-                  <span>{item.description} · {item.quantity}</span>
+                  <span>{item.sku ? `${item.sku} · ` : ""}{item.description} · {item.quantity}</span>
                 {/each}
               </div>
               <small>{relativeTime(shipment.createdAt)}</small>
@@ -82,23 +92,33 @@
 
   {#if data.canManage}
     <div class="content-grid mt-6">
-      <Card title="Create shipment">
-        <form method="POST" action="?/create" use:enhance>
-          <div class="form-row">
-            <Field label="Carrier" id="shipment-carrier"><input id="shipment-carrier" name="carrier" placeholder="UPS" value={form?.values?.carrier ?? ""} /></Field>
+      <Card title="Create shipment from order">
+        {#if data.readyOrders.length > 0}
+          <form method="POST" action="?/create" use:enhance>
+            <Field label="Ready sales order" id="shipment-order">
+              <select id="shipment-order" name="salesOrderId" required>
+                <option value="">Select order</option>
+                {#each data.readyOrders as order (order.id)}
+                  <option value={order.id} selected={form?.values?.salesOrderId === order.id}>
+                    {order.orderNumber ?? order.id} · {order.customerName} · {order.total} · {order.lineCount} lines
+                  </option>
+                {/each}
+              </select>
+            </Field>
+            <div class="form-row">
+              <Field label="Shipment number" id="shipment-number"><input id="shipment-number" name="shipmentNumber" placeholder="SHIP-1001" value={form?.values?.shipmentNumber ?? ""} /></Field>
+              <Field label="Carrier" id="shipment-carrier"><input id="shipment-carrier" name="carrier" placeholder="UPS" value={form?.values?.carrier ?? ""} /></Field>
+            </div>
             <Field label="Tracking" id="shipment-tracking"><input id="shipment-tracking" name="trackingNumber" placeholder="1Z..." value={form?.values?.trackingNumber ?? ""} /></Field>
+            <Field label="Notes" id="shipment-notes"><textarea id="shipment-notes" name="notes" rows="3">{form?.values?.notes ?? ""}</textarea></Field>
+            <Button type="submit" variant="primary">Create shipment</Button>
+          </form>
+        {:else}
+          <div class="empty-state">
+            <p>No confirmed or invoiced sales orders are ready for shipment.</p>
+            <Button href="/app/sales-orders" variant="ghost">Review sales orders</Button>
           </div>
-          <div class="form-row">
-            <Field label="Source ref" id="shipment-source"><input id="shipment-source" name="sourceId" required placeholder="manual-001" value={form?.values?.sourceId ?? ""} /></Field>
-            <Field label="SKU" id="shipment-sku"><input id="shipment-sku" name="sku" placeholder="SKU-1001" value={form?.values?.sku ?? ""} /></Field>
-          </div>
-          <div class="form-row">
-            <Field label="Description" id="shipment-description"><input id="shipment-description" name="description" required placeholder="Starter kit" value={form?.values?.description ?? ""} /></Field>
-            <Field label="Quantity" id="shipment-quantity"><input id="shipment-quantity" name="quantity" type="number" min="1" step="1" value={form?.values?.quantity ?? "1"} /></Field>
-          </div>
-          <Field label="Notes" id="shipment-notes"><textarea id="shipment-notes" name="notes" rows="3">{form?.values?.notes ?? ""}</textarea></Field>
-          <Button type="submit" variant="primary">Create shipment</Button>
-        </form>
+        {/if}
       </Card>
     </div>
   {/if}
@@ -109,11 +129,15 @@
     min-width: 0;
   }
   .card-headline,
-  .shipment-head {
+  .shipment-head,
+  .shipment-actions {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
+  }
+  .shipment-actions {
+    align-items: center;
   }
   .card-headline {
     align-items: center;
@@ -155,13 +179,23 @@
     grid-template-columns: 1fr 1fr;
     gap: 12px;
   }
-  .empty {
+  .empty,
+  .empty-state p {
     color: var(--color-ink-faint);
     font-size: 0.9rem;
   }
+  .empty-state {
+    display: grid;
+    justify-items: start;
+    gap: 12px;
+  }
+  .empty-state p {
+    margin: 0;
+  }
   @media (max-width: 720px) {
     .form-row,
-    .shipment-head {
+    .shipment-head,
+    .shipment-actions {
       grid-template-columns: 1fr;
       flex-direction: column;
     }

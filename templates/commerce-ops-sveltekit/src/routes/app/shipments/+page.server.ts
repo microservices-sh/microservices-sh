@@ -1,7 +1,10 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { recordEvent } from "@microservices-sh/audit-log";
-import { createShipment, listShipments } from "@microservices-sh/shipment";
+import { deductStock, getStockBalance } from "@microservices-sh/inventory";
+import { createShipment, completeShipment, listShipments, type ShipmentInventoryPort } from "@microservices-sh/shipment";
+import { getOrder, listOrders } from "@microservices-sh/sales-order";
+import { money } from "$lib/format";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 
@@ -9,31 +12,123 @@ function text(value: FormDataEntryValue | null): string {
   return String(value ?? "").trim();
 }
 
-function positiveNumber(value: string): number | null {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+function isReadyOrderStatus(status: string): boolean {
+  return status === "confirmed" || status === "invoiced";
+}
+
+function inventoryPort(locals: App.Locals, actorId: string): ShipmentInventoryPort {
+  return {
+    async deductShipment(input) {
+      const aggregate = new Map<string, { productId: string; quantity: number }>();
+      for (const item of input.items) {
+        const current = aggregate.get(item.productId);
+        if (current) current.quantity += item.quantity;
+        else aggregate.set(item.productId, { productId: item.productId, quantity: item.quantity });
+      }
+
+      const pending: Array<{ productId: string; sku: string; quantity: number }> = [];
+      for (const item of aggregate.values()) {
+        const product = await locals.productCatalogStore.getProduct(input.tenantId, item.productId);
+        if (!product) throw new Error(`Product ${item.productId} was not found for this company.`);
+        if (!product.trackStock) continue;
+
+        const existing = await locals.inventoryStore.findMovementBySourceRef(
+          input.tenantId,
+          item.productId,
+          "default",
+          "deduction",
+          "shipment",
+          input.shipmentId
+        );
+        if (!existing) pending.push({ ...item, sku: product.sku });
+      }
+
+      for (const item of pending) {
+        const balance = await getStockBalance(
+          { tenantId: input.tenantId, productId: item.productId, locationId: "default" },
+          { inventoryStore: locals.inventoryStore }
+        );
+        if (!balance.ok || !balance.data) throw new Error(balance.ok ? "Could not inspect stock balance." : balance.error.message);
+        if (balance.data.balance.available < item.quantity) {
+          throw new Error(
+            `Insufficient available stock for ${item.sku}: ${balance.data.balance.available} available, ${item.quantity} needed.`
+          );
+        }
+      }
+
+      for (const item of pending) {
+        const deducted = await deductStock(
+          {
+            tenantId: input.tenantId,
+            productId: item.productId,
+            locationId: "default",
+            quantity: item.quantity,
+            sourceType: "shipment",
+            sourceId: input.shipmentId,
+            reason: `Shipment ${input.shipmentId}`
+          },
+          {
+            inventoryStore: locals.inventoryStore,
+            actor: { id: actorId }
+          }
+        );
+        if (!deducted.ok) throw new Error(deducted.error.message);
+      }
+
+      return { deductionRef: `shipment:${input.shipmentId}` };
+    }
+  };
 }
 
 export const load: PageServerLoad = async ({ locals, cookies, parent, platform }) => {
   requireModule("shipment", platform);
+  requireModule("sales-order", platform);
   const { activeOrgId } = await parent();
   if (!activeOrgId || !locals.user) throw redirect(303, "/app");
 
   const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "org.read", locals.rbacStore);
-  const shipmentsResult = await listShipments(
-    { tenantId: activeOrgId, includeCancelled: true, limit: 100 },
-    { shipmentStore: locals.shipmentStore }
+  const [shipmentsResult, ordersResult] = await Promise.all([
+    listShipments(
+      { tenantId: activeOrgId, includeCancelled: true, limit: 100 },
+      { shipmentStore: locals.shipmentStore }
+    ),
+    listOrders({ tenantId: activeOrgId, limit: 100 }, { salesOrderStore: locals.salesOrderStore })
+  ]);
+  const shipments = shipmentsResult.ok ? shipmentsResult.data.shipments : [];
+  const shippedOrderIds = new Set(
+    shipments
+      .filter((shipment) => shipment.status !== "cancelled")
+      .flatMap((shipment) =>
+        shipment.items
+          .filter((item) => item.sourceType === "sales-order")
+          .map((item) => item.sourceId)
+      )
   );
+  const readyOrders = ordersResult.ok
+    ? ordersResult.data.orders
+        .filter((order) => isReadyOrderStatus(order.status) && !shippedOrderIds.has(order.id))
+        .map((order) => ({
+          id: order.id,
+          orderNumber: order.orderNumber,
+          status: order.status,
+          customerName: order.customerSnapshot?.displayName ?? "Walk-in customer",
+          total: money(order.totalCents, order.currency),
+          lineCount: order.lineItems.length,
+          quantity: order.lineItems.reduce((sum, item) => sum + item.quantity, 0)
+        }))
+    : [];
 
   return {
     canManage: permissions.includes("*") || permissions.includes("member.manage"),
-    shipments: shipmentsResult.ok ? shipmentsResult.data.shipments : []
+    shipments,
+    readyOrders
   };
 };
 
 export const actions: Actions = {
   create: async ({ request, locals, cookies, platform }) => {
     requireModule("shipment", platform);
+    requireModule("sales-order", platform);
     if (!locals.user) return fail(403, { error: "Not signed in to a company." });
     const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
     if (!org) return fail(403, { error: "Not signed in to a company." });
@@ -41,34 +136,48 @@ export const actions: Actions = {
 
     const form = await request.formData();
     const values = {
+      salesOrderId: text(form.get("salesOrderId")),
+      shipmentNumber: text(form.get("shipmentNumber")),
       carrier: text(form.get("carrier")),
       trackingNumber: text(form.get("trackingNumber")),
-      sourceId: text(form.get("sourceId")),
-      sku: text(form.get("sku")),
-      description: text(form.get("description")),
-      quantity: text(form.get("quantity")),
       notes: text(form.get("notes"))
     };
-    const quantity = positiveNumber(values.quantity);
-    if (!values.sourceId || !values.description || !quantity) {
-      return fail(400, { error: "Enter a source reference, item description, and positive quantity.", values });
+    if (!values.salesOrderId) {
+      return fail(400, { error: "Select a confirmed or invoiced sales order.", values });
+    }
+
+    const orderResult = await getOrder(
+      { tenantId: org.id, orderId: values.salesOrderId },
+      { salesOrderStore: locals.salesOrderStore }
+    );
+    if (!orderResult.ok || !orderResult.data) {
+      return fail(orderResult.status, { error: orderResult.error.message, values });
+    }
+    const order = orderResult.data.order;
+    if (!isReadyOrderStatus(order.status)) {
+      return fail(409, { error: "Only confirmed or invoiced sales orders can be shipped.", values });
+    }
+    if (order.lineItems.length === 0) {
+      return fail(400, { error: "The selected sales order has no line items.", values });
     }
 
     const result = await createShipment(
       {
         tenantId: org.id,
+        shipmentNumber: values.shipmentNumber || null,
         carrier: values.carrier || null,
         trackingNumber: values.trackingNumber || null,
         notes: values.notes || null,
-        items: [
-          {
-            sourceType: "manual",
-            sourceId: values.sourceId,
-            sku: values.sku || null,
-            description: values.description,
-            quantity
-          }
-        ]
+        externalSource: "sales-order",
+        externalId: order.id,
+        items: order.lineItems.map((item) => ({
+          sourceType: "sales-order",
+          sourceId: order.id,
+          productId: item.productId,
+          sku: item.sku,
+          description: item.description || item.name,
+          quantity: item.quantity
+        }))
       },
       {
         shipmentStore: locals.shipmentStore,
@@ -84,11 +193,66 @@ export const actions: Actions = {
         entityType: "shipment",
         entityId: result.data.shipment.id,
         source: "app/shipments",
-        payload: { itemCount: result.data.shipment.items.length, carrier: values.carrier || null }
+        payload: {
+          salesOrderId: order.id,
+          itemCount: result.data.shipment.items.length,
+          carrier: values.carrier || null
+        }
       },
       { auditStore: locals.auditStore }
     );
 
     return { created: true };
+  },
+
+  complete: async ({ request, locals, cookies, platform }) => {
+    requireModule("shipment", platform);
+    requireModule("inventory", platform);
+    requireModule("product-catalog", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const shipmentId = text(form.get("shipmentId"));
+    if (!shipmentId) return fail(400, { error: "Missing shipment id." });
+
+    let result;
+    try {
+      result = await completeShipment(
+        {
+          tenantId: org.id,
+          shipmentId,
+          completionRef: `complete:${shipmentId}`
+        },
+        {
+          shipmentStore: locals.shipmentStore,
+          inventoryPort: inventoryPort(locals, locals.user.id),
+          actor: { id: locals.user.id }
+        }
+      );
+    } catch (error) {
+      return fail(400, { error: error instanceof Error ? error.message : "Could not complete shipment." });
+    }
+    if (!result.ok || !result.data) return fail(result.status, { error: result.error.message });
+
+    await recordEvent(
+      {
+        eventName: "shipment.completed",
+        actorId: locals.user.id,
+        entityType: "shipment",
+        entityId: result.data.shipment.id,
+        source: "app/shipments",
+        payload: {
+          replayed: result.data.replayed,
+          inventoryDeductionRef: result.data.shipment.inventoryDeductionRef,
+          itemCount: result.data.shipment.items.length
+        }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { completed: true };
   }
 };

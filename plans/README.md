@@ -43,6 +43,8 @@ This directory contains the actionable plan for starting the microservices.sh MV
 38. `../docs/quickstart-proof.md` - latest clean quickstart commands, timing, and generated-app verification results.
 39. `../docs/operator-pilot-boundary.md` - Agent Center, Hermes, Ads Manager, and Marketing Research private-pilot gates.
 40. `managed-deploy-oauth.md` - managed deploy into a user's own Cloudflare account, with API-token-first and OAuth-later sequencing.
+41. `34-stacksuite-accounting-commerce-port.md` - StackSuite accounting/invoice/commerce source review and focused template/module port plan.
+42. `35-stacksuite-broader-adoption-plan.md` - broader StackSuite app audit with module/template adoption priorities beyond accounting and commerce.
 
 ## Core Decision
 The MVP is good enough to start if it remains narrow:
@@ -93,3 +95,4 @@ The MVP is good enough to start if it remains narrow:
 25. Use `docs/operator-pilot-boundary.md` before making Agent Center, Hermes, Ads Manager, or Marketing Research public claims.
 26. Use `managed-deploy-oauth.md` for the user's-own-Cloudflare deploy path; prove the scoped-token flow before OAuth.
 27. Use `33-erp-shell-desktop-companion.md` before expanding the desktop MVP beyond local intake and reviewed sync.
+28. Use `35-stacksuite-broader-adoption-plan.md` before adopting additional StackSuite apps; prioritize SMS campaigns, support inbox/widget hardening, membership credits, and quote/recurring-document modules before utility templates.
