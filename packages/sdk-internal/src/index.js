@@ -24,6 +24,7 @@ export {
   isReadMethod,
 } from "./tool-codegen.js";
 export { createToolGateway } from "./tool-gateway.js";
+export { createMcpToolServer } from "./mcp-tool-server.js";
 
 function requestId() {
   return `local_${Date.now().toString(36)}`;
