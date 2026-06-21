@@ -15,6 +15,10 @@ This is an adoption plan, not a copy plan. The useful assets in StackSuite are d
 - `~/Project/stacksuite/containers/helpgrid/migrations/0005_support_tickets.sql`
 - `~/Project/stacksuite/containers/accounting-system-chiangs/src/lib/db/schema.ts`
 - `~/Project/stacksuite/containers/accounting-system-chiangs/src/lib/api/schemas/invoices.ts`
+- `~/Project/stacksuite/containers/epmis/src/lib/db/schema.ts`
+- `~/Project/stacksuite/containers/epmis/src/lib/server/queries/projects.ts`
+- `~/Project/stacksuite/containers/epmis/src/lib/server/queries/progress-logs.ts`
+- `~/Project/stacksuite/containers/epmis/src/lib/server/queries/comments.ts`
 - repo-local module registry under `modules/*/module.json`
 - repo-local templates under `templates/*`
 
@@ -42,9 +46,11 @@ Remaining gaps are mostly add-on business workflows, not more full-app cloning.
 | P1 | Estimates/quotes and recurring invoice templates | Accounting Chiangs estimates, accepted/converted lifecycle, recurring invoices, recurring items, send/post/void schemas | `estimate-quote` and `recurring-documents` implemented; route proof can extend `accounting-erp-sveltekit` later. |
 | P1 | Storage entitlements and expiring share links | DashDrive files, short IDs, expiry, download count, storage packages, purchases | `storage-entitlements` implemented; integrate with `file-media` or client portal routes later. |
 | P1 | HR people ops | HR employees, departments, positions, leave balances/requests, attendance | `hr-people-ops` implemented; template later, not before focused route proof demand. |
+| P1 | Project/field progress | EPMIS projects, worker access, progress logs, media files, comments, public access tokens | `project-progress` implemented; route proof later only if a project/customer portal demo needs it. |
 | P2 | Content/CMS publishing | CMS, mini-CMS, blog, magazine | `content-cms` implemented as a headless module; add route proof only when landing/content-heavy generated apps need it. |
 | P2 | Utility modules | URL shortener, QR generator, document renderer, HTML renderer, video maker | `url-shortener`, `html-renderer`, `content-cms`, and `video-generation` implemented; QR and Markdown-to-PDF stay reference/free-tool candidates for now. |
 | P2 | Runtime/control-plane patterns | OpenClaw launcher instance, integrations, channels, custom domains, managed instances | Mine for managed deploy/control-plane design, not as an app template yet. |
+| P2 | Reference-only StackSuite apps | OpenClaw messenger, WhatsApp platform, CoreOps, PPT monitor, Deepwork | Keep as pattern sources for channels, provider adapters, revenue distribution, document monitoring, and focus workflows; do not port as modules now. |
 
 ## P0 Module Plan: SMS Campaigns
 
@@ -238,6 +244,32 @@ Defer:
 Template:
 - `hr-ops-sveltekit` only after the module has memory/D1 adapters and route proof.
 
+## P1 Plan: Project Progress
+
+EPMIS has a useful project/customer progress model:
+
+- projects with customer id, status, location, dates, QR key, and public access token.
+- worker access grants with view/upload flags.
+- progress logs by category with descriptions, voice note keys, and captured-at timestamps.
+- media file metadata for images/videos.
+- project/log comments from customers, workers, and admins.
+
+Recommended module: `project-progress` (implemented)
+
+Initial scope:
+- project creation and status lifecycle.
+- worker access grant/revoke and worker-visible project listing.
+- progress timeline logs.
+- media metadata attachment after a storage adapter accepts the object.
+- project and log comments.
+- public snapshot lookup by access token.
+
+Defer:
+- auth/users/customers, QR image generation, R2 byte upload, signed URLs, email logs, and UI.
+
+Template:
+- Add project/customer portal routes only when a paid pilot or public demo path needs construction/project progress tracking.
+
 ## P2 Utility Adoption
 
 The utility apps are useful as examples, but they should not distract from business-system modules.
@@ -263,7 +295,8 @@ Recommended order:
 3. Add support-center routes or `support-center-sveltekit` after ticket/inbox/KB split is settled.
 4. Add a booking membership variant using `membership-credits`.
 5. Add `hr-ops-sveltekit` after HR module proof.
-6. Add storage/share or utility templates only if they support acquisition or a paid pilot.
+6. Add project/customer progress routes after `project-progress` only if a pilot needs customer-facing construction/project updates.
+7. Add storage/share or utility templates only if they support acquisition or a paid pilot.
 
 ## Implementation Sequence
 
@@ -308,6 +341,15 @@ Recommended order:
 - Keep utility modules small and composable.
 - Add `hr-ops-sveltekit` only after there is route-proof demand.
 
+### Phase G: Project Progress And Reference-Only Sweep
+- Completed `project-progress` for project records, worker access grants, progress logs, media metadata, comments, public access-token snapshots, memory/D1 stores, migration, schemas, and tests.
+- Kept EPMIS auth/users/customers, QR rendering, R2 uploads, email logs, and Svelte UI outside the reusable module boundary.
+- Classified OpenClaw launcher/messenger as control-plane/channel reference material, not a near-term template.
+- Classified WhatsApp platform as provider/channel-adapter reference material for later support/SMS integrations, not a standalone module now.
+- Classified CoreOps as possible future project/revenue-distribution reference only.
+- Classified PPT monitor as document-monitoring/reference skill material until a template needs durable presentation watch jobs.
+- Classified Deepwork as workflow inspiration only; current `operator-work` already covers durable task/focus/review primitives.
+
 ## Acceptance Criteria For Every Adopted Module
 - `pnpm --filter @microservices-sh/<module> build` passes.
 - `pnpm --filter @microservices-sh/<module> test` passes.
@@ -326,7 +368,9 @@ The next valuable StackSuite adoption is not another accounting pass. After comp
 2. Ticket comments/attachments/share-token hardening once `support-ticket` concurrent edits settle.
 3. Route proof for `membership-credits` in booking template when booking membership becomes part of a demo path.
 4. HR people ops module proof is complete; add an HR template only after a pilot or demo path needs it.
-5. URL shortener, HTML renderer, content CMS, and video generation proof is complete; keep QR/document/rendering utilities small and add them only when they support acquisition or a template.
-6. A focused `sms-crm-sveltekit`, content site, video creator, or support route/template proof only if those workflows become part of the public demo path.
+5. Project progress proof is complete; add project/customer portal routes only when that workflow becomes part of a pilot or public demo path.
+6. URL shortener, HTML renderer, content CMS, and video generation proof is complete; keep QR/document/rendering utilities small and add them only when they support acquisition or a template.
+7. OpenClaw, WhatsApp platform, CoreOps, PPT monitor, and Deepwork stay reference-only until an existing module/template roadmap needs their specific patterns.
+8. A focused `sms-crm-sveltekit`, content site, video creator, support route, or project-progress route/template proof only if those workflows become part of the public demo path.
 
 Everything else should stay P2 until the System Harness launch proof and existing focused templates are cleaner.

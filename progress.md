@@ -1453,3 +1453,19 @@
 | Video Generation spec | Module contract check passes | `pnpm --filter @microservices-sh/video-generation check:spec` passed | Pass |
 | D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/video-generation/migrations/0001_initial.sql"` passed | Pass |
 | JSON docs | OpenAPI, manifest, and JSON schemas parse | Node JSON parse check passed | Pass |
+
+### Phase 63 StackSuite Project Progress module
+
+- **Status:** complete.
+- Goal: port EPMIS customer-facing project progress tracking without copying its full auth, customer, QR, R2, email, or Svelte UI implementation.
+- Added `modules/project-progress` for project records, worker access grants, progress logs, media metadata, comments, public access-token snapshots, listing, and tenant-scoped memory/D1 persistence.
+- Added migration tables for projects, access grants, logs, media files, comments, and domain events.
+- Kept auth/users/customers, QR image generation, byte uploads, R2 signing, email logs, and UI as route-adapter or companion-module responsibilities.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Project Progress build | TypeScript typecheck passes | `pnpm --filter @microservices-sh/project-progress build` passed | Pass |
+| Project Progress tests | Project, access, timeline, media, comment, tenant isolation, status, and revoke flows pass | `pnpm --filter @microservices-sh/project-progress test` passed, 4/4 | Pass |
+| Project Progress spec | Module contract check passes | `pnpm --filter @microservices-sh/project-progress check:spec` passed | Pass |
+| D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/project-progress/migrations/0001_initial.sql"` passed | Pass |
+| JSON docs | OpenAPI, manifest, and JSON schemas parse | Node JSON parse check passed | Pass |

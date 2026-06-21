@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 60
+Phase 63
 
 ## Phases
 
@@ -490,6 +490,14 @@ Phase 60
 - [x] Implement provider-neutral video jobs, provider task ids, status reconciliation, idempotent provider URL outputs, manual output attachment, cancellation, listing, and snapshots.
 - [x] Add memory and D1 stores, migration, schemas, docs, module metadata, permissions, events, resources, exports, and tests.
 - [x] Keep provider credentials, billing/credits, auth, rate limits, moderation, R2 byte downloads, signed URLs, webhooks, browser FFmpeg, and story UI as route-adapter/template concerns.
+- [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
+- **Status:** complete
+
+### Phase 63: StackSuite Project Progress Module
+- [x] Inspect EPMIS project/customer progress, worker access, progress logs, media, comments, and public access-token workflows.
+- [x] Scaffold `modules/project-progress` from the standard module layout.
+- [x] Implement tenant-scoped projects, worker access grants, progress logs, media metadata, comments, public snapshots, memory store, D1 store, migration, schemas, docs, metadata, permissions, events, resources, exports, and tests.
+- [x] Keep auth/users/customers, QR image generation, byte uploads, R2 signing, email logs, and UI outside the module boundary.
 - [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
 - **Status:** complete
 

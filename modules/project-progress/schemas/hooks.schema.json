@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Project Progress Hooks",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "beforeProjectCreate": {
+      "type": "string"
+    },
+    "beforeProgressLogCreate": {
+      "type": "string"
+    },
+    "afterProgressLogCreated": {
+      "type": "string"
+    },
+    "afterCommentCreated": {
+      "type": "string"
+    }
+  }
+}

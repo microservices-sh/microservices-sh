@@ -1,0 +1,207 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Project Progress Module",
+    "version": "0.1.0",
+    "description": "Representative route-adapter contract for project progress timelines, worker access grants, media metadata, comments, and public project snapshots."
+  },
+  "paths": {
+    "/project-progress/projects": {
+      "get": {
+        "summary": "List projects",
+        "x-permission": "project-progress.read",
+        "responses": {
+          "200": {
+            "description": "Project list"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a project progress record",
+        "x-permission": "project-progress.write",
+        "responses": {
+          "200": {
+            "description": "Created project snapshot"
+          }
+        }
+      }
+    },
+    "/project-progress/projects/{projectId}": {
+      "get": {
+        "summary": "Get project snapshot",
+        "x-permission": "project-progress.read",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project snapshot"
+          }
+        }
+      }
+    },
+    "/project-progress/projects/{projectId}/status": {
+      "post": {
+        "summary": "Update project status",
+        "x-permission": "project-progress.write",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated project"
+          }
+        }
+      }
+    },
+    "/project-progress/projects/{projectId}/access": {
+      "post": {
+        "summary": "Grant or update worker access",
+        "x-permission": "project-progress.write",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Access grant"
+          }
+        }
+      }
+    },
+    "/project-progress/projects/{projectId}/access/{userId}": {
+      "delete": {
+        "summary": "Revoke worker access",
+        "x-permission": "project-progress.write",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revoked access"
+          }
+        }
+      }
+    },
+    "/project-progress/projects/{projectId}/logs": {
+      "post": {
+        "summary": "Create a progress log",
+        "x-permission": "project-progress.write",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated project snapshot"
+          }
+        }
+      }
+    },
+    "/project-progress/logs/{logId}/media": {
+      "post": {
+        "summary": "Attach progress media metadata after upload",
+        "x-permission": "project-progress.write",
+        "parameters": [
+          {
+            "name": "logId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attached media metadata"
+          }
+        }
+      }
+    },
+    "/project-progress/projects/{projectId}/comments": {
+      "post": {
+        "summary": "Add project or log comment",
+        "x-permission": "project-progress.write",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Created comment"
+          }
+        }
+      }
+    },
+    "/project-progress/public/{accessToken}": {
+      "get": {
+        "summary": "Resolve public project snapshot by access token",
+        "x-permission": "route-token-policy",
+        "x-approval-required": true,
+        "parameters": [
+          {
+            "name": "accessToken",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Public project snapshot"
+          }
+        }
+      }
+    }
+  }
+}

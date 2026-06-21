@@ -1,0 +1,18 @@
+# Project Progress Module
+
+Module ID: project-progress
+Status: draft
+Purpose: Project progress timelines, worker access, media metadata, comments, and customer-facing public snapshots.
+Entrypoint: src/index.ts
+Check: pnpm --filter @microservices-sh/project-progress check:spec
+Build: pnpm --filter @microservices-sh/project-progress build
+Test: pnpm --filter @microservices-sh/project-progress test
+
+Owned tables:
+- project_progress_projects
+- project_progress_access
+- project_progress_logs
+- project_progress_media_files
+- project_progress_comments
+
+Use the service API for mutations. Keep auth, customer records, QR images, uploads, signed URLs, and notifications in route adapters or companion modules.

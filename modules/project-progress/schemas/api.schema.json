@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Project Progress API",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "projectStatus": {
+      "type": "string",
+      "enum": ["planning", "in_progress", "completed", "on_hold"]
+    },
+    "progressCategory": {
+      "type": "string",
+      "enum": ["painting", "plumbing", "masonry", "electrical", "carpentry", "general"]
+    },
+    "progressMediaType": {
+      "type": "string",
+      "enum": ["image", "video"]
+    },
+    "commentAuthorType": {
+      "type": "string",
+      "enum": ["customer", "worker", "admin"]
+    },
+    "createProjectInput": {
+      "type": "object",
+      "required": ["customerId", "title"],
+      "additionalProperties": false,
+      "properties": {
+        "customerId": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "description": { "type": ["string", "null"] },
+        "location": { "type": ["string", "null"] },
+        "status": { "$ref": "#/$defs/projectStatus" },
+        "qrCodeKey": { "type": ["string", "null"] },
+        "startDate": { "type": ["string", "null"] },
+        "expectedEndDate": { "type": ["string", "null"] }
+      }
+    },
+    "updateProjectStatusInput": {
+      "type": "object",
+      "required": ["projectId", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "projectId": { "type": "string", "minLength": 1 },
+        "status": { "$ref": "#/$defs/projectStatus" },
+        "actualEndDate": { "type": ["string", "null"] }
+      }
+    },
+    "grantProjectAccessInput": {
+      "type": "object",
+      "required": ["projectId", "userId"],
+      "additionalProperties": false,
+      "properties": {
+        "projectId": { "type": "string", "minLength": 1 },
+        "userId": { "type": "string", "minLength": 1 },
+        "canUpload": { "type": "boolean" },
+        "canView": { "type": "boolean" }
+      }
+    },
+    "createProgressLogInput": {
+      "type": "object",
+      "required": ["projectId"],
+      "additionalProperties": false,
+      "properties": {
+        "projectId": { "type": "string", "minLength": 1 },
+        "uploaderId": { "type": ["string", "null"] },
+        "category": { "$ref": "#/$defs/progressCategory" },
+        "description": { "type": ["string", "null"] },
+        "voiceNoteKey": { "type": ["string", "null"] },
+        "capturedAt": { "type": ["string", "null"] }
+      }
+    },
+    "attachProgressMediaInput": {
+      "type": "object",
+      "required": ["logId", "storageKey", "fileType", "mimeType", "fileSizeBytes"],
+      "additionalProperties": false,
+      "properties": {
+        "logId": { "type": "string", "minLength": 1 },
+        "storageKey": { "type": "string", "minLength": 1 },
+        "thumbnailKey": { "type": ["string", "null"] },
+        "fileType": { "$ref": "#/$defs/progressMediaType" },
+        "mimeType": { "type": "string", "minLength": 1 },
+        "fileSizeBytes": { "type": "integer", "minimum": 0 },
+        "durationSeconds": { "type": ["integer", "null"], "minimum": 0 },
+        "width": { "type": ["integer", "null"], "minimum": 0 },
+        "height": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    },
+    "addProjectCommentInput": {
+      "type": "object",
+      "required": ["projectId", "authorType", "authorName", "content"],
+      "additionalProperties": false,
+      "properties": {
+        "projectId": { "type": "string", "minLength": 1 },
+        "logId": { "type": ["string", "null"] },
+        "authorType": { "$ref": "#/$defs/commentAuthorType" },
+        "authorName": { "type": "string", "minLength": 1 },
+        "authorId": { "type": ["string", "null"] },
+        "content": { "type": "string", "minLength": 1 }
+      }
+    },
+    "projectSnapshot": {
+      "type": "object",
+      "required": ["project", "access", "timeline", "comments"],
+      "additionalProperties": true,
+      "properties": {
+        "project": { "type": "object" },
+        "access": { "type": "array", "items": { "type": "object" } },
+        "timeline": { "type": "array", "items": { "type": "object" } },
+        "comments": { "type": "array", "items": { "type": "object" } }
+      }
+    }
+  }
+}
