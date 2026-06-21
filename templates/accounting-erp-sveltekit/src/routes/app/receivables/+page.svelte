@@ -56,6 +56,7 @@
               </div>
               <div class="invoice-actions">
                 <Badge tone={Date.parse(invoice.dueDate) < Date.parse(`${data.reportDate}T00:00:00.000Z`) ? "bad" : "warn"}>{money(invoice.amountDueCents)}</Badge>
+                <Button href={`/app/reports?asOf=${data.reportDate}&customerId=${invoice.customerId}`} variant="ghost" size="sm">Statement</Button>
                 {#if data.canManage && invoice.canRecordPayment}
                   <form class="payment-form" method="POST" action="?/recordPayment" use:enhance>
                     <input type="hidden" name="invoiceId" value={invoice.id} />

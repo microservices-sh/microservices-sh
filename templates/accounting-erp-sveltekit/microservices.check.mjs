@@ -216,6 +216,26 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Receivables payment actions use the invoice module as lifecycle authority before refreshing AR snapshots."
   );
   assertFileIncludesAll(
+    "src/routes/app/reports/+page.server.ts",
+    ["getAgingReport", "getReceivableAging", "listOpenReceivables", "generateCustomerStatement", "requireModule(\"accounts-receivable\""],
+    "Accounting reports route composes AP aging, AR aging, open receivables, and customer statements from module APIs."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/reports/+page.svelte",
+    ["Aged receivables", "Aged payables", "Customer statement", "Statement invoices"],
+    "Accounting reports page renders aging reports and customer statement output."
+  );
+  assertFileIncludes(
+    "src/routes/app/receivables/+page.svelte",
+    "/app/reports?asOf=",
+    "Receivables rows link to the customer statement report."
+  );
+  assertFileIncludes(
+    "src/lib/server/erp-nav.ts",
+    "Reports\", href: \"/app/reports\"",
+    "Sidebar exposes the accounting reports surface when accounting-core is enabled."
+  );
+  assertFileIncludesAll(
     "src/routes/app/ledger/+page.server.ts",
     [
       "createFiscalPeriod",

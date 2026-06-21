@@ -80,6 +80,9 @@ export function buildNav(opts: { superAdmin?: boolean; platform?: App.Platform }
 
   for (const group of GROUPS) {
     const items = itemsFor(group.modules, enabled);
+    if (group.section === "Accounting" && enabled.has("accounting-core")) {
+      items.splice(1, 0, { label: "Reports", href: "/app/reports", icon: "file-text" });
+    }
     // Settings (the config hub) always lives in Workspace, even if Files is off.
     if (group.section === "Workspace") {
       items.push({ label: "Settings", href: "/app/settings", icon: "settings" });
