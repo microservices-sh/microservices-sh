@@ -120,12 +120,14 @@ describe("generateMcpServerEntry", () => {
     expect(src).toContain("createMcpToolServer");
     expect(src).toContain("confirmed: confirm === true"); // the approval-gate mapping
     expect(src).toContain('name: "studio-booking-tools"');
-    expect(src).toContain('from "./mcp-wiring.js"');
+    expect(src).toContain('from "./mcp-wiring.js"'); // handlers/deps seam
+    expect(src).toContain('toolManifest as manifest } from "./tool-manifest.js"'); // generated manifest
   });
-  it("honors a custom server name and wiring module path", () => {
-    const src = generateMcpServerEntry({ id: "x", name: "acme-mcp", wiringModule: "./wire.js" });
+  it("honors custom server name, wiring path, and manifest path", () => {
+    const src = generateMcpServerEntry({ id: "x", name: "acme-mcp", wiringModule: "./wire.js", manifestModule: "../gen/manifest.js" });
     expect(src).toContain('name: "acme-mcp"');
     expect(src).toContain('from "./wire.js"');
+    expect(src).toContain('from "../gen/manifest.js"');
   });
 });
 
