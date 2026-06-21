@@ -17,6 +17,10 @@ const DEFAULT_GEMMA_MODEL: &str = "gemma4:e4b";
 const OLLAMA_HOST: &str = "127.0.0.1:11434";
 const DEFAULT_OCR_LANGUAGE: &str = "eng";
 const MAX_GEMMA_IMAGE_PAGES: usize = 4;
+// Phone photos are ~15-20 MP; the vision model downscales internally, so a full
+// upload just wastes transfer + inference time. Cap the longest edge before send.
+const MAX_VISION_EDGE: u32 = 1568;
+const PREVIEW_MAX_EDGE: u32 = 1400;
 const SUGGESTED_GEMMA_MODELS: [&str; 5] = [
     "gemma4:e2b",
     "gemma4:e4b",
@@ -452,6 +456,38 @@ fn document_draft(
     Ok(open_queue(&app)?
         .get_job(&job_id)?
         .and_then(|job| job.draft))
+}
+
+#[tauri::command]
+async fn document_preview(
+    app: tauri::AppHandle,
+    job_id: String,
+) -> Result<Option<String>, String> {
+    // PDF rasterization + image encode are blocking; keep them off the UI thread.
+    tauri::async_runtime::spawn_blocking(move || document_preview_blocking(&app, &job_id))
+        .await
+        .map_err(|error| format!("Failed to join preview task: {error}"))?
+}
+
+fn document_preview_blocking(
+    app: &tauri::AppHandle,
+    job_id: &str,
+) -> Result<Option<String>, String> {
+    let queue = open_queue(app)?;
+    let Some(job) = queue.get_job(job_id)? else {
+        return Ok(None);
+    };
+    let path = PathBuf::from(&job.path);
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    let (pages, _scratch) = document_image_pages(&path)?;
+    let Some(first) = pages.first() else {
+        return Ok(None);
+    };
+    let bytes = fs::read(first).map_err(|error| format!("Failed to read preview page: {error}"))?;
+    Ok(preview_jpeg(&bytes).map(|jpeg| format!("data:image/jpeg;base64,{}", base64_encode(&jpeg))))
 }
 
 #[tauri::command]
@@ -1065,11 +1101,58 @@ fn encode_image_pages(image_pages: &[PathBuf]) -> Result<Vec<String>, String> {
         .iter()
         .take(MAX_GEMMA_IMAGE_PAGES)
         .map(|page| {
-            fs::read(page)
-                .map(|bytes| base64_encode(&bytes))
-                .map_err(|error| format!("Failed to read image page {}: {error}", page.display()))
+            let bytes = fs::read(page)
+                .map_err(|error| format!("Failed to read image page {}: {error}", page.display()))?;
+            let scaled = downscale_for_vision(&bytes);
+            llm_log(format!(
+                "page {}: {} -> {} bytes",
+                page.display(),
+                bytes.len(),
+                scaled.len()
+            ));
+            Ok(base64_encode(&scaled))
         })
         .collect()
+}
+
+/// Resize a decoded image so its longest edge is at most `max_edge`, then encode
+/// it as JPEG. Returns None on any encode failure.
+fn resize_and_jpeg(image: image::DynamicImage, max_edge: u32, quality: u8) -> Option<Vec<u8>> {
+    let longest = image.width().max(image.height());
+    let scaled = if longest > max_edge {
+        let ratio = max_edge as f32 / longest as f32;
+        let width = ((image.width() as f32) * ratio).round().max(1.0) as u32;
+        let height = ((image.height() as f32) * ratio).round().max(1.0) as u32;
+        image.resize(width, height, image::imageops::FilterType::Triangle)
+    } else {
+        image
+    };
+
+    let rgb = scaled.to_rgb8();
+    let mut out = Vec::new();
+    image::codecs::jpeg::JpegEncoder::new_with_quality(&mut out, quality)
+        .encode_image(&rgb)
+        .ok()?;
+    (!out.is_empty()).then_some(out)
+}
+
+/// Shrink an oversized page image before sending it to the vision model.
+/// Best-effort: if the image is already small enough, or decode/encode fails,
+/// the original bytes are returned unchanged.
+fn downscale_for_vision(bytes: &[u8]) -> Vec<u8> {
+    match image::load_from_memory(bytes) {
+        Ok(image) if image.width().max(image.height()) > MAX_VISION_EDGE => {
+            resize_and_jpeg(image, MAX_VISION_EDGE, 82).unwrap_or_else(|| bytes.to_vec())
+        }
+        _ => bytes.to_vec(),
+    }
+}
+
+/// JPEG preview of a page image for the review screen. Always re-encodes to JPEG
+/// so the data URL's media type is correct.
+fn preview_jpeg(bytes: &[u8]) -> Option<Vec<u8>> {
+    let image = image::load_from_memory(bytes).ok()?;
+    resize_and_jpeg(image, PREVIEW_MAX_EDGE, 80)
 }
 
 // ── Structured output: what the local model returns ──────────────────
@@ -2498,6 +2581,7 @@ fn main() {
             test_gemma_model,
             extract_document,
             document_draft,
+            document_preview,
             enqueue_sample_documents,
             update_draft_field,
             approve_job,
@@ -2794,6 +2878,20 @@ mod tests {
             String::from_utf8(decode_chunked(raw).expect("decode")).expect("utf8"),
             "hello"
         );
+    }
+
+    #[test]
+    fn downscale_caps_oversized_image_dimensions() {
+        let big = image::RgbImage::from_pixel(3000, 2000, image::Rgb([240, 240, 240]));
+        let mut png = Vec::new();
+        image::DynamicImage::ImageRgb8(big)
+            .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
+            .expect("encode png fixture");
+
+        let scaled = downscale_for_vision(&png);
+        let decoded = image::load_from_memory(&scaled).expect("downscaled output decodes");
+        assert_eq!(decoded.width(), MAX_VISION_EDGE);
+        assert!(decoded.height() <= MAX_VISION_EDGE);
     }
 
     #[test]
