@@ -33,7 +33,7 @@ As of the latest StackSuite porting slices, the focused templates are CLI-discov
 
 - `create-microservices-app` lists and bundles `accounting-erp-sveltekit` and `commerce-ops-sveltekit`.
 - Bundle closure and smoke coverage include the module source required by both templates.
-- Accounting routes cover ledger account/fiscal-period/journal workflows, account detail review, trial balance, payables, receivables, banking, reports, invoice collection, signed Stripe settlement, and scheduled recurring-invoice posting/AR sync.
+- Accounting routes cover ledger account/fiscal-period/journal workflows, account and fiscal-period detail review, trial balance, payables, receivables, banking, reports, invoice collection, signed Stripe settlement, and scheduled recurring-invoice posting/AR sync.
 - Commerce routes cover product catalog, inventory, sales orders, shipments, commerce sync, sync logs, signed WooCommerce order webhooks, invoice/payment handoff, document exports, packing slips, pick lists, and scheduled runtime glue.
 - Request hooks, locks, manifests, enabled modules, migrations, docs, and template policy checks now agree on the focused module set.
 
@@ -342,12 +342,13 @@ Still pending:
 Done for the first accounting/commerce operator surface:
 
 - accounting ledger, payables, receivables, banking, reports, invoice collection, Stripe settlement, and scheduled jobs.
+- accounting ledger includes account and fiscal-period read-only detail review.
 - accounting payables include recurring bill schedule creation, pause/resume/cancel, due bill generation, and the existing bill post/pay flow.
 - commerce products, inventory receive/adjust/reconcile, sales orders, shipments, commerce sync, invoices, payment settlement, document exports, and scheduled jobs.
 
 Remaining routes should be added only after the backing module API exists:
 
-- accounting setup and fiscal periods.
+- accounting setup and fiscal close/reopen/lock hardening.
 - commerce sales-order create/send, richer shipment status transitions, MCP settings, persistent inventory count documents, and inventory alerts.
 
 ### Phase 3: External Operations

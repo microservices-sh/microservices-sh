@@ -1897,6 +1897,23 @@
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 93 accounting fiscal period detail route proof
+
+- **Status:** complete.
+- Goal: close the fiscal-period detail route gap by exposing accounting-core read use cases and adding a read-only fiscal period review page.
+- Added `getFiscalPeriod` and `listFiscalPeriods` to `modules/accounting-core`, backed by existing tenant-scoped store methods and covered by lookup/list tenant isolation tests.
+- Refactored `/app/ledger` fiscal-period loading to use `listFiscalPeriods`, linked fiscal-period rows to detail, and added `/app/ledger/fiscal-periods/[id]` with period metadata, adjacent-period context, fiscal-year counts, and period trial-balance activity.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounting-core tests | New fiscal-period reads remain tenant-scoped and existing ledger behavior remains green | `pnpm --filter @microservices-sh/accounting-core test` passed, 11/11 | Pass |
+| Accounting-core spec/build | Module docs/OpenAPI/manifest/source guard stay aligned with the new read use cases | `pnpm --filter @microservices-sh/accounting-core check:spec` and `pnpm --filter @microservices-sh/accounting-core build` passed | Pass |
+| Accounting template spec | Policy catches ledger fiscal-period detail route and read-only boundary | `pnpm --dir templates/accounting-erp-sveltekit check:spec` passed | Pass |
+| Accounting template build | SvelteKit/Cloudflare build compiles after route additions | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Packaged accounting template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and sequential `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 87 commerce sync logs route proof
 
 - **Status:** complete.

@@ -63,12 +63,29 @@
       }
     },
     "/fiscal-periods": {
+      "get": {
+        "summary": "List fiscal periods",
+        "operationId": "listFiscalPeriods",
+        "responses": {
+          "200": { "description": "Fiscal period list" }
+        }
+      },
       "post": {
         "summary": "Create a fiscal period",
         "operationId": "createFiscalPeriod",
         "responses": {
           "201": { "description": "Fiscal period created" },
           "409": { "description": "Overlapping fiscal period" }
+        }
+      }
+    },
+    "/fiscal-periods/{id}": {
+      "get": {
+        "summary": "Get one fiscal period",
+        "operationId": "getFiscalPeriod",
+        "responses": {
+          "200": { "description": "Fiscal period detail" },
+          "404": { "description": "Fiscal period not found" }
         }
       }
     },

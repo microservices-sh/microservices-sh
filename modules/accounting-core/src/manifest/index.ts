@@ -91,8 +91,11 @@ export const manifest = {
       applicable: true,
       tools: [
         "accounting-core.listAccounts",
+        "accounting-core.getAccount",
         "accounting-core.createAccount",
         "accounting-core.createFiscalPeriod",
+        "accounting-core.getFiscalPeriod",
+        "accounting-core.listFiscalPeriods",
         "accounting-core.createJournalEntry",
         "accounting-core.postJournalEntry",
         "accounting-core.voidJournalEntry",

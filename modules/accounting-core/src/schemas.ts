@@ -73,6 +73,11 @@ export const fiscalPeriodStatusUpdateSchema = z.object({
   status: fiscalPeriodStatusSchema
 });
 
+export const fiscalPeriodIdentitySchema = z.object({
+  tenantId: z.string().min(1),
+  periodId: z.string().min(1)
+});
+
 export const fiscalPeriodFilterSchema = z.object({
   tenantId: z.string().min(1),
   status: fiscalPeriodStatusSchema.optional(),

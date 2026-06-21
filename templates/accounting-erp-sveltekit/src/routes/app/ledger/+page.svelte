@@ -126,8 +126,8 @@
               {#each data.fiscalPeriods as period (period.id)}
                 <tr>
                   <td>
-                    <strong>{period.name}</strong>
-                    <span><code>{period.id}</code></span>
+                    <strong><a href={`/app/ledger/fiscal-periods/${period.id}`}>{period.name}</a></strong>
+                    <span><a href={`/app/ledger/fiscal-periods/${period.id}`}><code>{period.id}</code></a></span>
                   </td>
                   <td>{period.startsOn} - {period.endsOn}</td>
                   <td><Badge tone={statusTone(period.status)}>{period.status}</Badge></td>

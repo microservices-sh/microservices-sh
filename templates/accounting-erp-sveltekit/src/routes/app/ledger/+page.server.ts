@@ -7,10 +7,12 @@ import {
   createJournalEntry,
   getTrialBalance,
   listAccounts,
+  listFiscalPeriods,
   postJournalEntry,
   updateFiscalPeriodStatus,
   voidJournalEntry,
   type AccountType,
+  type FiscalPeriod,
   type FiscalPeriodStatus
 } from "@microservices-sh/accounting-core";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
@@ -43,7 +45,7 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function activePeriodFor(periods: Awaited<ReturnType<App.Locals["accountingCoreStore"]["listFiscalPeriods"]>>) {
+function activePeriodFor(periods: FiscalPeriod[]) {
   const currentDay = today();
   const openPeriods = periods.filter((period) => period.status === "open");
   return (
@@ -73,10 +75,12 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
   if (!activeOrgId || !locals.user) throw redirect(303, "/app");
 
   const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "org.read", locals.rbacStore);
-  const [accountsResult, fiscalPeriods] = await Promise.all([
-    listAccounts({ tenantId: activeOrgId, includeInactive: true, limit: 500 }, { accountingCoreStore: locals.accountingCoreStore }),
-    locals.accountingCoreStore.listFiscalPeriods({ tenantId: activeOrgId, limit: 100 })
+  const deps = { accountingCoreStore: locals.accountingCoreStore };
+  const [accountsResult, fiscalPeriodsResult] = await Promise.all([
+    listAccounts({ tenantId: activeOrgId, includeInactive: true, limit: 500 }, deps),
+    listFiscalPeriods({ tenantId: activeOrgId, limit: 100 }, deps)
   ]);
+  const fiscalPeriods = fiscalPeriodsResult.ok ? fiscalPeriodsResult.data.periods : [];
   const activePeriod = activePeriodFor(fiscalPeriods);
   const trialBalanceResult = await getTrialBalance(
     {
@@ -84,7 +88,7 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
       includeZero: false,
       ...(activePeriod ? { periodId: activePeriod.id } : {})
     },
-    { accountingCoreStore: locals.accountingCoreStore }
+    deps
   );
 
   return {

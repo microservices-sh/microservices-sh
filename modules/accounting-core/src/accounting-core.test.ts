@@ -6,7 +6,9 @@ import {
   createMemoryAccountingCoreStore,
   getAccount,
   getAccountingSetupStatus,
+  getFiscalPeriod,
   getTrialBalance,
+  listFiscalPeriods,
   postJournalEntry,
   seedChartOfAccounts,
   seedMonthlyFiscalPeriods,
@@ -197,6 +199,42 @@ describe("accounting-core: setup", () => {
     const crossTenant = await getAccount({ tenantId: TENANT_ID, accountId: otherTenantAccount.data.account.id }, deps);
     expect(crossTenant.ok).toBe(false);
     if (!crossTenant.ok) expect(crossTenant.error.code).toBe("accounting-core.ACCOUNT_NOT_FOUND");
+  });
+
+  it("gets and lists fiscal periods through tenant-scoped read use cases", async () => {
+    const store = createMemoryAccountingCoreStore();
+    const deps = { accountingCoreStore: store, now: fixedNow() };
+    const january = await createFiscalPeriod(
+      { tenantId: TENANT_ID, name: "January 2026", startsOn: "2026-01-01", endsOn: "2026-01-31", status: "open" },
+      deps
+    );
+    const february = await createFiscalPeriod(
+      { tenantId: TENANT_ID, name: "February 2026", startsOn: "2026-02-01", endsOn: "2026-02-28", status: "closed" },
+      deps
+    );
+    const otherTenantPeriod = await createFiscalPeriod(
+      { tenantId: "tenant-2", name: "January 2026", startsOn: "2026-01-01", endsOn: "2026-01-31", status: "open" },
+      deps
+    );
+    if (!january.ok || !february.ok || !otherTenantPeriod.ok) throw new Error("setup failed");
+
+    const found = await getFiscalPeriod({ tenantId: TENANT_ID, periodId: january.data.period.id }, deps);
+    expect(found.ok).toBe(true);
+    if (found.ok) {
+      expect(found.data.period).toEqual(
+        expect.objectContaining({ id: january.data.period.id, tenantId: TENANT_ID, name: "January 2026" })
+      );
+    }
+
+    const crossTenant = await getFiscalPeriod({ tenantId: TENANT_ID, periodId: otherTenantPeriod.data.period.id }, deps);
+    expect(crossTenant.ok).toBe(false);
+    if (!crossTenant.ok) expect(crossTenant.error.code).toBe("accounting-core.FISCAL_PERIOD_NOT_FOUND");
+
+    const openPeriods = await listFiscalPeriods({ tenantId: TENANT_ID, status: "open" }, deps);
+    expect(openPeriods.ok).toBe(true);
+    if (openPeriods.ok) {
+      expect(openPeriods.data.periods).toEqual([expect.objectContaining({ id: january.data.period.id, status: "open" })]);
+    }
   });
 
   it("seeds a donor-derived chart with hierarchy, system flags, reconcilable accounts, and contra balances", async () => {

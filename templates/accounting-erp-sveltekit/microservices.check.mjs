@@ -9,6 +9,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const bankingReconciliationDetailPage = readText("src/routes/app/banking/reconciliations/[id]/+page.svelte");
   const ledgerAccountDetailServer = readText("src/routes/app/ledger/accounts/[id]/+page.server.ts");
   const ledgerAccountDetailPage = readText("src/routes/app/ledger/accounts/[id]/+page.svelte");
+  const ledgerFiscalPeriodDetailServer = readText("src/routes/app/ledger/fiscal-periods/[id]/+page.server.ts");
+  const ledgerFiscalPeriodDetailPage = readText("src/routes/app/ledger/fiscal-periods/[id]/+page.svelte");
 
   assertFileIncludesAll(
     "docs/api-boundary.md",
@@ -326,6 +328,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     [
       "createAccount",
       "createFiscalPeriod",
+      "listFiscalPeriods",
       "updateFiscalPeriodStatus",
       "createJournalEntry",
       "postJournalEntry",
@@ -337,8 +340,17 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/ledger/+page.svelte",
-    ["/app/ledger/accounts/${account.id}", "/app/ledger/accounts/${line.accountId}"],
-    "Ledger chart and trial balance rows link to the read-only account detail route."
+    [
+      "/app/ledger/accounts/${account.id}",
+      "/app/ledger/accounts/${line.accountId}",
+      "/app/ledger/fiscal-periods/${period.id}"
+    ],
+    "Ledger chart, trial-balance, and fiscal-period rows link to read-only detail routes."
+  );
+  assert(
+    !readText("src/routes/app/ledger/+page.server.ts").includes("accountingCoreStore.listFiscalPeriods"),
+    "Ledger index lists fiscal periods through the accounting-core listFiscalPeriods use case instead of direct store calls.",
+    "policy:accounting-ledger-period-list-use-case"
   );
   assertFileIncludesAll(
     "src/routes/app/ledger/accounts/[id]/+page.server.ts",
@@ -395,6 +407,61 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "src/routes/app/ledger/accounts/[id]/+page.svelte",
     ["Account profile", "Posting policy", "Child accounts", "Open ledger actions"],
     "Ledger account detail page exposes read-only account metadata, posting policy, child accounts, and ledger handoff."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/ledger/fiscal-periods/[id]/+page.server.ts",
+    [
+      "getFiscalPeriod",
+      "listFiscalPeriods",
+      "getTrialBalance",
+      "requireModule(\"accounting-core\"",
+      "requireOrgPermission",
+      "\"org.read\"",
+      "tenantId: activeOrgId",
+      "periodId: params.id"
+    ],
+    "Ledger fiscal-period detail loads one tenant-scoped period through accounting-core and composes read-only period context."
+  );
+  assert(
+    !ledgerFiscalPeriodDetailServer.includes("export const actions") &&
+      !ledgerFiscalPeriodDetailServer.includes("AccountingCoreStore") &&
+      !ledgerFiscalPeriodDetailServer.includes("createD1AccountingCoreStore") &&
+      !ledgerFiscalPeriodDetailServer.includes("platform.env.DB") &&
+      !ledgerFiscalPeriodDetailServer.includes(".prepare(") &&
+      !ledgerFiscalPeriodDetailServer.includes("accountingCoreStore.getFiscalPeriod") &&
+      !ledgerFiscalPeriodDetailServer.includes("accountingCoreStore.listFiscalPeriods") &&
+      !ledgerFiscalPeriodDetailServer.includes(".writeEvent") &&
+      !ledgerFiscalPeriodDetailServer.includes("createAccount") &&
+      !ledgerFiscalPeriodDetailServer.includes("createFiscalPeriod") &&
+      !ledgerFiscalPeriodDetailServer.includes("updateFiscalPeriodStatus") &&
+      !ledgerFiscalPeriodDetailServer.includes("seedChartOfAccounts") &&
+      !ledgerFiscalPeriodDetailServer.includes("seedMonthlyFiscalPeriods") &&
+      !ledgerFiscalPeriodDetailServer.includes("createJournalEntry") &&
+      !ledgerFiscalPeriodDetailServer.includes("updateJournalEntry") &&
+      !ledgerFiscalPeriodDetailServer.includes("postJournalEntry") &&
+      !ledgerFiscalPeriodDetailServer.includes("voidJournalEntry") &&
+      !ledgerFiscalPeriodDetailServer.includes("recordEvent") &&
+      !ledgerFiscalPeriodDetailServer.includes("bankReconciliationService") &&
+      !ledgerFiscalPeriodDetailServer.includes("recordCustomerPayment") &&
+      !ledgerFiscalPeriodDetailServer.includes("syncInvoiceToReceivables") &&
+      !ledgerFiscalPeriodDetailServer.includes("enqueueJob") &&
+      !ledgerFiscalPeriodDetailServer.includes("sendEmail") &&
+      !/(?:insert|update|upsert|delete)[A-Z]/.test(ledgerFiscalPeriodDetailServer),
+    "Ledger fiscal-period detail route remains read-only; setup, status, journal, event, and direct store writes stay off the detail route.",
+    "policy:accounting-ledger-fiscal-period-detail-read-only"
+  );
+  assert(
+    !ledgerFiscalPeriodDetailPage.includes("<form") &&
+      !ledgerFiscalPeriodDetailPage.includes("method=\"POST\"") &&
+      !ledgerFiscalPeriodDetailPage.includes("use:enhance") &&
+      !ledgerFiscalPeriodDetailPage.includes("?/"),
+    "Ledger fiscal-period detail page does not render write-capable forms or SvelteKit action targets.",
+    "policy:accounting-ledger-fiscal-period-detail-ui-read-only"
+  );
+  assertFileIncludesAll(
+    "src/routes/app/ledger/fiscal-periods/[id]/+page.svelte",
+    ["Period profile", "Trial balance activity", "Fiscal year", "Close policy", "Open ledger actions"],
+    "Ledger fiscal-period detail page exposes read-only period metadata, trial-balance activity, fiscal-year context, and ledger handoff."
   );
   assertFileIncludesAll(
     "src/routes/app/banking/+page.server.ts",

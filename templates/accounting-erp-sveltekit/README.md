@@ -50,6 +50,7 @@ import, reconciliation, quotes, and recurring document schedules.
 | `/app/support` | Support queue |
 | `/app/ledger` | Chart of accounts and account creation |
 | `/app/ledger/accounts/[id]` | Read-only ledger account detail |
+| `/app/ledger/fiscal-periods/[id]` | Read-only fiscal period detail |
 | `/app/payables` | Vendor, bill, and AP aging review |
 | `/app/receivables` | Open receivables and AR aging buckets |
 | `/app/banking` | Statement import and reconciliation review |

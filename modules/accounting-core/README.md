@@ -12,6 +12,8 @@ import {
   createAccount,
   getAccount,
   createFiscalPeriod,
+  getFiscalPeriod,
+  listFiscalPeriods,
   createJournalEntry,
   postJournalEntry,
   getTrialBalance

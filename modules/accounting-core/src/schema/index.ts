@@ -7,6 +7,7 @@ export {
   accountTypeSchema,
   accountUpdateSchema,
   fiscalPeriodFilterSchema,
+  fiscalPeriodIdentitySchema,
   fiscalPeriodInputSchema,
   fiscalPeriodStatusSchema,
   fiscalPeriodStatusUpdateSchema,

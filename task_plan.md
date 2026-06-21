@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 92
+Phase 93
 
 ## Phases
 
@@ -716,6 +716,15 @@ Phase 92
 - [x] Link the Ledger chart and trial-balance rows to the account detail route.
 - [x] Add accounting template policy checks for read-only account detail boundary.
 - [x] Verify accounting-core tests, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 93: Accounting Fiscal Period Detail Route Proof
+- [x] Add `getFiscalPeriod` and `listFiscalPeriods` as public accounting-core read use cases over existing tenant-scoped store methods.
+- [x] Refactor `/app/ledger` fiscal-period loading to use `listFiscalPeriods` instead of direct store access.
+- [x] Add read-only `/app/ledger/fiscal-periods/[id]` backed by `getFiscalPeriod`, adjacent-period context, and period trial-balance totals.
+- [x] Link the Ledger fiscal-period rows to the period detail route.
+- [x] Add module and template policy checks for fiscal-period read use cases and read-only detail boundary.
+- [x] Verify accounting-core tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions
