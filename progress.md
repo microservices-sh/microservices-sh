@@ -1164,15 +1164,15 @@
 - Added `/app/products` with module-backed product listing/creation, RBAC gating, module gating, and audit events.
 - Added `/app/inventory` with product-joined stock balances, recent stock movements, receive-stock action, inventory product validation, and audit events.
 - Added `/app/sales-orders` with draft order creation and order ledger review.
-- Added `/app/shipments` with shipment batch creation and fulfillment item review.
-- Added `/app/commerce-sync` with connection, sync-run, mapping, and webhook receipt contract review.
+- Added `/app/shipments` with confirmed sales-order batch creation, fulfillment item review, and shipment completion.
+- Added `/app/commerce-sync` with read-only connection, sync-run, mapping, and webhook receipt contract review.
 - Wired `accounting-core` and `accounts-payable` stores into the accounting template request locals for both D1 and memory adapters.
 - Added `/app/ledger` with chart-of-accounts listing and account creation.
 - Added `/app/payables` with vendor creation, bill creation, bill ledger, and AP aging metrics.
 - Added `/app/receivables` with AR aging and open receivable contract review.
 - Added `/app/banking` with bank account, statement transaction, and reconciliation contract review.
 - Added commerce/accounting sidebar navigation and icon support for the new route groups.
-- Extended local demo seeding with three commerce products and opening stock movements so fresh dev sessions show usable module data.
+- Extended local demo seeding with three commerce products, opening stock movements, and commerce-sync demo records so fresh dev sessions show usable module data.
 - Declared missing inherited workspace dependencies in `templates/commerce-ops-sveltekit/package.json` so the focused template builds from its own package boundary.
 
 | Check | Expectation | Result | Status |
@@ -1194,6 +1194,7 @@
 - Added async store-backed service factories for `accounts-receivable`, `bank-reconciliation`, and `commerce-sync`.
 - Preserved existing synchronous memory services so current local callers and tests keep working.
 - Added memory store adapters for accounts receivable, bank reconciliation, and commerce sync, with store-backed workflow tests.
+- Added commerce-sync read APIs for provider mappings, sync runs, and webhook receipts so route adapters can render state without writing demo records during page loads.
 - Added `createD1BankReconciliationStore()` mapped to the existing bank reconciliation D1 migration tables.
 - Documented why accounts receivable D1 needs an invoice snapshot table and why commerce sync D1 needs a normalized envelope table before those adapters should be added.
 
@@ -1213,8 +1214,8 @@
 - **Status:** complete.
 - Goal: make the focused StackSuite template pages consume the durable service factories from request locals instead of creating fresh memory services inside each page load.
 - Wired `accounting-erp-sveltekit` request locals for `accountsReceivableService` and `bankReconciliationService`.
-- `accounting-erp-sveltekit` uses the memory-backed accounts receivable service until a D1 invoice snapshot table contract exists, and uses the D1 bank reconciliation store when a DB binding is present.
-- Wired `commerce-ops-sveltekit` request locals for `commerceSyncService` using the persistent memory store-backed service until a commerce sync D1 envelope table contract exists.
+- Initial wiring used memory-backed accounts receivable and commerce sync services while D1 table contracts were still pending; Phase 49 replaced those with D1-backed services when DB is bound.
+- Wired `commerce-ops-sveltekit` request locals for `commerceSyncService` using the persistent store-backed service.
 - Updated the receivables, banking, and commerce sync page server loaders to await the async service APIs and reuse existing demo account/connection records where possible.
 
 | Check | Expectation | Result | Status |
@@ -1223,6 +1224,30 @@
 | Commerce template spec | Shared template check passes | `pnpm --dir templates/commerce-ops-sveltekit check:spec` passed | Pass |
 | Accounting template build | SvelteKit/Cloudflare production build passes | `pnpm --dir templates/accounting-erp-sveltekit build` passed; existing invoice detail Svelte warning remains non-blocking | Pass |
 | Commerce template build | SvelteKit/Cloudflare production build passes | `pnpm --dir templates/commerce-ops-sveltekit build` passed; existing invoice detail Svelte warning remains non-blocking | Pass |
+| Create-app build | Bundled repo templates rebuild | `pnpm --filter create-microservices-app build` passed | Pass |
+| Bundle closure | Generated template module graph remains closed | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 22/22 | Pass |
+| Full spec | Workspace module/template checks pass | `pnpm spec:check:all` passed, 51 targets | Pass |
+| Whitespace | No diff whitespace errors | `git diff --check` passed | Pass |
+
+### Phase 49 Accounts receivable and commerce sync D1 completion
+
+- **Status:** complete.
+- Goal: close the remaining D1 table-contract gaps for the store-backed StackSuite service modules.
+- Added `ar_invoice_snapshots` and `createD1AccountsReceivableStore(db)` for durable AR invoice snapshots, payments, applications, open receivables, aging, and statements.
+- Added `commerce_sync_envelopes` and `createD1CommerceSyncStore(db)` for durable commerce connections, mappings, sync runs, webhook receipts, and normalized envelopes.
+- Exported both D1 adapters through module roots and package subpaths.
+- Updated focused accounting/commerce templates so AR and commerce sync use D1-backed services when `DB` is bound.
+- Moved commerce sync demo data into local demo seeding so the commerce sync route reads persisted service state instead of creating records during page load.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounts receivable tests | Existing memory and store-backed flows pass | `pnpm --dir modules/accounts-receivable test` passed, 3/3 | Pass |
+| Accounts receivable build/spec | Typecheck and module contract pass | `pnpm --dir modules/accounts-receivable build`; `pnpm --dir modules/accounts-receivable check:spec` | Pass |
+| Commerce sync tests | Existing memory and store-backed flows pass | `pnpm --dir modules/commerce-sync test` passed, 2/2 | Pass |
+| Commerce sync build/spec | Typecheck and module contract pass | `pnpm --dir modules/commerce-sync build`; `pnpm --dir modules/commerce-sync check:spec` | Pass |
+| D1 migrations | New module migrations load in SQLite | `sqlite3 :memory: ".read modules/accounts-receivable/migrations/0001_initial.sql"` and commerce-sync equivalent passed | Pass |
+| Focused template specs | Accounting and commerce template specs pass | `pnpm --dir templates/accounting-erp-sveltekit check:spec`; `pnpm --dir templates/commerce-ops-sveltekit check:spec` | Pass |
+| Focused template builds | Accounting and commerce templates build | Both `pnpm --dir ... build` commands passed; accounting still has the existing invoice detail Svelte warning | Pass |
 | Create-app build | Bundled repo templates rebuild | `pnpm --filter create-microservices-app build` passed | Pass |
 | Bundle closure | Generated template module graph remains closed | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 22/22 | Pass |
 | Full spec | Workspace module/template checks pass | `pnpm spec:check:all` passed, 51 targets | Pass |

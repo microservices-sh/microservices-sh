@@ -23,6 +23,7 @@ import { createProduct } from "@microservices-sh/product-catalog";
 import type { ProductCatalogStore } from "@microservices-sh/product-catalog/ports";
 import { stockIn } from "@microservices-sh/inventory";
 import type { InventoryStore } from "@microservices-sh/inventory/ports";
+import type { CommerceSyncService } from "@microservices-sh/commerce-sync";
 import { createUploadTicket, completeUpload } from "@microservices-sh/file-media";
 import type { MediaStore, ObjectStorage } from "@microservices-sh/file-media/ports";
 import { recordEvent } from "@microservices-sh/audit-log";
@@ -36,6 +37,7 @@ export interface DemoDeps {
 	numberAllocator: NumberAllocator;
 	productCatalogStore: ProductCatalogStore;
 	inventoryStore: InventoryStore;
+	commerceSyncService: CommerceSyncService;
 	mediaStore: MediaStore;
 	objectStorage: ObjectStorage & {
 		setSize?: (key: string, info: { size: number; contentType?: string }) => void;
@@ -194,6 +196,8 @@ export async function seedDemoData(deps: DemoDeps): Promise<void> {
 			{ auditStore: deps.auditStore }
 		);
 
+	const seededProducts: Array<{ id: string; sku: string; name: string }> = [];
+
 	for (const spec of DEMO_PRODUCTS) {
 		const created = await createProduct(
 			{
@@ -215,6 +219,11 @@ export async function seedDemoData(deps: DemoDeps): Promise<void> {
 			}
 		);
 		if (!created.ok || !created.data) continue;
+		seededProducts.push({
+			id: created.data.product.id,
+			sku: created.data.product.sku,
+			name: created.data.product.name
+		});
 
 		await audit({
 			eventName: "product-catalog.product_created",
@@ -248,6 +257,47 @@ export async function seedDemoData(deps: DemoDeps): Promise<void> {
 					payload: { sku: spec.sku, quantity: spec.openingStock }
 				});
 			}
+		}
+	}
+
+	if (seededProducts.length > 0) {
+		const ctx = { tenantId: deps.tenantId, now: "2026-06-21T00:00:00.000Z" };
+		const connections = await deps.commerceSyncService.listCommerceConnections(ctx);
+		const existingConnection = connections.ok
+			? connections.data.find((connection) => connection.provider === "shopify" && connection.name === "Shopify primary")
+			: undefined;
+		const connection = existingConnection
+			? { ok: true as const, data: existingConnection }
+			: await deps.commerceSyncService.createCommerceConnection(ctx, {
+					provider: "shopify",
+					name: "Shopify primary",
+					baseUrl: "https://store.example.com",
+					secretRef: "secret://commerce/shopify-primary"
+				});
+
+		if (connection.ok) {
+			const run = await deps.commerceSyncService.startSyncRun(ctx, connection.data.id, "product");
+			if (run.ok) {
+				await deps.commerceSyncService.completeSyncRun(ctx, run.data.id, {
+					processedCount: 128,
+					createdCount: 9,
+					updatedCount: 41,
+					failedCount: 0
+				});
+			}
+			await deps.commerceSyncService.recordProviderMapping(ctx, {
+				connectionId: connection.data.id,
+				resourceType: "product",
+				externalId: "gid://shopify/Product/1001",
+				internalId: seededProducts[0].id
+			});
+			await deps.commerceSyncService.recordWebhookReceipt(ctx, {
+				connectionId: connection.data.id,
+				topic: "orders/create",
+				idempotencyKey: "demo-orders-create-001",
+				signature: "sha256=demo",
+				payload: { orderId: "shopify-1001" }
+			});
 		}
 	}
 

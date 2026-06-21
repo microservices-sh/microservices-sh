@@ -10,17 +10,20 @@ Tenant-scoped customer payment application, open receivables, aging, and stateme
 import {
   createAccountsReceivableMemoryService,
   createAccountsReceivableMemoryStore,
+  createD1AccountsReceivableStore,
   createAccountsReceivableService
 } from "@microservices-sh/accounts-receivable";
 ```
 
 `createAccountsReceivableMemoryService()` preserves the synchronous in-memory API used by existing tests and local callers.
 
-`createAccountsReceivableService({ store })` is the durable-adapter-ready path. Store adapters implement `AccountsReceivableStore`; the module currently ships `createAccountsReceivableMemoryStore()` for tests and local development.
+`createAccountsReceivableService({ store })` is the durable-adapter-ready path. Store adapters implement `AccountsReceivableStore`; the module ships `createAccountsReceivableMemoryStore()` for tests and local development and `createD1AccountsReceivableStore(db)` for Cloudflare D1 runtimes.
 
 ## D1 Adapter Status
 
-The current migration owns customer payments, payment applications, and domain events. A complete D1 adapter also needs durable invoice snapshots for open receivables, aging, and statement generation. No module-owned invoice snapshot table is present yet, so D1 should wait until that table contract is added or verified.
+D1 is available through `createD1AccountsReceivableStore(db)` and package export `@microservices-sh/accounts-receivable/adapters/d1`.
+
+The migration owns durable invoice snapshots, customer payments, payment applications, and domain events. Invoice snapshots are module-local reporting snapshots for open receivables, aging, and statements; the canonical invoice module remains the invoice system of record.
 
 ## Ownership Boundary
 

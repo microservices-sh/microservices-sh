@@ -66,6 +66,7 @@ import {
 import {
   createAccountsReceivableMemoryStore,
   createAccountsReceivableService,
+  createD1AccountsReceivableStore,
   type AccountsReceivableService
 } from "@microservices-sh/accounts-receivable";
 import {
@@ -188,7 +189,9 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     bookingRepository: db ? createD1BookingRepository(db) : memoryBookingRepository,
     accountingCoreStore: db ? createD1AccountingCoreStore(db) : memoryAccountingCoreStore,
     accountsPayableStore: db ? createD1AccountsPayableStore(db) : memoryAccountsPayableStore,
-    accountsReceivableService: memoryAccountsReceivableService,
+    accountsReceivableService: db
+      ? createAccountsReceivableService({ store: createD1AccountsReceivableStore(db) })
+      : memoryAccountsReceivableService,
     bankReconciliationService: db
       ? createBankReconciliationService({ store: createD1BankReconciliationStore(db) })
       : memoryBankReconciliationService

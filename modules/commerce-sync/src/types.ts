@@ -124,6 +124,9 @@ export interface CommerceSyncService {
     input: CreateCommerceConnectionInput
   ): Promise<ModuleResult<CommerceConnection>>;
   listCommerceConnections(ctx: TenantContext): Promise<ModuleResult<CommerceConnection[]>>;
+  listProviderMappings(ctx: TenantContext): Promise<ModuleResult<ProviderMapping[]>>;
+  listSyncRuns(ctx: TenantContext): Promise<ModuleResult<SyncRun[]>>;
+  listWebhookReceipts(ctx: TenantContext): Promise<ModuleResult<WebhookReceipt[]>>;
   recordProviderMapping(ctx: TenantContext, input: RecordProviderMappingInput): Promise<ModuleResult<ProviderMapping>>;
   startSyncRun(ctx: TenantContext, connectionId: string, resourceType: CommerceResourceType): Promise<ModuleResult<SyncRun>>;
   completeSyncRun(ctx: TenantContext, runId: string, input: CompleteSyncRunInput): Promise<ModuleResult<SyncRun>>;
@@ -138,6 +141,9 @@ export interface CommerceSyncService {
 export interface CommerceSyncMemoryService {
   createCommerceConnection(ctx: TenantContext, input: CreateCommerceConnectionInput): ModuleResult<CommerceConnection>;
   listCommerceConnections(ctx: TenantContext): ModuleResult<CommerceConnection[]>;
+  listProviderMappings(ctx: TenantContext): ModuleResult<ProviderMapping[]>;
+  listSyncRuns(ctx: TenantContext): ModuleResult<SyncRun[]>;
+  listWebhookReceipts(ctx: TenantContext): ModuleResult<WebhookReceipt[]>;
   recordProviderMapping(ctx: TenantContext, input: RecordProviderMappingInput): ModuleResult<ProviderMapping>;
   startSyncRun(ctx: TenantContext, connectionId: string, resourceType: CommerceResourceType): ModuleResult<SyncRun>;
   completeSyncRun(ctx: TenantContext, runId: string, input: CompleteSyncRunInput): ModuleResult<SyncRun>;

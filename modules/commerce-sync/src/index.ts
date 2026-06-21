@@ -4,6 +4,7 @@ export { defaultCommerceSyncHooks } from "./hooks";
 export { commerceSyncEvents } from "./events";
 export { commerceSyncPermissions } from "./permissions";
 export { commerceSyncResources } from "./resources";
+export { createD1CommerceSyncStore } from "./adapters/d1-commerce-sync-store";
 export { createMemoryCommerceSyncStore } from "./adapters/memory-commerce-sync-store";
 export { createCommerceSyncMemoryService, createCommerceSyncService, getCommerceSyncModuleStatus } from "./service";
 export type { CreateCommerceSyncServiceOptions } from "./service";

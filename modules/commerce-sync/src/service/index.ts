@@ -79,6 +79,18 @@ export function createCommerceSyncService(options: CreateCommerceSyncServiceOpti
       return ok(await store.listConnections(ctx.tenantId));
     },
 
+    async listProviderMappings(ctx) {
+      return ok(await store.listMappings(ctx.tenantId));
+    },
+
+    async listSyncRuns(ctx) {
+      return ok(await store.listSyncRuns(ctx.tenantId));
+    },
+
+    async listWebhookReceipts(ctx) {
+      return ok(await store.listWebhookReceipts(ctx.tenantId));
+    },
+
     async recordProviderMapping(ctx, input) {
       const connection = await requireConnection(ctx, input.connectionId);
       if (!connection) return fail("connection_not_found", "Commerce connection not found.");
@@ -237,6 +249,30 @@ export function createCommerceSyncMemoryService(): CommerceSyncMemoryService {
 
     listCommerceConnections(ctx: TenantContext): ModuleResult<CommerceConnection[]> {
       return ok([...connections.values()].filter((connection) => connection.tenantId === ctx.tenantId));
+    },
+
+    listProviderMappings(ctx: TenantContext): ModuleResult<ProviderMapping[]> {
+      return ok(
+        [...mappings.values()]
+          .filter((mapping) => mapping.tenantId === ctx.tenantId)
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      );
+    },
+
+    listSyncRuns(ctx: TenantContext): ModuleResult<SyncRun[]> {
+      return ok(
+        [...runs.values()]
+          .filter((run) => run.tenantId === ctx.tenantId)
+          .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+      );
+    },
+
+    listWebhookReceipts(ctx: TenantContext): ModuleResult<WebhookReceipt[]> {
+      return ok(
+        [...receipts.values()]
+          .filter((receipt) => receipt.tenantId === ctx.tenantId)
+          .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt))
+      );
     },
 
     recordProviderMapping(ctx: TenantContext, input: RecordProviderMappingInput): ModuleResult<ProviderMapping> {

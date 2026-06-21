@@ -84,6 +84,13 @@ export function createMemoryCommerceSyncStore(): CommerceSyncStore {
       mappingKeys.set(key, mapping.id);
     },
 
+    async listMappings(tenantId) {
+      return [...mappings.values()]
+        .filter((mapping) => mapping.tenantId === tenantId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .map(cloneMapping);
+    },
+
     async insertSyncRun(run) {
       runs.set(run.id, cloneRun(run));
     },
@@ -95,6 +102,13 @@ export function createMemoryCommerceSyncStore(): CommerceSyncStore {
 
     async updateSyncRun(run) {
       runs.set(run.id, cloneRun(run));
+    },
+
+    async listSyncRuns(tenantId) {
+      return [...runs.values()]
+        .filter((run) => run.tenantId === tenantId)
+        .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+        .map(cloneRun);
     },
 
     async findWebhookReceiptByIdempotency(tenantId, connectionId, idempotencyKey) {
@@ -112,6 +126,13 @@ export function createMemoryCommerceSyncStore(): CommerceSyncStore {
       }
       receipts.set(receipt.id, cloneReceipt(receipt));
       receiptKeys.set(key, receipt.id);
+    },
+
+    async listWebhookReceipts(tenantId) {
+      return [...receipts.values()]
+        .filter((receipt) => receipt.tenantId === tenantId)
+        .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt))
+        .map(cloneReceipt);
     },
 
     async insertEnvelope(envelope) {

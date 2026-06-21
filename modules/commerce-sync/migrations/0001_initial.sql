@@ -48,6 +48,16 @@ CREATE TABLE IF NOT EXISTS commerce_sync_webhook_receipts (
   received_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS commerce_sync_envelopes (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  connection_id TEXT NOT NULL,
+  resource_type TEXT NOT NULL,
+  external_id TEXT NOT NULL,
+  payload TEXT NOT NULL DEFAULT '{}',
+  received_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS domain_events (
   id TEXT PRIMARY KEY,
   event_type TEXT NOT NULL,
@@ -59,3 +69,5 @@ CREATE TABLE IF NOT EXISTS domain_events (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_commerce_sync_mapping_external ON commerce_sync_mappings (tenant_id, provider, resource_type, external_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_commerce_sync_webhook_idempotency ON commerce_sync_webhook_receipts (tenant_id, connection_id, idempotency_key);
 CREATE INDEX IF NOT EXISTS idx_commerce_sync_runs_connection ON commerce_sync_runs (tenant_id, connection_id, status);
+CREATE INDEX IF NOT EXISTS idx_commerce_sync_envelopes_connection ON commerce_sync_envelopes (tenant_id, connection_id, resource_type, received_at);
+CREATE INDEX IF NOT EXISTS idx_commerce_sync_envelopes_external ON commerce_sync_envelopes (tenant_id, connection_id, resource_type, external_id);

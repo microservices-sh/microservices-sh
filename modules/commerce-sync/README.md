@@ -9,6 +9,7 @@ Provider-neutral commerce connections, mappings, sync runs, webhook receipts, an
 ```ts
 import {
   commerceSyncModule,
+  createD1CommerceSyncStore,
   createCommerceSyncService,
   createCommerceSyncMemoryService,
   createMemoryCommerceSyncStore
@@ -17,16 +18,15 @@ import {
 
 `createCommerceSyncService({ store })` is the durable-adapter-ready path. It uses the `CommerceSyncStore`
 port and returns promise-based module results. `createMemoryCommerceSyncStore()` provides a store adapter for
-unit tests and non-D1 runtimes.
+unit tests and non-D1 runtimes. `createD1CommerceSyncStore(DB)` provides the Cloudflare D1-backed adapter.
 
 `createCommerceSyncMemoryService()` remains the synchronous compatibility API from the draft module.
 
 ## Adapter Status
 
-The current migration has tables for connections, provider mappings, sync runs, webhook receipts, and domain events.
-It does not define a table for `NormalizedCommerceEnvelope`, which the service persists through
-`normalizeCommercePayload`. A D1 adapter should be added after the envelope table shape is verified or a migration is
-added for it.
+D1 and memory adapters are available behind the same `CommerceSyncStore` port. The D1 migration owns provider
+connections, provider mappings, sync runs, webhook receipts, normalized commerce envelopes, and domain events.
+Webhook payloads and normalized envelopes are serialized as JSON text.
 
 ## Ownership Boundary
 

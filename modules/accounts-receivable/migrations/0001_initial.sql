@@ -1,8 +1,28 @@
+CREATE TABLE IF NOT EXISTS ar_invoice_snapshots (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  customer_id TEXT NOT NULL,
+  invoice_number TEXT NOT NULL,
+  issued_at TEXT NOT NULL,
+  due_date TEXT NOT NULL,
+  total_cents INTEGER NOT NULL,
+  amount_paid_cents INTEGER NOT NULL DEFAULT 0,
+  amount_due_cents INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CHECK (total_cents >= 0),
+  CHECK (amount_paid_cents >= 0),
+  CHECK (amount_due_cents >= 0),
+  CHECK (status IN ('open', 'paid', 'void'))
+);
+
 CREATE TABLE IF NOT EXISTS ar_customer_payments (
   id TEXT PRIMARY KEY,
   tenant_id TEXT NOT NULL,
   customer_id TEXT NOT NULL,
   amount_cents INTEGER NOT NULL,
+  unapplied_cents INTEGER NOT NULL DEFAULT 0,
   currency TEXT NOT NULL DEFAULT 'USD',
   payment_method TEXT NOT NULL,
   reference_number TEXT,
@@ -38,6 +58,16 @@ CREATE TABLE IF NOT EXISTS domain_events (
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ar_payments_tenant_idempotency
   ON ar_customer_payments (tenant_id, idempotency_key);
+CREATE INDEX IF NOT EXISTS idx_ar_invoice_snapshots_tenant_customer_issued
+  ON ar_invoice_snapshots (tenant_id, customer_id, issued_at);
+CREATE INDEX IF NOT EXISTS idx_ar_invoice_snapshots_tenant_due
+  ON ar_invoice_snapshots (tenant_id, due_date);
+CREATE INDEX IF NOT EXISTS idx_ar_invoice_snapshots_tenant_open_due
+  ON ar_invoice_snapshots (tenant_id, due_date, customer_id)
+  WHERE amount_due_cents > 0 AND status <> 'void';
+CREATE INDEX IF NOT EXISTS idx_ar_invoice_snapshots_tenant_customer_open_due
+  ON ar_invoice_snapshots (tenant_id, customer_id, due_date)
+  WHERE amount_due_cents > 0 AND status <> 'void';
 CREATE INDEX IF NOT EXISTS idx_ar_payments_tenant_customer
   ON ar_customer_payments (tenant_id, customer_id);
 CREATE INDEX IF NOT EXISTS idx_ar_payments_tenant_received

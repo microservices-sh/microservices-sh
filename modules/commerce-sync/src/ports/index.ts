@@ -19,15 +19,18 @@ export interface CommerceSyncStore {
     externalId: string
   ): Promise<ProviderMapping | null>;
   insertMapping(mapping: ProviderMapping): Promise<void>;
+  listMappings(tenantId: string): Promise<ProviderMapping[]>;
   insertSyncRun(run: SyncRun): Promise<void>;
   getSyncRun(tenantId: string, runId: string): Promise<SyncRun | null>;
   updateSyncRun(run: SyncRun): Promise<void>;
+  listSyncRuns(tenantId: string): Promise<SyncRun[]>;
   findWebhookReceiptByIdempotency(
     tenantId: string,
     connectionId: string,
     idempotencyKey: string
   ): Promise<WebhookReceipt | null>;
   insertWebhookReceipt(receipt: WebhookReceipt): Promise<void>;
+  listWebhookReceipts(tenantId: string): Promise<WebhookReceipt[]>;
   insertEnvelope(envelope: NormalizedCommerceEnvelope): Promise<void>;
 }
 

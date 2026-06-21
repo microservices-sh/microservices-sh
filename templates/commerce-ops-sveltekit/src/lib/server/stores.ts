@@ -57,7 +57,7 @@ import { createD1ProductCatalogStore, createMemoryProductCatalogStore } from "@m
 import { createD1InventoryStore, createMemoryInventoryStore } from "@microservices-sh/inventory";
 import { createD1SalesOrderStore, createMemorySalesOrderStore } from "@microservices-sh/sales-order";
 import { createD1ShipmentStore, createMemoryShipmentStore } from "@microservices-sh/shipment";
-import { createCommerceSyncService, createMemoryCommerceSyncStore } from "@microservices-sh/commerce-sync";
+import { createCommerceSyncService, createD1CommerceSyncStore, createMemoryCommerceSyncStore } from "@microservices-sh/commerce-sync";
 
 import type { RbacStore } from "@microservices-sh/org-team-rbac/ports";
 import type { TableGateway } from "@microservices-sh/admin-shell/ports";
@@ -180,7 +180,9 @@ export function resolveStores(db: D1Binding, bucket: R2Binding): ServerStores {
     inventoryStore: db ? createD1InventoryStore(db) : memoryInventoryStore,
     salesOrderStore: db ? createD1SalesOrderStore(db) : memorySalesOrderStore,
     shipmentStore: db ? createD1ShipmentStore(db) : memoryShipmentStore,
-    commerceSyncService: memoryCommerceSyncService
+    commerceSyncService: db
+      ? createCommerceSyncService({ store: createD1CommerceSyncStore(db) })
+      : memoryCommerceSyncService
   };
 }
 

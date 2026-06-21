@@ -10,6 +10,7 @@ export {
   createSequentialAccountsReceivableIdFactory,
   getAccountsReceivableModuleStatus
 } from "./service";
+export { createD1AccountsReceivableStore } from "./adapters/d1";
 export { createAccountsReceivableMemoryStore } from "./adapters/memory";
 export type { AccountsReceivableHooks } from "./hooks";
 export type { AccountsReceivableListFilter, AccountsReceivableStore } from "./ports";

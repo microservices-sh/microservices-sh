@@ -5,17 +5,17 @@ Adapters implement `AccountsReceivableStore` for the store-backed service factor
 ## Available
 
 - `memory.ts`: in-memory `AccountsReceivableStore` for unit tests, local development, and compatibility checks.
+- `d1.ts`: Cloudflare D1 `AccountsReceivableStore` for durable invoice snapshots, customer payments, payment applications, open receivables, aging, and statements.
 
-## D1 Readiness
+## D1 Table Contract
 
-A D1 adapter should use prepared statements or `drizzle-orm/d1` behind `AccountsReceivableStore`, matching the repository data-access standard used by modules such as `booking`.
+D1 uses prepared statements behind `AccountsReceivableStore`, matching the repository data-access style used by adjacent modules.
 
-The current migration only creates:
+The migration creates:
 
+- `ar_invoice_snapshots`
 - `ar_customer_payments`
 - `ar_payment_applications`
 - `domain_events`
 
-The service also needs durable invoice snapshots for `upsertInvoiceSnapshot`, `listOpenReceivables`, aging, and statements. There is no existing `ar_invoice_snapshots` table or verified mapping to another module-owned invoice table in this module's migration. Because of that, a complete D1 adapter would be partial or would have to assume an unverified table contract.
-
-Before adding D1 here, add or verify a module-owned invoice snapshot table with columns for the `InvoiceSnapshot` shape, including tenant/customer indexes and open-receivable query coverage.
+`ar_invoice_snapshots` is a reporting snapshot table, not the canonical invoice source of truth. Keep invoice-system integration behind `upsertInvoiceSnapshot` or future event consumers.

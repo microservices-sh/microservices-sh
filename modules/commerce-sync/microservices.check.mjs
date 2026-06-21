@@ -14,4 +14,9 @@ export default function check({ assertFileIncludes }) {
     "idx_commerce_sync_webhook_idempotency",
     "Commerce Sync module enforces webhook idempotency."
   );
+  assertFileIncludes(
+    "migrations/0001_initial.sql",
+    "CREATE TABLE IF NOT EXISTS commerce_sync_envelopes",
+    "Commerce Sync module persists normalized commerce envelopes."
+  );
 }

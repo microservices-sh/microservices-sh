@@ -17,7 +17,8 @@
     "./resources": "./src/resources/index.ts",
     "./service": "./src/service/index.ts",
     "./ports": "./src/ports/index.ts",
-    "./adapters/memory": "./src/adapters/memory.ts"
+    "./adapters/memory": "./src/adapters/memory.ts",
+    "./adapters/d1": "./src/adapters/d1.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",

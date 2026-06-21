@@ -40,9 +40,11 @@ describe("commerce-sync", () => {
       internalId: "different"
     });
     expect(replayedMapping.data!.id).toBe(mapping.data!.id);
+    expect(service.listProviderMappings(ctx).data).toHaveLength(1);
 
     const run = service.startSyncRun(ctx, connection.data!.id, "order");
     expect(service.completeSyncRun(ctx, run.data!.id, { processedCount: 2, createdCount: 1, updatedCount: 1, failedCount: 0 }).data!.status).toBe("completed");
+    expect(service.listSyncRuns(ctx).data).toHaveLength(1);
 
     const receipt = service.recordWebhookReceipt(ctx, {
       connectionId: connection.data!.id,
@@ -60,6 +62,7 @@ describe("commerce-sync", () => {
     });
     expect(replayedReceipt.data!.id).toBe(receipt.data!.id);
     expect(replayedReceipt.data!.replayed).toBe(true);
+    expect(service.listWebhookReceipts(ctx).data).toHaveLength(1);
 
     const envelope = service.normalizeCommercePayload(ctx, {
       connectionId: connection.data!.id,
@@ -112,6 +115,7 @@ describe("commerce-sync", () => {
     });
     expect(replayedMapping.data!.id).toBe(mapping.data!.id);
     expect(replayedMapping.data!.internalId).toBe("prod_1");
+    expect((await service.listProviderMappings(ctx)).data).toHaveLength(1);
 
     const run = await service.startSyncRun(ctx, connection.data!.id, "product");
     const completed = await service.completeSyncRun(ctx, run.data!.id, {
@@ -122,6 +126,7 @@ describe("commerce-sync", () => {
     });
     expect(completed.data!.status).toBe("completed");
     expect((await service.failSyncRun(ctx, run.data!.id, "late failure")).error!.code).toBe("sync_run_closed");
+    expect((await service.listSyncRuns(ctx)).data).toHaveLength(1);
 
     const receipt = await service.recordWebhookReceipt(ctx, {
       connectionId: connection.data!.id,
@@ -139,6 +144,7 @@ describe("commerce-sync", () => {
     });
     expect(replayedReceipt.data!.id).toBe(receipt.data!.id);
     expect(replayedReceipt.data!.replayed).toBe(true);
+    expect((await service.listWebhookReceipts(ctx)).data).toHaveLength(1);
 
     const envelope = await service.normalizeCommercePayload(ctx, {
       connectionId: connection.data!.id,

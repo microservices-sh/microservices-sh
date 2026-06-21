@@ -15,6 +15,7 @@
     "./events": "./src/events/index.ts",
     "./permissions": "./src/permissions/index.ts",
     "./resources": "./src/resources/index.ts",
+    "./adapters/d1": "./src/adapters/d1-commerce-sync-store.ts",
     "./service": "./src/service/index.ts",
     "./ports": "./src/ports/index.ts"
   },

@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 48
+Phase 49
 
 ## Phases
 
@@ -360,18 +360,27 @@ Phase 48
 - [x] Add async store-backed service factories while preserving synchronous memory services for `accounts-receivable`, `bank-reconciliation`, and `commerce-sync`.
 - [x] Add memory store adapters and tests for store-backed accounts receivable, bank reconciliation, and commerce sync flows.
 - [x] Add a D1 bank reconciliation store mapped to the existing module migration tables.
-- [x] Document D1 blockers for accounts receivable and commerce sync where module-owned durable tables are not yet present.
+- [x] Document the temporary D1 blockers for accounts receivable and commerce sync where module-owned durable tables were not yet present.
 - [x] Verify focused module tests/build/spec checks plus full workspace spec validation.
-- [ ] Add accounts receivable D1 after an invoice snapshot table contract is added or verified.
-- [ ] Add commerce sync D1 after a normalized envelope table contract is added or verified.
-- **Status:** durable service ports complete; bank D1 ready; AR/commerce D1 pending table contracts
+- [x] Add accounts receivable D1 after an invoice snapshot table contract is added or verified. Completed in Phase 49.
+- [x] Add commerce sync D1 after a normalized envelope table contract is added or verified. Completed in Phase 49.
+- **Status:** durable service ports complete; D1 adapters complete for bank, accounts receivable, and commerce sync
 
 ### Phase 48: Focused Template Durable Service Wiring
 - [x] Wire `accounting-erp-sveltekit` receivables to the store-backed accounts receivable service.
 - [x] Wire `accounting-erp-sveltekit` banking to the store-backed bank reconciliation service, using D1 when the template DB binding exists.
 - [x] Wire `commerce-ops-sveltekit` commerce sync to the store-backed commerce sync service.
-- [x] Preserve memory-backed fallbacks where D1 adapters are intentionally pending.
+- [x] Preserve memory-backed fallbacks for local development while D1 adapters landed in Phase 49.
 - [x] Verify both focused template specs, both focused template builds, create-app bundle build, bundle closure, full workspace spec, and whitespace checks.
+- **Status:** complete
+
+### Phase 49: Accounts Receivable And Commerce Sync D1 Completion
+- [x] Add `ar_invoice_snapshots` and `createD1AccountsReceivableStore(db)` so receivables can run fully on D1.
+- [x] Add `commerce_sync_envelopes` and `createD1CommerceSyncStore(db)` so commerce sync can persist normalized envelopes on D1.
+- [x] Export D1 adapters from package roots and package subpaths.
+- [x] Wire focused accounting and commerce templates to use the new D1 stores when a DB binding exists.
+- [x] Move commerce sync demo data into local demo seeding so the commerce sync page reads persisted service state.
+- [x] Verify focused module tests/build/specs, migrations, focused template specs/builds, create-app build, bundle closure, full workspace spec, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions
