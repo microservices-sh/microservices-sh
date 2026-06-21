@@ -48,7 +48,7 @@ Two read-only explorer passes on 2026-06-21 identified the remaining adoption ga
 - AR now stores invoice snapshots/payments/aging, customer statements, manual invoice issue/payment/void sync, Stripe settlement sync, customer-payment settlement posting, and recurring auto-issued invoice sync. Remaining backlog is richer deposit-account configuration, unapplied balance reporting, and reusable statement/export contracts.
 - Banking now exposes imports, match suggestions, match creation, reconciliation start, and reconciliation completion in the accounting template workflow. Remaining backlog is CSV field mapping, duplicate handling, confirm/remove/exclude match lifecycle, clear/unclear operations, richer summaries/history, and provider/OCR hooks.
 - BAO invoice documents include commerce-specific projections: sales-order link, product-backed lines, contact/address snapshots, shipping status, shipping fee, discount, terms, payment method, PDF key, Stripe payment-link fields, and external IDs. Keep invoice core lean and put document snapshots in a template projection or an invoice-document extension.
-- BAO fulfillment links invoices, shipment batches, and stock movement. The commerce template now covers reservation/release, combo-component reservation, invoice-originated shipment deduction, shipment batches, packing slips, and pick lists. Remaining backlog is richer shipment detail/status routes and inventory reconciliation documents.
+- BAO fulfillment links invoices, shipment batches, and stock movement. The commerce template now covers reservation/release, combo-component reservation, invoice-originated shipment deduction, shipment batches, shipment detail, packing slips, and pick lists. Remaining backlog is richer shipment status transitions and inventory reconciliation documents.
 - BAO WooCommerce behavior remains provider-specific. The current template has HMAC verification, manual page sync, signed order webhooks, order import, and audit events; future provider depth should stay below `commerce-sync` adapters and template bridges.
 - BAO MCP/reporting tools are useful, but write-capable tools still need scoped tokens, audit logging, and strict provider/tenant wrappers before public exposure.
 - The focused-template metadata mismatch around `gateway` has been closed by declaring gateway in manifests, locks, enabled-module lists, checks, and migrations while leaving API-key UI as future work.
@@ -348,7 +348,7 @@ Done for the first accounting/commerce operator surface:
 Remaining routes should be added only after the backing module API exists:
 
 - accounting setup, chart, fiscal periods, AP recurring bill detail pages, banking import/reconciliation detail.
-- commerce sales-order detail/create/send, shipment detail/packing slip, sync logs, MCP settings, persistent inventory count documents, and inventory alerts.
+- commerce sales-order detail/create/send, richer shipment status transitions, sync logs, MCP settings, persistent inventory count documents, and inventory alerts.
 
 ### Phase 3: External Operations
 

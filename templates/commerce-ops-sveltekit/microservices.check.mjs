@@ -192,8 +192,13 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/shipments/+page.server.ts",
-    ["createShipmentInventoryPort", "completeShipment", "shipmentDocuments", "customerSnapshot", "expandProductComponents", "pickListPrintItems"],
+    ["createShipmentInventoryPort", "completeShipment", "shipmentDocuments", "buildShipmentPrintDocument", "salesOrderIdsForShipment"],
     "Shipment completion uses the shared inventory bridge and exposes alias-aware, combo-expanded shipping context for packing slips."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/shipment-documents.ts",
+    ["buildShipmentPrintDocument", "customerSnapshot", "expandProductComponents", "pickListPrintItems", "orderId"],
+    "Shared shipment document context preserves sales-order snapshots, aliases, and combo-expanded pick lists for list and detail routes."
   );
   assertFileIncludesAll(
     "src/lib/server/shipment-inventory.ts",
@@ -207,8 +212,18 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/shipments/+page.svelte",
-    ["printShipmentPackingSlip", "printShipmentPickList", "pickItems", "Packing slip", "Pick list"],
-    "Shipments page exposes StackSuite-style packing slip and pick-list print actions."
+    ["printShipmentPackingSlip", "printShipmentPickList", "pickItems", "Packing slip", "Pick list", "/app/shipments/${shipment.id}"],
+    "Shipments page exposes StackSuite-style packing slip, pick-list, and detail route actions."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/shipments/[id]/+page.server.ts",
+    ["getShipment", "buildShipmentPrintDocument", "completeShipment", "source: \"app/shipments/detail\""],
+    "Shipment detail route resolves one batch through the module, reuses print document context, and completes through the inventory bridge."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/shipments/[id]/+page.svelte",
+    ["printShipmentPackingSlip", "printShipmentPickList", "Packing slip", "Pick list", "Complete shipment", "shipment.items"],
+    "Shipment detail page exposes printable documents, line review, and guarded completion."
   );
   assertFileIncludesAll(
     "src/lib/packing-slip.ts",

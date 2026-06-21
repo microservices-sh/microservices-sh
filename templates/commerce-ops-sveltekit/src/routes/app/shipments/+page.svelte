@@ -89,11 +89,12 @@
             <li>
               <div class="shipment-head">
                 <div>
-                  <strong>{shipment.shipmentNumber ?? shipment.id}</strong>
+                  <strong><a href={`/app/shipments/${shipment.id}`}>{shipment.shipmentNumber ?? shipment.id}</a></strong>
                   <p>{shipment.carrier ?? "No carrier"}{shipment.trackingNumber ? ` · ${shipment.trackingNumber}` : ""}</p>
                 </div>
                 <div class="shipment-actions">
                   <Badge tone={shipmentTone(shipment.status)}>{shipment.status}</Badge>
+                  <Button href={`/app/shipments/${shipment.id}`} variant="ghost" size="sm">Open</Button>
                   <Button type="button" variant="ghost" size="sm" onclick={() => printShipmentPackingSlip(printData(shipment))}>Packing slip</Button>
                   <Button type="button" variant="ghost" size="sm" onclick={() => printShipmentPickList(printData(shipment))}>Pick list</Button>
                   {#if data.canManage && shipment.status !== "completed" && shipment.status !== "cancelled"}

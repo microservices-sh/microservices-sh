@@ -1863,3 +1863,19 @@
 | Create app package | Packaged CLI rebuilds and tests remain green after catalog/docs changes | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
 | Workspace specs | All module/template specs remain green with the full locked-module guard | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 86 commerce shipment detail route proof
+
+- **Status:** complete.
+- Goal: close the commerce route gap for shipment detail and printable fulfillment documents without moving document rendering out of the template adapter layer.
+- Added shared shipment print-document context so the list and detail routes reuse the same sales-order snapshot, product alias, and combo-expanded pick-list logic.
+- Added `/app/shipments/[id]` backed by `getShipment`, related sales-order lookup, audit timeline, packing-slip and pick-list print actions, and guarded completion through the existing shipment inventory bridge.
+- Linked the shipment list to each detail page and added commerce template policy checks for the helper, list link, and detail route.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Commerce template spec | Policy catches the shipment helper, list link, and detail route proof | `pnpm --dir templates/commerce-ops-sveltekit check:spec` passed | Pass |
+| Commerce template build | SvelteKit/Cloudflare build compiles after shipment route additions | `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
+| Create app package | Packaged commerce template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

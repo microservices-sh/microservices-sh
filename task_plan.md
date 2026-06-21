@@ -665,6 +665,14 @@ Phase 85
 - [x] Verify catalog JSON, duplicate-free catalogs, focused tests, package builds, representative template checks, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 
+### Phase 86: Commerce Shipment Detail Route Proof
+- [x] Add shared shipment print-document context for list and detail routes.
+- [x] Add `/app/shipments/[id]` backed by `getShipment`, related sales-order lookup, print actions, activity, and guarded completion.
+- [x] Link the shipment list to the detail route.
+- [x] Add commerce template policy checks for the shared helper, list link, and detail route.
+- [x] Verify commerce template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

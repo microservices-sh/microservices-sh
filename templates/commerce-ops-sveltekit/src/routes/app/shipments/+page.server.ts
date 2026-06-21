@@ -1,11 +1,10 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { recordEvent } from "@microservices-sh/audit-log";
-import { expandProductComponents, type Product } from "@microservices-sh/product-catalog";
 import { createShipment, completeShipment, listShipments } from "@microservices-sh/shipment";
 import { getOrder, listOrders } from "@microservices-sh/sales-order";
 import { money } from "$lib/format";
-import type { ShipmentPrintItem } from "$lib/packing-slip";
+import { buildShipmentPrintDocument, salesOrderIdsForShipment } from "$lib/server/shipment-documents";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 import { createShipmentInventoryPort } from "$lib/server/shipment-inventory";
@@ -16,62 +15,6 @@ function text(value: FormDataEntryValue | null): string {
 
 function isReadyOrderStatus(status: string): boolean {
   return status === "confirmed" || status === "invoiced";
-}
-
-function salesOrderIdsForShipment(shipment: { externalSource: string | null; externalId: string | null; items: Array<{ sourceType: string; sourceId: string }> }): string[] {
-  const ids = new Set<string>();
-  if (shipment.externalSource === "sales-order" && shipment.externalId) ids.add(shipment.externalId);
-  for (const item of shipment.items) {
-    if (item.sourceType === "sales-order") ids.add(item.sourceId);
-  }
-  return [...ids];
-}
-
-function printItemLabel(product: Product | null, fallback: string): string {
-  return product?.alias || product?.name || fallback;
-}
-
-async function orderedPrintItems(locals: App.Locals, tenantId: string, items: Array<{ productId: string | null; sku: string | null; description: string; quantity: number }>): Promise<ShipmentPrintItem[]> {
-  return Promise.all(
-    items.map(async (item) => {
-      const product = item.productId ? await locals.productCatalogStore.getProduct(tenantId, item.productId) : null;
-      return {
-        sku: product?.sku ?? item.sku,
-        description: printItemLabel(product, item.description),
-        quantity: item.quantity
-      };
-    })
-  );
-}
-
-async function pickListPrintItems(locals: App.Locals, tenantId: string, items: Array<{ productId: string | null; sku: string | null; description: string; quantity: number }>): Promise<ShipmentPrintItem[]> {
-  const expanded: ShipmentPrintItem[] = [];
-  for (const item of items) {
-    if (!item.productId) {
-      expanded.push({ sku: item.sku, description: item.description, quantity: item.quantity });
-      continue;
-    }
-
-    const components = await expandProductComponents(
-      { tenantId, productId: item.productId, quantity: item.quantity },
-      { productCatalogStore: locals.productCatalogStore }
-    );
-    if (!components.ok || !components.data) {
-      const product = await locals.productCatalogStore.getProduct(tenantId, item.productId);
-      expanded.push({ sku: product?.sku ?? item.sku, description: printItemLabel(product, item.description), quantity: item.quantity });
-      continue;
-    }
-
-    for (const component of components.data.components) {
-      const product = await locals.productCatalogStore.getProduct(tenantId, component.productId);
-      expanded.push({
-        sku: product?.sku ?? item.sku,
-        description: printItemLabel(product, item.description),
-        quantity: component.quantity
-      });
-    }
-  }
-  return expanded;
 }
 
 export const load: PageServerLoad = async ({ locals, cookies, parent, platform }) => {
@@ -94,24 +37,8 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
   const shipmentDocuments = await Promise.all(shipments.map(async (shipment) => {
     const order = salesOrderIdsForShipment(shipment)
       .map((id) => ordersById.get(id))
-      .find(Boolean);
-    const snapshot = order?.customerSnapshot ?? null;
-    const [items, pickItems] = await Promise.all([
-      orderedPrintItems(locals, activeOrgId, shipment.items),
-      pickListPrintItems(locals, activeOrgId, shipment.items)
-    ]);
-    return {
-      shipmentId: shipment.id,
-      orderNumber: order?.orderNumber ?? (shipment.externalSource === "sales-order" ? shipment.externalId : null),
-      orderStatus: order?.status ?? null,
-      customerName: snapshot?.displayName ?? null,
-      customerEmail: snapshot?.email ?? null,
-      customerPhone: snapshot?.phone ?? null,
-      shippingAddress: snapshot?.shippingAddress ?? snapshot?.billingAddress ?? null,
-      orderNotes: order?.notes ?? null,
-      items,
-      pickItems
-    };
+      .find(Boolean) ?? null;
+    return buildShipmentPrintDocument(locals, activeOrgId, shipment, order);
   }));
   const shippedOrderIds = new Set(
     shipments
