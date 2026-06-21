@@ -41,6 +41,38 @@ export function createStorageEntitlementsMemoryStore(initialState: StorageEntitl
       return account ? copy(account) : null;
     },
 
+    async insertAccountIfMissing(account) {
+      const key = ownerKey(account.tenantId, account.ownerType, account.ownerId);
+      if (!accounts.has(key)) accounts.set(key, copy(account));
+    },
+
+    async reserveAccountBytes(tenantId, ownerType, ownerId, sizeBytes, updatedAt) {
+      const key = ownerKey(tenantId, ownerType, ownerId);
+      const account = accounts.get(key);
+      if (!account || account.usedBytes + sizeBytes > account.quotaBytes) return null;
+      const updated = { ...account, usedBytes: account.usedBytes + sizeBytes, updatedAt };
+      accounts.set(key, copy(updated));
+      return copy(updated);
+    },
+
+    async releaseAccountBytes(tenantId, ownerType, ownerId, sizeBytes, updatedAt) {
+      const key = ownerKey(tenantId, ownerType, ownerId);
+      const account = accounts.get(key);
+      if (!account) return null;
+      const updated = { ...account, usedBytes: Math.max(0, account.usedBytes - sizeBytes), updatedAt };
+      accounts.set(key, copy(updated));
+      return copy(updated);
+    },
+
+    async addQuotaBytes(tenantId, ownerType, ownerId, quotaBytes, updatedAt) {
+      const key = ownerKey(tenantId, ownerType, ownerId);
+      const account = accounts.get(key);
+      if (!account) return null;
+      const updated = { ...account, quotaBytes: account.quotaBytes + quotaBytes, updatedAt };
+      accounts.set(key, copy(updated));
+      return copy(updated);
+    },
+
     async upsertAccount(account) {
       accounts.set(ownerKey(account.tenantId, account.ownerType, account.ownerId), copy(account));
     },

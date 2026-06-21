@@ -85,10 +85,41 @@ function toShare(row: Record<string, unknown>): StorageShareLink {
 }
 
 export function createD1StorageEntitlementsStore(db: D1Database): StorageEntitlementsStore {
+  async function getAccount(tenantId: string, ownerType: StorageOwnerType, ownerId: string): Promise<StorageAccount | null> {
+    const row = await db.prepare(`SELECT ${ACCOUNT_COLS} FROM storage_accounts WHERE tenant_id = ? AND owner_type = ? AND owner_id = ?`).bind(tenantId, ownerType, ownerId).first<Record<string, unknown>>();
+    return row ? toAccount(row) : null;
+  }
+
   return {
-    async getAccount(tenantId, ownerType, ownerId) {
-      const row = await db.prepare(`SELECT ${ACCOUNT_COLS} FROM storage_accounts WHERE tenant_id = ? AND owner_type = ? AND owner_id = ?`).bind(tenantId, ownerType, ownerId).first<Record<string, unknown>>();
-      return row ? toAccount(row) : null;
+    getAccount,
+    async insertAccountIfMissing(account) {
+      await db.prepare(`INSERT INTO storage_accounts (${ACCOUNT_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(tenant_id, owner_type, owner_id) DO NOTHING`)
+        .bind(account.id, account.tenantId, account.ownerType, account.ownerId, account.quotaBytes, account.usedBytes, account.createdAt, account.updatedAt)
+        .run();
+    },
+    async reserveAccountBytes(tenantId, ownerType, ownerId, sizeBytes, updatedAt) {
+      const result = await db
+        .prepare("UPDATE storage_accounts SET used_bytes = used_bytes + ?, updated_at = ? WHERE tenant_id = ? AND owner_type = ? AND owner_id = ? AND used_bytes + ? <= quota_bytes")
+        .bind(sizeBytes, updatedAt, tenantId, ownerType, ownerId, sizeBytes)
+        .run();
+      if (Number(result.meta?.changes ?? 0) === 0) return null;
+      return getAccount(tenantId, ownerType, ownerId);
+    },
+    async releaseAccountBytes(tenantId, ownerType, ownerId, sizeBytes, updatedAt) {
+      const result = await db
+        .prepare("UPDATE storage_accounts SET used_bytes = CASE WHEN used_bytes > ? THEN used_bytes - ? ELSE 0 END, updated_at = ? WHERE tenant_id = ? AND owner_type = ? AND owner_id = ?")
+        .bind(sizeBytes, sizeBytes, updatedAt, tenantId, ownerType, ownerId)
+        .run();
+      if (Number(result.meta?.changes ?? 0) === 0) return null;
+      return getAccount(tenantId, ownerType, ownerId);
+    },
+    async addQuotaBytes(tenantId, ownerType, ownerId, quotaBytes, updatedAt) {
+      const result = await db
+        .prepare("UPDATE storage_accounts SET quota_bytes = quota_bytes + ?, updated_at = ? WHERE tenant_id = ? AND owner_type = ? AND owner_id = ?")
+        .bind(quotaBytes, updatedAt, tenantId, ownerType, ownerId)
+        .run();
+      if (Number(result.meta?.changes ?? 0) === 0) return null;
+      return getAccount(tenantId, ownerType, ownerId);
     },
     async upsertAccount(account) {
       await db.prepare(`INSERT INTO storage_accounts (${ACCOUNT_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(tenant_id, owner_type, owner_id) DO UPDATE SET quota_bytes = excluded.quota_bytes, used_bytes = excluded.used_bytes, updated_at = excluded.updated_at`)

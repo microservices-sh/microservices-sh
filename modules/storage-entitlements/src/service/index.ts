@@ -27,6 +27,8 @@ export interface StorageEntitlementsServiceDeps {
 export interface StorageEntitlementsService {
   getStorageInfo(ctx: TenantContext, ownerType: StorageOwnerType, ownerId: string): Promise<ModuleResult<StorageInfo>>;
   canStoreBytes(ctx: TenantContext, input: StorageUsageInput): Promise<ModuleResult<StorageInfo>>;
+  reserveStorageBytes(ctx: TenantContext, input: StorageUsageInput): Promise<ModuleResult<StorageAccount>>;
+  releaseStorageBytes(ctx: TenantContext, input: StorageUsageInput): Promise<ModuleResult<StorageAccount>>;
   recordFileStored(ctx: TenantContext, input: StorageUsageInput): Promise<ModuleResult<StorageAccount>>;
   recordFileDeleted(ctx: TenantContext, input: StorageUsageInput): Promise<ModuleResult<StorageAccount>>;
   createStoragePackage(ctx: TenantContext, input: CreateStoragePackageInput): Promise<ModuleResult<StoragePackage>>;
@@ -120,8 +122,8 @@ export function createStorageEntitlementsService(deps: StorageEntitlementsServic
       createdAt: timestamp,
       updatedAt: timestamp
     };
-    await deps.store.upsertAccount(account);
-    return account;
+    await deps.store.insertAccountIfMissing(account);
+    return (await deps.store.getAccount(ctx.tenantId, ownerType, ownerId)) ?? account;
   }
 
   async function resolvePurchase(ctx: TenantContext, input: CompleteStoragePurchaseInput): Promise<StoragePurchase | null> {
@@ -134,6 +136,24 @@ export function createStorageEntitlementsService(deps: StorageEntitlementsServic
     const link = await deps.store.getShareLinkByShortId(ctx.tenantId, shortId.trim());
     if (!link || link.revokedAt || link.expiresAt <= now(ctx)) return fail("share_link_not_found", "Share link was not found or has expired.");
     return ok(link);
+  }
+
+  async function reserveStorageBytes(ctx: TenantContext, input: StorageUsageInput): Promise<ModuleResult<StorageAccount>> {
+    const sizeBytes = positiveInteger(input.sizeBytes);
+    if (!sizeBytes) return fail("size_required", "Storage operation requires a positive byte size.");
+    await getOrCreateAccount(ctx, input.ownerType, input.ownerId);
+    const updated = await deps.store.reserveAccountBytes(ctx.tenantId, input.ownerType, input.ownerId, sizeBytes, now(ctx));
+    if (!updated) return fail("storage_quota_exceeded", "Storage quota would be exceeded.");
+    return ok(updated);
+  }
+
+  async function releaseStorageBytes(ctx: TenantContext, input: StorageUsageInput): Promise<ModuleResult<StorageAccount>> {
+    const sizeBytes = positiveInteger(input.sizeBytes);
+    if (!sizeBytes) return fail("size_required", "Storage operation requires a positive byte size.");
+    await getOrCreateAccount(ctx, input.ownerType, input.ownerId);
+    const updated = await deps.store.releaseAccountBytes(ctx.tenantId, input.ownerType, input.ownerId, sizeBytes, now(ctx));
+    if (!updated) return fail("storage_account_not_found", "Storage account was not found.");
+    return ok(updated);
   }
 
   return {
@@ -150,24 +170,13 @@ export function createStorageEntitlementsService(deps: StorageEntitlementsServic
       return ok(usage(account));
     },
 
-    async recordFileStored(ctx, input) {
-      const sizeBytes = positiveInteger(input.sizeBytes);
-      if (!sizeBytes) return fail("size_required", "Storage operation requires a positive byte size.");
-      const account = await getOrCreateAccount(ctx, input.ownerType, input.ownerId);
-      if (account.usedBytes + sizeBytes > account.quotaBytes) return fail("storage_quota_exceeded", "Storage quota would be exceeded.");
-      const updated = { ...account, usedBytes: account.usedBytes + sizeBytes, updatedAt: now(ctx) };
-      await deps.store.upsertAccount(updated);
-      return ok(updated);
-    },
+    reserveStorageBytes,
 
-    async recordFileDeleted(ctx, input) {
-      const sizeBytes = positiveInteger(input.sizeBytes);
-      if (!sizeBytes) return fail("size_required", "Storage operation requires a positive byte size.");
-      const account = await getOrCreateAccount(ctx, input.ownerType, input.ownerId);
-      const updated = { ...account, usedBytes: Math.max(0, account.usedBytes - sizeBytes), updatedAt: now(ctx) };
-      await deps.store.upsertAccount(updated);
-      return ok(updated);
-    },
+    releaseStorageBytes,
+
+    recordFileStored: reserveStorageBytes,
+
+    recordFileDeleted: releaseStorageBytes,
 
     async createStoragePackage(ctx, input) {
       if (!input.name.trim()) return fail("package_name_required", "Storage package name is required.");
@@ -233,16 +242,16 @@ export function createStorageEntitlementsService(deps: StorageEntitlementsServic
         return ok({ account, purchase });
       }
       if (purchase.status !== "pending") return fail("purchase_not_completable", "Only pending storage purchases can be completed.");
-      const account = await getOrCreateAccount(ctx, purchase.ownerType, purchase.ownerId);
+      await getOrCreateAccount(ctx, purchase.ownerType, purchase.ownerId);
       const timestamp = now(ctx);
-      const updatedAccount = { ...account, quotaBytes: account.quotaBytes + purchase.storageBytes, updatedAt: timestamp };
+      const updatedAccount = await deps.store.addQuotaBytes(ctx.tenantId, purchase.ownerType, purchase.ownerId, purchase.storageBytes, timestamp);
+      if (!updatedAccount) return fail("storage_account_not_found", "Storage account was not found.");
       const updatedPurchase = {
         ...purchase,
         status: "completed" as const,
         externalPaymentId: cleanText(input.externalPaymentId) ?? purchase.externalPaymentId,
         completedAt: timestamp
       };
-      await deps.store.upsertAccount(updatedAccount);
       await deps.store.updatePurchase(updatedPurchase);
       return ok({ account: updatedAccount, purchase: updatedPurchase });
     },

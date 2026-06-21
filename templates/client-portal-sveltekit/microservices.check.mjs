@@ -16,9 +16,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       "@microservices-sh/storage-entitlements",
       "createUploadTicketScoped",
       "completeUploadScoped",
-      "canStoreBytes",
-      "recordFileStored",
-      "recordFileDeleted",
+      "reserveStorageBytes",
+      "releaseStorageBytes",
       "releaseReservation",
       "ownerId: user.customerId"
     ],

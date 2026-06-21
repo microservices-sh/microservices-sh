@@ -2,7 +2,7 @@
 
 Module ID: storage-entitlements
 Status: draft
-Purpose: Storage quota packages, one-time purchase completion, expiring share links, and download counting.
+Purpose: Atomic storage quota reservation, storage packages, one-time purchase completion, expiring share links, and download counting.
 Entrypoint: src/index.ts
 Check: pnpm --filter @microservices-sh/storage-entitlements check:spec
 Build: pnpm --filter @microservices-sh/storage-entitlements build

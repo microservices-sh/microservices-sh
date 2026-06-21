@@ -38,10 +38,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
   // Quota-gated two-step upload, end to end:
-  //   0. storage-entitlements checks and reserves customer quota.
   //   1. createUploadTicket — validate + reserve a tenant-scoped key tied to the customer ownerId.
-  //   2. PUT the bytes to that key, then completeUpload — verify and record.
-  //   3. release the quota reservation if any later step fails.
+  //   2. reserveStorageBytes — atomically reserve customer quota.
+  //   3. PUT the bytes to that key, then completeUpload — verify and record.
+  //   4. releaseStorageBytes if any later step fails.
   // The modules own content-type allowlisting, size limits, quota, and lifecycle;
   // the route only moves bytes and maps results.
   upload: async ({ request, locals }) => {
@@ -65,16 +65,6 @@ export const actions: Actions = {
       config: storageEntitlementsConfig
     });
     const storageCtx = { tenantId: locals.tenantId, actorId: user.id };
-    const quota = await storageEntitlements.canStoreBytes(storageCtx, {
-      ownerType: "customer",
-      ownerId: user.customerId,
-      sizeBytes: file.size
-    });
-    if (!quota.ok) {
-      return fail(quota.error?.code === "storage_quota_exceeded" ? 413 : 422, {
-        error: quota.error?.message ?? "Storage quota check failed."
-      });
-    }
 
     const ticket = await createUploadTicketScoped(
       ctx,
@@ -90,7 +80,7 @@ export const actions: Actions = {
       return fail(ticket.ok ? 422 : ticket.status, { error: ticket.ok ? "Upload was skipped." : ticket.error.message });
     }
 
-    const reserved = await storageEntitlements.recordFileStored(storageCtx, {
+    const reserved = await storageEntitlements.reserveStorageBytes(storageCtx, {
       ownerType: "customer",
       ownerId: user.customerId,
       sizeBytes: file.size
@@ -102,7 +92,7 @@ export const actions: Actions = {
     }
 
     const releaseReservation = async () => {
-      await storageEntitlements.recordFileDeleted(storageCtx, {
+      await storageEntitlements.releaseStorageBytes(storageCtx, {
         ownerType: "customer",
         ownerId: user.customerId,
         sizeBytes: file.size

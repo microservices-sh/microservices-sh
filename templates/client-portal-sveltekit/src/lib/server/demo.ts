@@ -3,7 +3,7 @@
  *
  * Seeds the in-memory module stores once per dev session by calling the
  * modules' own use cases (createInvoice/issueInvoice, createUploadTicket/
- * completeUpload, upsertCustomer, recordEvent). No domain logic lives here:
+ * reserveStorageBytes/completeUpload, upsertCustomer, recordEvent). No domain logic lives here:
  * it only drives the public module surface so the portal renders real data
  * locally without D1/R2. When DB/R2 bindings exist the seeding is skipped and
  * the persisted stores are used instead.
@@ -120,20 +120,36 @@ export async function seedDemoData(deps: DemoDeps): Promise<void> {
       { mediaStore: deps.mediaStore }
     );
     if (ticket.ok && ticket.data.ticketId) {
+      const body = "%PDF-1.4 demo statement";
+      const reservation = await storageEntitlements.reserveStorageBytes(
+        { tenantId: deps.tenantId, actorId: "system:seed" },
+        { ownerType: "customer", ownerId: customer.id, sizeBytes: body.length }
+      );
+      if (!reservation.ok) continue;
+
       // Land bytes at the reserved key, then complete. The memory object storage
       // exposes setSize so head() reports a size; real R2 reflects the PUT.
-      const body = "%PDF-1.4 demo statement";
-      await deps.objectStorage.put(ticket.data.key, body, { contentType: "application/pdf" });
-      deps.objectStorage.setSize?.(ticket.data.key, { size: body.length, contentType: "application/pdf" });
-      const completed = await completeUpload(
-        { ticketId: ticket.data.ticketId, tenantId: deps.tenantId },
-        { mediaStore: deps.mediaStore, storage: deps.objectStorage }
-      );
-      if (completed.ok) {
-        await storageEntitlements.recordFileStored(
-          { tenantId: deps.tenantId, actorId: "system:seed" },
-          { ownerType: "customer", ownerId: customer.id, sizeBytes: body.length }
+      let completedOk = false;
+      try {
+        await deps.objectStorage.put(ticket.data.key, body, { contentType: "application/pdf" });
+        deps.objectStorage.setSize?.(ticket.data.key, { size: body.length, contentType: "application/pdf" });
+        const completed = await completeUpload(
+          { ticketId: ticket.data.ticketId, tenantId: deps.tenantId },
+          { mediaStore: deps.mediaStore, storage: deps.objectStorage }
         );
+        completedOk = completed.ok;
+      } finally {
+        if (!completedOk) {
+          await storageEntitlements.releaseStorageBytes(
+            { tenantId: deps.tenantId, actorId: "system:seed" },
+            { ownerType: "customer", ownerId: customer.id, sizeBytes: body.length }
+          );
+          try {
+            await deps.objectStorage.delete(ticket.data.key);
+          } catch {
+            /* demo seed cleanup is best-effort */
+          }
+        }
       }
     }
   }

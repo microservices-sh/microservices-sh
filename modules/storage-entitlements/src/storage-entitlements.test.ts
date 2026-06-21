@@ -23,7 +23,23 @@ const ctx: TenantContext = {
 };
 
 describe("storage-entitlements service", () => {
-  it("enforces quota and updates used bytes", async () => {
+  it("reserves quota and releases unused bytes", async () => {
+    const storage = service();
+    const reserved = unwrap(await storage.reserveStorageBytes(ctx, { ownerType: "user", ownerId: "user_1", sizeBytes: 600 }));
+    expect(reserved.usedBytes).toBe(600);
+
+    const rejected = await storage.reserveStorageBytes(ctx, { ownerType: "user", ownerId: "user_1", sizeBytes: 500 });
+    expect(rejected.ok).toBe(false);
+    expect(rejected.error?.code).toBe("storage_quota_exceeded");
+
+    const released = unwrap(await storage.releaseStorageBytes(ctx, { ownerType: "user", ownerId: "user_1", sizeBytes: 250 }));
+    expect(released.usedBytes).toBe(350);
+
+    const floored = unwrap(await storage.releaseStorageBytes(ctx, { ownerType: "user", ownerId: "user_1", sizeBytes: 500 }));
+    expect(floored.usedBytes).toBe(0);
+  });
+
+  it("keeps legacy file accounting methods as reservation aliases", async () => {
     const storage = service();
     const stored = unwrap(await storage.recordFileStored(ctx, { ownerType: "user", ownerId: "user_1", sizeBytes: 600 }));
     expect(stored.usedBytes).toBe(600);
@@ -38,6 +54,7 @@ describe("storage-entitlements service", () => {
 
   it("completes package purchases idempotently and increases quota once", async () => {
     const storage = service();
+    unwrap(await storage.reserveStorageBytes(ctx, { ownerType: "user", ownerId: "user_1", sizeBytes: 600 }));
     const pkg = unwrap(
       await storage.createStoragePackage(ctx, {
         id: "pkg_10gb",
@@ -52,9 +69,11 @@ describe("storage-entitlements service", () => {
     const completed = unwrap(await storage.completeStoragePurchase(ctx, { externalSessionId: "sess_1", externalPaymentId: "pay_1" }));
     expect(completed.purchase.id).toBe(purchase.id);
     expect(completed.account.quotaBytes).toBe(11000);
+    expect(completed.account.usedBytes).toBe(600);
 
     const again = unwrap(await storage.completeStoragePurchase(ctx, { externalSessionId: "sess_1", externalPaymentId: "pay_1" }));
     expect(again.account.quotaBytes).toBe(11000);
+    expect(again.account.usedBytes).toBe(600);
   });
 
   it("creates expiring share links and records downloads only while active", async () => {

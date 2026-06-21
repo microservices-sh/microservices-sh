@@ -32,7 +32,7 @@ src/routes/portal/invoices/+page.server.ts
   -> parse session + call listInvoices (customerId-scoped)
 
 src/routes/portal/files/+page.server.ts
-  -> owner-scoped listFiles + quota reservation/release + two-step upload: createUploadTicket -> PUT bytes -> completeUpload
+  -> owner-scoped listFiles + atomic quota reservation/release + two-step upload: createUploadTicket -> PUT bytes -> completeUpload
 
 modules/invoice/src/use-cases/*.ts        -> billing behavior
 modules/file-media/src/use-cases/*.ts     -> document/file behavior

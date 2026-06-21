@@ -12,7 +12,8 @@ Safe first actions:
 
 Mutation rules:
 
-- Check quota before recording stored bytes.
+- Reserve quota with `reserveStorageBytes` before object writes; release it with
+  `releaseStorageBytes` if the write or downstream media completion fails.
 - Complete each purchase once; external session ids are idempotency keys.
 - Share links expire at 1, 7, or 30 days and can be revoked.
 - This module does not sign R2 URLs or delete objects.

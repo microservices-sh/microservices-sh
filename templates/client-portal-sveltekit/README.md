@@ -47,7 +47,7 @@ system — colors, fonts, radius, shadows — lives in one `@theme` block in
 
 Customer sessions are scoped to their own `customerId`; file reads and uploads
 pass that id as `ownerId` to `@microservices-sh/file-media`; uploads also call
-`@microservices-sh/storage-entitlements` to check and reserve per-customer quota,
+`@microservices-sh/storage-entitlements` to atomically reserve per-customer quota,
 then release the reservation if the file-media flow fails. Staff routes require `role === "staff"` from `ADMIN_EMAILS`. Local dev can still use explicit
 `?role=staff` / `?role=customer` links for demo data.
 

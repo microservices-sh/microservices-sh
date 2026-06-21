@@ -23,7 +23,7 @@
   "scripts": {
     "build": "tsc --noEmit",
     "check:spec": "node ../../packages/workspace-tools/src/index.js check module --path .",
-    "test": "vitest run --root ../.. modules/storage-entitlements/src/storage-entitlements.test.ts"
+    "test": "vitest run --root ../.. modules/storage-entitlements/src/storage-entitlements.test.ts modules/storage-entitlements/src/storage-entitlements.d1.test.ts"
   },
   "dependencies": {
     "@microservices-sh/connection-contract": "workspace:*",
@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",
+    "@microservices-sh/test-utils": "workspace:*",
     "vitest": "^3.2.4",
     "typescript": "^5.9.3"
   }
