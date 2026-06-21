@@ -55,12 +55,17 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       "createCommerceConnection",
       "startSyncRun",
       "completeSyncRun",
+      "runWooCommerceSync",
+      "syncWooCommercePage",
+      "WooCommerceClient",
+      "parseWooCommerceCredentials",
       "recordWebhookReceipt",
       "verifyWooCommerceWebhookSignature",
+      "WOOCOMMERCE_CREDENTIALS_JSON",
       "WOOCOMMERCE_WEBHOOK_SECRET",
       "recordEvent"
     ],
-    "Commerce sync route exposes operator actions through commerce-sync use cases and records audit events."
+    "Commerce sync route exposes operator actions through commerce-sync use cases, can run WooCommerce page syncs, and records audit events."
   );
   assertFileIncludesAll(
     "src/routes/api/commerce-sync/woocommerce/[tenantId]/[connectionId]/+server.ts",

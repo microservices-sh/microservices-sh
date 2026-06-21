@@ -1,13 +1,21 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { recordEvent } from "@microservices-sh/audit-log";
-import { getCommerceSyncModuleStatus, verifyWooCommerceWebhookSignature } from "@microservices-sh/commerce-sync";
+import {
+  getCommerceSyncModuleStatus,
+  parseWooCommerceCredentials,
+  syncWooCommercePage,
+  verifyWooCommerceWebhookSignature,
+  WooCommerceClient
+} from "@microservices-sh/commerce-sync";
 import type { CommerceProvider, CommerceResourceType } from "@microservices-sh/commerce-sync";
+import type { CommerceConnection, WooCommerceSyncPageResourceType } from "@microservices-sh/commerce-sync";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 
 const PROVIDERS = new Set<CommerceProvider>(["woocommerce", "shopify", "custom"]);
 const RESOURCE_TYPES = new Set<CommerceResourceType>(["customer", "product", "order", "category", "inventory"]);
+const WOO_RESOURCE_TYPES = new Set<WooCommerceSyncPageResourceType>(["customer", "product", "order", "category"]);
 
 function text(value: FormDataEntryValue | null): string {
   return String(value ?? "").trim();
@@ -21,10 +29,20 @@ function resourceType(value: string): CommerceResourceType | null {
   return RESOURCE_TYPES.has(value as CommerceResourceType) ? (value as CommerceResourceType) : null;
 }
 
+function wooResourceType(value: string): WooCommerceSyncPageResourceType | null {
+  return WOO_RESOURCE_TYPES.has(value as WooCommerceSyncPageResourceType) ? (value as WooCommerceSyncPageResourceType) : null;
+}
+
 function nonNegativeInteger(value: string): number | null {
   if (!value) return 0;
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : null;
+}
+
+function positiveInteger(value: string, fallback: number, max: number): number | null {
+  if (!value) return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.min(Math.floor(parsed), max) : null;
 }
 
 function parseJsonPayload(value: string): unknown {
@@ -34,6 +52,18 @@ function parseJsonPayload(value: string): unknown {
 
 function webhookSecret(value: FormDataEntryValue | null, platform: App.Platform | undefined): string {
   return text(value) || platform?.env?.WOOCOMMERCE_WEBHOOK_SECRET?.trim() || "";
+}
+
+function envSecret(platform: App.Platform | undefined, key: string): string {
+  return ((platform?.env ?? {}) as Record<string, string | undefined>)[key]?.trim() ?? "";
+}
+
+function wooCredentialsJson(connection: CommerceConnection, platform: App.Platform | undefined, override: string): string {
+  if (override) return override;
+  const ref = connection.secretRef.trim();
+  if (ref.startsWith("{")) return ref;
+  const envKey = ref.startsWith("env:") ? ref.slice(4).trim() : ref;
+  return envSecret(platform, envKey) || envSecret(platform, "WOOCOMMERCE_CREDENTIALS_JSON");
 }
 
 export const load: PageServerLoad = async ({ locals, cookies, parent, platform }) => {
@@ -156,6 +186,89 @@ export const actions: Actions = {
     );
 
     return { runRecorded: true };
+  },
+
+  runWooCommerceSync: async ({ request, locals, cookies, platform }) => {
+    requireModule("commerce-sync", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const values = {
+      connectionId: text(form.get("connectionId")),
+      resourceType: text(form.get("resourceType")),
+      page: text(form.get("page")),
+      perPage: text(form.get("perPage")),
+      modifiedAfter: text(form.get("modifiedAfter")),
+      dateFrom: text(form.get("dateFrom")),
+      dateTo: text(form.get("dateTo")),
+      credentialsJson: text(form.get("credentialsJson"))
+    };
+    const safeValues = { ...values, credentialsJson: "" };
+    const selectedResource = wooResourceType(values.resourceType);
+    const page = positiveInteger(values.page, 1, 10_000);
+    const perPage = positiveInteger(values.perPage, 50, 100);
+    if (!values.connectionId || !selectedResource || page == null || perPage == null) {
+      return fail(400, { error: "Choose a WooCommerce connection, supported resource, page, and page size.", values: safeValues });
+    }
+
+    const ctx = { tenantId: org.id, actorId: locals.user.id };
+    const connections = await locals.commerceSyncService.listCommerceConnections(ctx);
+    const connection = connections.ok ? connections.data?.find((item) => item.id === values.connectionId && item.provider === "woocommerce" && item.active) : null;
+    if (!connection) return fail(400, { error: "Active WooCommerce connection not found.", values: safeValues });
+    if (!connection.baseUrl) return fail(400, { error: "WooCommerce connection needs a base URL.", values: safeValues });
+
+    const credentials = parseWooCommerceCredentials(wooCredentialsJson(connection, platform, values.credentialsJson));
+    if (!credentials) {
+      return fail(400, { error: "WooCommerce credentials JSON must include consumerKey and consumerSecret.", values: safeValues });
+    }
+
+    const result = await syncWooCommercePage(
+      ctx,
+      {
+        connectionId: connection.id,
+        resourceType: selectedResource,
+        page,
+        perPage,
+        modifiedAfter: values.modifiedAfter || undefined,
+        dateFrom: values.dateFrom || undefined,
+        dateTo: values.dateTo || undefined
+      },
+      {
+        service: locals.commerceSyncService,
+        client: new WooCommerceClient({
+          storeUrl: connection.baseUrl,
+          consumerKey: credentials.consumerKey,
+          consumerSecret: credentials.consumerSecret
+        })
+      }
+    );
+    if (!result.ok || !result.data) return fail(400, { error: result.error?.message ?? "WooCommerce sync failed.", values: safeValues });
+
+    await recordEvent(
+      {
+        eventName: "commerce-sync.woocommerce_page_synced",
+        actorId: locals.user.id,
+        entityType: "commerce_sync_run",
+        entityId: result.data.runId,
+        source: "app/commerce-sync",
+        payload: {
+          connectionId: connection.id,
+          resourceType: selectedResource,
+          page: result.data.page,
+          processedCount: result.data.processedCount,
+          normalizedCount: result.data.normalizedCount,
+          mappedCount: result.data.mappedCount,
+          failedCount: result.data.failedCount,
+          hasMore: result.data.hasMore
+        }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { wooSynced: true, sync: result.data };
   },
 
   recordWebhook: async ({ request, locals, cookies, platform }) => {

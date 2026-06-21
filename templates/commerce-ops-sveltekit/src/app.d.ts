@@ -28,6 +28,7 @@ declare global {
         RATE_LIMIT_KV?: KVNamespace;
         JOB_QUEUE?: Queue<{ jobId: string }>;
         STRIPE_SECRET_KEY?: string;
+        WOOCOMMERCE_CREDENTIALS_JSON?: string;
         WOOCOMMERCE_WEBHOOK_SECRET?: string;
         DESKTOP_IMPORT_TOKEN?: string;
         DESKTOP_IMPORT_ALLOWED_ORIGIN?: string;

@@ -5,6 +5,7 @@
 
   let { data, form } = $props();
 
+  const wooConnections = $derived(data.connections.filter((connection) => connection.provider === "woocommerce" && connection.active));
   const metrics = $derived<Metric[]>([
     { label: "Connections", value: data.connections.length, tone: data.connections.length > 0 ? "good" : "neutral", hint: "provider links" },
     { label: "Processed", value: data.run?.processedCount ?? 0, tone: "info", hint: "last sync run" },
@@ -25,6 +26,10 @@
 
   {#if form?.connectionCreated}
     <Alert tone="success">Provider connection created.</Alert>
+  {:else if form?.wooSynced}
+    <Alert tone="success">
+      WooCommerce sync completed.{#if form.sync} {form.sync.processedCount} records processed, {form.sync.failedCount} failed.{/if}
+    </Alert>
   {:else if form?.runRecorded}
     <Alert tone="success">Manual sync run recorded.</Alert>
   {:else if form?.webhookRecorded}
@@ -121,32 +126,37 @@
         </form>
       </Card>
 
-      <Card title="Record manual run">
-        <form method="POST" action="?/recordManualRun" use:enhance>
+      <Card title="Run WooCommerce sync">
+        <form method="POST" action="?/runWooCommerceSync" use:enhance>
           <Field label="Connection" id="run-connection">
-            <select id="run-connection" name="connectionId" required disabled={data.connections.length === 0}>
-              <option value="">Choose connection</option>
-              {#each data.connections as connection (connection.id)}
+            <select id="run-connection" name="connectionId" required disabled={wooConnections.length === 0}>
+              <option value="">Choose WooCommerce connection</option>
+              {#each wooConnections as connection (connection.id)}
                 <option value={connection.id}>{connection.name}</option>
               {/each}
             </select>
           </Field>
           <Field label="Resource" id="run-resource">
             <select id="run-resource" name="resourceType">
-              <option value="product">Product</option>
-              <option value="order">Order</option>
-              <option value="customer">Customer</option>
-              <option value="category">Category</option>
-              <option value="inventory">Inventory</option>
+              <option value="product">Products</option>
+              <option value="order">Orders</option>
+              <option value="customer">Customers</option>
+              <option value="category">Categories</option>
             </select>
           </Field>
           <div class="counter-row">
-            <Field label="Processed" id="run-processed"><input id="run-processed" name="processedCount" type="number" min="0" value="10" /></Field>
-            <Field label="Created" id="run-created"><input id="run-created" name="createdCount" type="number" min="0" value="2" /></Field>
-            <Field label="Updated" id="run-updated"><input id="run-updated" name="updatedCount" type="number" min="0" value="8" /></Field>
-            <Field label="Failed" id="run-failed"><input id="run-failed" name="failedCount" type="number" min="0" value="0" /></Field>
+            <Field label="Page" id="run-page"><input id="run-page" name="page" type="number" min="1" value={form?.values?.page ?? "1"} /></Field>
+            <Field label="Per page" id="run-per-page"><input id="run-per-page" name="perPage" type="number" min="1" max="100" value={form?.values?.perPage ?? "50"} /></Field>
+            <Field label="Modified after" id="run-modified-after"><input id="run-modified-after" name="modifiedAfter" type="datetime-local" value={form?.values?.modifiedAfter ?? ""} /></Field>
           </div>
-          <Button type="submit" variant="primary" disabled={data.connections.length === 0}>Record run</Button>
+          <div class="form-row">
+            <Field label="Date from" id="run-date-from"><input id="run-date-from" name="dateFrom" type="date" value={form?.values?.dateFrom ?? ""} /></Field>
+            <Field label="Date to" id="run-date-to"><input id="run-date-to" name="dateTo" type="date" value={form?.values?.dateTo ?? ""} /></Field>
+          </div>
+          <Field label="Credentials JSON" id="run-credentials">
+            <textarea id="run-credentials" name="credentialsJson" rows="3" placeholder="Leave blank to use the configured env secret"></textarea>
+          </Field>
+          <Button type="submit" variant="primary" disabled={wooConnections.length === 0}>Run sync</Button>
         </form>
       </Card>
 

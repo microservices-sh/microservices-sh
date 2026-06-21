@@ -84,3 +84,6 @@ This app ships with a self-hosted Cloudflare deploy workflow in
 placeholders in `wrangler.jsonc`, create the matching D1/R2/KV/Queue resources,
 set Cloudflare credentials as repository secrets, and configure
 `WOOCOMMERCE_WEBHOOK_SECRET` as the shared WooCommerce webhook signing secret.
+For manual WooCommerce page syncs, store a JSON secret with
+`consumerKey`/`consumerSecret` in `WOOCOMMERCE_CREDENTIALS_JSON`, or set a
+connection `secretRef` to `env:YOUR_SECRET_NAME`.
