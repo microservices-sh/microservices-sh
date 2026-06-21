@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Video Generation Hooks",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "beforeVideoJobCreate": {
+      "type": "string"
+    },
+    "beforeVideoJobSubmit": {
+      "type": "string"
+    },
+    "afterVideoJobCompleted": {
+      "type": "string"
+    },
+    "afterVideoOutputAttached": {
+      "type": "string"
+    }
+  }
+}

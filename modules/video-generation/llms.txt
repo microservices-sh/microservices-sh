@@ -1,0 +1,16 @@
+# Video Generation Module
+
+Module ID: video-generation
+Status: draft
+Purpose: Provider-neutral async video generation jobs, provider task state, reference metadata, and output records.
+Entrypoint: src/index.ts
+Primary service: createVideoGenerationService
+Stores: createVideoGenerationMemoryStore, createD1VideoGenerationStore
+Check: pnpm --filter @microservices-sh/video-generation check:spec
+Build: pnpm --filter @microservices-sh/video-generation build
+Test: pnpm --filter @microservices-sh/video-generation test
+
+Boundaries:
+- Owns task state, normalized statuses, and output metadata.
+- Does not own provider secrets, billing, rate limits, moderation, auth, R2 byte downloads, signed URLs, or UI.
+- Provider submission is possible only through an injected VideoGenerationProvider port.

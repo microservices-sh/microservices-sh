@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Video Generation API",
+  "type": "object",
+  "additionalProperties": false,
+  "definitions": {
+    "jsonObject": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "submitted",
+        "processing",
+        "completed",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "resolution": {
+      "type": "string",
+      "enum": [
+        "480p",
+        "720p",
+        "1080p",
+        "4k"
+      ]
+    },
+    "aspectRatio": {
+      "type": "string",
+      "enum": [
+        "16:9",
+        "9:16",
+        "1:1",
+        "4:3",
+        "3:4",
+        "3:2",
+        "2:3",
+        "21:9"
+      ]
+    },
+    "referenceAsset": {
+      "type": "object",
+      "required": [
+        "path",
+        "mimeType",
+        "sizeBytes",
+        "role"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mimeType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "reference",
+            "image-to-video",
+            "mask"
+          ]
+        }
+      }
+    },
+    "createVideoJobInput": {
+      "type": "object",
+      "required": [
+        "prompt"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ownerId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "negativePrompt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "durationSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 120
+        },
+        "resolution": {
+          "$ref": "#/definitions/resolution"
+        },
+        "aspectRatio": {
+          "$ref": "#/definitions/aspectRatio"
+        },
+        "seed": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "referenceAssets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/referenceAsset"
+          }
+        },
+        "metadata": {
+          "$ref": "#/definitions/jsonObject"
+        }
+      }
+    },
+    "recordProviderStatusInput": {
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "jobId": {
+          "type": "string"
+        },
+        "providerTaskId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "submitted",
+            "processing",
+            "completed",
+            "failed"
+          ]
+        },
+        "progress": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "errorMessage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "providerUrls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "required": [
+        "job",
+        "outputs"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "job": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "createVideoJob": {
+      "$ref": "#/definitions/createVideoJobInput"
+    },
+    "recordProviderStatus": {
+      "$ref": "#/definitions/recordProviderStatusInput"
+    },
+    "snapshot": {
+      "$ref": "#/definitions/snapshot"
+    }
+  }
+}

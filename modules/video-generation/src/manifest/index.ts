@@ -1,0 +1,154 @@
+export const manifest = {
+  "schemaVersion": "2026-06-13",
+  "id": "video-generation",
+  "name": "Video Generation",
+  "version": "0.1.0",
+  "status": "draft",
+  "class": "utility",
+  "summary": "Provider-neutral async video generation jobs, provider task state, reference asset metadata, and output records.",
+  "runtime": {
+    "language": "typescript",
+    "platform": "cloudflare-workers",
+    "frameworkNeutral": true,
+    "routeAdapters": [
+      "hono-later",
+      "sveltekit-later"
+    ]
+  },
+  "entrypoint": "src/index.ts",
+  "resources": [
+    {
+      "type": "d1",
+      "binding": "DB",
+      "tables": [
+        "video_generation_jobs",
+        "video_generation_outputs",
+        "domain_events"
+      ]
+    }
+  ],
+  "permissions": [
+    "video-generation.read",
+    "video-generation.write",
+    "video-generation.admin",
+    "video-generation.extend",
+    "video-generation.observe"
+  ],
+  "connections": {
+    "requires": [],
+    "optional": [
+      "auth",
+      "audit-log",
+      "file-media",
+      "jobs-workflows",
+      "billing-subscriptions",
+      "payment",
+      "webhook-delivery"
+    ],
+    "rpc": {
+      "exposes": [],
+      "calls": []
+    },
+    "events": {
+      "emits": [
+        "video-generation.created",
+        "video-generation.updated",
+        "video-generation.job.created",
+        "video-generation.job.submitted",
+        "video-generation.job.processing",
+        "video-generation.job.completed",
+        "video-generation.job.failed",
+        "video-generation.job.cancelled",
+        "video-generation.output.attached"
+      ],
+      "consumes": []
+    },
+    "hookPoints": {
+      "beforeVideoJobCreate": {
+        "kind": "filter",
+        "scope": "video-generation.extend"
+      },
+      "beforeVideoJobSubmit": {
+        "kind": "filter",
+        "scope": "video-generation.extend"
+      },
+      "afterVideoJobCompleted": {
+        "kind": "observer",
+        "scope": "video-generation.observe"
+      },
+      "afterVideoOutputAttached": {
+        "kind": "observer",
+        "scope": "video-generation.observe"
+      }
+    },
+    "provides": {
+      "hooks": []
+    }
+  },
+  "customization": {
+    "default": "config-hooks",
+    "supported": [
+      "config",
+      "hooks",
+      "overlay",
+      "fork"
+    ]
+  },
+  "surfaces": {
+    "admin": {
+      "applicable": true,
+      "nav": [
+        {
+          "label": "Video Generation",
+          "path": "/video-generation",
+          "permission": "video-generation.read"
+        }
+      ],
+      "referenceUi": [
+        "reference-ui/admin/README.md"
+      ]
+    },
+    "visitor": {
+      "applicable": false,
+      "referenceUi": [
+        "reference-ui/visitor/README.md"
+      ]
+    },
+    "agentic": {
+      "applicable": true,
+      "tools": [
+        "video-generation.read",
+        "video-generation.write"
+      ],
+      "skillPaths": [
+        "skills/video-generation-operator/SKILL.md"
+      ],
+      "approvalRequiredFor": [
+        "video-generation.write"
+      ]
+    }
+  },
+  "skills": [
+    {
+      "id": "video-generation-operator",
+      "path": "skills/video-generation-operator/SKILL.md",
+      "recommendedFor": [
+        "admin-operations",
+        "agentic-tools"
+      ]
+    }
+  ],
+  "approval": {
+    "risk": "medium",
+    "requiresApprovalFor": [
+      "migrations",
+      "provider-submit",
+      "provider-poll",
+      "asset-download",
+      "production-deploy",
+      "external-side-effects"
+    ]
+  }
+} as const;
+
+export const moduleDefinition = manifest;

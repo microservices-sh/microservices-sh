@@ -43,7 +43,7 @@ Remaining gaps are mostly add-on business workflows, not more full-app cloning.
 | P1 | Storage entitlements and expiring share links | DashDrive files, short IDs, expiry, download count, storage packages, purchases | `storage-entitlements` implemented; integrate with `file-media` or client portal routes later. |
 | P1 | HR people ops | HR employees, departments, positions, leave balances/requests, attendance | `hr-people-ops` implemented; template later, not before focused route proof demand. |
 | P2 | Content/CMS publishing | CMS, mini-CMS, blog, magazine | `content-cms` implemented as a headless module; add route proof only when landing/content-heavy generated apps need it. |
-| P2 | Utility modules | URL shortener, QR generator, document renderer, HTML renderer, video maker | `url-shortener` and `html-renderer` implemented; QR stays reference UI for now; remaining utilities stay small/free-tool candidates until System Harness adoption is proven. |
+| P2 | Utility modules | URL shortener, QR generator, document renderer, HTML renderer, video maker | `url-shortener`, `html-renderer`, `content-cms`, and `video-generation` implemented; QR and Markdown-to-PDF stay reference/free-tool candidates for now. |
 | P2 | Runtime/control-plane patterns | OpenClaw launcher instance, integrations, channels, custom domains, managed instances | Mine for managed deploy/control-plane design, not as an app template yet. |
 
 ## P0 Module Plan: SMS Campaigns
@@ -246,10 +246,10 @@ Adopt as small modules only when a concrete template needs them:
 
 - `url-shortener`: implemented for short links, redirect analytics, expiry, deactivation, and recent-link reporting.
 - `qr-code`: donor is browser-only generated QR assets, style presets, download formats; keep as reference UI unless durable asset records become necessary.
-- `document-renderer`: HTML/Markdown-to-PDF render jobs.
+- `document-renderer`: defer until multiple invoice/quote/content flows need shared server-side PDF render jobs; Markdown-to-PDF is browser-only local drafts plus `html2pdf.js`.
 - `html-renderer`: implemented for HTML mockup records, slug validation, TTL expiry, asset metadata, resolve, delete, and listing.
 - `content-cms`: implemented for headless content types, fields, versioned entries, localizations, locales, media metadata, and entry snapshots.
-- `video-generation`: jobs and asset records around provider-backed video creation; likely belongs near `image-generation`.
+- `video-generation`: implemented for provider-neutral async generation jobs, provider task ids, status reconciliation, reference metadata, and output records.
 - `web-builder`: larger and riskier; use as a future template/reference UI, not near-term core.
 
 ## Template Strategy
@@ -302,6 +302,9 @@ Recommended order:
 - Completed `html-renderer` for HTML render documents, slug/TTL validation, asset metadata, resolve, soft delete, and listing.
 - Completed `content-cms` for headless content models, fields, versioned entries, publishing, localizations, locales, media metadata, and snapshots.
 - Kept CMS auth, billing, setup wizard, API keys, tenant quota, AI page designer, R2 upload, CDN policy, and public rendering out of the module boundary.
+- Completed `video-generation` for provider-neutral async jobs, provider task ids, status reconciliation, idempotent provider URL outputs, manual output attachment, cancellation, listing, and snapshots.
+- Kept video provider credentials, billing/credits, auth, moderation, rate limits, webhooks, R2 byte downloads, signed URLs, browser FFmpeg, and story UI out of the module boundary.
+- Deferred `document-renderer`: Markdown-to-PDF remains a browser/free-tool candidate until server-side PDF jobs are needed by multiple modules/templates.
 - Keep utility modules small and composable.
 - Add `hr-ops-sveltekit` only after there is route-proof demand.
 
@@ -323,7 +326,7 @@ The next valuable StackSuite adoption is not another accounting pass. After comp
 2. Ticket comments/attachments/share-token hardening once `support-ticket` concurrent edits settle.
 3. Route proof for `membership-credits` in booking template when booking membership becomes part of a demo path.
 4. HR people ops module proof is complete; add an HR template only after a pilot or demo path needs it.
-5. URL shortener, HTML renderer, and content CMS proof is complete; keep QR/document/rendering utilities small and add them only when they support acquisition or a template.
-6. A focused `sms-crm-sveltekit`, content site, or support route/template proof only if those workflows become part of the public demo path.
+5. URL shortener, HTML renderer, content CMS, and video generation proof is complete; keep QR/document/rendering utilities small and add them only when they support acquisition or a template.
+6. A focused `sms-crm-sveltekit`, content site, video creator, or support route/template proof only if those workflows become part of the public demo path.
 
 Everything else should stay P2 until the System Harness launch proof and existing focused templates are cleaner.

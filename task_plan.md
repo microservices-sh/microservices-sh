@@ -483,6 +483,16 @@ Phase 60
 - [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
 - **Status:** complete
 
+### Phase 62: StackSuite Video Generation Module
+- [x] Inspect `veo-video-maker` and delegated donor review of `gpt-hk` video generation workflows.
+- [x] Confirm `markdown-to-pdf` is browser/free-tool material and defer `document-renderer` until shared server-side PDF jobs are needed.
+- [x] Scaffold `modules/video-generation` from the standard module layout.
+- [x] Implement provider-neutral video jobs, provider task ids, status reconciliation, idempotent provider URL outputs, manual output attachment, cancellation, listing, and snapshots.
+- [x] Add memory and D1 stores, migration, schemas, docs, module metadata, permissions, events, resources, exports, and tests.
+- [x] Keep provider credentials, billing/credits, auth, rate limits, moderation, R2 byte downloads, signed URLs, webhooks, browser FFmpeg, and story UI as route-adapter/template concerns.
+- [x] Verify build, tests, module spec, migration smoke, JSON parsing, and whitespace checks for the module slice.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

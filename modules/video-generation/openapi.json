@@ -1,0 +1,126 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Video Generation Module",
+    "version": "0.1.0",
+    "description": "Representative route-adapter contract for async video generation jobs and output records."
+  },
+  "paths": {
+    "/video-generation/jobs": {
+      "get": {
+        "summary": "List video generation jobs",
+        "x-permission": "video-generation.read",
+        "responses": {
+          "200": {
+            "description": "Generation jobs"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a draft video generation job",
+        "x-permission": "video-generation.write",
+        "responses": {
+          "200": {
+            "description": "Created generation job snapshot"
+          }
+        }
+      }
+    },
+    "/video-generation/jobs/{jobId}": {
+      "get": {
+        "summary": "Get a job with outputs",
+        "x-permission": "video-generation.read",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Generation job snapshot"
+          }
+        }
+      }
+    },
+    "/video-generation/jobs/{jobId}/submit": {
+      "post": {
+        "summary": "Submit a job through the host-provided provider port",
+        "x-permission": "video-generation.write",
+        "x-approval-required": true,
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submitted job snapshot"
+          }
+        }
+      }
+    },
+    "/video-generation/jobs/{jobId}/status": {
+      "post": {
+        "summary": "Record provider status from polling or webhook reconciliation",
+        "x-permission": "video-generation.write",
+        "responses": {
+          "200": {
+            "description": "Updated job snapshot"
+          }
+        }
+      }
+    },
+    "/video-generation/jobs/{jobId}/outputs": {
+      "post": {
+        "summary": "Attach a finalized output record",
+        "x-permission": "video-generation.write",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attached output record"
+          }
+        }
+      }
+    },
+    "/video-generation/jobs/{jobId}/cancel": {
+      "post": {
+        "summary": "Cancel a non-terminal generation job",
+        "x-permission": "video-generation.write",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancelled job"
+          }
+        }
+      }
+    }
+  }
+}

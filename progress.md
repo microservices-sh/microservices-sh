@@ -1437,3 +1437,19 @@
 | Content CMS spec | Module contract check passes | `pnpm --filter @microservices-sh/content-cms check:spec` passed | Pass |
 | D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/content-cms/migrations/0001_initial.sql"` passed | Pass |
 | JSON docs | OpenAPI, manifest, and JSON schemas parse | Node JSON parse check passed | Pass |
+
+### Phase 62 StackSuite Video Generation module
+
+- **Status:** complete.
+- Goal: port reusable async video-generation state from StackSuite video donors without copying their full product UI, auth, Stripe credits, provider-specific routes, or browser media tooling.
+- Added `modules/video-generation` for provider-neutral video jobs, provider task ids, reference asset metadata, normalized status reconciliation, idempotent provider URL output records, app-owned output attachment, cancellation, listing, and snapshots.
+- Added memory and D1 stores plus migration tables for generation jobs, outputs, and domain events.
+- Confirmed `markdown-to-pdf` is browser/localStorage/html2pdf.js free-tool material; a future `document-renderer` should wait until multiple invoice/quote/content routes need shared server-side PDF jobs.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Video Generation build | TypeScript typecheck passes | `pnpm --filter @microservices-sh/video-generation build` passed | Pass |
+| Video Generation tests | Job create, submit, completion, idempotent outputs, output attachment, cancel, and list flows pass | `pnpm --filter @microservices-sh/video-generation test` passed, 3/3 | Pass |
+| Video Generation spec | Module contract check passes | `pnpm --filter @microservices-sh/video-generation check:spec` passed | Pass |
+| D1 migration | Module migration loads in SQLite | `sqlite3 :memory: ".read modules/video-generation/migrations/0001_initial.sql"` passed | Pass |
+| JSON docs | OpenAPI, manifest, and JSON schemas parse | Node JSON parse check passed | Pass |
