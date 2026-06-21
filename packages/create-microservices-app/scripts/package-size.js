@@ -53,26 +53,35 @@ async function filesUnder(relativePath) {
   return walk(absolute);
 }
 
-async function directorySummaries(rootRelative, depth) {
-  const root = resolve(packageRoot, rootRelative);
+async function childDirectories(root) {
   if (!existsSync(root)) return [];
-  const firstLevel = await readdir(root, { withFileTypes: true });
+  const entries = await readdir(root, { withFileTypes: true });
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => join(root, entry.name));
+}
+
+async function childDirectorySummaries(rootRelative) {
+  const root = resolve(packageRoot, rootRelative);
   const summaries = [];
 
-  for (const entry of firstLevel.filter((item) => item.isDirectory())) {
-    if (depth === 1) {
-      const files = await walk(join(root, entry.name));
-      summaries.push(summarize(`${rootRelative}/${entry.name}`, files));
-      continue;
-    }
+  for (const directory of await childDirectories(root)) {
+    const files = await walk(directory);
+    summaries.push(summarize(relative(packageRoot, directory), files));
+  }
 
-    const nestedRoot = join(root, entry.name, "modules");
-    if (!existsSync(nestedRoot)) continue;
-    const modules = await readdir(nestedRoot, { withFileTypes: true });
-    for (const moduleEntry of modules.filter((item) => item.isDirectory())) {
-      const modulePath = join(nestedRoot, moduleEntry.name);
-      const files = await walk(modulePath);
-      summaries.push(summarize(relative(packageRoot, modulePath), files));
+  return summaries;
+}
+
+async function templateModuleSummaries(rootRelative) {
+  const root = resolve(packageRoot, rootRelative);
+  const summaries = [];
+
+  for (const templateDirectory of await childDirectories(root)) {
+    const modulesRoot = join(templateDirectory, "modules");
+    for (const moduleDirectory of await childDirectories(modulesRoot)) {
+      const files = await walk(moduleDirectory);
+      summaries.push(summarize(relative(packageRoot, moduleDirectory), files));
     }
   }
 
@@ -101,8 +110,8 @@ const thresholds = {
   bytes: parseBytes(process.env.MICROSERVICES_CREATE_PACK_MAX_BYTES, 100 * 1024 ** 2),
   files: Number(process.env.MICROSERVICES_CREATE_PACK_MAX_FILES || 10000),
 };
-const largestTemplates = topByBytes(await directorySummaries("templates", 1), 8);
-const largestTemplateModules = topByBytes(await directorySummaries("templates", 2), 12);
+const largestTemplates = topByBytes(await childDirectorySummaries("templates"), 8);
+const largestTemplateModules = topByBytes(await templateModuleSummaries("templates"), 12);
 const failures = [];
 
 if (totals.bytes > thresholds.bytes) {

@@ -81,12 +81,16 @@ export const PRIVATE_REPO_TEMPLATE_IDS = new Set(
     .map((template) => template.id)
 );
 
+const DEFAULT_TEMPLATE_METADATA = {
+  visibility: "public",
+  distribution: "registry",
+  category: "general",
+  weight: "light",
+};
+
 function normalizeTemplate(template, defaults) {
   return {
-    visibility: "public",
-    distribution: "registry",
-    category: "general",
-    weight: "light",
+    ...DEFAULT_TEMPLATE_METADATA,
     ...defaults,
     ...template,
   };
@@ -96,27 +100,43 @@ function isPrivateCatalogTemplate(template) {
   return template.visibility === "private" || template.status === "private-pilot" || template.distribution === "private";
 }
 
-export function availableTemplateList({ includePrivate = false, proceduralTemplates = [] } = {}) {
-  const procedural = (Array.isArray(proceduralTemplates) ? proceduralTemplates : []).map((template) =>
+function proceduralTemplateList(proceduralTemplates) {
+  const templates = Array.isArray(proceduralTemplates) ? proceduralTemplates : [];
+  return templates.map((template) =>
     normalizeTemplate(template, { distribution: "registry", category: "procedural", weight: "light" })
   );
-  const repo = Object.values(REPO_TEMPLATES).map((template) => normalizeTemplate(template, { distribution: "bundled" }));
-  const seen = new Set(procedural.map((template) => template.id));
-  const base = [...procedural, ...repo.filter((template) => !seen.has(template.id))].filter(
-    (template) => includePrivate || !isPrivateCatalogTemplate(template)
-  );
-  const frameworks = loadFrameworks().map((row) => ({
-    id: row.id,
-    name: `${row.label} (Cloudflare starter)`,
-    status: row.status,
-    visibility: "public",
-    distribution: "registry",
-    category: "framework",
-    weight: "light",
-    summary: `${row.label} on Cloudflare Workers - empty starter, add modules via microservices.sh.`,
-  }));
-  const baseIds = new Set(base.map((template) => template.id));
-  return [...base, ...frameworks.filter((framework) => !baseIds.has(framework.id))];
+}
+
+function repoTemplateList(proceduralTemplates) {
+  const proceduralIds = new Set(proceduralTemplates.map((template) => template.id));
+  return Object.values(REPO_TEMPLATES)
+    .map((template) => normalizeTemplate(template, { distribution: "bundled" }))
+    .filter((template) => !proceduralIds.has(template.id));
+}
+
+function frameworkTemplateList(existingTemplates) {
+  const existingIds = new Set(existingTemplates.map((template) => template.id));
+  return loadFrameworks()
+    .filter((row) => !existingIds.has(row.id))
+    .map((row) => ({
+      id: row.id,
+      name: `${row.label} (Cloudflare starter)`,
+      status: row.status,
+      visibility: "public",
+      distribution: "registry",
+      category: "framework",
+      weight: "light",
+      summary: `${row.label} on Cloudflare Workers - empty starter, add modules via microservices.sh.`,
+    }));
+}
+
+export function availableTemplateList({ includePrivate = false, proceduralTemplates = [] } = {}) {
+  const procedural = proceduralTemplateList(proceduralTemplates);
+  const baseTemplates = [...procedural, ...repoTemplateList(procedural)];
+  const visibleTemplates = includePrivate
+    ? baseTemplates
+    : baseTemplates.filter((template) => !isPrivateCatalogTemplate(template));
+  return [...visibleTemplates, ...frameworkTemplateList(visibleTemplates)];
 }
 
 export function filterTemplateList(templates, { category = null, search = null } = {}) {

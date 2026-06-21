@@ -26,19 +26,26 @@ function readOwnPackageVersion(packageRoot) {
   }
 }
 
-function cliTemplateList(options = {}) {
+function sdkTemplateList() {
   const sdk = listTemplates();
-  return filterTemplateList(availableTemplateList({
+  return sdk.ok ? sdk.data : [];
+}
+
+function cliTemplateCatalog(options = {}) {
+  return availableTemplateList({
     ...options,
-    proceduralTemplates: sdk.ok ? sdk.data : [],
-  }), options);
+    proceduralTemplates: sdkTemplateList(),
+  });
+}
+
+function cliTemplateList(options = {}) {
+  return filterTemplateList(cliTemplateCatalog(options), options);
 }
 
 function cliOrderedTemplateList(defaultTemplateId, options = {}) {
-  const sdk = listTemplates();
   return orderedTemplateList(defaultTemplateId, {
     ...options,
-    proceduralTemplates: sdk.ok ? sdk.data : [],
+    proceduralTemplates: sdkTemplateList(),
   });
 }
 
@@ -376,24 +383,17 @@ function printChoices(title, choices) {
   });
 }
 
-function listedTemplates(flags) {
-  return cliTemplateList({
-    includePrivate: flags.includePrivate,
+function emitTemplateList(flags) {
+  const filters = {
     category: flags.category,
     search: flags.search,
-  });
-}
-
-function emitTemplateList(flags) {
-  const templates = listedTemplates(flags);
+    includePrivate: flags.includePrivate,
+  };
+  const templates = cliTemplateList(filters);
   const response = {
     ok: true,
     data: {
-      filters: {
-        category: flags.category,
-        search: flags.search,
-        includePrivate: flags.includePrivate,
-      },
+      filters,
       templates,
     },
   };
