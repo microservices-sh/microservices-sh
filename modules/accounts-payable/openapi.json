@@ -16,6 +16,12 @@
         "responses": { "200": { "description": "Vendor list" } }
       }
     },
+    "/vendors/{id}": {
+      "get": {
+        "summary": "Get vendor",
+        "responses": { "200": { "description": "Vendor detail" }, "404": { "description": "Vendor not found" } }
+      }
+    },
     "/bills": {
       "post": {
         "summary": "Create bill with line items",

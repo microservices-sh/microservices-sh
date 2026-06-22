@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 105
+Phase 106
 
 ## Phases
 
@@ -828,6 +828,22 @@ Phase 105
 - [x] Add AP payment history to the focused accounting bill detail route.
 - [x] Verify AP tests/spec/build, accounting template spec/build/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
+
+### Phase 106: AP Vendor Detail And 1099 Readiness
+- [x] Add tenant-scoped `getVendor` read use case and module metadata.
+- [x] Add AP tests for vendor detail tenant isolation.
+- [x] Add focused accounting vendor directory links and a read-only vendor detail route with bills, recurring bills, payment history, aging, and 1099 readiness context.
+- [x] Keep vendor mutations on the Payables operator route; do not add vendor update/deactivation forms in this slice.
+- [x] Verify AP tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 107: AP Vendor Master Completion And Formal 1099 Report
+- [ ] Add `updateVendor`, vendor active-state mutation, and a formal `get1099VendorReport({ tenantId, year })` module use case.
+- [ ] Add memory/D1 store support and AP tests for tenant isolation, inactive handling, year boundaries, and void-payment exclusion.
+- [ ] Expand the accounting template vendor forms to capture phone, address, tax ID, 1099 flag, default terms, notes, and active state.
+- [ ] Add an accounting template 1099 report/readiness surface without implying IRS filing or TIN validation.
+- [ ] Verify AP tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** pending
 
 ## Key Questions
 1. Is the current plan good enough to start an MVP?

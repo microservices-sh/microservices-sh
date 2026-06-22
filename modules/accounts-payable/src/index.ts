@@ -13,6 +13,7 @@ export {
   defaultAccountsPayableHooks
 } from "./hooks";
 export { createVendor } from "./use-cases/create-vendor";
+export { getVendor } from "./use-cases/get-vendor";
 export { listVendors } from "./use-cases/list-vendors";
 export { createBill } from "./use-cases/create-bill";
 export { getBill } from "./use-cases/get-bill";

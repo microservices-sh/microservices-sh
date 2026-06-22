@@ -93,6 +93,7 @@
       "tools": [
         "accounts-payable.listVendors",
         "accounts-payable.createVendor",
+        "accounts-payable.getVendor",
         "accounts-payable.createBill",
         "accounts-payable.markBillPayable",
         "accounts-payable.recordBillPayment",

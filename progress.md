@@ -1507,6 +1507,25 @@
 | Create package | Bundled template closure and generated-app smoke still pass | `pnpm --filter create-microservices-app build` and `smoke:built` passed | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 106 AP vendor detail and 1099 readiness
+
+- **Status:** complete.
+- Goal: close the AP vendor detail gap with read-only module/template surfaces before taking vendor mutations or payment reversal work.
+- Added `getVendor` to `modules/accounts-payable`, backed by the existing tenant-scoped store lookup and covered by tenant-isolation tests.
+- Added `/app/payables/vendors/[id]` to the focused accounting template with vendor profile/defaults, bills, recurring bills, payment history, aging, and 1099 readiness context.
+- Linked vendor names from the Payables bill ledger, recurring bill table, and a new vendor directory card to the detail route.
+- Kept the vendor detail route read-only; no update/deactivation/payment actions were added.
+- Subagent review confirmed approval/post split and payment void/reversal are riskier because current AP posting/payment paths can leave AP and GL out of sync on partial failure; vendor master completion and formal 1099 reporting are the next lower-risk donor-backed slice.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounts-payable tests | Vendor detail read remains tenant-scoped and AP behavior remains green | `pnpm --filter @microservices-sh/accounts-payable test` passed, 17/17 | Pass |
+| Accounts-payable spec/build | Module contract and TypeScript build remain green | `pnpm --filter @microservices-sh/accounts-payable check:spec` and `pnpm --filter @microservices-sh/accounts-payable build` passed | Pass |
+| Accounting template spec/build | Vendor detail route policy and SvelteKit build compile | `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Bundled accounting template regenerates and create-app tests remain green | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 105 AP payment read and bill history
 
 - **Status:** complete.

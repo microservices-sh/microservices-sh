@@ -103,7 +103,7 @@
               {#each data.bills as bill (bill.id)}
                 <tr>
                   <td><a href={`/app/payables/${bill.id}`}><code>{bill.billNumber}</code></a></td>
-                  <td>{data.vendors.find((vendor) => vendor.id === bill.vendorId)?.name ?? bill.vendorId}</td>
+                  <td><a href={`/app/payables/vendors/${bill.vendorId}`}>{data.vendors.find((vendor) => vendor.id === bill.vendorId)?.name ?? bill.vendorId}</a></td>
                   <td>{money(bill.totalCents, bill.currency)}</td>
                   <td>{money(bill.amountDueCents, bill.currency)}</td>
                   <td><Badge tone={billTone(bill.status)}>{bill.status}</Badge></td>
@@ -178,7 +178,7 @@
               {#each data.recurringBillTemplates as template (template.id)}
                 <tr>
                   <td><a href={`/app/payables/recurring/${template.id}`}>{template.name}</a></td>
-                  <td>{data.vendors.find((vendor) => vendor.id === template.vendorId)?.name ?? template.vendorId}</td>
+                  <td><a href={`/app/payables/vendors/${template.vendorId}`}>{data.vendors.find((vendor) => vendor.id === template.vendorId)?.name ?? template.vendorId}</a></td>
                   <td>{template.nextBillDate.slice(0, 10)}</td>
                   <td>{money(template.totalCents, template.currency)}</td>
                   <td><Badge tone={recurringTone(template.status)}>{template.status}</Badge></td>
@@ -216,6 +216,42 @@
         </div>
       {:else}
         <p class="empty">No recurring bill schedules yet.</p>
+      {/if}
+    </Card>
+    <Card>
+      <div class="card-headline">
+        <h2>Vendors</h2>
+        <Badge tone="neutral">{data.vendors.length} total</Badge>
+      </div>
+
+      {#if data.vendors.length > 0}
+        <div class="table-scroll">
+          <table>
+            <caption>Payables vendors</caption>
+            <thead>
+              <tr>
+                <th scope="col">Vendor</th>
+                <th scope="col">Currency</th>
+                <th scope="col">Terms</th>
+                <th scope="col">1099</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each data.vendors as vendor (vendor.id)}
+                <tr>
+                  <td><a href={`/app/payables/vendors/${vendor.id}`}>{vendor.name}</a></td>
+                  <td>{vendor.currency}</td>
+                  <td>{vendor.defaultPaymentTermsDays} days</td>
+                  <td>{vendor.is1099Vendor ? "Yes" : "No"}</td>
+                  <td><Badge tone={vendor.active ? "good" : "neutral"}>{vendor.active ? "active" : "inactive"}</Badge></td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {:else}
+        <p class="empty">No vendors have been created yet.</p>
       {/if}
     </Card>
   </div>
@@ -342,7 +378,7 @@
                     <tr>
                       <td><input type="checkbox" name="applicationBillId" value={bill.id} aria-label={`Apply payment to ${bill.billNumber}`} /></td>
                       <td><a href={`/app/payables/${bill.id}`}><code>{bill.billNumber}</code></a></td>
-                      <td>{data.vendors.find((vendor) => vendor.id === bill.vendorId)?.name ?? bill.vendorId}</td>
+                      <td><a href={`/app/payables/vendors/${bill.vendorId}`}>{data.vendors.find((vendor) => vendor.id === bill.vendorId)?.name ?? bill.vendorId}</a></td>
                       <td>{bill.dueDate.slice(0, 10)}</td>
                       <td>{money(bill.amountDueCents, bill.currency)}</td>
                       <td>

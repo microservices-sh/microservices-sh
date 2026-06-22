@@ -31,6 +31,11 @@ export const listVendorsInputSchema = z.object({
   limit: z.number().int().min(1).max(500).default(100)
 });
 
+export const vendorIdentitySchema = z.object({
+  tenantId: z.string().min(1),
+  vendorId: z.string().min(1)
+});
+
 export const billStatusSchema = z.enum(["draft", "pending_approval", "payable", "partial", "paid", "void"]);
 
 export const billLineItemInputSchema = z.object({
@@ -168,6 +173,7 @@ export const generateDueRecurringBillsInputSchema = z.object({
 
 export type CreateVendorInput = z.infer<typeof createVendorInputSchema>;
 export type ListVendorsInput = z.infer<typeof listVendorsInputSchema>;
+export type VendorIdentityInput = z.infer<typeof vendorIdentitySchema>;
 export type BillLineItemInput = z.infer<typeof billLineItemInputSchema>;
 export type CreateBillInput = z.infer<typeof createBillInputSchema>;
 export type MarkBillPayableInput = z.infer<typeof markBillPayableInputSchema>;

@@ -9,6 +9,7 @@ import {
   getBill,
   getBillPayment,
   getRecurringBillTemplate,
+  getVendor,
   listBillPayments,
   listBills,
   listRecurringBillTemplates,
@@ -81,6 +82,30 @@ describe("accounts-payable: vendors", () => {
       name: "Acme Supplies",
       defaultExpenseAccountId: "acct-expense-supplies"
     });
+  });
+
+  it("gets a vendor by tenant and hides foreign tenant vendors", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const vendor = await seedVendor(store, "tenant-1", {
+      taxId: "12-3456789",
+      is1099Vendor: true,
+      notes: "Requires W-9 review"
+    });
+
+    const found = await getVendor({ tenantId: "tenant-1", vendorId: vendor.id }, { accountsPayableStore: store });
+    expect(found.ok).toBe(true);
+    if (!found.ok) throw new Error(found.error.message);
+    expect(found.data.vendor).toMatchObject({
+      id: vendor.id,
+      tenantId: "tenant-1",
+      taxId: "12-3456789",
+      is1099Vendor: true,
+      notes: "Requires W-9 review"
+    });
+
+    const foreign = await getVendor({ tenantId: "tenant-2", vendorId: vendor.id }, { accountsPayableStore: store });
+    expect(foreign.ok).toBe(false);
+    if (!foreign.ok) expect(foreign.status).toBe(404);
   });
 });
 

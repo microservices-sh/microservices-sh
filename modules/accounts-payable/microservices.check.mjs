@@ -30,6 +30,16 @@ export default function check({ assertFileIncludes }) {
     "Bill detail read use case is backed by the tenant-scoped store lookup."
   );
   assertFileIncludes(
+    "src/use-cases/get-vendor.ts",
+    "accountsPayableStore.getVendor",
+    "Vendor detail read use case is backed by the tenant-scoped store lookup."
+  );
+  assertFileIncludes(
+    "src/index.ts",
+    "export { getVendor }",
+    "Accounts Payable exports vendor detail read use case."
+  );
+  assertFileIncludes(
     "src/index.ts",
     "export { listBillPayments }",
     "Accounts Payable exports bill payment read use cases."
