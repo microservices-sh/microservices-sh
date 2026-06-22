@@ -430,6 +430,14 @@ function composeFromManifest(config) {
   });
 }
 
+// Resolves the module list: explicit --modules wins, else the configured list
+// (when non-empty), else undefined so composeApp falls back to template defaults.
+function resolveManifestModules(flags, configuredModules) {
+  if (Array.isArray(flags.modules)) return flags.modules;
+  if (Array.isArray(configuredModules) && configuredModules.length) return configuredModules;
+  return undefined;
+}
+
 // Builds composeApp/generateProject input from the manifest; flags override the file.
 async function manifestInput(action, flags) {
   const manifest = await loadManifest(flags);
@@ -438,11 +446,7 @@ async function manifestInput(action, flags) {
   const flagConfig = flags.config ?? {};
   const configuredModules = Array.isArray(flagConfig.modules) ? flagConfig.modules : config.modules;
   const templateId = action || flagConfig.template || config.template || DEFAULT_TEMPLATE_ID;
-  const modules = Array.isArray(flags.modules)
-    ? flags.modules
-    : Array.isArray(configuredModules) && configuredModules.length
-      ? configuredModules
-      : undefined;
+  const modules = resolveManifestModules(flags, configuredModules);
   const effectiveConfig = {
     ...(manifest.existed ? config : {}),
     ...flagConfig,
@@ -473,6 +477,7 @@ async function applyAddModule(moduleId, flags) {
   }
   const manifest = await loadManifest(flags);
   if (!manifest.ok) return manifest.response;
+  const template = manifest.config.template ?? DEFAULT_TEMPLATE_ID;
 
   const ref = versionedModuleArg(moduleId, flags.version);
   const baseId = String(ref).split("@")[0];
@@ -489,18 +494,14 @@ async function applyAddModule(moduleId, flags) {
   }
 
   const nextModules = [...manifest.config.modules, ref];
-  const composed = composeApp({
-    templateId: manifest.config.template ?? DEFAULT_TEMPLATE_ID,
-    modules: nextModules,
-    config: manifest.config,
-  });
+  const composed = composeApp({ templateId: template, modules: nextModules, config: manifest.config });
   if (composed.ok === false) return composed;
 
   const resolved = composed.data.modules.find((module) => module.id === baseId);
   const pinned = resolved ? `${resolved.id}@${resolved.version}` : ref;
   manifest.config = {
     ...manifest.config,
-    template: manifest.config.template ?? DEFAULT_TEMPLATE_ID,
+    template,
     schemaVersion: composed.data.schemaVersion,
     modules: [...manifest.config.modules, pinned],
   };
@@ -509,7 +510,7 @@ async function applyAddModule(moduleId, flags) {
   return {
     ok: true,
     requestId: `local_${Date.now().toString(36)}`,
-    data: { added: pinned, template: manifest.config.template, modules: manifest.config.modules },
+    data: { added: pinned, template, modules: manifest.config.modules },
   };
 }
 
