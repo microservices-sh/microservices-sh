@@ -9,6 +9,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const billDetailPage = readText("src/routes/app/payables/[id]/+page.svelte");
   const vendorDetailServer = readText("src/routes/app/payables/vendors/[id]/+page.server.ts");
   const vendorDetailPage = readText("src/routes/app/payables/vendors/[id]/+page.svelte");
+  const paymentDetailServer = readText("src/routes/app/payables/payments/[id]/+page.server.ts");
+  const paymentDetailPage = readText("src/routes/app/payables/payments/[id]/+page.svelte");
   const recurringBillDetailServer = readText("src/routes/app/payables/recurring/[id]/+page.server.ts");
   const bankingImportDetailServer = readText("src/routes/app/banking/imports/[id]/+page.server.ts");
   const bankingImportDetailPage = readText("src/routes/app/banking/imports/[id]/+page.svelte");
@@ -809,6 +811,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       "Vendor profile",
       "1099 readiness",
       "Payment history",
+      "/app/payables/payments/${payment.id}",
       "Recurring bills",
       "Vendor master",
       "?/updateVendor",
@@ -817,6 +820,31 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       "Reactivate vendor"
     ],
     "Vendor detail page exposes AP profile, 1099 readiness, payment history, recurring context, and vendor master controls."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/payables/payments/[id]/+page.server.ts",
+    ["getBillPayment", "getVendor", "listBills", "listAccounts", "requireModule(\"accounts-payable\"", "requireOrgPermission", "\"org.read\""],
+    "Payment detail route loads one tenant-scoped AP payment with vendor, bill application, and account labels."
+  );
+  assert(
+    !paymentDetailServer.includes("recordBillPayment(") &&
+      !paymentDetailServer.includes("updateVendor(") &&
+      !paymentDetailServer.includes("export const actions"),
+    "Payment detail route stays read-only; payment mutations and reversals remain absent.",
+    "policy:accounting-ap-payment-detail-read-only"
+  );
+  assertFileIncludesAll(
+    "src/routes/app/payables/payments/[id]/+page.svelte",
+    ["AP payment", "Payment details", "Applications", "Lifecycle", "journal-safe design", "/app/payables/${application.billId}"],
+    "Payment detail page exposes payment, application, lifecycle, and reversal-boundary context."
+  );
+  assert(
+    !paymentDetailPage.includes("<form") &&
+      !paymentDetailPage.includes("method=\"POST\"") &&
+      !paymentDetailPage.includes("use:enhance") &&
+      !paymentDetailPage.includes("?/"),
+    "Payment detail page does not render write-capable forms or SvelteKit action targets.",
+    "policy:accounting-ap-payment-detail-ui-read-only"
   );
   assertFileIncludesAll(
     "src/routes/app/payables/[id]/+page.server.ts",
@@ -841,7 +869,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/payables/[id]/+page.svelte",
-    ["Vendor bill", "Bill details", "Line items", "Payment history", "paymentHistory", "Totals", "Open payables actions"],
+    ["Vendor bill", "Bill details", "Line items", "Payment history", "paymentHistory", "/app/payables/payments/${payment.id}", "Totals", "Open payables actions"],
     "Bill detail page exposes vendor, line-item, payment history, totals, and lifecycle context."
   );
   assert(

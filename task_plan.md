@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 107
+Phase 108
 
 ## Phases
 
@@ -842,6 +842,14 @@ Phase 107
 - [x] Add memory/D1 store support and AP tests for tenant isolation, inactive handling, year boundaries, and void-payment exclusion.
 - [x] Expand the accounting template vendor forms to capture phone, address, tax ID, 1099 flag, default terms, notes, and active state.
 - [x] Add an accounting template 1099 report/readiness surface without implying IRS filing or TIN validation.
+- [x] Verify AP tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 108: AP Payment Detail Route
+- [x] Add focused accounting read-only AP payment detail route backed by `getBillPayment`.
+- [x] Link bill and vendor payment history rows to the payment detail route.
+- [x] Show vendor, payment account, method/reference, journal, applications, and lifecycle context without void/reversal actions.
+- [x] Add accounting template policy checks for the read-only payment detail boundary.
 - [x] Verify AP tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 

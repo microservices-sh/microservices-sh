@@ -1507,6 +1507,26 @@
 | Create package | Bundled template closure and generated-app smoke still pass | `pnpm --filter create-microservices-app build` and `smoke:built` passed | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 108 AP payment detail route
+
+- **Status:** complete.
+- Goal: close the read-only AP payment detail gap before attempting void/reversal lifecycle behavior.
+- Added `/app/payables/payments/[id]` to the focused accounting template, backed by `getBillPayment`.
+- The route resolves vendor, bill, payment account, journal, method/reference, application, amount, and lifecycle context for a single tenant-scoped payment.
+- Linked bill and vendor payment-history rows to the payment detail route.
+- Kept void/reversal side effects out of the route and documented that those need journal-safe reversal design before exposure.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounts-payable tests | Payment read, vendor master, and 1099 behavior remain green | `pnpm --filter @microservices-sh/accounts-payable test` passed, 19/19 | Pass |
+| Accounts-payable spec/build | Module contract and TypeScript build remain green | `pnpm --filter @microservices-sh/accounts-payable check:spec` and `pnpm --filter @microservices-sh/accounts-payable build` passed | Pass |
+| Accounting template spec/build | Payment detail route policy and SvelteKit build compile | `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Bundled accounting template regenerates and create-app tests remain green | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+Note: an initial `create-microservices-app` test run reported shim drift. `pnpm sync:shims` made no file changes, and the immediate sequential rerun passed.
+
 ### Phase 107 AP vendor master completion and formal 1099 report
 
 - **Status:** complete.

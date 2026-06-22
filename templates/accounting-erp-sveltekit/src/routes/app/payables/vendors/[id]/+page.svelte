@@ -98,7 +98,7 @@
                 {#each data.payments as payment (payment.id)}
                   <tr>
                     <td>{payment.paymentDateShort}</td>
-                    <td>{payment.paymentNumber}</td>
+                    <td><a href={`/app/payables/payments/${payment.id}`}>{payment.paymentNumber}</a></td>
                     <td>{payment.amount}</td>
                     <td>{payment.paymentMethod ?? "-"}</td>
                     <td>{payment.referenceNumber ?? "-"}</td>
