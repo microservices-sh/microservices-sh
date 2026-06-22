@@ -69,6 +69,7 @@ export const statementTransactionInputSchema = z.object({
 export const statementImportFieldMappingSchema = z
   .object({
     presetId: statementImportFieldMappingPresetIdSchema.optional(),
+    autoDetected: z.boolean().optional(),
     date: z.string().min(1),
     description: z.string().min(1),
     amount: z.string().min(1).optional(),
@@ -102,9 +103,10 @@ export const importStatementCsvSchema = z.object({
   importedById: nullableText,
   fieldMapping: statementImportFieldMappingSchema.optional(),
   fieldMappingPresetId: statementImportFieldMappingPresetIdSchema.nullable().optional(),
+  autoDetectFieldMapping: z.boolean().nullable().optional(),
   csvContent: z.string().min(1)
-}).refine((input) => Boolean(input.fieldMapping || input.fieldMappingPresetId), {
-  message: "CSV import requires a field mapping or mapping preset."
+}).refine((input) => Boolean(input.fieldMapping || input.fieldMappingPresetId || input.autoDetectFieldMapping), {
+  message: "CSV import requires auto-detection, a field mapping, or a mapping preset."
 });
 
 export const statementTransactionFilterSchema = z.object({

@@ -213,8 +213,9 @@
           </Field>
           <Field label="Mapping preset" id="import-mapping-preset">
             <select id="import-mapping-preset" name="mappingPresetId">
+              <option value="auto" selected={!form?.values?.mappingPresetId || form?.values?.mappingPresetId === "auto"}>Auto-detect columns</option>
               {#each data.mappingPresets as preset (preset.id)}
-                <option value={preset.id} selected={(form?.values?.mappingPresetId ?? "standard_amount") === preset.id}>{preset.label}</option>
+                <option value={preset.id} selected={form?.values?.mappingPresetId === preset.id}>{preset.label}</option>
               {/each}
               <option value="custom" selected={form?.values?.mappingPresetId === "custom"}>Custom fields</option>
             </select>

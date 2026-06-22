@@ -413,6 +413,7 @@ describe("module version selectors", () => {
       runtime: { mount: "/banking" },
       rpc: expect.arrayContaining([
         { method: "listStatementImportFieldMappingPresets", scope: "bank-reconciliation.read", public: false },
+        { method: "detectStatementImportFieldMapping", scope: "bank-reconciliation.read", public: false },
         { method: "unmatchTransaction", scope: "bank-reconciliation.write", public: false },
         { method: "excludeTransaction", scope: "bank-reconciliation.write", public: false },
         { method: "restoreExcludedTransaction", scope: "bank-reconciliation.write", public: false },

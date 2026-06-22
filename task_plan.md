@@ -995,6 +995,13 @@ Phase 125
 - [x] Update module/template docs, policy checks, and validation coverage.
 - **Status:** complete
 
+### Phase 127: Banking CSV Mapping Auto-Detection
+- [x] Add module-owned CSV header mapping detection for common date, description, amount, debit, and credit aliases.
+- [x] Allow CSV import to use auto-detected mapping while preserving preset and custom mapping precedence.
+- [x] Wire `/app/banking` to offer auto-detection as the default import mapping path.
+- [x] Update docs, policy checks, and validation coverage while leaving row preview and duplicate review for later phases.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

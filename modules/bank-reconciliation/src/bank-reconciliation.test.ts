@@ -5,6 +5,7 @@ import {
   createBankReconciliationMemoryService,
   createBankReconciliationService,
   createSequentialBankReconciliationIdFactory,
+  detectStatementImportFieldMapping,
   resolveStatementImportFieldMapping
 } from "./service";
 
@@ -312,5 +313,63 @@ describe("bank-reconciliation", () => {
     expect(imported.ok).toBe(false);
     expect(imported.error?.code).toBe("field_mapping_preset_not_found");
     await expect(store.listStatementImports(ctx.tenantId, account.data!.id)).resolves.toHaveLength(0);
+  });
+
+  it("auto-detects CSV field mappings for signed amount imports", async () => {
+    const service = createBankReconciliationService({
+      store: createMemoryBankReconciliationStore(),
+      createId: createSequentialBankReconciliationIdFactory()
+    });
+    const account = await service.createBankAccount(ctx, { name: "Operating" });
+    const csvContent = ["Trans Date,Narrative,Value", "06/20/2026,Stripe payout,840.00", "06/21/2026,Cloud hosting,(125.50)"].join(
+      "\n"
+    );
+
+    expect(detectStatementImportFieldMapping(csvContent)).toMatchObject({
+      ok: true,
+      data: { autoDetected: true, date: "Trans Date", description: "Narrative", amount: "Value" }
+    });
+
+    const imported = await service.importStatementCsv(ctx, account.data!.id, {
+      fileName: "auto-value.csv",
+      autoDetectFieldMapping: true,
+      csvContent
+    });
+
+    expect(imported.ok).toBe(true);
+    expect(imported.data!.imported.map((tx) => tx.amountCents)).toEqual([84000, -12550]);
+    expect(imported.data!.statementImport?.fieldMapping).toEqual({
+      autoDetected: true,
+      date: "Trans Date",
+      description: "Narrative",
+      amount: "Value"
+    });
+  });
+
+  it("auto-detects debit and credit columns when no signed amount exists", async () => {
+    const service = createBankReconciliationService({
+      store: createMemoryBankReconciliationStore(),
+      createId: createSequentialBankReconciliationIdFactory()
+    });
+    const account = await service.createBankAccount(ctx, { name: "Operating" });
+    const csvContent = ["Posted Date,Transaction,Withdrawal,Deposit", "06/20/2026,Stripe payout,,840.00", "06/21/2026,Cloud hosting,125.50,"].join(
+      "\n"
+    );
+
+    const imported = await service.importStatementCsv(ctx, account.data!.id, {
+      fileName: "auto-debit-credit.csv",
+      autoDetectFieldMapping: true,
+      csvContent
+    });
+
+    expect(imported.ok).toBe(true);
+    expect(imported.data!.imported.map((tx) => tx.amountCents)).toEqual([84000, -12550]);
+    expect(imported.data!.statementImport?.fieldMapping).toEqual({
+      autoDetected: true,
+      date: "Posted Date",
+      description: "Transaction",
+      debit: "Withdrawal",
+      credit: "Deposit"
+    });
   });
 });

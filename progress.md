@@ -1688,6 +1688,25 @@
 | Create-app build | Bundled repo templates refresh from source after preset updates | `pnpm --dir packages/create-microservices-app build` passed | Pass |
 | Create-app closure | Bundled StackSuite template closure includes the updated preset surface | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
 
+### Phase 127 banking CSV mapping auto-detection
+
+- **Status:** complete.
+- Goal: port donor-style CSV header mapping detection into the bank-reconciliation module without adding the broader row-preview wizard yet.
+- Added module-owned `detectStatementImportFieldMapping` with aliases for transaction/post dates, descriptions/memo/narrative/details/transaction, signed amount/sum/value, and debit/withdrawal plus credit/deposit.
+- Added `autoDetectFieldMapping` import support and stored `fieldMapping.autoDetected` on statement import history.
+- Made `/app/banking` default to auto-detect while preserving preset and custom mapping fallback.
+- Updated OpenAPI, schemas, module metadata, static catalog, accounting lockfile, docs, and template policy checks.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Bank-reconciliation tests | Auto-detected signed amount and debit/credit imports are covered without regressing presets/custom mappings | `pnpm --filter @microservices-sh/bank-reconciliation test` passed, 10/10 | Pass |
+| Bank-reconciliation build/spec | Detection types, schemas, OpenAPI, metadata, and D1 JSON round-trip compile and meet module spec | `pnpm --filter @microservices-sh/bank-reconciliation build` and `pnpm --filter @microservices-sh/bank-reconciliation check:spec` passed | Pass |
+| Accounting template spec/build | Auto-detect default, route wiring, lock snapshot, and import-detail mapping compile and pass policy checks | Initial spec failed because the guard expected literal `standard_amount` in a dynamic Svelte preset loop; guard was corrected. `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Module contract | Static catalog exposes the detection read RPC | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js` passed, 21/21 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Create-app build | Bundled repo templates refresh from source after auto-detection updates | `pnpm --dir packages/create-microservices-app build` passed | Pass |
+| Create-app closure | Bundled StackSuite template closure includes the updated detection surface | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
+
 ### Phase 125 banking transaction correction lifecycle
 
 - **Status:** complete.

@@ -83,7 +83,7 @@ Future MCP/CLI tools should expose the same content through:
 | [`accounting-core`](./accounting-core.md) | Draft | Double-entry accounting foundation, chart of accounts, fiscal periods, posting, voiding, and financial statements. |
 | [`accounts-payable`](./accounts-payable.md) | Draft | Vendors, bills, payable lifecycle, recurring bill templates, payment application, and aging. |
 | [`accounts-receivable`](./accounts-receivable.md) | Draft | Customer payment application, open receivables, aging, and statement workflows. |
-| [`bank-reconciliation`](./bank-reconciliation.md) | Draft | Bank accounts, import mapping presets, statement lines, matching corrections, exclusions, and reconciliation state. |
+| [`bank-reconciliation`](./bank-reconciliation.md) | Draft | Bank accounts, import mapping detection/presets, statement lines, matching corrections, exclusions, and reconciliation state. |
 | [`estimate-quote`](./estimate-quote.md) | Draft | Estimate/quote documents, lifecycle transitions, conversion metadata, and invoice draft handoff. |
 | [`recurring-documents`](./recurring-documents.md) | Draft | Recurring invoice/bill templates, due-cycle generation, lifecycle state, and draft document handoff. |
 | [`knowledge-base-rag`](./knowledge-base-rag.md) | Draft | Tenant-scoped knowledge articles, grounded answers, and draft-only support replies. |

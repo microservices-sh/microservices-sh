@@ -43,6 +43,7 @@ export interface ImportStatementCsvInput {
   source?: BankStatementImportSource;
   fieldMapping?: BankStatementImportFieldMapping;
   fieldMappingPresetId?: BankStatementImportMappingPresetId | null;
+  autoDetectFieldMapping?: boolean | null;
   csvContent: string;
   importedById?: string;
 }
@@ -57,6 +58,7 @@ export interface BankReconciliationServiceDeps {
 
 export interface BankReconciliationService {
   listStatementImportFieldMappingPresets(): Promise<ModuleResult<BankStatementImportMappingPreset[]>>;
+  detectStatementImportFieldMapping(csvContent: string): Promise<ModuleResult<BankStatementImportFieldMapping>>;
   createBankAccount(ctx: TenantContext, input: CreateBankAccountInput): Promise<ModuleResult<BankAccount>>;
   listBankAccounts(ctx: TenantContext): Promise<ModuleResult<BankAccount[]>>;
   importStatementTransactions(
@@ -340,9 +342,51 @@ function cloneFieldMapping(mapping: BankStatementImportFieldMapping): BankStatem
   return { ...mapping };
 }
 
+const fieldDetectionAliases = {
+  date: ["date", "transaction date", "trans date", "posted date", "post date", "posting date", "effective date"],
+  description: ["description", "details", "memo", "name", "payee", "transaction", "transaction description", "narrative"],
+  amount: ["amount", "transaction amount", "signed amount", "net amount", "sum", "value"],
+  debit: ["debit", "withdrawal", "withdrawals", "money out", "outflow", "paid out", "charge"],
+  credit: ["credit", "deposit", "deposits", "money in", "inflow", "paid in"]
+} as const;
+
+function detectHeader(headers: string[], aliases: readonly string[], options: { exclude?: readonly string[] } = {}): string | undefined {
+  const normalizedAliases = new Set(aliases.map(normalizeHeader));
+  const normalizedExcludes = options.exclude?.map(normalizeHeader) ?? [];
+  return headers.find((header) => {
+    const normalized = normalizeHeader(header);
+    return (
+      normalizedAliases.has(normalized) ||
+      aliases.some((alias) => normalized.includes(normalizeHeader(alias)))
+    ) && !normalizedExcludes.some((excluded) => normalized.includes(excluded));
+  });
+}
+
+export function detectStatementImportFieldMapping(csvContent: string): ModuleResult<BankStatementImportFieldMapping> {
+  const csvRows = parseCsv(csvContent);
+  if (csvRows.length < 1) return fail("csv_empty", "CSV content must include a header row.");
+
+  const headers = csvRows[0].map((header) => header.trim()).filter(Boolean);
+  const date = detectHeader(headers, fieldDetectionAliases.date);
+  const description = detectHeader(headers, fieldDetectionAliases.description, { exclude: ["date"] });
+  if (!date || !description) {
+    return fail("field_mapping_detection_failed", "Could not detect required date and description fields.");
+  }
+
+  const amount = detectHeader(headers, fieldDetectionAliases.amount, { exclude: ["debit", "credit", "withdrawal", "deposit"] });
+  if (amount) return ok({ autoDetected: true, date, description, amount });
+
+  const debit = detectHeader(headers, fieldDetectionAliases.debit);
+  const credit = detectHeader(headers, fieldDetectionAliases.credit);
+  if (debit && credit) return ok({ autoDetected: true, date, description, debit, credit });
+
+  return fail("field_mapping_detection_failed", "Could not detect amount or debit/credit fields.");
+}
+
 export function resolveStatementImportFieldMapping(input: ImportStatementCsvInput): ModuleResult<BankStatementImportFieldMapping> {
   if (input.fieldMapping) return ok(cloneFieldMapping(input.fieldMapping));
   if (!input.fieldMappingPresetId) {
+    if (input.autoDetectFieldMapping) return detectStatementImportFieldMapping(input.csvContent);
     return fail("field_mapping_required", "CSV import requires a field mapping or mapping preset.");
   }
   const preset = bankStatementImportMappingPresets.find((candidate) => candidate.id === input.fieldMappingPresetId);
@@ -475,6 +519,10 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
   return {
     async listStatementImportFieldMappingPresets() {
       return ok(bankStatementImportMappingPresets.map(cloneMappingPreset));
+    },
+
+    async detectStatementImportFieldMapping(csvContent) {
+      return detectStatementImportFieldMapping(csvContent);
     },
 
     async createBankAccount(ctx, input) {
@@ -813,6 +861,10 @@ export function createBankReconciliationMemoryService() {
   return {
     listStatementImportFieldMappingPresets(): ModuleResult<BankStatementImportMappingPreset[]> {
       return ok(bankStatementImportMappingPresets.map(cloneMappingPreset));
+    },
+
+    detectStatementImportFieldMapping(csvContent: string): ModuleResult<BankStatementImportFieldMapping> {
+      return detectStatementImportFieldMapping(csvContent);
     },
 
     createBankAccount(ctx: TenantContext, input: CreateBankAccountInput): ModuleResult<BankAccount> {

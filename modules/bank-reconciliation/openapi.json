@@ -35,6 +35,36 @@
         }
       }
     },
+    "/statement-import-mapping-detection": {
+      "post": {
+        "summary": "Detect CSV field mapping from statement headers",
+        "operationId": "detectStatementImportFieldMapping",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["csvContent"],
+                "properties": {
+                  "csvContent": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Detected field mapping",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StatementImportFieldMapping" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/statement-imports": {
       "get": {
         "summary": "List statement imports",
@@ -170,6 +200,7 @@
         "required": ["date", "description"],
         "properties": {
           "presetId": { "$ref": "#/components/schemas/StatementImportFieldMappingPresetId" },
+          "autoDetected": { "type": "boolean" },
           "date": { "type": "string" },
           "description": { "type": "string" },
           "amount": { "type": "string" },
@@ -202,11 +233,13 @@
           "importedById": { "type": ["string", "null"] },
           "fieldMapping": { "$ref": "#/components/schemas/StatementImportFieldMapping" },
           "fieldMappingPresetId": { "$ref": "#/components/schemas/StatementImportFieldMappingPresetId" },
+          "autoDetectFieldMapping": { "type": "boolean" },
           "csvContent": { "type": "string" }
         },
         "anyOf": [
           { "required": ["fieldMapping"] },
-          { "required": ["fieldMappingPresetId"] }
+          { "required": ["fieldMappingPresetId"] },
+          { "required": ["autoDetectFieldMapping"] }
         ]
       },
       "MatchCandidate": {

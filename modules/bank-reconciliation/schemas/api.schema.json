@@ -27,6 +27,12 @@
       "items": {
         "enum": ["standard_amount", "details_debit_credit", "posted_amount"]
       }
+    },
+    "statementImportFieldMappingModes": {
+      "type": "array",
+      "items": {
+        "enum": ["auto_detect", "preset", "custom"]
+      }
     }
   }
 }

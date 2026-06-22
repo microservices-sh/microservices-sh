@@ -9,6 +9,7 @@ export {
   createBankReconciliationMemoryService,
   createBankReconciliationService,
   createSequentialBankReconciliationIdFactory,
+  detectStatementImportFieldMapping,
   getBankReconciliationModuleStatus,
   resolveStatementImportFieldMapping
 } from "./service";

@@ -197,14 +197,15 @@ export const actions: Actions = {
       creditField: text(form.get("creditField")),
       csvContent: text(form.get("csvContent"))
     };
-    const usePreset = values.mappingPresetId && values.mappingPresetId !== "custom";
-    const fieldMapping = usePreset
+    const useAutoDetect = !values.mappingPresetId || values.mappingPresetId === "auto";
+    const usePreset = values.mappingPresetId && values.mappingPresetId !== "auto" && values.mappingPresetId !== "custom";
+    const fieldMapping = useAutoDetect || usePreset
       ? undefined
       : values.amountField.length > 0
         ? { date: values.dateField, description: values.descriptionField, amount: values.amountField }
         : { date: values.dateField, description: values.descriptionField, debit: values.debitField, credit: values.creditField };
-    if (!values.bankAccountId || !values.csvContent || (!usePreset && !values.amountField && (!values.debitField || !values.creditField))) {
-      return fail(400, { error: "Choose an account, paste CSV rows, and select a preset or map amount/debit/credit fields.", values });
+    if (!values.bankAccountId || !values.csvContent || (!useAutoDetect && !usePreset && !values.amountField && (!values.debitField || !values.creditField))) {
+      return fail(400, { error: "Choose an account, paste CSV rows, and select auto-detect, a preset, or custom amount/debit/credit fields.", values });
     }
 
     const imported = await locals.bankReconciliationService.importStatementCsv(
@@ -213,6 +214,7 @@ export const actions: Actions = {
       {
         fileName: values.fileName,
         importedById: locals.user.id,
+        autoDetectFieldMapping: useAutoDetect,
         fieldMappingPresetId: usePreset ? (values.mappingPresetId as BankStatementImportMappingPresetId) : undefined,
         fieldMapping,
         csvContent: values.csvContent
@@ -229,6 +231,7 @@ export const actions: Actions = {
         source: "app/banking",
         payload: {
           bankAccountId: values.bankAccountId,
+          autoDetectFieldMapping: useAutoDetect,
           mappingPresetId: usePreset ? values.mappingPresetId : null,
           importedCount: imported.data.importedCount,
           skippedDuplicateCount: imported.data.skippedDuplicateCount

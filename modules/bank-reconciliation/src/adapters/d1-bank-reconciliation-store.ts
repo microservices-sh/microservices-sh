@@ -128,6 +128,7 @@ function parseFieldMapping(value: unknown): BankStatementImportFieldMapping | un
     if (!parsed.date || !parsed.description) return undefined;
     return {
       presetId: parsed.presetId == null ? undefined : (String(parsed.presetId) as BankStatementImportMappingPresetId),
+      autoDetected: parsed.autoDetected == null ? undefined : Boolean(parsed.autoDetected),
       date: String(parsed.date),
       description: String(parsed.description),
       amount: optionalString(parsed.amount),

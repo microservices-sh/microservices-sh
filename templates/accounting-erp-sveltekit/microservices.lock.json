@@ -56,6 +56,11 @@
             "public": false
           },
           {
+            "method": "detectStatementImportFieldMapping",
+            "scope": "bank-reconciliation.read",
+            "public": false
+          },
+          {
             "method": "listStatementImports",
             "scope": "bank-reconciliation.read",
             "public": false

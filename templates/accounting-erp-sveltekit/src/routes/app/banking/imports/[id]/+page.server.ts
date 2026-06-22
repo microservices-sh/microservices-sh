@@ -22,6 +22,7 @@ function mappingSummary(mapping: BankStatementImportFieldMapping | undefined, pr
   if (!mapping) return [];
   const preset = mapping.presetId ? presets.find((candidate) => candidate.id === mapping.presetId) : null;
   return [
+    mapping.autoDetected ? "Mapping: auto-detected" : null,
     preset ? `Preset: ${preset.label}` : mapping.presetId ? `Preset: ${mapping.presetId}` : null,
     `Date: ${mapping.date}`,
     `Description: ${mapping.description}`,

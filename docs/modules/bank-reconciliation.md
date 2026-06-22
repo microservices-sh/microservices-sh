@@ -40,8 +40,8 @@ Tenant-scoped bank accounts, statement import mapping presets, bank transactions
 
 ## Invariants
 - Money is stored as integer cents.
-- CSV imports use either a module-owned field mapping preset or an explicit custom field mapping.
-- Preset-based imports store the resolved field names and preset id in statement import history.
+- CSV imports use auto-detected headers, a module-owned field mapping preset, or an explicit custom field mapping.
+- Auto-detected and preset-based imports store the resolved field names plus detection/preset metadata in statement import history.
 - Imported transaction hashes are unique per tenant and bank account.
 - A transaction cannot be reconciled while unmatched.
 - Reconciled transactions cannot be unmatched, excluded, or restored.

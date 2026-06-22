@@ -137,6 +137,7 @@ export type BankStatementImportMappingPresetId = "standard_amount" | "details_de
 
 export interface BankStatementImportFieldMapping {
   presetId?: BankStatementImportMappingPresetId;
+  autoDetected?: boolean;
   date: string;
   description: string;
   amount?: string;
