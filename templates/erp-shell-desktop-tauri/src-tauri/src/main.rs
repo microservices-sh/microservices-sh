@@ -19,8 +19,11 @@ const DEFAULT_GEMMA_MODEL: &str = "gemma4:e4b-it-qat";
 const OLLAMA_HOST: &str = "127.0.0.1:11434";
 const DEFAULT_OCR_LANGUAGE: &str = "eng";
 const MAX_GEMMA_IMAGE_PAGES: usize = 4;
-// Keep the model resident between documents so doc 2..N skip the cold load.
-const OLLAMA_KEEP_ALIVE: &str = "10m";
+// How long Ollama keeps the model resident after a request. A short default
+// frees the multi-GB model promptly (review takes longer than this anyway), so a
+// memory-constrained Mac is not left under pressure after a run. Override with
+// MICROSERVICES_DESKTOP_KEEP_ALIVE (e.g. "10m") on a roomy machine for warm runs.
+const OLLAMA_KEEP_ALIVE: &str = "30s";
 // Phone photos are ~15-20 MP; the vision model downscales internally, so a full
 // upload just wastes transfer + inference time. Cap the longest edge before send.
 const MAX_VISION_EDGE: u32 = 1568;
@@ -470,6 +473,14 @@ async fn document_preview(app: tauri::AppHandle, job_id: String) -> Result<Optio
         .map_err(|error| format!("Failed to join preview task: {error}"))?
 }
 
+/// In-memory cache of rendered page previews, keyed by document content hash, so
+/// re-opening Review never re-rasterizes a PDF or re-decodes a photo.
+fn preview_cache() -> &'static std::sync::Mutex<std::collections::HashMap<String, String>> {
+    static CACHE: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<String, String>>> =
+        std::sync::OnceLock::new();
+    CACHE.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
 fn document_preview_blocking(
     app: &tauri::AppHandle,
     job_id: &str,
@@ -478,6 +489,18 @@ fn document_preview_blocking(
     let Some(job) = queue.get_job(job_id)? else {
         return Ok(None);
     };
+
+    // Same file bytes -> same preview; cache by content hash so the heavy
+    // rasterize/decode happens at most once per document, not on every visit.
+    let cache_key = job.file_hash.clone();
+    if let Some(cached) = preview_cache()
+        .lock()
+        .ok()
+        .and_then(|cache| cache.get(&cache_key).cloned())
+    {
+        return Ok(Some(cached));
+    }
+
     let path = PathBuf::from(&job.path);
     if !path.exists() {
         return Ok(None);
@@ -488,7 +511,15 @@ fn document_preview_blocking(
         return Ok(None);
     };
     let bytes = fs::read(first).map_err(|error| format!("Failed to read preview page: {error}"))?;
-    Ok(preview_jpeg(&bytes).map(|jpeg| format!("data:image/jpeg;base64,{}", base64_encode(&jpeg))))
+    let Some(jpeg) = preview_jpeg(&bytes) else {
+        return Ok(None);
+    };
+    let data_url = format!("data:image/jpeg;base64,{}", base64_encode(&jpeg));
+
+    if let Ok(mut cache) = preview_cache().lock() {
+        cache.insert(cache_key, data_url.clone());
+    }
+    Ok(Some(data_url))
 }
 
 #[tauri::command]
@@ -1662,6 +1693,13 @@ fn configured_gemma_model() -> String {
         .unwrap_or_else(|| DEFAULT_GEMMA_MODEL.to_string())
 }
 
+fn configured_keep_alive() -> String {
+    std::env::var("MICROSERVICES_DESKTOP_KEEP_ALIVE")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| OLLAMA_KEEP_ALIVE.to_string())
+}
+
 fn configured_ocr_language() -> String {
     std::env::var("MICROSERVICES_DESKTOP_OCR_LANG")
         .ok()
@@ -1841,7 +1879,7 @@ fn ollama_generate_with_images(
         "images": images,
         "stream": false,
         "format": extraction_schema(&job.kind),
-        "keep_alive": OLLAMA_KEEP_ALIVE,
+        "keep_alive": configured_keep_alive(),
         "options": { "temperature": 0 }
     });
     let started = Instant::now();
