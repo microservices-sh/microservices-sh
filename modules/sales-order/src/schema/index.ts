@@ -1,4 +1,5 @@
 export {
+  bulkTransitionOrdersInputSchema,
   cancelOrderInputSchema,
   createDraftOrderInputSchema,
   customerSnapshotSchema,

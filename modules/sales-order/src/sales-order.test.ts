@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bulkTransitionOrders,
   cancelOrder,
   confirmOrder,
   createDraftOrder,
@@ -190,6 +191,89 @@ describe("sales-order: transitions", () => {
     expect(replay.ok).toBe(true);
     if (replay.ok) expect(replay.data.idempotent).toBe(true);
     expect(invoiceCalls).toEqual([draft.id]);
+  });
+
+  it("bulk confirms unique draft orders through the existing reservation path", async () => {
+    const store = createMemorySalesOrderStore();
+    const first = await seedDraft(store);
+    const second = await seedDraft(store);
+    const reservations: string[] = [];
+
+    const result = await bulkTransitionOrders(
+      { tenantId: first.tenantId, orderIds: [first.id, second.id], action: "confirm" },
+      {
+        salesOrderStore: store,
+        inventoryReservationPort: {
+          async reserveSalesOrder({ order }) {
+            reservations.push(order.id);
+            return { reservationId: `res-${reservations.length}` };
+          }
+        },
+        now: fixedNow(T0 + 5)
+      }
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error.message);
+    expect(result.status).toBe(200);
+    expect(result.data).toMatchObject({ action: "confirm", requestedCount: 2, succeededCount: 2, failedCount: 0 });
+    expect(result.data.items.every((item) => item.ok && item.order.status === "confirmed")).toBe(true);
+    expect(reservations).toEqual([first.id, second.id]);
+
+    const replay = await bulkTransitionOrders(
+      { tenantId: first.tenantId, orderIds: [first.id], action: "confirm" },
+      { salesOrderStore: store, now: fixedNow(T0 + 6) }
+    );
+    expect(replay.ok).toBe(true);
+    if (replay.ok) expect(replay.data.items[0]).toMatchObject({ ok: true, idempotent: true });
+  });
+
+  it("rejects duplicate order ids in bulk transitions", async () => {
+    const store = createMemorySalesOrderStore();
+    const draft = await seedDraft(store);
+    const result = await bulkTransitionOrders(
+      { tenantId: draft.tenantId, orderIds: [draft.id, draft.id], action: "cancel" },
+      { salesOrderStore: store }
+    );
+    expect(result).toMatchObject({
+      ok: false,
+      status: 400,
+      error: { code: "sales-order.DUPLICATE_ORDER_IDS" }
+    });
+  });
+
+  it("returns per-order errors for partial bulk cancellation failures", async () => {
+    const store = createMemorySalesOrderStore();
+    const cancellable = await seedDraft(store);
+    const invoicedDraft = await seedDraft(store);
+    await confirmOrder({ tenantId: cancellable.tenantId, orderId: invoicedDraft.id }, { salesOrderStore: store });
+    await markOrderInvoiced(
+      { tenantId: cancellable.tenantId, orderId: invoicedDraft.id },
+      {
+        salesOrderStore: store,
+        invoiceDraftPort: {
+          async createDraftFromSalesOrder() {
+            return { invoiceId: "inv-bulk-1" };
+          }
+        }
+      }
+    );
+
+    const result = await bulkTransitionOrders(
+      { tenantId: cancellable.tenantId, orderIds: [cancellable.id, invoicedDraft.id], action: "cancel", reason: "Batch cleanup" },
+      { salesOrderStore: store, now: fixedNow(T0 + 7) }
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error.message);
+    expect(result.status).toBe(207);
+    expect(result.data).toMatchObject({ action: "cancel", requestedCount: 2, succeededCount: 1, failedCount: 1 });
+    expect(result.data.items[0]).toMatchObject({ ok: true, order: { status: "cancelled", cancelReason: "Batch cleanup" } });
+    expect(result.data.items[1]).toMatchObject({
+      ok: false,
+      status: 409,
+      error: { code: "sales-order.INVALID_STATUS_TRANSITION" }
+    });
   });
 });
 

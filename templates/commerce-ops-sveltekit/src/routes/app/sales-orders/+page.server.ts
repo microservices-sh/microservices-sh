@@ -6,6 +6,7 @@ import { sendEmail } from "@microservices-sh/email";
 import { authContext, createInvoice, issueInvoiceScoped } from "@microservices-sh/invoice";
 import { listProducts } from "@microservices-sh/product-catalog";
 import {
+  bulkTransitionOrders,
   cancelOrder,
   confirmOrder,
   createDraftOrder,
@@ -348,6 +349,89 @@ export const actions: Actions = {
     );
 
     return { confirmed: true };
+  },
+
+  bulkTransition: async ({ request, locals, cookies, platform }) => {
+    requireModule("sales-order", platform);
+    requireModule("inventory", platform);
+    requireModule("product-catalog", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const orderIds = [...new Set(form.getAll("orderId").map(text).filter(Boolean))];
+    const action = text(form.get("bulkAction"));
+    const reason = text(form.get("reason")) || "Bulk cancellation from sales order ledger.";
+    if (orderIds.length === 0) return fail(400, { error: "Select at least one sales order." });
+    if (action !== "confirm" && action !== "cancel") return fail(400, { error: "Choose a valid bulk action." });
+
+    let result;
+    let releaseSummary = { releasedCount: 0, idempotentCount: 0, movementIds: [] as string[] };
+    try {
+      result = await bulkTransitionOrders(
+        { tenantId: org.id, orderIds, action, reason: action === "cancel" ? reason : null },
+        {
+          salesOrderStore: locals.salesOrderStore,
+          inventoryReservationPort: createSalesOrderInventoryReservationPort({
+            inventoryStore: locals.inventoryStore,
+            productCatalogStore: locals.productCatalogStore,
+            actorId: locals.user.id,
+            permissions
+          }),
+          actor: { id: locals.user.id, email: locals.user.email, permissions }
+        }
+      );
+
+      if (result.ok && action === "cancel") {
+        for (const item of result.data.items) {
+          if (!item.ok) continue;
+          const released = await releaseSalesOrderReservations(item.order, {
+            inventoryStore: locals.inventoryStore,
+            productCatalogStore: locals.productCatalogStore,
+            actorId: locals.user.id,
+            permissions
+          });
+          releaseSummary = {
+            releasedCount: releaseSummary.releasedCount + released.releasedCount,
+            idempotentCount: releaseSummary.idempotentCount + released.idempotentCount,
+            movementIds: [...releaseSummary.movementIds, ...released.movementIds]
+          };
+        }
+      }
+    } catch (error) {
+      return fail(400, { error: error instanceof Error ? error.message : "Could not apply the selected sales-order bulk action." });
+    }
+    if (!result.ok || !result.data) return fail(result.status, { error: result.error.message });
+
+    await recordEvent(
+      {
+        eventName: "sales-order.bulk_transitioned",
+        actorId: locals.user.id,
+        entityType: "sales-order",
+        entityId: null,
+        source: "app/sales-orders",
+        payload: {
+          action: result.data.action,
+          requestedCount: result.data.requestedCount,
+          succeededCount: result.data.succeededCount,
+          failedCount: result.data.failedCount,
+          orderIds,
+          releasedReservations: releaseSummary.releasedCount,
+          idempotentReservationReleases: releaseSummary.idempotentCount
+        }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return {
+      bulkTransitioned: true,
+      bulkAction: result.data.action,
+      succeededCount: result.data.succeededCount,
+      failedCount: result.data.failedCount,
+      releasedReservations: releaseSummary.releasedCount
+    };
   },
 
   invoice: async ({ request, locals, cookies, platform }) => {

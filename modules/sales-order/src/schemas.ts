@@ -57,6 +57,13 @@ export const sendSalesOrderInputSchema = salesOrderIdentitySchema.extend({
   idempotencyKey: z.string().min(1).max(200).nullable().optional()
 });
 
+export const bulkTransitionOrdersInputSchema = z.object({
+  tenantId: z.string().min(1),
+  orderIds: z.array(z.string().min(1)).min(1).max(100),
+  action: z.enum(["confirm", "cancel"]),
+  reason: z.string().max(500).nullable().optional()
+});
+
 export const salesOrderFilterSchema = z.object({
   tenantId: z.string().min(1),
   status: salesOrderStatusSchema.optional(),

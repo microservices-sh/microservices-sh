@@ -5,7 +5,7 @@ Module ID: `sales-order`
 Mount: `/sales-orders`
 
 ## Summary
-Tenant-scoped sales orders with line items, external references, status transitions, send attempts, reservation handoff, and invoice draft handoff.
+Tenant-scoped sales orders with line items, external references, status transitions, bulk confirm/cancel, send attempts, reservation handoff, and invoice draft handoff.
 
 ## Dependencies
 - none required
@@ -43,6 +43,7 @@ Tenant-scoped sales orders with line items, external references, status transiti
 - Orders follow draft, confirmed, cancelled, and invoiced status transitions.
 - Reservation, invoice, and delivery handoff happen through ports, not template code.
 - Sales-order sends record attempt metadata and never store provider secrets.
+- Bulk transitions are limited to confirm/cancel and report per-order partial results; bulk invoice handoff remains deferred until invoice creation has end-to-end idempotency.
 
 ## Approval Gate
 Risk: medium

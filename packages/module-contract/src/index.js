@@ -1177,7 +1177,7 @@ const INTERNAL_CATALOG_MODULES = Object.freeze([
     id: "sales-order",
     name: "Sales Order",
     status: "draft",
-    summary: "Tenant-scoped sales orders with line items, external references, status transitions, send attempts, reservation handoff, and invoice draft handoff.",
+    summary: "Tenant-scoped sales orders with line items, external references, status transitions, bulk confirm/cancel, send attempts, reservation handoff, and invoice draft handoff.",
     optional: ["auth", "audit-log", "inventory", "invoice", "email"],
     mount: "/sales-orders",
     surfaces: {
@@ -1196,6 +1196,7 @@ const INTERNAL_CATALOG_MODULES = Object.freeze([
           "sales-order.listOrders",
           "sales-order.getOrder",
           "sales-order.createDraftOrder",
+          "sales-order.bulkTransitionOrders",
           "sales-order.confirmOrder",
           "sales-order.cancelOrder",
           "sales-order.sendSalesOrder",
@@ -1204,6 +1205,7 @@ const INTERNAL_CATALOG_MODULES = Object.freeze([
         skillPaths: ["skills/sales-order-operator/SKILL.md"],
         approvalRequired: [
           "sales-order.createDraftOrder",
+          "sales-order.bulkTransitionOrders",
           "sales-order.confirmOrder",
           "sales-order.cancelOrder",
           "sales-order.sendSalesOrder",
@@ -1230,6 +1232,7 @@ const INTERNAL_CATALOG_MODULES = Object.freeze([
       { method: "listOrders", scope: "sales-order.read", public: false },
       { method: "getOrder", scope: "sales-order.read", public: false },
       { method: "createDraftOrder", scope: "sales-order.write", public: false },
+      { method: "bulkTransitionOrders", scope: "sales-order.write", public: false },
       { method: "confirmOrder", scope: "sales-order.write", public: false },
       { method: "cancelOrder", scope: "sales-order.write", public: false },
       { method: "sendSalesOrder", scope: "sales-order.write", public: false },

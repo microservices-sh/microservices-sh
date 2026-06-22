@@ -6,7 +6,7 @@ export const manifest = {
   status: "draft",
   class: "core",
   summary:
-    "Tenant-scoped sales orders with line items, external references, status transitions, send attempts, reservation handoff, and invoice draft handoff.",
+    "Tenant-scoped sales orders with line items, external references, status transitions, bulk confirm/cancel, send attempts, reservation handoff, and invoice draft handoff.",
   runtime: {
     language: "typescript",
     platform: "cloudflare-workers",
@@ -36,6 +36,7 @@ export const manifest = {
         { method: "listOrders", scope: "sales-order.read", public: false },
         { method: "getOrder", scope: "sales-order.read", public: false },
         { method: "createDraftOrder", scope: "sales-order.write", public: false },
+        { method: "bulkTransitionOrders", scope: "sales-order.write", public: false },
         { method: "confirmOrder", scope: "sales-order.write", public: false },
         { method: "cancelOrder", scope: "sales-order.write", public: false },
         { method: "sendSalesOrder", scope: "sales-order.write", public: false },
@@ -111,6 +112,7 @@ export const manifest = {
         "sales-order.listOrders",
         "sales-order.getOrder",
         "sales-order.createDraftOrder",
+        "sales-order.bulkTransitionOrders",
         "sales-order.confirmOrder",
         "sales-order.cancelOrder",
         "sales-order.sendSalesOrder",
@@ -119,6 +121,7 @@ export const manifest = {
       skillPaths: ["skills/sales-order-operator/SKILL.md"],
       approvalRequiredFor: [
         "sales-order.createDraftOrder",
+        "sales-order.bulkTransitionOrders",
         "sales-order.confirmOrder",
         "sales-order.cancelOrder",
         "sales-order.sendSalesOrder",

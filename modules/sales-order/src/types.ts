@@ -1,4 +1,5 @@
 export type SalesOrderStatus = "draft" | "confirmed" | "cancelled" | "invoiced";
+export type SalesOrderBulkTransitionAction = "confirm" | "cancel";
 
 export interface SalesOrderConfig {
   enabled: boolean;
@@ -118,6 +119,35 @@ export interface SalesOrderSendAttempt {
   errorMessage: string | null;
   createdById: string | null;
   createdAt: string;
+}
+
+export interface SalesOrderBulkTransitionSuccess {
+  orderId: string;
+  ok: true;
+  status: number;
+  idempotent: boolean;
+  order: SalesOrderWithLineItems;
+}
+
+export interface SalesOrderBulkTransitionFailure {
+  orderId: string;
+  ok: false;
+  status: number;
+  error: {
+    code: string;
+    message: string;
+    issues?: unknown;
+  };
+}
+
+export type SalesOrderBulkTransitionItem = SalesOrderBulkTransitionSuccess | SalesOrderBulkTransitionFailure;
+
+export interface SalesOrderBulkTransitionSummary {
+  action: SalesOrderBulkTransitionAction;
+  requestedCount: number;
+  succeededCount: number;
+  failedCount: number;
+  items: SalesOrderBulkTransitionItem[];
 }
 
 export interface InventoryReservationRequest {

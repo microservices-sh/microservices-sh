@@ -2,7 +2,7 @@
 
 Status: `draft`
 
-Tenant-scoped sales orders with line items, external references, status transitions, reservation handoff, and invoice draft handoff.
+Tenant-scoped sales orders with line items, external references, status transitions, bulk confirm/cancel, reservation handoff, and invoice draft handoff.
 
 ## Public Surface
 
@@ -12,13 +12,15 @@ import { salesOrderModule } from "@microservices-sh/sales-order";
 
 ## Ownership Boundary
 
-The module owns tenant-scoped sales order identity, line items, customer references/snapshots, external source references, integer-cent totals, status transitions, send attempt metadata, schemas, hooks, events, permissions, resources, D1/memory stores, and migrations for `sales-order`.
+The module owns tenant-scoped sales order identity, line items, customer references/snapshots, external source references, integer-cent totals, status transitions, bulk confirm/cancel orchestration, send attempt metadata, schemas, hooks, events, permissions, resources, D1/memory stores, and migrations for `sales-order`.
 
 Templates own app shell, route adapters, UI layout, and framework-specific response mapping.
 
 ## Port Notes
 
 `confirmOrder` can call an optional inventory reservation port. Replaying confirmation on an already confirmed order is idempotent and does not call the port again.
+
+`bulkTransitionOrders` batches confirm/cancel operations by delegating to `confirmOrder` and `cancelOrder`. It returns per-order partial results and intentionally does not support invoice handoff until invoice creation has end-to-end idempotency.
 
 `markOrderInvoiced` requires an invoice draft port for the `confirmed -> invoiced` transition. Replaying the invoiced transition on an already invoiced order is idempotent and does not create another invoice draft.
 

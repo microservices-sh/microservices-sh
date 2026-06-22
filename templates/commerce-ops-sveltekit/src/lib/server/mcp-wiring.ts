@@ -71,6 +71,7 @@ import {
 } from "@microservices-sh/inventory";
 
 import {
+  bulkTransitionOrders,
   listOrders,
   getOrder,
   createDraftOrder,
@@ -238,6 +239,33 @@ async function cancelSalesOrder(input: unknown, ctx?: ToolContext) {
   return result;
 }
 
+async function bulkTransitionSalesOrders(input: unknown, ctx?: ToolContext) {
+  const result = await bulkTransitionOrders(input, {
+    salesOrderStore,
+    inventoryReservationPort: createSalesOrderInventoryReservationPort({
+      inventoryStore,
+      productCatalogStore,
+      actorId: actor(ctx).id,
+      permissions: permissions(ctx)
+    }),
+    actor: actorWithPermissions(ctx)
+  });
+
+  if (result.ok && result.data.action === "cancel") {
+    for (const item of result.data.items) {
+      if (!item.ok) continue;
+      await releaseSalesOrderReservations(item.order, {
+        inventoryStore,
+        productCatalogStore,
+        actorId: actor(ctx).id,
+        permissions: permissions(ctx)
+      });
+    }
+  }
+
+  return result;
+}
+
 async function invoiceSalesOrder(input: unknown, ctx?: ToolContext) {
   const result = await markOrderInvoiced(input, {
     salesOrderStore,
@@ -346,6 +374,7 @@ export const handlers: Record<string, (input: unknown, ctx?: ToolContext) => Pro
   "sales-order_listOrders": (input) => listOrders(input, { salesOrderStore }),
   "sales-order_getOrder": (input) => getOrder(input, { salesOrderStore }),
   "sales-order_createDraftOrder": (input, ctx) => createDraftOrder(input, { salesOrderStore, actor: actorWithPermissions(ctx) }),
+  "sales-order_bulkTransitionOrders": (input, ctx) => bulkTransitionSalesOrders(input, ctx),
   "sales-order_confirmOrder": (input, ctx) => confirmSalesOrder(input, ctx),
   "sales-order_cancelOrder": (input, ctx) => cancelSalesOrder(input, ctx),
   "sales-order_sendSalesOrder": (input, ctx) =>

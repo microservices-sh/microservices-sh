@@ -1,5 +1,6 @@
 export { manifest } from "./manifest";
 export {
+  bulkTransitionOrdersInputSchema,
   cancelOrderInputSchema,
   createDraftOrderInputSchema,
   customerSnapshotSchema,
@@ -17,6 +18,7 @@ export { salesOrderPermissions } from "./permissions";
 export { salesOrderResources } from "./resources";
 export { createD1SalesOrderStore } from "./adapters/d1-sales-order-store";
 export { createMemorySalesOrderStore } from "./adapters/memory-sales-order-store";
+export { bulkTransitionOrders } from "./use-cases/bulk-transition-orders";
 export { cancelOrder } from "./use-cases/cancel-order";
 export { confirmOrder } from "./use-cases/confirm-order";
 export { createDraftOrder } from "./use-cases/create-draft-order";
@@ -34,6 +36,11 @@ export type {
   InvoiceDraftResult,
   ModuleResult,
   SalesOrder,
+  SalesOrderBulkTransitionAction,
+  SalesOrderBulkTransitionFailure,
+  SalesOrderBulkTransitionItem,
+  SalesOrderBulkTransitionSuccess,
+  SalesOrderBulkTransitionSummary,
   SalesOrderConfig,
   SalesOrderDeliveryRequest,
   SalesOrderDeliveryResult,

@@ -57,6 +57,7 @@ describe("commerce-ops app MCP wiring", () => {
     expect(names).toContain("inventory_completeReconciliationDocument");
     expect(names).toContain("inventory_listLowStockAlerts");
     expect(names).toContain("sales-order_createDraftOrder");
+    expect(names).toContain("sales-order_bulkTransitionOrders");
     expect(names).toContain("sales-order_sendSalesOrder");
     expect(names).toContain("shipment_createShipment");
     expect(names).toContain("support-ticket_createTicket");
@@ -153,14 +154,14 @@ describe("commerce-ops app MCP wiring", () => {
         lineItems: [{ productId: product.id, sku: product.sku, name: product.name, quantity: 4, unitPriceCents: product.priceCents }]
       })
     ).order;
-    await callOk(mcp, "sales-order_confirmOrder", { tenantId, orderId: cancellableOrder.id });
+    await callOk(mcp, "sales-order_bulkTransitionOrders", { tenantId, orderIds: [cancellableOrder.id], action: "confirm" });
     expect((await callOk(mcp, "inventory_getStockBalance", { tenantId, productId: product.id })).balance).toMatchObject({
       onHand: 12,
       reserved: 4,
       available: 8
     });
 
-    await callOk(mcp, "sales-order_cancelOrder", { tenantId, orderId: cancellableOrder.id, reason: "MCP test" });
+    await callOk(mcp, "sales-order_bulkTransitionOrders", { tenantId, orderIds: [cancellableOrder.id], action: "cancel", reason: "MCP test" });
     expect((await callOk(mcp, "inventory_getStockBalance", { tenantId, productId: product.id })).balance).toMatchObject({
       onHand: 12,
       reserved: 0,

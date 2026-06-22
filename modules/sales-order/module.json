@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "status": "draft",
   "class": "core",
-  "summary": "Tenant-scoped sales orders with line items, external references, status transitions, send attempts, reservation handoff, and invoice draft handoff.",
+  "summary": "Tenant-scoped sales orders with line items, external references, status transitions, bulk confirm/cancel, send attempts, reservation handoff, and invoice draft handoff.",
   "runtime": {
     "language": "typescript",
     "platform": "cloudflare-workers",
@@ -58,6 +58,11 @@
         },
         {
           "method": "createDraftOrder",
+          "scope": "sales-order.write",
+          "public": false
+        },
+        {
+          "method": "bulkTransitionOrders",
           "scope": "sales-order.write",
           "public": false
         },
@@ -165,6 +170,7 @@
         "sales-order.listOrders",
         "sales-order.getOrder",
         "sales-order.createDraftOrder",
+        "sales-order.bulkTransitionOrders",
         "sales-order.confirmOrder",
         "sales-order.cancelOrder",
         "sales-order.sendSalesOrder",
@@ -175,6 +181,7 @@
       ],
       "approvalRequiredFor": [
         "sales-order.createDraftOrder",
+        "sales-order.bulkTransitionOrders",
         "sales-order.confirmOrder",
         "sales-order.cancelOrder",
         "sales-order.sendSalesOrder",

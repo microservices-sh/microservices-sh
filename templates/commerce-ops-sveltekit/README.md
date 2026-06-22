@@ -47,7 +47,7 @@ and sync review.
 | `/app/support` | Support queue |
 | `/app/products` | Product catalog and stock policy setup |
 | `/app/inventory` | Stock balances, recent movements, and manual receiving |
-| `/app/sales-orders` | Draft sales order intake, customer email send, and order ledger |
+| `/app/sales-orders` | Draft sales order intake, bulk confirm/cancel, customer email send, and order ledger |
 | `/app/shipments` | Fulfillment batches, shipment line review, packing slip print, and pick-list print |
 | `/app/commerce-sync` | Provider connection, sync-run, mapping, and webhook contract review |
 | `/app/commerce-sync/logs` | Read-only provider sync runs, webhook receipts, and mappings |

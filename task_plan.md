@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 123
+Phase 124
 
 ## Phases
 
@@ -971,6 +971,14 @@ Phase 123
 - [x] Wire `commerce-ops-sveltekit` sales-order ledger send action through the email module and template-side sales-order email builder.
 - [x] Expose the new sales-order send RPC through module metadata, static catalog, commerce lockfile, and MCP wiring.
 - [x] Update StackSuite docs so sales-order send is implemented and only bulk status transitions remain gated.
+- **Status:** complete
+
+### Phase 124: Sales Order Bulk Confirm And Cancel
+- [x] Add module-owned `bulkTransitionOrders` for confirm/cancel batches, with per-order partial results and duplicate-id rejection.
+- [x] Keep bulk invoice deferred until invoice handoff is idempotency-keyed end to end.
+- [x] Wire `commerce-ops-sveltekit` sales-order ledger checkboxes and bulk action through the module API and existing inventory release/reservation bridges.
+- [x] Expose the bulk transition RPC through module metadata, static catalog, commerce lockfile, and MCP wiring.
+- [x] Update StackSuite docs so only bulk invoice remains gated.
 - **Status:** complete
 
 ## Key Questions

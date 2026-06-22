@@ -380,8 +380,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/sales-orders/+page.svelte",
-    ["generateSalesOrderPrintHtml", "generateSalesOrderLedgerCsv", "generateSalesOrderLineItemsCsv", "printSalesOrder", "exportSalesOrder", "Export CSV", "Create draft order", "?/create", "?/send", "?/cancel", "lastSentAt", "/app/sales-orders/${order.id}"],
-    "Sales order ledger exposes draft creation, sending, row-level print, CSV, detail route, and cancellation actions."
+    ["generateSalesOrderPrintHtml", "generateSalesOrderLedgerCsv", "generateSalesOrderLineItemsCsv", "printSalesOrder", "exportSalesOrder", "Export CSV", "Create draft order", "?/create", "?/bulkTransition", "?/send", "?/cancel", "sales-order-bulk-form", "bulkAction", "lastSentAt", "/app/sales-orders/${order.id}"],
+    "Sales order ledger exposes draft creation, bulk confirm/cancel, sending, row-level print, CSV, detail route, and cancellation actions."
   );
   assertFileIncludesAll(
     "src/lib/server/sales-order-inventory.ts",
@@ -390,13 +390,23 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/sales-orders/+page.server.ts",
-    ["createDraftOrder", "sendSalesOrder", "salesOrderDeliveryPort", "sendEmail", "cancelOrder", "createSalesOrderInventoryReservationPort", "releaseSalesOrderReservations", "sales-order.order_created", "sales-order.order_sent", "releasedReservations", "sales-order.order_cancelled"],
-    "Sales order route wires create, send, confirm, invoice, and cancel lifecycle actions through module ports plus inventory/email side effects."
+    ["createDraftOrder", "bulkTransitionOrders", "sendSalesOrder", "salesOrderDeliveryPort", "sendEmail", "cancelOrder", "bulkTransition", "createSalesOrderInventoryReservationPort", "releaseSalesOrderReservations", "sales-order.order_created", "sales-order.bulk_transitioned", "sales-order.order_sent", "releasedReservations", "sales-order.order_cancelled"],
+    "Sales order route wires create, bulk confirm/cancel, send, confirm, invoice, and cancel lifecycle actions through module ports plus inventory/email side effects."
   );
   assertFileIncludesAll(
     "migrations/0021_sales_order.sql",
     ["last_sent_at", "last_sent_to_email", "CREATE TABLE IF NOT EXISTS sales_order_send_attempts", "idx_sales_order_send_attempts_idempotency"],
     "Commerce sales-order migration persists last-send metadata and send attempts."
+  );
+  assertFileIncludesAll(
+    "microservices.lock.json",
+    ["\"method\": \"bulkTransitionOrders\"", "\"scope\": \"sales-order.write\""],
+    "Commerce template lock exposes sales-order bulk transition as a governed write RPC."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/mcp-wiring.ts",
+    ["bulkTransitionOrders", "\"sales-order_bulkTransitionOrders\"", "bulkTransitionSalesOrders", "releaseSalesOrderReservations"],
+    "Commerce MCP wiring exposes module-owned bulk sales-order transitions and preserves reservation release side effects."
   );
   assertFileIncludesAll(
     "src/routes/app/sales-orders/[id]/+page.server.ts",

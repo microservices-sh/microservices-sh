@@ -1502,7 +1502,7 @@
       "class": "core",
       "mount": "/sales-orders",
       "docPath": "docs/modules/sales-order.md",
-      "summary": "Tenant-scoped sales orders with line items, external references, status transitions, send attempts, reservation handoff, and invoice draft handoff.",
+      "summary": "Tenant-scoped sales orders with line items, external references, status transitions, bulk confirm/cancel, send attempts, reservation handoff, and invoice draft handoff.",
       "requires": [],
       "permissions": [
         "sales-order.read",
@@ -1524,6 +1524,11 @@
         },
         {
           "method": "createDraftOrder",
+          "scope": "sales-order.write",
+          "public": false
+        },
+        {
+          "method": "bulkTransitionOrders",
           "scope": "sales-order.write",
           "public": false
         },

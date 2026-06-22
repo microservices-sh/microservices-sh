@@ -383,6 +383,7 @@ describe("module version selectors", () => {
       optional: expect.arrayContaining(["inventory", "invoice", "email"]),
       rpc: expect.arrayContaining([
         { method: "createDraftOrder", scope: "sales-order.write", public: false },
+        { method: "bulkTransitionOrders", scope: "sales-order.write", public: false },
         { method: "sendSalesOrder", scope: "sales-order.write", public: false },
       ]),
       eventsEmitted: expect.arrayContaining([

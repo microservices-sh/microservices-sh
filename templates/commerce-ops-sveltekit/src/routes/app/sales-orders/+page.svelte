@@ -105,6 +105,10 @@
     </Alert>
   {:else if form?.sent}
     <Alert tone="success">Sales order sent{#if form.recipient} to {form.recipient}{/if}.</Alert>
+  {:else if form?.bulkTransitioned}
+    <Alert tone={form.failedCount > 0 ? "warn" : "success"}>
+      Bulk {form.bulkAction === "confirm" ? "confirmation" : "cancellation"} finished: {form.succeededCount} succeeded{#if form.failedCount > 0}, {form.failedCount} failed{/if}.
+    </Alert>
   {:else if form?.cancelled}
     <Alert tone="success">Sales order cancelled and reservations released.</Alert>
   {:else if form?.error}
@@ -123,11 +127,26 @@
       </div>
 
       {#if data.orders.length > 0}
+        {#if data.canManage && openOrders.length > 0}
+          <form id="sales-order-bulk-form" class="bulk-actions" method="POST" action="?/bulkTransition" use:enhance>
+            <Field label="Bulk action" id="sales-order-bulk-action">
+              <select id="sales-order-bulk-action" name="bulkAction">
+                <option value="confirm">Confirm selected</option>
+                <option value="cancel">Cancel selected</option>
+              </select>
+            </Field>
+            <Field label="Cancel reason" id="sales-order-bulk-reason">
+              <input id="sales-order-bulk-reason" name="reason" placeholder="Cancelled from sales order ledger." />
+            </Field>
+            <Button type="submit" variant="primary">Apply</Button>
+          </form>
+        {/if}
         <div class="table-scroll">
           <table>
             <caption>Sales orders</caption>
             <thead>
               <tr>
+                {#if data.canManage}<th scope="col">Select</th>{/if}
                 <th scope="col">Order</th>
                 <th scope="col">Customer</th>
                 <th scope="col">Lines</th>
@@ -142,6 +161,21 @@
             <tbody>
               {#each data.orders as order (order.id)}
                 <tr>
+                  {#if data.canManage}
+                    <td class="select-cell">
+                      {#if order.status === "draft" || order.status === "confirmed"}
+                        <input
+                          form="sales-order-bulk-form"
+                          type="checkbox"
+                          name="orderId"
+                          value={order.id}
+                          aria-label={`Select sales order ${order.orderNumber ?? order.id}`}
+                        />
+                      {:else}
+                        <span class="muted">—</span>
+                      {/if}
+                    </td>
+                  {/if}
                   <td><a href={`/app/sales-orders/${order.id}`}><code>{order.orderNumber ?? order.id}</code></a></td>
                   <td>{order.customerSnapshot?.displayName ?? "Walk-in customer"}</td>
                   <td>{order.lineItems.length}</td>
@@ -263,7 +297,7 @@
   }
   table {
     width: 100%;
-    min-width: 960px;
+    min-width: 1040px;
     border-collapse: collapse;
   }
   caption {
@@ -295,6 +329,16 @@
   .muted {
     color: var(--color-ink-faint);
   }
+  .bulk-actions {
+    display: grid;
+    grid-template-columns: minmax(160px, 220px) minmax(220px, 1fr) auto;
+    align-items: end;
+    gap: 12px;
+    margin-block-end: 14px;
+  }
+  .select-cell {
+    inline-size: 56px;
+  }
   .action-form {
     margin: 0;
   }
@@ -317,6 +361,7 @@
     font-size: 0.9rem;
   }
   @media (max-width: 720px) {
+    .bulk-actions,
     .form-row,
     .form-row.three {
       grid-template-columns: 1fr;

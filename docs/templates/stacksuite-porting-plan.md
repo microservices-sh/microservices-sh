@@ -102,7 +102,7 @@ Port source features into `modules/invoice` before expanding template UI:
 - recurring invoices: template create/list/update, next-run calculation, scheduled generation job payloads.
 - send/payment-link state: provider-neutral send attempts, last sent timestamp, payment URL metadata, and delivery events.
 - print/export metadata: PDF filename pattern, public print view data contract, QR/payment-link fields.
-- bulk status actions where they are idempotent and permission-gated.
+- bulk status actions where they are idempotent and permission-gated. Sales-order bulk confirm/cancel is implemented; bulk invoice remains gated on invoice handoff idempotency.
 
 ### Accounts Payable
 
@@ -164,8 +164,8 @@ Use the source commerce schema to extend the existing modules:
 
 The modules exist, but source UI expects more workflow endpoints:
 
-- sales-order detail, draft creation, send, confirm, invoice, cancel, print, and CSV export are now implemented in `commerce-ops-sveltekit` over `@microservices-sh/sales-order`.
-- remaining sales-order bulk status transitions should wait for a module-owned bulk transition API rather than template-only loops.
+- sales-order detail, draft creation, send, confirm, bulk confirm/cancel, invoice, cancel, print, and CSV export are now implemented in `commerce-ops-sveltekit` over `@microservices-sh/sales-order`.
+- bulk invoice remains deferred until invoice creation has end-to-end idempotency; do not add template-only loops around invoice handoff.
 - order-to-invoice handoff is implemented; order-to-shipment handoff should stay module/port-backed when expanded beyond the current shipment workflow.
 - shipment batch detail, shipment item links, status transitions, and completion constraints.
 - packing slip print/export data contract.
@@ -220,7 +220,7 @@ Port in this order:
 
 Port in this order:
 
-1. Sales-order create/detail/send/confirm/invoice/cancel/print/export are implemented; add bulk status routes only after the sales-order module exposes a bulk transition API.
+1. Sales-order create/detail/send/confirm/bulk confirm/cancel/invoice/cancel/print/export are implemented. Bulk invoice remains deferred until invoice handoff has end-to-end idempotency.
 2. Shipment batch detail/status/packing-slip routes.
 3. Inventory receive/adjust/reconcile routes and movement history.
 4. WooCommerce connection settings, sync logs, and webhook setup.
@@ -273,7 +273,7 @@ Translate source migrations into module-owned migrations; do not import Drizzle 
 - Prefer module-specific table names for accounting/AP/AR/banking tables to avoid collisions in composed templates.
 - Keep source operational counters as explicit sequence tables or module settings, not as global `settings` columns.
 - Model provider secrets as encrypted external bindings or provider config references; do not persist raw source-style credentials in generic settings.
-- Add idempotency keys to webhooks, scheduled generation, payment recording, order sync, shipment completion, and bulk status updates.
+- Add idempotency keys to webhooks, scheduled generation, payment recording, order sync, shipment completion, and financial-document bulk status updates.
 
 ## Validation Gates
 
@@ -353,7 +353,7 @@ Done for the first accounting/commerce operator surface:
 Remaining routes should be added only after the backing module API exists:
 
 - additional statement export routes and retained-earnings setup defaults.
-- commerce sales-order bulk status transitions after a module-owned bulk transition API exists.
+- commerce sales-order bulk invoice after invoice handoff is idempotency-keyed end to end.
 - focused-template MCP settings after persisted scoped API keys, token issuance, and audit-log wiring exist across accounting and commerce.
 
 ### Phase 3: External Operations

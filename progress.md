@@ -1646,6 +1646,29 @@
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 124 sales-order bulk confirm and cancel
+
+- **Status:** complete.
+- Goal: close the focused commerce sales-order bulk status gap without adding unsafe bulk invoice handoff.
+- Added `bulkTransitionOrders` to `@microservices-sh/sales-order` for confirm/cancel batches, duplicate-id rejection, partial-success results, and reuse of single-order transition hooks/events/ports.
+- Wired `commerce-ops-sveltekit` sales-order ledger checkboxes and bulk action form through the module API and existing inventory reservation/release bridges.
+- Added commerce MCP handler/lock/spec coverage for `sales-order_bulkTransitionOrders`; bulk cancel releases reservations just like the row action.
+- Bulk invoice remains deferred until invoice creation has end-to-end idempotency.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Sales-order tests | Bulk confirm/cancel success, duplicate-id rejection, and partial failure are covered | `pnpm --filter @microservices-sh/sales-order test` passed, 13/13 | Pass |
+| Sales-order build | New bulk transition types and exports compile | `pnpm --filter @microservices-sh/sales-order build` passed | Pass |
+| Sales-order spec | Module metadata, OpenAPI, and exports remain contract-valid | `pnpm --filter @microservices-sh/sales-order check:spec` passed | Pass |
+| Module contract | Static catalog exposes `bulkTransitionOrders` as a governed write RPC | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js` passed, 21/21 | Pass |
+| Commerce MCP wiring | Lock-generated bulk transition tool has a handler and reserves/releases stock through MCP | `pnpm exec vitest run tests/integration/commerce-ops-mcp-wiring.test.ts` passed, 5/5 | Pass |
+| Commerce template spec | Sales-order bulk UI, route, MCP, and lock policy checks pass | `pnpm --dir templates/commerce-ops-sveltekit check:spec` passed | Pass |
+| Commerce template build | SvelteKit/Cloudflare build compiles after bulk action additions | `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Create-app build | Bundled repo templates refresh from source after bulk transition updates | `pnpm --dir packages/create-microservices-app build` passed | Pass |
+| Create-app closure | Bundled StackSuite template closure includes the updated bulk transition surface | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 122 StackSuite residual route gate audit
 
 - **Status:** complete.

@@ -556,6 +556,11 @@
             "public": false
           },
           {
+            "method": "bulkTransitionOrders",
+            "scope": "sales-order.write",
+            "public": false
+          },
+          {
             "method": "confirmOrder",
             "scope": "sales-order.write",
             "public": false
