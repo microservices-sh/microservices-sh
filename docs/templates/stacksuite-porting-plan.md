@@ -48,7 +48,7 @@ Two read-only explorer passes on 2026-06-21 identified the remaining adoption ga
 - AR now stores invoice snapshots/payments/aging, customer statements, manual invoice issue/payment/void sync, Stripe settlement sync, customer-payment settlement posting, and recurring auto-issued invoice sync. Remaining backlog is richer deposit-account configuration, unapplied balance reporting, and reusable statement/export contracts.
 - Banking now exposes imports, import detail review, match suggestions, match creation, reconciliation start, reconciliation completion, and reconciliation detail review in the accounting template workflow. Remaining backlog is CSV field mapping, duplicate handling, confirm/remove/exclude match lifecycle, clear/unclear operations, richer summaries/history, and provider/OCR hooks.
 - BAO invoice documents include commerce-specific projections: sales-order link, product-backed lines, contact/address snapshots, shipping status, shipping fee, discount, terms, payment method, PDF key, Stripe payment-link fields, and external IDs. Keep invoice core lean and put document snapshots in a template projection or an invoice-document extension.
-- BAO fulfillment links invoices, shipment batches, and stock movement. The commerce template now covers reservation/release, combo-component reservation, invoice-originated shipment deduction, shipment batches, shipment detail, packing slips, pick lists, inventory reconciliation documents, low-stock alert read models, and draft-to-processing shipment status transition history. Remaining backlog is post-shipment delivery semantics if needed beyond current completion.
+- BAO fulfillment links invoices, shipment batches, and stock movement. The commerce template now covers reservation/release, combo-component reservation, invoice-originated shipment deduction, shipment batches, shipment detail, packing slips, pick lists, inventory reconciliation documents, low-stock alert read models, and draft-to-processing shipment status transition history. No additional shipment delivery state is required for the current port because local shipment completion is the terminal stock-deducting fulfillment event; BAO's delivered state is document-level product semantics.
 - BAO WooCommerce behavior remains provider-specific. The current template has HMAC verification, manual page sync, signed order webhooks, order import, provider readiness, a manager-gated connection test, and audit events; future provider depth should stay below `commerce-sync` adapters and template bridges.
 - BAO MCP/reporting tools are useful, but write-capable tools still need scoped tokens, audit logging, and strict provider/tenant wrappers before public exposure.
 - The focused-template metadata mismatch around `gateway` has been closed by declaring gateway in manifests, locks, enabled-module lists, checks, and migrations while leaving API-key UI as future work.
@@ -350,7 +350,7 @@ Done for the first accounting/commerce operator surface:
 Remaining routes should be added only after the backing module API exists:
 
 - additional statement export routes and retained-earnings setup defaults.
-- commerce sales-order create/send, post-shipment delivery semantics, and MCP settings.
+- commerce sales-order create/send and MCP settings.
 
 ### Phase 3: External Operations
 

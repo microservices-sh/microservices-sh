@@ -2492,7 +2492,7 @@ Note: an initial `create-microservices-app` test run overlapped with `create-mic
 - Added `/app/settings/providers` to `accounting-erp-sveltekit` as a read-only readiness page for Stripe payment links, payment webhooks, email delivery, and outbound webhooks.
 - Added `/app/settings/providers` to `commerce-ops-sveltekit` for Stripe, WooCommerce, and email readiness, including WooCommerce connection state and a manager-gated connection test that resolves credentials server-side and audits only sanitized results.
 - Added provider-health helpers, settings nav links, README route rows, template spec guards, and WooCommerce connection-test coverage in `commerce-sync`.
-- Updated StackSuite findings/porting docs so provider readiness is no longer listed as an open hardening item; remaining focused-template hardening is post-shipment delivery semantics if required and dependency/migration pruning.
+- Updated StackSuite findings/porting docs so provider readiness is no longer listed as an open hardening item.
 
 | Check | Expectation | Result | Status |
 |---|---|---|---|
@@ -2504,4 +2504,25 @@ Note: an initial `create-microservices-app` test run overlapped with `create-mic
 | Commerce template build | SvelteKit/Cloudflare build compiles after provider readiness route additions | `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Create app closure | Bundled repo templates still close over required modules/packages | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 121 create-app StackSuite bundle sync
+
+- **Status:** complete.
+- Goal: close the remaining focused-template hardening audit and verify generated create-app StackSuite output uses the current source templates.
+- Post-shipment delivery semantics were audited and deliberately left unimplemented: current shipment completion is already the terminal inventory-deducting fulfillment event, and BAO's `delivered` state is document-level product semantics rather than a missing shipment module invariant.
+- Dependency and migration pruning was audited and deliberately left as no-op: every declared focused-template module is still imported by shared shell routes, stores, hooks, provider readiness, scheduled jobs, webhooks, admin/support/files/notifications, or commerce MCP glue.
+- Ran the create-app build path, which refreshes the ignored `packages/create-microservices-app/templates` bundle from source templates and vendored module/package closure.
+- Updated StackSuite findings and porting docs to remove post-shipment delivery and dependency/migration pruning from active hardening backlog.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Create-app build | Dist bundle compiles and ignored bundled templates refresh from source | `pnpm --dir packages/create-microservices-app build` passed | Pass |
+| Bundle freshness spot check | Generated commerce bundle contains current migrations and provider-readiness routes | Source/bundle `diff -qr` had no content differences after filtering expected generated-only `modules/`, `packages/`, `node_modules`, and `.svelte-kit`; commerce bundle includes `0028_inventory_reconciliation_documents.sql` and `0029_shipment_status_transitions.sql` | Pass |
+| Accounting template spec | Focused accounting template policy checks remain green | `pnpm --dir templates/accounting-erp-sveltekit check:spec` passed | Pass |
+| Commerce template spec | Focused commerce template policy checks remain green | `pnpm --dir templates/commerce-ops-sveltekit check:spec` passed | Pass |
+| Create-app tests | CLI create/add/install/remove/versioning tests remain green | `pnpm --dir packages/create-microservices-app test` passed, 32/32 | Pass |
+| Create app closure | Bundled repo templates still close over required modules/packages | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
+| StackSuite smoke | Generated accounting/commerce StackSuite apps pack, install, check, and build | `pnpm --dir packages/create-microservices-app smoke:stacksuite` passed | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

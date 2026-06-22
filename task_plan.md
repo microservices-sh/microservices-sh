@@ -951,6 +951,13 @@ Phase 119
 - [x] Verify commerce-sync spec/tests, focused template specs/builds, workspace specs, create-app template closure, and whitespace checks.
 - **Status:** complete
 
+### Phase 121: Create-App StackSuite Bundle Sync
+- [x] Verify post-shipment delivery semantics do not need implementation beyond completed shipment workflow.
+- [x] Verify focused template dependency/migration pruning has no safe removal while shared shell routes still import those modules.
+- [x] Refresh create-app bundled StackSuite templates from the source templates and vendored module/package closure.
+- [x] Verify create-app build/tests, template bundle closure, StackSuite smoke, focused template specs, and workspace specs.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.
