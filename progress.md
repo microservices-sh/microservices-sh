@@ -1,5 +1,24 @@
 # Progress Log
 
+## Session: 2026-06-22
+
+### Phase 113 CLI module manifest apply
+
+- **Status:** complete.
+- Goal: turn module add/remove from plan-only guidance into an explicit local manifest mutation path for CLI-driven module/template composition.
+- Added `--apply` parsing and handlers for `microservices add <module> --apply` and `microservices remove <module> --apply`.
+- `add --apply` creates or updates `microservices.config.json`, pins the resolved module version, and writes `microservices.lock.json`.
+- `remove --apply` only removes intent modules from config, refuses missing/default modules, and blocks removal when dependency resolution still pulls the module into the lock.
+- `generate` now reads the manifest when no `--modules` flag is passed, so local module intent becomes the composition source of truth.
+- Added CLI tests for add, duplicate/default rejection, config-field preservation, removal, dependency guard, and manifest-backed generation.
+- Updated README/docs to keep `--plan` as the review path and document `--apply` as the explicit mutation path.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| CLI build | Source parses after add/remove apply handlers | `pnpm --filter @microservices-sh/cli build` passed | Pass |
+| CLI tests | Manifest mutation and existing CLI behavior remain green | `pnpm --filter @microservices-sh/cli test` passed, 37/37 | Pass |
+| Workspace checks | CLI build/tests, workspace specs, and whitespace stay green | `pnpm --filter @microservices-sh/cli build` passed; `pnpm --filter @microservices-sh/cli test` passed, 37/37; `pnpm spec:check:all` passed, 64 targets | Pass |
+
 ## Session: 2026-06-12
 
 ### Phase 1: Requirements And Discovery

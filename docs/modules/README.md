@@ -102,11 +102,13 @@ Module commands accept exact version selectors:
 ```bash
 pnpm microservices add payment@0.1.0 --plan --json
 pnpm microservices add payment --version 0.1.0 --plan --json
+pnpm microservices add payment --apply --json
+pnpm microservices remove payment --apply --json
 pnpm microservices upgrade booking --to 0.1.0 --plan --json
 npm create microservices-app@latest my-app -- --modules auth@0.1.0,booking
 ```
 
-The current registry snapshot exposes one available version per module. If a requested version is not in that snapshot, commands return `MODULE_VERSION_NOT_FOUND` with `availableVersions` instead of silently installing the current version.
+The current registry snapshot exposes one available version per module. If a requested version is not in that snapshot, commands return `MODULE_VERSION_NOT_FOUND` with `availableVersions` instead of silently installing the current version. `add/remove --apply` mutates the local module manifest and lockfile; use `--plan` first when reviewing side effects.
 
 Generated SvelteKit apps resolve versioned module source through release tags named `modules/<module-id>/v<version>`, for example `modules/payment/v0.1.0`. If the tag is unavailable, the local `add` command returns `MODULE_SOURCE_REF_NOT_FOUND` instead of silently using the current source snapshot. Unversioned adds still use the current source snapshot. A future registry-artifact URL can reuse the same source-ref shape.
 

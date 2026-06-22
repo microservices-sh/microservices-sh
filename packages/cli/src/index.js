@@ -376,6 +376,7 @@ async function moduleOperationInput(templateId, flags) {
 
 const CONFIG_FILE = "microservices.config.json";
 const LOCK_FILE = "microservices.lock.json";
+const DEFAULT_TEMPLATE_ID = "booking-business";
 
 // Single source of truth for composition intent. Reads microservices.config.json
 // when present; otherwise bootstraps a fresh manifest from flags/template defaults.
@@ -392,7 +393,7 @@ async function loadManifest(flags) {
         path,
         existed: false,
         config: {
-          template: flags.template ?? "booking-business",
+          template: DEFAULT_TEMPLATE_ID,
           modules: Array.isArray(flags.modules) ? [...flags.modules] : [],
         },
       };
@@ -423,7 +424,7 @@ async function writeManifest(manifest, composition) {
 // authoritative answer to "is this module in the app?".
 function composeFromManifest(config) {
   return composeApp({
-    templateId: config.template ?? "booking-business",
+    templateId: config.template ?? DEFAULT_TEMPLATE_ID,
     modules: config.modules ?? [],
     config,
   });
@@ -433,13 +434,27 @@ function composeFromManifest(config) {
 async function manifestInput(action, flags) {
   const manifest = await loadManifest(flags);
   if (!manifest.ok) return manifest;
-  const config = manifest.config;
+  const config = manifest.config ?? {};
+  const flagConfig = flags.config ?? {};
+  const configuredModules = Array.isArray(flagConfig.modules) ? flagConfig.modules : config.modules;
+  const templateId = action || flagConfig.template || config.template || DEFAULT_TEMPLATE_ID;
+  const modules = Array.isArray(flags.modules)
+    ? flags.modules
+    : Array.isArray(configuredModules) && configuredModules.length
+      ? configuredModules
+      : undefined;
+  const effectiveConfig = {
+    ...(manifest.existed ? config : {}),
+    ...flagConfig,
+    template: templateId,
+    modules: modules ?? [],
+  };
   return {
     ok: true,
     input: {
-      templateId: action || config.template || "booking-business",
-      modules: flags.modules ?? (config.modules?.length ? config.modules : undefined),
-      config: flags.config ?? (manifest.existed ? config : undefined),
+      templateId,
+      modules,
+      config: effectiveConfig,
     },
   };
 }
@@ -475,7 +490,7 @@ async function applyAddModule(moduleId, flags) {
 
   const nextModules = [...manifest.config.modules, ref];
   const composed = composeApp({
-    templateId: manifest.config.template ?? "booking-business",
+    templateId: manifest.config.template ?? DEFAULT_TEMPLATE_ID,
     modules: nextModules,
     config: manifest.config,
   });
@@ -485,7 +500,7 @@ async function applyAddModule(moduleId, flags) {
   const pinned = resolved ? `${resolved.id}@${resolved.version}` : ref;
   manifest.config = {
     ...manifest.config,
-    template: manifest.config.template ?? "booking-business",
+    template: manifest.config.template ?? DEFAULT_TEMPLATE_ID,
     schemaVersion: composed.data.schemaVersion,
     modules: [...manifest.config.modules, pinned],
   };
@@ -526,7 +541,7 @@ async function applyRemoveModule(moduleId, flags) {
   }
 
   const composed = composeApp({
-    templateId: manifest.config.template ?? "booking-business",
+    templateId: manifest.config.template ?? DEFAULT_TEMPLATE_ID,
     modules: nextModules,
     config: manifest.config,
   });
@@ -590,6 +605,11 @@ function failResponse(code, message, remediation, details = {}) {
 
 function writeJson(response) {
   process.stdout.write(`${JSON.stringify(response, null, 2)}\n`);
+}
+
+function emitApplyResponse(response, flags, formatter) {
+  if (response?.ok === false) process.exitCode = 1;
+  return flags.json ? writeJson(response) : printHuman(response, formatter);
 }
 
 function assertOk(response) {
@@ -4608,9 +4628,11 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
   if (resource === "add" && flags.apply) {
     response = await applyAddModule(action, flags);
     await trackResponse("module_added", "module_add_failed", response, cliTelemetryProps(flags, { moduleId: action ?? null }));
-    return flags.json
-      ? writeJson(response)
-      : printHuman(response, (data) => `Added ${data.added}\nModules: ${data.modules.join(", ")}\n`);
+    return emitApplyResponse(
+      response,
+      flags,
+      (data) => `Added ${data.added}\nModules: ${data.modules.join(", ")}\n`
+    );
   }
 
   if (resource === "remove") {
@@ -4621,13 +4643,15 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
         "Run microservices remove <module-id> --apply [--json].",
         { moduleId: action }
       );
-      return flags.json ? writeJson(response) : printHuman(response, () => "");
+      return emitApplyResponse(response, flags, () => "");
     }
     response = await applyRemoveModule(action, flags);
     await trackResponse("module_removed", "module_remove_failed", response, cliTelemetryProps(flags, { moduleId: action ?? null }));
-    return flags.json
-      ? writeJson(response)
-      : printHuman(response, (data) => `Removed ${data.removed}\nModules: ${data.modules.join(", ")}\n`);
+    return emitApplyResponse(
+      response,
+      flags,
+      (data) => `Removed ${data.removed}\nModules: ${data.modules.join(", ")}\n`
+    );
   }
 
   if (resource === "add") {

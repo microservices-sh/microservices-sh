@@ -20,6 +20,21 @@ function parse(result) {
   return JSON.parse(result.stdout);
 }
 
+function expectOk(result) {
+  expect(result.status).toBe(0);
+  const payload = parse(result);
+  expect(payload.ok).toBe(true);
+  return payload;
+}
+
+function expectFailure(result, code) {
+  expect(result.status).not.toBe(0);
+  const payload = parse(result);
+  expect(payload.ok).toBe(false);
+  expect(payload.error.code).toBe(code);
+  return payload;
+}
+
 async function readConfig(root) {
   return JSON.parse(await readFile(join(root, "microservices.config.json"), "utf8"));
 }
@@ -41,9 +56,7 @@ describe("CLI manifest mutation (add/remove --apply)", () => {
 
   it("add --apply writes config + lock with the pinned module", async () => {
     const result = runCli(["add", "payment", "--apply", "--json"], root);
-    expect(result.status).toBe(0);
-    const payload = parse(result);
-    expect(payload.ok).toBe(true);
+    const payload = expectOk(result);
     expect(payload.data.added).toBe("payment@0.1.0");
 
     const config = await readConfig(root);
@@ -55,18 +68,14 @@ describe("CLI manifest mutation (add/remove --apply)", () => {
   });
 
   it("add --apply is idempotent-safe: rejects a module already in the set", async () => {
-    runCli(["add", "payment", "--apply", "--json"], root);
+    expectOk(runCli(["add", "payment", "--apply", "--json"], root));
     const again = runCli(["add", "payment", "--apply", "--json"], root);
-    const payload = parse(again);
-    expect(payload.ok).toBe(false);
-    expect(payload.error.code).toBe("MODULE_PRESENT");
+    expectFailure(again, "MODULE_PRESENT");
   });
 
   it("add --apply rejects a template default module", async () => {
     const result = runCli(["add", "customer", "--apply", "--json"], root);
-    const payload = parse(result);
-    expect(payload.ok).toBe(false);
-    expect(payload.error.code).toBe("MODULE_PRESENT");
+    expectFailure(result, "MODULE_PRESENT");
   });
 
   it("add --apply preserves existing user config fields", async () => {
@@ -75,18 +84,16 @@ describe("CLI manifest mutation (add/remove --apply)", () => {
       JSON.stringify({ template: "booking-business", modules: [], business: { name: "Acme" } }, null, 2),
       "utf8"
     );
-    runCli(["add", "payment", "--apply", "--json"], root);
+    expectOk(runCli(["add", "payment", "--apply", "--json"], root));
     const config = await readConfig(root);
     expect(config.business).toEqual({ name: "Acme" });
     expect(config.modules).toContain("payment@0.1.0");
   });
 
   it("remove --apply removes an intent module and rewrites config + lock", async () => {
-    runCli(["add", "payment", "--apply", "--json"], root);
+    expectOk(runCli(["add", "payment", "--apply", "--json"], root));
     const result = runCli(["remove", "payment", "--apply", "--json"], root);
-    expect(result.status).toBe(0);
-    const payload = parse(result);
-    expect(payload.ok).toBe(true);
+    const payload = expectOk(result);
     expect(payload.data.removed).toBe("payment");
 
     const config = await readConfig(root);
@@ -97,12 +104,10 @@ describe("CLI manifest mutation (add/remove --apply)", () => {
   });
 
   it("remove --apply blocks removal when another module still requires it", async () => {
-    runCli(["add", "invoice", "--apply", "--json"], root);
-    runCli(["add", "accounts-receivable", "--apply", "--json"], root);
+    expectOk(runCli(["add", "invoice", "--apply", "--json"], root));
+    expectOk(runCli(["add", "accounts-receivable", "--apply", "--json"], root));
     const result = runCli(["remove", "invoice", "--apply", "--json"], root);
-    const payload = parse(result);
-    expect(payload.ok).toBe(false);
-    expect(payload.error.code).toBe("MODULE_REQUIRED");
+    expectFailure(result, "MODULE_REQUIRED");
 
     // intent list must be unchanged after a blocked removal
     const config = await readConfig(root);
@@ -110,38 +115,51 @@ describe("CLI manifest mutation (add/remove --apply)", () => {
   });
 
   it("remove --apply rejects a module not in the manifest", async () => {
-    runCli(["add", "payment", "--apply", "--json"], root);
+    expectOk(runCli(["add", "payment", "--apply", "--json"], root));
     const result = runCli(["remove", "booking", "--apply", "--json"], root);
-    const payload = parse(result);
-    expect(payload.ok).toBe(false);
-    expect(payload.error.code).toBe("MODULE_ABSENT");
+    expectFailure(result, "MODULE_ABSENT");
+  });
+
+  it("remove requires --apply before mutating the manifest", async () => {
+    expectOk(runCli(["add", "payment", "--apply", "--json"], root));
+    const result = runCli(["remove", "payment", "--json"], root);
+    expectFailure(result, "APPLY_REQUIRED");
+
+    const config = await readConfig(root);
+    expect(config.modules).toContain("payment@0.1.0");
   });
 
   it("check reads the manifest when no --modules flag is given", async () => {
-    runCli(["add", "payment", "--apply", "--json"], root);
+    expectOk(runCli(["add", "payment", "--apply", "--json"], root));
     const result = runCli(["check", "--json"], root);
-    expect(result.status).toBe(0);
-    const payload = parse(result);
+    const payload = expectOk(result);
     const dep = payload.data.checks.find((c) => c.id === "dependency-resolution");
     expect(dep.message).toContain("payment");
   });
 
   it("validate reads the manifest (reflects an added module's bindings)", async () => {
-    runCli(["add", "image-generation", "--apply", "--json"], root);
+    expectOk(runCli(["add", "image-generation", "--apply", "--json"], root));
     const result = runCli(["validate", "--json"], root);
-    expect(result.status).toBe(0);
-    const payload = parse(result);
+    const payload = expectOk(result);
     expect(payload.data.valid).toBe(true);
     expect(payload.data.requiredBindings).toContain("IMAGE_BUCKET");
   });
 
   it("generate reads the manifest when no --modules flag is given", async () => {
-    runCli(["add", "payment", "--apply", "--json"], root);
+    expectOk(runCli(["add", "payment", "--apply", "--json"], root));
     const result = runCli(["generate", "--out", "app", "--json"], root);
-    expect(result.status).toBe(0);
-    const payload = parse(result);
-    expect(payload.ok).toBe(true);
+    const payload = expectOk(result);
     const ids = payload.data.composition.modules.map((m) => m.id);
     expect(ids).toContain("payment");
+  });
+
+  it("explicit --modules overrides manifest intent in generated config output", async () => {
+    expectOk(runCli(["add", "payment", "--apply", "--json"], root));
+    const result = runCli(["generate", "--out", "app", "--modules", "code-memory", "--json"], root);
+    const payload = expectOk(result);
+    const ids = payload.data.composition.modules.map((m) => m.id);
+    expect(ids).toContain("code-memory");
+    expect(ids).not.toContain("payment");
+    expect(payload.data.composition.config.modules).toEqual(["code-memory"]);
   });
 });

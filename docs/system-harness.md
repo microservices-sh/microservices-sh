@@ -47,9 +47,12 @@ Then use the project-local CLI for changes:
 pnpm microservices modules list --json
 pnpm microservices docs booking
 pnpm microservices add payment --plan --json
+pnpm microservices add payment --apply --json
 pnpm microservices upgrade booking --plan --json
 pnpm microservices deploy run --plan
 ```
+
+Use `--plan` first for review. `add/remove --apply` is the explicit mutation path that writes `microservices.config.json` and refreshes `microservices.lock.json`.
 
 The root workspace CLI in this repository is for internal SDK and control-plane development. Public demos should use `create-microservices-app` plus the generated project CLI until the root CLI catalog is synced with the create-package template registry.
 

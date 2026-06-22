@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 112
+Phase 113
 
 ## Phases
 
@@ -886,6 +886,14 @@ Phase 112
 - [x] Extend the accounting template AP poster with retry-safe bill journal reversal via `voidJournalEntry`.
 - [x] Add posted bill reversal fields to the bill detail void form and audit payload.
 - [x] Verify AP tests/build and accounting template build before workspace checks.
+- **Status:** complete
+
+### Phase 113: CLI Module Manifest Apply
+- [x] Add explicit `add --apply` and `remove --apply` paths for local `microservices.config.json` and `microservices.lock.json` mutation.
+- [x] Preserve `add --plan` as the review-first path and require `--apply` for removals.
+- [x] Compose from the manifest so generated output can read local module intent without repeating `--modules`.
+- [x] Add CLI tests for add, duplicate/default rejection, removal, dependent-module blocking, and manifest-backed generation.
+- [x] Update docs to show `--apply` as the explicit manifest mutation path.
 - **Status:** complete
 
 ## Key Questions

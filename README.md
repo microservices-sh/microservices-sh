@@ -199,6 +199,7 @@ pnpm microservices modules list --json
 pnpm microservices docs booking
 pnpm microservices upgrade booking --plan --json
 pnpm microservices add payment --plan --json
+pnpm microservices add payment --apply --json   # writes microservices.config.json + lock after review
 pnpm microservices check --json
 ```
 
