@@ -6,6 +6,7 @@ import type {
   BillLineItem,
   BillPayment,
   BillPaymentApplication,
+  BillPaymentFilter,
   BillPaymentWithApplications,
   BillWithLineItems,
   RecurringBillLineItem,
@@ -45,6 +46,19 @@ function withApplications(
   applications: BillPaymentApplication[]
 ): BillPaymentWithApplications {
   return { ...clonePayment(payment), applications: applications.map(cloneApplication) };
+}
+
+function matchesPaymentFilter(
+  payment: BillPayment,
+  applications: BillPaymentApplication[],
+  filter: BillPaymentFilter
+): boolean {
+  return (
+    payment.tenantId === filter.tenantId &&
+    (!filter.vendorId || payment.vendorId === filter.vendorId) &&
+    (!filter.status || payment.status === filter.status) &&
+    (!filter.billId || applications.some((application) => application.billId === filter.billId))
+  );
 }
 
 function matchesBillFilter(bill: Bill, filter: BillFilter): boolean {
@@ -177,6 +191,20 @@ export function createMemoryAccountsPayableStore(): AccountsPayableStore {
         (candidate) => candidate.tenantId === tenantId && candidate.idempotencyKey === idempotencyKey
       );
       return payment ? withApplications(payment, applicationsByPayment.get(payment.id) ?? []) : null;
+    },
+
+    async getPayment(tenantId, paymentId) {
+      const payment = payments.get(paymentId);
+      if (!payment || payment.tenantId !== tenantId) return null;
+      return withApplications(payment, applicationsByPayment.get(payment.id) ?? []);
+    },
+
+    async listPayments(filter) {
+      return [...payments.values()]
+        .filter((payment) => matchesPaymentFilter(payment, applicationsByPayment.get(payment.id) ?? [], filter))
+        .sort((a, b) => b.paymentDate.localeCompare(a.paymentDate))
+        .slice(0, filter.limit ?? 100)
+        .map((payment) => withApplications(payment, applicationsByPayment.get(payment.id) ?? []));
     },
 
     async insertPaymentWithApplications({ payment, applications, updatedBills }) {

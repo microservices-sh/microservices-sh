@@ -96,6 +96,8 @@
         "accounts-payable.createBill",
         "accounts-payable.markBillPayable",
         "accounts-payable.recordBillPayment",
+        "accounts-payable.getBillPayment",
+        "accounts-payable.listBillPayments",
         "accounts-payable.getAgingReport",
         "accounts-payable.createRecurringBillTemplate",
         "accounts-payable.listRecurringBillTemplates",

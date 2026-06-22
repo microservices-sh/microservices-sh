@@ -99,6 +99,19 @@ export const recordBillPaymentInputSchema = z.object({
   applications: z.array(billPaymentApplicationInputSchema).min(1)
 });
 
+export const billPaymentIdentitySchema = z.object({
+  tenantId: z.string().min(1),
+  paymentId: z.string().min(1)
+});
+
+export const listBillPaymentsInputSchema = z.object({
+  tenantId: z.string().min(1),
+  vendorId: z.string().optional(),
+  billId: z.string().optional(),
+  status: z.enum(["posted", "void"]).optional(),
+  limit: z.number().int().min(1).max(500).default(100)
+});
+
 export const agingReportInputSchema = z.object({
   tenantId: z.string().min(1),
   vendorId: z.string().optional(),
@@ -160,6 +173,8 @@ export type CreateBillInput = z.infer<typeof createBillInputSchema>;
 export type MarkBillPayableInput = z.infer<typeof markBillPayableInputSchema>;
 export type ListBillsInput = z.infer<typeof listBillsInputSchema>;
 export type RecordBillPaymentInput = z.infer<typeof recordBillPaymentInputSchema>;
+export type BillPaymentIdentityInput = z.infer<typeof billPaymentIdentitySchema>;
+export type ListBillPaymentsInput = z.infer<typeof listBillPaymentsInputSchema>;
 export type AgingReportInput = z.infer<typeof agingReportInputSchema>;
 export type CreateRecurringBillTemplateInput = z.infer<typeof createRecurringBillTemplateInputSchema>;
 export type ListRecurringBillTemplatesInput = z.infer<typeof listRecurringBillTemplatesInputSchema>;

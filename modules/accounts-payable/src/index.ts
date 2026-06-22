@@ -19,6 +19,8 @@ export { getBill } from "./use-cases/get-bill";
 export { listBills } from "./use-cases/list-bills";
 export { markBillPayable } from "./use-cases/mark-bill-payable";
 export { recordBillPayment } from "./use-cases/record-bill-payment";
+export { getBillPayment } from "./use-cases/get-bill-payment";
+export { listBillPayments } from "./use-cases/list-bill-payments";
 export { getAgingReport } from "./use-cases/get-aging-report";
 export { createRecurringBillTemplate } from "./use-cases/create-recurring-bill-template";
 export { getRecurringBillTemplate } from "./use-cases/get-recurring-bill-template";
@@ -56,6 +58,7 @@ export type {
   BillLineItem,
   BillPayment,
   BillPaymentApplication,
+  BillPaymentFilter,
   BillPaymentMethod,
   BillPaymentStatus,
   BillPaymentWithApplications,

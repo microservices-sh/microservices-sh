@@ -30,6 +30,21 @@ export default function check({ assertFileIncludes }) {
     "Bill detail read use case is backed by the tenant-scoped store lookup."
   );
   assertFileIncludes(
+    "src/index.ts",
+    "export { listBillPayments }",
+    "Accounts Payable exports bill payment read use cases."
+  );
+  assertFileIncludes(
+    "src/ports/index.ts",
+    "listPayments(filter: BillPaymentFilter)",
+    "Accounts Payable store exposes tenant-scoped bill payment listing."
+  );
+  assertFileIncludes(
+    "src/adapters/d1-accounts-payable-store.ts",
+    "accounts_payable_bill_payment_applications a",
+    "D1 bill payment listing supports bill-filtered payment history through applications."
+  );
+  assertFileIncludes(
     "src/use-cases/create-recurring-bill-template.ts",
     "vendor.defaultExpenseAccountId",
     "Recurring bill templates fall back to a vendor default expense account when line accounts are blank."

@@ -1,6 +1,6 @@
 import type { PageServerLoad } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
-import { getBill, listVendors } from "@microservices-sh/accounts-payable";
+import { getBill, listBillPayments, listVendors } from "@microservices-sh/accounts-payable";
 import { listAccounts } from "@microservices-sh/accounting-core";
 import { money, relativeTime } from "$lib/format";
 import { requireOrgPermission } from "$lib/server/org-context";
@@ -23,8 +23,12 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
   if (!activeOrgId || !locals.user) throw redirect(303, "/app");
 
   await requireOrgPermission(cookies, locals.user.id, activeOrgId, "org.read", locals.rbacStore);
-  const [billResult, vendorsResult, accountsResult] = await Promise.all([
+  const [billResult, paymentsResult, vendorsResult, accountsResult] = await Promise.all([
     getBill({ tenantId: activeOrgId, billId: params.id }, { accountsPayableStore: locals.accountsPayableStore }),
+    listBillPayments(
+      { tenantId: activeOrgId, billId: params.id, limit: 50 },
+      { accountsPayableStore: locals.accountsPayableStore }
+    ),
     listVendors(
       { tenantId: activeOrgId, includeInactive: true, limit: 250 },
       { accountsPayableStore: locals.accountsPayableStore }
@@ -41,6 +45,21 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
     const account = accountId ? accountById.get(accountId) : null;
     return account ? `${account.code} - ${account.name}` : accountId ?? "-";
   };
+  const paymentHistory = paymentsResult.ok
+    ? paymentsResult.data.payments.map((payment) => {
+        const application = payment.applications.find((item) => item.billId === bill.id);
+        return {
+          id: payment.id,
+          paymentNumber: payment.paymentNumber,
+          paymentDateShort: shortDate(payment.paymentDate),
+          amount: money(application?.amountAppliedCents ?? 0, payment.currency),
+          method: payment.paymentMethod ?? "-",
+          referenceNumber: payment.referenceNumber ?? "-",
+          status: payment.status,
+          journalEntryId: payment.journalEntryId ?? "-"
+        };
+      })
+    : [];
 
   return {
     bill: {
@@ -66,6 +85,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
         tax: money(line.taxCents, bill.currency),
         total: money(line.totalCents, bill.currency)
       }))
-    }
+    },
+    paymentHistory
   };
 };

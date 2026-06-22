@@ -150,6 +150,14 @@ export interface BillPaymentWithApplications extends BillPayment {
   applications: BillPaymentApplication[];
 }
 
+export interface BillPaymentFilter {
+  tenantId: string;
+  vendorId?: string;
+  billId?: string;
+  status?: BillPaymentStatus;
+  limit?: number;
+}
+
 export interface RecurringBillTemplate {
   id: string;
   tenantId: string;

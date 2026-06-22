@@ -5,6 +5,7 @@ import type {
   BillLineItem,
   BillPayment,
   BillPaymentApplication,
+  BillPaymentFilter,
   BillPaymentWithApplications,
   BillStatus,
   BillWithLineItems,
@@ -200,6 +201,10 @@ const TEMPLATE_COLS =
   "id, tenant_id, name, vendor_id, frequency, custom_days, status, currency, payment_terms_days, next_bill_date, last_bill_date, max_occurrences, bills_generated, memo, auto_mark_payable, subtotal_cents, tax_cents, total_cents, created_by_id, created_at, updated_at";
 const RECURRING_LINE_COLS =
   "id, tenant_id, recurring_bill_template_id, expense_account_id, description, quantity, unit_amount_cents, subtotal_cents, tax_cents, total_cents, sort_order, created_at, updated_at";
+
+function prefixedColumns(prefix: string, columns: string): string {
+  return columns.split(", ").map((column) => `${prefix}.${column} AS ${column}`).join(", ");
+}
 
 export function createD1AccountsPayableStore(db: D1Database): AccountsPayableStore {
   async function listLineItems(tenantId: string, billId: string): Promise<BillLineItem[]> {
@@ -507,6 +512,53 @@ export function createD1AccountsPayableStore(db: D1Database): AccountsPayableSto
       if (!row) return null;
       const payment = rowToPayment(row);
       return { ...payment, applications: await listApplications(tenantId, payment.id) };
+    },
+
+    async getPayment(tenantId, paymentId) {
+      const row = await db
+        .prepare(`SELECT ${PAYMENT_COLS} FROM accounts_payable_bill_payments WHERE tenant_id = ? AND id = ?`)
+        .bind(tenantId, paymentId)
+        .first<Record<string, unknown>>();
+      if (!row) return null;
+      const payment = rowToPayment(row);
+      return { ...payment, applications: await listApplications(tenantId, payment.id) };
+    },
+
+    async listPayments(filter: BillPaymentFilter) {
+      const binds: unknown[] = [filter.tenantId];
+      const clauses = ["p.tenant_id = ?"];
+      let join = "";
+      if (filter.vendorId) {
+        clauses.push("p.vendor_id = ?");
+        binds.push(filter.vendorId);
+      }
+      if (filter.status) {
+        clauses.push("p.status = ?");
+        binds.push(filter.status);
+      }
+      if (filter.billId) {
+        join =
+          "INNER JOIN accounts_payable_bill_payment_applications a ON a.tenant_id = p.tenant_id AND a.payment_id = p.id";
+        clauses.push("a.bill_id = ?");
+        binds.push(filter.billId);
+      }
+      const result = await db
+        .prepare(
+          `SELECT ${prefixedColumns("p", PAYMENT_COLS)}
+           FROM accounts_payable_bill_payments p
+           ${join}
+           WHERE ${clauses.join(" AND ")}
+           ORDER BY p.payment_date DESC
+           LIMIT ?`
+        )
+        .bind(...binds, filter.limit ?? 100)
+        .all<Record<string, unknown>>();
+      return Promise.all(
+        (result.results ?? []).map(async (row) => {
+          const payment = rowToPayment(row);
+          return { ...payment, applications: await listApplications(filter.tenantId, payment.id) };
+        })
+      );
     },
 
     async insertPaymentWithApplications({ payment, applications, updatedBills }) {

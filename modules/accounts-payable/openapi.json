@@ -36,6 +36,16 @@
       "post": {
         "summary": "Record bill payment and applications",
         "responses": { "201": { "description": "Payment recorded" }, "409": { "description": "Overpayment or duplicate guard" } }
+      },
+      "get": {
+        "summary": "List bill payments by tenant, vendor, bill, or status",
+        "responses": { "200": { "description": "Bill payment list" } }
+      }
+    },
+    "/bill-payments/{id}": {
+      "get": {
+        "summary": "Get bill payment with applications",
+        "responses": { "200": { "description": "Bill payment detail" }, "404": { "description": "Payment not found" } }
       }
     },
     "/aging": {

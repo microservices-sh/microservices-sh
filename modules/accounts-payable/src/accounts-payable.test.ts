@@ -7,7 +7,9 @@ import {
   generateDueRecurringBills,
   getAgingReport,
   getBill,
+  getBillPayment,
   getRecurringBillTemplate,
+  listBillPayments,
   listBills,
   listRecurringBillTemplates,
   listVendors,
@@ -364,12 +366,51 @@ describe("accounts-payable: payments", () => {
     });
     expect(payment.data.payment.applications).toHaveLength(2);
     const freshPayment = payment.data as {
+      payment: {
+        id: string;
+        amountCents: number;
+        unappliedAmountCents: number;
+        paymentMethod: string | null;
+        referenceNumber: string | null;
+        applications: Array<{ billId: string }>;
+      };
       bills: Array<{ id: string; status: string; amountDueCents: number }>;
     };
     expect(freshPayment.bills.map((bill) => ({ id: bill.id, status: bill.status, due: bill.amountDueCents }))).toEqual([
       { id: firstCreated.data.bill.id, status: "paid", due: 0 },
       { id: secondCreated.data.bill.id, status: "partial", due: 4_000 }
     ]);
+
+    const found = await getBillPayment(
+      { tenantId: "tenant-1", paymentId: freshPayment.payment.id },
+      { accountsPayableStore: store }
+    );
+    expect(found.ok).toBe(true);
+    if (!found.ok) throw new Error(found.error.message);
+    expect(found.data.payment.applications.map((application) => application.billId).sort()).toEqual(
+      [firstCreated.data.bill.id, secondCreated.data.bill.id].sort()
+    );
+
+    const billHistory = await listBillPayments(
+      { tenantId: "tenant-1", billId: secondCreated.data.bill.id },
+      { accountsPayableStore: store }
+    );
+    expect(billHistory.ok).toBe(true);
+    if (!billHistory.ok) throw new Error(billHistory.error.message);
+    expect(billHistory.data.payments).toHaveLength(1);
+    expect(billHistory.data.payments[0]).toMatchObject({
+      id: freshPayment.payment.id,
+      tenantId: "tenant-1",
+      vendorId: vendor.id,
+      amountCents: 14_000
+    });
+
+    const foreign = await getBillPayment(
+      { tenantId: "tenant-2", paymentId: freshPayment.payment.id },
+      { accountsPayableStore: store }
+    );
+    expect(foreign.ok).toBe(false);
+    if (!foreign.ok) expect(foreign.status).toBe(404);
   });
 
   it("rejects overpayment above a bill open balance", async () => {

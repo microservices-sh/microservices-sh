@@ -8,6 +8,7 @@ import type {
   BillLineItem,
   BillPayment,
   BillPaymentApplication,
+  BillPaymentFilter,
   BillPaymentWithApplications,
   BillWithLineItems,
   RecurringBillLineItem,
@@ -35,6 +36,8 @@ export interface AccountsPayableStore {
   listBills(filter: BillFilter): Promise<BillWithLineItems[]>;
   listOpenBills(tenantId: string, vendorId?: string): Promise<BillWithLineItems[]>;
 
+  getPayment(tenantId: string, paymentId: string): Promise<BillPaymentWithApplications | null>;
+  listPayments(filter: BillPaymentFilter): Promise<BillPaymentWithApplications[]>;
   findPaymentByIdempotencyKey(tenantId: string, idempotencyKey: string): Promise<BillPaymentWithApplications | null>;
   insertPaymentWithApplications(input: {
     payment: BillPayment;

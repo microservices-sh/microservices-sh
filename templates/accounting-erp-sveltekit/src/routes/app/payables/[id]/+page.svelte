@@ -3,6 +3,7 @@
 
   let { data } = $props();
   const bill = $derived(data.bill);
+  const paymentHistory = $derived(data.paymentHistory ?? []);
   const canUseActions = $derived(
     bill.status === "draft" ||
       bill.status === "pending_approval" ||
@@ -75,6 +76,41 @@
           </div>
         {:else}
           <p class="empty">No line items recorded for this bill.</p>
+        {/if}
+      </Card>
+
+      <Card title="Payment history">
+        {#if paymentHistory.length > 0}
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Payment</th>
+                  <th>Applied</th>
+                  <th>Method</th>
+                  <th>Reference</th>
+                  <th>Status</th>
+                  <th>Journal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each paymentHistory as payment (payment.id)}
+                  <tr>
+                    <td>{payment.paymentDateShort}</td>
+                    <td>{payment.paymentNumber}</td>
+                    <td>{payment.amount}</td>
+                    <td>{payment.method}</td>
+                    <td>{payment.referenceNumber}</td>
+                    <td>{payment.status}</td>
+                    <td>{payment.journalEntryId}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        {:else}
+          <p class="empty">No payments have been applied to this bill.</p>
         {/if}
       </Card>
     </div>

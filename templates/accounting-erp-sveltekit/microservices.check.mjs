@@ -758,8 +758,17 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/payables/[id]/+page.server.ts",
-    ["getBill", "listVendors", "listAccounts", "requireModule(\"accounts-payable\"", "requireOrgPermission", "\"org.read\""],
-    "Bill detail route loads one tenant-scoped bill through the accounts-payable module with vendor and account labels."
+    [
+      "getBill",
+      "listBillPayments",
+      "paymentHistory",
+      "listVendors",
+      "listAccounts",
+      "requireModule(\"accounts-payable\"",
+      "requireOrgPermission",
+      "\"org.read\""
+    ],
+    "Bill detail route loads one tenant-scoped bill and read-only payment history through accounts-payable with vendor and account labels."
   );
   assert(
     !billDetailServer.includes("markBillPayable(") &&
@@ -770,8 +779,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/payables/[id]/+page.svelte",
-    ["Vendor bill", "Bill details", "Line items", "Totals", "Open payables actions"],
-    "Bill detail page exposes vendor, line-item, totals, and lifecycle context."
+    ["Vendor bill", "Bill details", "Line items", "Payment history", "paymentHistory", "Totals", "Open payables actions"],
+    "Bill detail page exposes vendor, line-item, payment history, totals, and lifecycle context."
   );
   assert(
     !billDetailPage.includes("<form") &&

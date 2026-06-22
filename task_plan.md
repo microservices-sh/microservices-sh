@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 104
+Phase 105
 
 ## Phases
 
@@ -818,6 +818,14 @@ Phase 104
 - [x] Extend the focused accounting Payables payment action to accept multiple bill applications and method/reference/memo fields.
 - [x] Add a server-rendered AP payment workbench over open bills while preserving the existing one-click full-bill payment action.
 - [x] Add template policy checks for multi-application payment workflow.
+- [x] Verify AP tests/spec/build, accounting template spec/build/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 105: AP Payment Read And Bill History
+- [x] Add `getBillPayment` and `listBillPayments` read use cases with memory/D1 store parity.
+- [x] Add payment filters for tenant, vendor, bill, status, and limit.
+- [x] Add tests for tenant-scoped payment detail and bill-filtered payment history.
+- [x] Add AP payment history to the focused accounting bill detail route.
 - [x] Verify AP tests/spec/build, accounting template spec/build/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 

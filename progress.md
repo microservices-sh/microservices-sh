@@ -1507,6 +1507,24 @@
 | Create package | Bundled template closure and generated-app smoke still pass | `pnpm --filter create-microservices-app build` and `smoke:built` passed | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 105 AP payment read and bill history
+
+- **Status:** complete.
+- Goal: close the AP payment history gap left after the payment workbench by exposing module-level payment reads and rendering bill-scoped payment history on the AP bill detail route.
+- Added `getBillPayment` and `listBillPayments` to `modules/accounts-payable`, including memory and D1 store methods, tenant/vendor/bill/status/limit filters, OpenAPI/tool metadata, and agent guidance.
+- Added AP tests for tenant-scoped payment detail reads and bill-filtered payment history after a multi-bill partial payment.
+- Added read-only payment history to `/app/payables/[id]` in the focused accounting template through `listBillPayments`, without adding forms or side-effect actions to the detail route.
+- Aliased prefixed D1 payment columns in joined payment-history queries so row mapping stays stable across SQLite/D1 drivers.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounts-payable tests | Payment reads remain tenant-scoped and bill-filtered history works after multi-bill payment | `pnpm --filter @microservices-sh/accounts-payable test` passed, 16/16 | Pass |
+| Accounts-payable spec/build | Module contract and TypeScript build remain green | `pnpm --filter @microservices-sh/accounts-payable check:spec` and `pnpm --filter @microservices-sh/accounts-payable build` passed | Pass |
+| Accounting template spec/build | Bill detail payment history policy and SvelteKit build compile | `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Bundled accounting template regenerates and create-app tests remain green | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 104 AP payment workbench
 
 - **Status:** complete.
