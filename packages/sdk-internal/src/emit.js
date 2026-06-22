@@ -39,8 +39,8 @@ export function emitArtifacts({ result, modules, write, appId }) {
   // server bootstrap. Only emitted when at least one module exposes a tool. The
   // manifest + transport are fully generated; handler/dep binding + actor context
   // live in the app-authored mcp-wiring.js the entry imports (its edit seam).
-  const toolCount = modules.reduce((n, module) => n + generateToolManifest(module).length, 0);
-  if (toolCount > 0) {
+  const hasTools = modules.some((module) => generateToolManifest(module).length > 0);
+  if (hasTools) {
     emit("generated/tool-manifest.ts", generateToolManifestFile(modules));
     emit("generated/mcp-server.mjs", generateMcpServerEntry({ id: appId ?? "app", wiringModule: "./mcp-wiring.js" }));
   }
