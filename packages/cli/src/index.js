@@ -104,6 +104,7 @@ function parseArgs(argv) {
     agent: false,
     dryRun: false,
     plan: false,
+    apply: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -316,6 +317,8 @@ function parseArgs(argv) {
       flags.dryRun = true;
     } else if (value === "--plan") {
       flags.plan = true;
+    } else if (value === "--apply") {
+      flags.apply = true;
     } else if (value.startsWith("-")) {
       parseError ??= failResponse(
         "CLI_UNKNOWN_OPTION",
@@ -369,6 +372,183 @@ async function moduleOperationInput(templateId, flags) {
       ),
     };
   }
+}
+
+const CONFIG_FILE = "microservices.config.json";
+const LOCK_FILE = "microservices.lock.json";
+
+// Single source of truth for composition intent. Reads microservices.config.json
+// when present; otherwise bootstraps a fresh manifest from flags/template defaults.
+async function loadManifest(flags) {
+  const path = join(USER_CWD, CONFIG_FILE);
+  try {
+    const config = JSON.parse(await readFile(path, "utf8"));
+    if (!Array.isArray(config.modules)) config.modules = [];
+    return { ok: true, path, existed: true, config };
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return {
+        ok: true,
+        path,
+        existed: false,
+        config: {
+          template: flags.template ?? "booking-business",
+          modules: Array.isArray(flags.modules) ? [...flags.modules] : [],
+        },
+      };
+    }
+    const code = error instanceof SyntaxError ? "CONFIG_INVALID" : "CONFIG_READ_FAILED";
+    return {
+      ok: false,
+      response: failResponse(
+        code,
+        `Could not read ${CONFIG_FILE} at ${path}.`,
+        `Fix ${CONFIG_FILE} or run in a clean directory.`,
+        { path, message: error.message }
+      ),
+    };
+  }
+}
+
+async function writeManifest(manifest, composition) {
+  await writeFile(manifest.path, `${JSON.stringify(manifest.config, null, 2)}\n`, "utf8");
+  await writeFile(
+    join(USER_CWD, LOCK_FILE),
+    `${JSON.stringify(composition.lock, null, 2)}\n`,
+    "utf8"
+  );
+}
+
+// `composeApp` resolves transitive dependencies, so the resolved set is the
+// authoritative answer to "is this module in the app?".
+function composeFromManifest(config) {
+  return composeApp({
+    templateId: config.template ?? "booking-business",
+    modules: config.modules ?? [],
+    config,
+  });
+}
+
+// Builds composeApp/generateProject input from the manifest; flags override the file.
+async function manifestInput(action, flags) {
+  const manifest = await loadManifest(flags);
+  if (!manifest.ok) return manifest;
+  const config = manifest.config;
+  return {
+    ok: true,
+    input: {
+      templateId: action || config.template || "booking-business",
+      modules: flags.modules ?? (config.modules?.length ? config.modules : undefined),
+      config: flags.config ?? (manifest.existed ? config : undefined),
+    },
+  };
+}
+
+async function applyAddModule(moduleId, flags) {
+  if (!moduleId) {
+    return failResponse("MODULE_ID_REQUIRED", "Module id is required.", "Run microservices add <module-id> --apply.");
+  }
+  if (String(moduleId).includes("@") && flags.version) {
+    return failResponse(
+      "MODULE_VERSION_CONFLICT",
+      "Specify the version inline or via --version, not both.",
+      "Drop one of the version specifiers.",
+      { moduleId }
+    );
+  }
+  const manifest = await loadManifest(flags);
+  if (!manifest.ok) return manifest.response;
+
+  const ref = versionedModuleArg(moduleId, flags.version);
+  const baseId = String(ref).split("@")[0];
+
+  const current = composeFromManifest(manifest.config);
+  if (current.ok === false) return current;
+  if (current.data.modules.some((module) => module.id === baseId)) {
+    return failResponse(
+      "MODULE_PRESENT",
+      `Module ${baseId} is already part of the composition.`,
+      "Run microservices modules list to review the current set.",
+      { moduleId: baseId }
+    );
+  }
+
+  const nextModules = [...manifest.config.modules, ref];
+  const composed = composeApp({
+    templateId: manifest.config.template ?? "booking-business",
+    modules: nextModules,
+    config: manifest.config,
+  });
+  if (composed.ok === false) return composed;
+
+  const resolved = composed.data.modules.find((module) => module.id === baseId);
+  const pinned = resolved ? `${resolved.id}@${resolved.version}` : ref;
+  manifest.config = {
+    ...manifest.config,
+    template: manifest.config.template ?? "booking-business",
+    schemaVersion: composed.data.schemaVersion,
+    modules: [...manifest.config.modules, pinned],
+  };
+  await writeManifest(manifest, composed.data);
+
+  return {
+    ok: true,
+    requestId: `local_${Date.now().toString(36)}`,
+    data: { added: pinned, template: manifest.config.template, modules: manifest.config.modules },
+  };
+}
+
+async function applyRemoveModule(moduleId, flags) {
+  if (!moduleId) {
+    return failResponse("MODULE_ID_REQUIRED", "Module id is required.", "Run microservices remove <module-id> --apply.");
+  }
+  const manifest = await loadManifest(flags);
+  if (!manifest.ok) return manifest.response;
+  if (!manifest.existed) {
+    return failResponse(
+      "CONFIG_NOT_FOUND",
+      `No ${CONFIG_FILE} in this directory.`,
+      "Run microservices add <module-id> --apply first.",
+      { path: manifest.path }
+    );
+  }
+
+  const baseId = String(moduleId).split("@")[0];
+  const before = manifest.config.modules ?? [];
+  const nextModules = before.filter((entry) => String(entry).split("@")[0] !== baseId);
+  if (nextModules.length === before.length) {
+    return failResponse(
+      "MODULE_ABSENT",
+      `Module ${baseId} is not in ${CONFIG_FILE} (template defaults cannot be removed).`,
+      "Run microservices modules list to review the current set.",
+      { moduleId: baseId }
+    );
+  }
+
+  const composed = composeApp({
+    templateId: manifest.config.template ?? "booking-business",
+    modules: nextModules,
+    config: manifest.config,
+  });
+  if (composed.ok === false) return composed;
+  // A dependent module pulls it back into the resolved set -> still load-bearing.
+  if (composed.data.modules.some((module) => module.id === baseId)) {
+    return failResponse(
+      "MODULE_REQUIRED",
+      `Cannot remove ${baseId}; another module still requires it.`,
+      "Remove the dependent module(s) first.",
+      { moduleId: baseId }
+    );
+  }
+
+  manifest.config = { ...manifest.config, modules: nextModules };
+  await writeManifest(manifest, composed.data);
+
+  return {
+    ok: true,
+    requestId: `local_${Date.now().toString(36)}`,
+    data: { removed: baseId, modules: nextModules },
+  };
 }
 
 function versionedModuleArg(id, version) {
@@ -482,10 +662,12 @@ Usage:
   microservices modules inspect <id> [--json]
   microservices docs [module-id] [--json]
   microservices add <module-id[@version]> --plan [--version <version>] [--mode embedded|service] [--json]
+  microservices add <module-id[@version]> --apply [--version <version>] [--json]   # write module into microservices.config.json + lock
+  microservices remove <module-id> --apply [--json]                                # remove module from microservices.config.json + lock
   microservices secrets status [--json]
   microservices updates [--json]
   microservices upgrade <module-id[@version]> --plan [--to <version>] [--json]
-  microservices compose [template-id] [--modules auth@0.1.0,customer,booking] [--config '{"appName":"Demo"}'] [--json]
+  microservices compose [template-id] [--modules auth@0.1.0,customer,booking] [--config '{"appName":"Demo"}'] [--json]   # reads microservices.config.json when present; flags override
   microservices graph [template-id] [--modules auth@0.1.0,customer,booking] [--json]
   microservices validate [template-id] [--config '{"timezone":"America/New_York"}'] [--json]
   microservices generate [template-id] --out <dir> [--json]
@@ -4423,6 +4605,31 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
         );
   }
 
+  if (resource === "add" && flags.apply) {
+    response = await applyAddModule(action, flags);
+    await trackResponse("module_added", "module_add_failed", response, cliTelemetryProps(flags, { moduleId: action ?? null }));
+    return flags.json
+      ? writeJson(response)
+      : printHuman(response, (data) => `Added ${data.added}\nModules: ${data.modules.join(", ")}\n`);
+  }
+
+  if (resource === "remove") {
+    if (!flags.apply) {
+      response = failResponse(
+        "APPLY_REQUIRED",
+        "Module remove requires --apply.",
+        "Run microservices remove <module-id> --apply [--json].",
+        { moduleId: action }
+      );
+      return flags.json ? writeJson(response) : printHuman(response, () => "");
+    }
+    response = await applyRemoveModule(action, flags);
+    await trackResponse("module_removed", "module_remove_failed", response, cliTelemetryProps(flags, { moduleId: action ?? null }));
+    return flags.json
+      ? writeJson(response)
+      : printHuman(response, (data) => `Removed ${data.removed}\nModules: ${data.modules.join(", ")}\n`);
+  }
+
   if (resource === "add") {
     if (!flags.plan) {
       response = {
@@ -4533,7 +4740,9 @@ Files: ${plan.filesLikelyTouched.join(", ") || "none"}
   }
 
   if (resource === "compose") {
-    response = composeApp(templateInput(action, flags));
+    const manifest = await manifestInput(action, flags);
+    if (!manifest.ok) return flags.json ? writeJson(manifest.response) : printHuman(manifest.response, () => "");
+    response = composeApp(manifest.input);
     return flags.json ? writeJson(response) : printHuman(response, formatComposition);
   }
 
@@ -4558,12 +4767,16 @@ Files: ${plan.filesLikelyTouched.join(", ") || "none"}
   }
 
   if (resource === "validate") {
-    response = validateConfig(templateInput(action, flags));
+    const manifest = await manifestInput(action, flags);
+    if (!manifest.ok) return flags.json ? writeJson(manifest.response) : printHuman(manifest.response, () => "");
+    response = validateConfig(manifest.input);
     return flags.json ? writeJson(response) : printHuman(response, (result) => `Valid: ${result.valid}\nBindings: ${result.requiredBindings.join(", ")}\nStorage: ${result.requiredStorage.join(", ")}\nWarnings: ${result.warnings.length ? result.warnings.join("; ") : "none"}\n`);
   }
 
   if (resource === "check") {
-    const input = templateInput(action, flags);
+    const manifest = await manifestInput(action, flags);
+    if (!manifest.ok) return flags.json ? writeJson(manifest.response) : printHuman(manifest.response, () => "");
+    const input = manifest.input;
     response = runChecks(input);
     const checkData = response?.data ?? response;
     await track(
@@ -4578,7 +4791,9 @@ Files: ${plan.filesLikelyTouched.join(", ") || "none"}
   }
 
   if (resource === "generate") {
-    response = generateProject(templateInput(action, flags));
+    const manifest = await manifestInput(action, flags);
+    if (!manifest.ok) return flags.json ? writeJson(manifest.response) : printHuman(manifest.response, () => "");
+    response = generateProject(manifest.input);
     const generated = assertOk(response);
     const written = await writeGeneratedFiles(flags.out, generated.files);
     const output = {
