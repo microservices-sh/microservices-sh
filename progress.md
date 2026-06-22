@@ -1646,6 +1646,27 @@
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 122 StackSuite residual route gate audit
+
+- **Status:** complete.
+- Goal: close stale residual StackSuite backlog language without implementing template-only behavior that lacks a module contract.
+- Verified commerce sales-order draft creation is already implemented through the ledger route and `createDraftOrder`; the route also handles confirm, invoice handoff, cancel, print, CSV export, and read-only detail review.
+- Verified sales-order send is not implemented and should stay deferred until `@microservices-sh/sales-order` or a document-delivery module exposes a send contract with audit/idempotency semantics.
+- Verified commerce MCP exists as lock-generated stdio tooling with env-scoped actor/scopes, governed confirmation, and audit hooks; persisted MCP settings plus audited scoped-token/API-key lifecycle remain a reusable auth/gateway prerequisite and accounting does not yet have the commerce MCP generator/wiring.
+- Fixed the commerce MCP lock/handler parity gap for inventory reconciliation document and low-stock alert RPCs.
+- Updated StackSuite porting docs, findings, and commerce template policy checks to reflect the real residual backlog.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Commerce route inspection | Sales-order create is module-backed and send is not ad hoc | `src/routes/app/sales-orders/+page.server.ts` uses `createDraftOrder`; no send API exists in `modules/sales-order` | Pass |
+| MCP route inspection | Existing MCP surface is not a persisted audited-token settings flow | `commerce-ops-sveltekit` has `scripts/generate-mcp.mjs` and `mcp-wiring.ts`; accounting lacks equivalent wiring | Pass |
+| MCP handler parity | Lock-declared inventory reconciliation/alert tools have handlers | Added handlers for `inventory_createReconciliationDocument`, `inventory_listReconciliationDocuments`, `inventory_completeReconciliationDocument`, and `inventory_listLowStockAlerts` | Pass |
+| Commerce template spec | Residual route/MCP policy checks pass | `pnpm --dir templates/commerce-ops-sveltekit check:spec` passed | Pass |
+| Commerce MCP integration | Lock-generated tools all have handlers | `pnpm exec vitest run tests/integration/commerce-ops-mcp-wiring.test.ts` passed, 5/5 | Pass |
+| Commerce template build | SvelteKit/Cloudflare build compiles after MCP wiring changes | `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 108 AP payment detail route
 
 - **Status:** complete.

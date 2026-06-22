@@ -52,13 +52,16 @@ describe("commerce-ops app MCP wiring", () => {
 
     expect(names).toContain("product-catalog_createProduct");
     expect(names).toContain("inventory_stockIn");
+    expect(names).toContain("inventory_createReconciliationDocument");
+    expect(names).toContain("inventory_listReconciliationDocuments");
+    expect(names).toContain("inventory_completeReconciliationDocument");
+    expect(names).toContain("inventory_listLowStockAlerts");
     expect(names).toContain("sales-order_createDraftOrder");
     expect(names).toContain("shipment_createShipment");
     expect(names).toContain("support-ticket_createTicket");
     expect(names).toContain("file-media_createUploadTicket");
     expect(names).not.toContain("payment_createPaymentIntent");
     expect(names).not.toContain("org-team-rbac_authorize");
-    expect(names).toHaveLength(50);
     expect(names).toHaveLength(manifest.length);
     expect(Object.keys(handlers).sort()).toEqual(names);
   });

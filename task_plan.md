@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 119
+Phase 122
 
 ## Phases
 
@@ -956,6 +956,14 @@ Phase 119
 - [x] Verify focused template dependency/migration pruning has no safe removal while shared shell routes still import those modules.
 - [x] Refresh create-app bundled StackSuite templates from the source templates and vendored module/package closure.
 - [x] Verify create-app build/tests, template bundle closure, StackSuite smoke, focused template specs, and workspace specs.
+- **Status:** complete
+
+### Phase 122: StackSuite Residual Route Gate Audit
+- [x] Verify commerce sales-order create is already implemented through `createDraftOrder` and the ledger route.
+- [x] Verify sales-order send lacks a module-owned delivery/send API and should remain deferred.
+- [x] Verify commerce MCP exists as lock-generated stdio tooling, while persisted settings/audited scoped tokens remain a reusable auth/gateway prerequisite.
+- [x] Restore commerce MCP lock/handler parity for inventory reconciliation documents and low-stock alerts.
+- [x] Update StackSuite porting docs, findings, and commerce template spec guards for the clarified residual backlog.
 - **Status:** complete
 
 ## Key Questions

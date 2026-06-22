@@ -209,6 +209,10 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     [
       "product-catalog_createProduct",
       "inventory_stockIn",
+      "inventory_createReconciliationDocument",
+      "inventory_listReconciliationDocuments",
+      "inventory_completeReconciliationDocument",
+      "inventory_listLowStockAlerts",
       "sales-order_createDraftOrder",
       "shipment_createShipment",
       "shipment_startShipmentProcessing",
@@ -375,8 +379,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/sales-orders/+page.svelte",
-    ["generateSalesOrderPrintHtml", "generateSalesOrderLedgerCsv", "generateSalesOrderLineItemsCsv", "printSalesOrder", "exportSalesOrder", "Export CSV", "?/cancel", "/app/sales-orders/${order.id}"],
-    "Sales order ledger exposes row-level print, CSV, detail route, and cancellation actions."
+    ["generateSalesOrderPrintHtml", "generateSalesOrderLedgerCsv", "generateSalesOrderLineItemsCsv", "printSalesOrder", "exportSalesOrder", "Export CSV", "Create draft order", "?/create", "?/cancel", "/app/sales-orders/${order.id}"],
+    "Sales order ledger exposes draft creation, row-level print, CSV, detail route, and cancellation actions."
   );
   assertFileIncludesAll(
     "src/lib/server/sales-order-inventory.ts",
@@ -385,8 +389,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/sales-orders/+page.server.ts",
-    ["cancelOrder", "createSalesOrderInventoryReservationPort", "releaseSalesOrderReservations", "releasedReservations", "sales-order.order_cancelled"],
-    "Sales order route wires confirm, invoice, and cancel lifecycle actions through module ports plus inventory release side effects."
+    ["createDraftOrder", "cancelOrder", "createSalesOrderInventoryReservationPort", "releaseSalesOrderReservations", "sales-order.order_created", "releasedReservations", "sales-order.order_cancelled"],
+    "Sales order route wires create, confirm, invoice, and cancel lifecycle actions through module ports plus inventory side effects."
   );
   assertFileIncludesAll(
     "src/routes/app/sales-orders/[id]/+page.server.ts",

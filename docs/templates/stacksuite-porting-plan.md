@@ -164,8 +164,9 @@ Use the source commerce schema to extend the existing modules:
 
 The modules exist, but source UI expects more workflow endpoints:
 
-- sales-order detail, send action, and bulk status transitions.
-- order-to-invoice and order-to-shipment handoff ports.
+- sales-order detail, draft creation, confirm, invoice, cancel, print, and CSV export are now implemented in `commerce-ops-sveltekit` over `@microservices-sh/sales-order`.
+- remaining sales-order send action and bulk status transitions should wait for a module-owned document-delivery/send contract rather than template-only email glue.
+- order-to-invoice handoff is implemented; order-to-shipment handoff should stay module/port-backed when expanded beyond the current shipment workflow.
 - shipment batch detail, shipment item links, status transitions, and completion constraints.
 - packing slip print/export data contract.
 
@@ -186,6 +187,8 @@ Do not bury MCP logic inside a single invoice template. Add a reusable agent-fac
 - server-sent-event or streamable route adapter owned by templates.
 - tool registration for invoices, customers, products, inventory, sales orders, shipments, and settings.
 - audit events for all external tool calls.
+
+Current commerce status: `commerce-ops-sveltekit` has lock-generated stdio MCP tooling with env-scoped actor/scopes and governed tool audit hooks. It does not yet have persisted settings UI, scoped API-key lifecycle, or audited short-lived token issuance for operator-managed MCP clients. The focused accounting template does not yet have the commerce MCP generator/wiring.
 
 This may become a new module, or it may extend `agent-dispatch` if the product direction is to treat MCP tools as dispatchable agent capabilities.
 
@@ -217,12 +220,12 @@ Port in this order:
 
 Port in this order:
 
-1. Sales-order detail/create/send/bulk status routes.
+1. Sales-order create/detail/confirm/invoice/cancel/print/export are implemented; add send and bulk status routes only after the sales-order module exposes a document-delivery/send API.
 2. Shipment batch detail/status/packing-slip routes.
 3. Inventory receive/adjust/reconcile routes and movement history.
 4. WooCommerce connection settings, sync logs, and webhook setup.
 5. Invoice print/export and payment-link surfaces.
-6. MCP settings page and tool endpoint adapter after the reusable MCP/agent surface exists.
+6. MCP settings page and audited token endpoint after reusable persisted MCP/agent credentials exist; current commerce MCP is lock-generated stdio tooling with env-scoped actor/scopes.
 7. Analytics pages for daily, monthly, client, product, and item views using module read models.
 
 ### Possible New Template: `invoice-ops-sveltekit`
@@ -350,7 +353,8 @@ Done for the first accounting/commerce operator surface:
 Remaining routes should be added only after the backing module API exists:
 
 - additional statement export routes and retained-earnings setup defaults.
-- commerce sales-order create/send and MCP settings.
+- commerce sales-order send/bulk status transitions after a module-owned delivery/status API exists.
+- focused-template MCP settings after persisted scoped API keys, token issuance, and audit-log wiring exist across accounting and commerce.
 
 ### Phase 3: External Operations
 
@@ -366,7 +370,7 @@ Still pending:
 - Stripe OAuth/connect status and provider account health beyond local readiness.
 - write-capable WooCommerce setup/OAuth and richer sync log rollups.
 - OCR/document extraction review loops.
-- MCP tools with audited tokens.
+- persisted MCP settings and audited scoped-token issuance for focused templates.
 
 ### Phase 4: CLI Productization
 

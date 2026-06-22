@@ -63,6 +63,10 @@ import {
   releaseReservation,
   deductStock,
   reconcileStock,
+  createReconciliationDocument,
+  listReconciliationDocuments,
+  completeReconciliationDocument,
+  listLowStockAlerts,
   createMemoryInventoryStore
 } from "@microservices-sh/inventory";
 
@@ -312,6 +316,12 @@ export const handlers: Record<string, (input: unknown, ctx?: ToolContext) => Pro
     releaseReservation(input, { inventoryStore, productReader, actor: actor(ctx) }),
   inventory_deductStock: (input, ctx) => deductStock(input, { inventoryStore, productReader, actor: actor(ctx) }),
   inventory_reconcileStock: (input, ctx) => reconcileStock(input, { inventoryStore, productReader, actor: actor(ctx) }),
+  inventory_createReconciliationDocument: (input, ctx) =>
+    createReconciliationDocument(input, { inventoryStore, productReader, actor: actor(ctx) }),
+  inventory_listReconciliationDocuments: (input) => listReconciliationDocuments(input, { inventoryStore }),
+  inventory_completeReconciliationDocument: (input, ctx) =>
+    completeReconciliationDocument(input, { inventoryStore, productReader, actor: actor(ctx) }),
+  inventory_listLowStockAlerts: (input) => listLowStockAlerts(input, { inventoryStore }),
 
   "sales-order_listOrders": (input) => listOrders(input, { salesOrderStore }),
   "sales-order_getOrder": (input) => getOrder(input, { salesOrderStore }),
