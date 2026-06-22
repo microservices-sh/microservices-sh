@@ -959,6 +959,105 @@ async function removeModule(id, flags = {}) {
   };
 }
 
+// Reads the editable intent file (microservices.config.json). When absent,
+// bootstraps it from the current lock + template manifest so `install` and
+// `add`/`remove` have a consistent starting point in existing apps.
+function loadShimConfig() {
+  const configPath = "microservices.config.json";
+  const existing = readJson(configPath, null);
+  if (existing && Array.isArray(existing.modules)) {
+    return { path: configPath, existed: true, config: existing };
+  }
+  const lockNow = readJson("microservices.lock.json", { modules: [] });
+  const modules = (lockNow.modules ?? []).map((module) =>
+    module.version ? `${module.id}@${module.version}` : module.id
+  );
+  return {
+    path: configPath,
+    existed: false,
+    config: { template: manifest.id ?? lockNow.template ?? "", modules }
+  };
+}
+
+// Records explicit user intent in microservices.config.json. Called only from
+// the top-level add/remove commands, never from install's transitive vendoring,
+// so dependencies stay implicit (in the lock) and intent stays what the user asked for.
+function recordModuleIntent(ref, { removed = false } = {}) {
+  const loaded = loadShimConfig();
+  const baseId = String(ref).split("@")[0];
+  const modules = (loaded.config.modules ?? []).filter(
+    (entry) => String(entry).split("@")[0] !== baseId
+  );
+  if (!removed) modules.push(ref);
+  const config = { ...loaded.config, modules };
+  writeJsonFile(loaded.path, config);
+  return config;
+}
+
+// Reconciles the project against microservices.config.json: vendors every
+// listed module that is missing, then walks each vendored module.json's
+// connections.requires to pull in transitive dependencies (the shim has no
+// SDK resolver, so dependencies are discovered by reading vendored sources).
+async function installModules(flags = {}) {
+  const loaded = loadShimConfig();
+  const queue = [...(loaded.config.modules ?? [])];
+  const seen = new Set();
+  const installed = [];
+  const failed = [];
+
+  while (queue.length) {
+    const ref = String(queue.shift());
+    const baseId = ref.split("@")[0];
+    if (!baseId || seen.has(baseId)) continue;
+    seen.add(baseId);
+
+    const dest = resolve("modules", baseId);
+    const lockNow = readJson("microservices.lock.json", { modules: [] });
+    const lockEntry = (lockNow.modules ?? []).find((module) => module.id === baseId);
+    const present = existsSync(dest) && Boolean(lockEntry);
+
+    if (present) {
+      installed.push({ id: baseId, status: "present", version: lockEntry.version ?? null });
+    } else {
+      const result = await addModule(ref, { version: flags.version });
+      if (!result.ok) {
+        failed.push({ id: baseId, error: result.error });
+        continue;
+      }
+      installed.push({ id: baseId, status: "vendored", version: result.data.version ?? null });
+    }
+
+    // Enqueue transitive requires from the (now) vendored module.json.
+    const manifestPath = join(dest, "module.json");
+    if (existsSync(manifestPath)) {
+      const requires = readJson(manifestPath, {})?.connections?.requires ?? [];
+      if (Array.isArray(requires)) {
+        for (const dep of requires) {
+          if (dep && !seen.has(dep)) queue.push(dep);
+        }
+      }
+    }
+  }
+
+  if (failed.length) {
+    return {
+      ok: false,
+      data: { template: loaded.config.template ?? null, installed, modules: [...seen], failed },
+      error: {
+        code: "INSTALL_INCOMPLETE",
+        message: `Could not vendor ${failed.length} module(s): ${failed.map((entry) => entry.id).join(", ")}.`,
+        remediation: "Check the module ids in microservices.config.json and retry.",
+        details: { failed }
+      }
+    };
+  }
+
+  return {
+    ok: true,
+    data: { template: loaded.config.template ?? null, installed, modules: [...seen], failed }
+  };
+}
+
 function localModuleVersion(id) {
   const moduleDir = resolve("modules", id);
   if (!existsSync(moduleDir)) return null;
@@ -3839,6 +3938,7 @@ function usage() {
   microservices modules list                     # list installed modules
   microservices add <id[@version]>               # vendor a module into this app
   microservices remove <id>                      # remove a vendored module from this app
+  microservices install                          # vendor modules from microservices.config.json (+ their deps)
   microservices docs <id>                        # show a module's agent docs
   microservices memory search <query>            # search approved Code Memory capsules
   microservices memory get <capsule-id-or-slug>  # inspect an approved Logic Capsule
@@ -4094,6 +4194,9 @@ async function main() {
         { moduleId: action ?? null, reason: error?.message ?? String(error) }
       );
     }
+    if (response.ok) {
+      recordModuleIntent(`${response.data.id}@${response.data.version}`);
+    }
     await trackResponse(
       "module_install_completed",
       "module_install_failed",
@@ -4115,6 +4218,9 @@ async function main() {
         { moduleId: action ?? null, reason: error?.message ?? String(error) }
       );
     }
+    if (response.ok && !response.data.plan && response.data.removed) {
+      recordModuleIntent(response.data.removed, { removed: true });
+    }
     await trackResponse(
       "module_remove_completed",
       "module_remove_failed",
@@ -4124,6 +4230,31 @@ async function main() {
     emit(
       response,
       (data) => (data.plan ? `Plan: would remove ${data.wouldRemoveDir}\n` : `Removed ${data.removedDir}.\n`),
+      flags
+    );
+  } else if (resource === "install") {
+    const startedAt = Date.now();
+    await track("modules_install_started", workspaceTelemetryProps(flags, {}));
+    let response;
+    try {
+      response = await installModules(flags);
+    } catch (error) {
+      response = fail(
+        "INSTALL_FAILED",
+        "Install failed.",
+        "Review the command output and retry.",
+        { reason: error?.message ?? String(error) }
+      );
+    }
+    await trackResponse(
+      "modules_install_completed",
+      "modules_install_failed",
+      response,
+      workspaceTelemetryProps(flags, { durationMs: durationMs(startedAt) })
+    );
+    emit(
+      response,
+      (data) => `${data.installed.map((module) => `${module.status} ${module.id}`).join("\n") || "Nothing to install."}\n`,
       flags
     );
   } else if (resource === "docs") {
