@@ -17,3 +17,4 @@ Safe defaults:
 - Treat customer data as PII.
 - Do not send messages, charge money, delete data, or deploy without approval.
 - Use module APIs/use cases instead of editing storage directly.
+- Use `startShipmentProcessing` for draft-to-processing work. Use `completeShipment` only when inventory deduction is approved.

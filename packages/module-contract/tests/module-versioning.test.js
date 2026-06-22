@@ -210,6 +210,19 @@ describe("module version selectors", () => {
     ]));
   });
 
+  it("exposes shipment processing transition APIs in the catalog", () => {
+    const module = inspectModule("shipment@0.1.0");
+    expect(module.rpc.map((entry) => entry.method)).toEqual(expect.arrayContaining([
+      "startShipmentProcessing",
+      "listShipmentStatusTransitions",
+    ]));
+    expect(module.eventsEmitted).toEqual(expect.arrayContaining(["shipment.processing_started"]));
+    expect(module.surfaces.agentic.tools).toEqual(expect.arrayContaining([
+      "shipment.startShipmentProcessing",
+      "shipment.listShipmentStatusTransitions",
+    ]));
+  });
+
   it("exposes admin, visitor, and agentic surfaces for booking", () => {
     expect(inspectModule("booking@0.1.0").surfaces).toMatchObject({
       admin: {

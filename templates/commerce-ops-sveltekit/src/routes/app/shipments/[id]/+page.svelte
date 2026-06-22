@@ -6,6 +6,7 @@
   let { data, form } = $props();
   const shipment = $derived(data.shipment);
   const document = $derived(data.printDocument);
+  const canStartProcessing = $derived(data.canManage && shipment.status === "draft");
   const canComplete = $derived(data.canManage && shipment.status !== "completed" && shipment.status !== "cancelled");
 
   function printPackingSlip() {
@@ -35,7 +36,9 @@
     {/snippet}
   </PageHeader>
 
-  {#if form?.completed}
+  {#if form?.processingStarted}
+    <Alert tone="success">Shipment moved to processing.</Alert>
+  {:else if form?.completed}
     <Alert tone="success">Shipment completed and stock deducted.</Alert>
   {:else if form?.error}
     <Alert tone="error">{form.error}</Alert>
@@ -87,6 +90,27 @@
       <Card title="Activity">
         <WorkflowTimeline events={data.timeline} emptyLabel="No activity recorded for this shipment yet." />
       </Card>
+
+      <Card title="Status history">
+        {#if data.statusTransitions.length > 0}
+          <div class="status-history">
+            {#each data.statusTransitions as transition (transition.id)}
+              <div class="status-row">
+                <div>
+                  <strong>{transition.fromStatus ?? "created"} -> {transition.toStatus}</strong>
+                  <p>{transition.reason ?? "No reason recorded"}{transition.actorId ? ` · ${transition.actorId}` : ""}</p>
+                </div>
+                <div class="status-row__meta">
+                  <Badge tone={transition.tone}>{transition.toStatus}</Badge>
+                  <span>{transition.changed}</span>
+                </div>
+              </div>
+            {/each}
+          </div>
+        {:else}
+          <p class="empty">No status transitions recorded.</p>
+        {/if}
+      </Card>
     </div>
 
     <div class="grid__side">
@@ -107,14 +131,26 @@
         </dl>
       </Card>
 
-      {#if canComplete}
-        <Card title="Close batch">
-          <form method="POST" action="?/complete" use:enhance>
-            <div class="stack">
-              <p class="status-note">Completing deducts reserved stock through the shared shipment inventory bridge.</p>
-              <Button type="submit" variant="primary">Complete shipment</Button>
-            </div>
-          </form>
+      {#if canStartProcessing || canComplete}
+        <Card title="Fulfillment actions">
+          <div class="stack">
+            {#if canStartProcessing}
+              <form method="POST" action="?/startProcessing" use:enhance>
+                <div class="stack">
+                  <p class="status-note">Start processing to record picking and packing work before stock deduction.</p>
+                  <Button type="submit" variant="ghost">Start processing</Button>
+                </div>
+              </form>
+            {/if}
+            {#if canComplete}
+              <form method="POST" action="?/complete" use:enhance>
+                <div class="stack">
+                  <p class="status-note">Completing deducts reserved stock through the shared shipment inventory bridge.</p>
+                  <Button type="submit" variant="primary">Complete shipment</Button>
+                </div>
+              </form>
+            {/if}
+          </div>
         </Card>
       {/if}
     </div>
@@ -150,13 +186,38 @@
     padding: 12px;
     background: var(--color-panel-subtle);
   }
+  .status-history {
+    display: grid;
+    gap: 10px;
+  }
+  .status-row,
+  .status-row__meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .status-row {
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    background: var(--color-panel-subtle);
+  }
+  .status-row__meta {
+    align-items: flex-end;
+    flex-direction: column;
+    color: var(--color-ink-faint);
+    font-size: 0.82rem;
+  }
   .line p,
+  .status-row p,
   .status-note,
   .muted,
   .empty {
     color: var(--color-ink-faint);
   }
   .line p,
+  .status-row p,
   .status-note,
   .empty {
     margin: 0;

@@ -4,6 +4,7 @@
   "type": "object",
   "enum": [
     "shipment.created",
+    "shipment.processing_started",
     "shipment.completed",
     "shipment.cancelled"
   ]

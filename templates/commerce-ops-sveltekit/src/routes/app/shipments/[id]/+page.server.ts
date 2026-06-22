@@ -1,7 +1,12 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { error, fail, redirect } from "@sveltejs/kit";
 import { listEvents, recordEvent } from "@microservices-sh/audit-log";
-import { completeShipment, getShipment } from "@microservices-sh/shipment";
+import {
+  completeShipment,
+  getShipment,
+  listShipmentStatusTransitions,
+  startShipmentProcessing
+} from "@microservices-sh/shipment";
 import { getOrder, type SalesOrderWithLineItems } from "@microservices-sh/sales-order";
 import { humanizeEvent, relativeTime } from "$lib/format";
 import { buildShipmentPrintDocument, salesOrderIdsForShipment } from "$lib/server/shipment-documents";
@@ -42,9 +47,13 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
   const canManage = permissions.includes("*") || permissions.includes("member.manage");
   const now = Date.now();
 
-  const [shipmentResult, eventsResult] = await Promise.all([
+  const [shipmentResult, eventsResult, transitionsResult] = await Promise.all([
     getShipment({ tenantId: activeOrgId, shipmentId: params.id }, { shipmentStore: locals.shipmentStore }),
-    listEvents({ entityType: "shipment", entityId: params.id, limit: 20 }, { auditStore: locals.auditStore })
+    listEvents({ entityType: "shipment", entityId: params.id, limit: 20 }, { auditStore: locals.auditStore }),
+    listShipmentStatusTransitions(
+      { tenantId: activeOrgId, shipmentId: params.id, limit: 20 },
+      { shipmentStore: locals.shipmentStore }
+    )
   ]);
   if (!shipmentResult.ok || !shipmentResult.data) throw error(shipmentResult.status, shipmentResult.error.message);
 
@@ -52,6 +61,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
   const order = await findRelatedOrder(activeOrgId, shipment, locals.salesOrderStore);
   const document = await buildShipmentPrintDocument(locals, activeOrgId, shipment, order);
   const events = eventsResult.ok ? eventsResult.data.events : [];
+  const transitions = transitionsResult.ok ? transitionsResult.data.transitions : [];
 
   return {
     canManage,
@@ -72,6 +82,15 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
         }
       : null,
     printDocument: document,
+    statusTransitions: transitions.map((transition) => ({
+      id: transition.id,
+      fromStatus: transition.fromStatus,
+      toStatus: transition.toStatus,
+      reason: transition.reason,
+      actorId: transition.actorId,
+      changed: relativeTime(transition.changedAt, now),
+      tone: statusTone(transition.toStatus)
+    })),
     timeline: events.map((event) => ({
       title: humanizeEvent(event.eventName),
       detail:
@@ -87,6 +106,44 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
 };
 
 export const actions: Actions = {
+  startProcessing: async ({ params, locals, cookies, platform }) => {
+    requireModule("shipment", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const result = await startShipmentProcessing(
+      {
+        tenantId: org.id,
+        shipmentId: params.id,
+        reason: "operator_started"
+      },
+      {
+        shipmentStore: locals.shipmentStore,
+        actor: { id: locals.user.id }
+      }
+    );
+    if (!result.ok || !result.data) return fail(result.status, { error: result.error.message });
+
+    await recordEvent(
+      {
+        eventName: "shipment.processing_started",
+        actorId: locals.user.id,
+        entityType: "shipment",
+        entityId: result.data.shipment.id,
+        source: "app/shipments/detail",
+        payload: {
+          replayed: result.data.replayed,
+          itemCount: result.data.shipment.items.length
+        }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { processingStarted: true };
+  },
+
   complete: async ({ params, locals, cookies, platform }) => {
     requireModule("shipment", platform);
     requireModule("inventory", platform);

@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "status": "draft",
   "class": "core",
-  "summary": "Shipment batches and fulfillment workflow with idempotent completion and shipment events.",
+  "summary": "Shipment batches, fulfillment workflow, auditable status transitions, idempotent completion, and shipment events.",
   "runtime": {
     "language": "typescript",
     "platform": "cloudflare-workers",
@@ -23,6 +23,7 @@
       "tables": [
         "shipment_batches",
         "shipment_items",
+        "shipment_status_transitions",
         "domain_events"
       ]
     }
@@ -58,6 +59,11 @@
           "public": false
         },
         {
+          "method": "startShipmentProcessing",
+          "scope": "shipment.write",
+          "public": false
+        },
+        {
           "method": "completeShipment",
           "scope": "shipment.write",
           "public": false
@@ -66,6 +72,11 @@
           "method": "cancelShipment",
           "scope": "shipment.write",
           "public": false
+        },
+        {
+          "method": "listShipmentStatusTransitions",
+          "scope": "shipment.read",
+          "public": false
         }
       ],
       "calls": []
@@ -73,6 +84,7 @@
     "events": {
       "emits": [
         "shipment.created",
+        "shipment.processing_started",
         "shipment.completed",
         "shipment.cancelled"
       ],
@@ -132,14 +144,17 @@
         "shipment.listShipments",
         "shipment.getShipment",
         "shipment.createShipment",
+        "shipment.startShipmentProcessing",
         "shipment.completeShipment",
-        "shipment.cancelShipment"
+        "shipment.cancelShipment",
+        "shipment.listShipmentStatusTransitions"
       ],
       "skillPaths": [
         "skills/shipment-operator/SKILL.md"
       ],
       "approvalRequiredFor": [
         "shipment.createShipment",
+        "shipment.startShipmentProcessing",
         "shipment.completeShipment",
         "shipment.cancelShipment"
       ]

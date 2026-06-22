@@ -1,9 +1,17 @@
 import type { ShipmentStore } from "../ports";
-import type { ShipmentBatch, ShipmentFilter, ShipmentItem, ShipmentSourceType, ShipmentStatus } from "../types";
+import type {
+  ShipmentBatch,
+  ShipmentFilter,
+  ShipmentItem,
+  ShipmentSourceType,
+  ShipmentStatus,
+  ShipmentStatusTransition
+} from "../types";
 import { shipmentId } from "../service";
 
 const BATCH_COLS =
   "id, tenant_id, shipment_number, status, carrier, tracking_number, notes, external_id, external_source, completion_ref, inventory_deduction_ref, created_by_id, completed_at, created_at, updated_at";
+const TRANSITION_COLS = "id, tenant_id, shipment_id, from_status, to_status, reason, actor_id, changed_at";
 
 function rowToBatch(row: Record<string, unknown>): ShipmentBatch {
   return {
@@ -36,6 +44,19 @@ function rowToItem(row: Record<string, unknown>): ShipmentItem {
     sku: row.sku == null ? null : String(row.sku),
     description: String(row.description),
     quantity: Number(row.quantity)
+  };
+}
+
+function rowToTransition(row: Record<string, unknown>): ShipmentStatusTransition {
+  return {
+    id: String(row.id),
+    tenantId: String(row.tenant_id),
+    shipmentId: String(row.shipment_id),
+    fromStatus: row.from_status == null ? null : (String(row.from_status) as ShipmentStatus),
+    toStatus: String(row.to_status) as ShipmentStatus,
+    reason: row.reason == null ? null : String(row.reason),
+    actorId: row.actor_id == null ? null : String(row.actor_id),
+    changedAt: String(row.changed_at)
   };
 }
 
@@ -149,6 +170,37 @@ export function createD1ShipmentStore(db: D1Database): ShipmentStore {
         .bind(tenantId, shipmentId)
         .all<Record<string, unknown>>();
       return (result.results ?? []).map(rowToItem);
+    },
+    async insertShipmentStatusTransition(transition) {
+      await db
+        .prepare(
+          `INSERT INTO shipment_status_transitions (${TRANSITION_COLS})
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(
+          transition.id,
+          transition.tenantId,
+          transition.shipmentId,
+          transition.fromStatus,
+          transition.toStatus,
+          transition.reason,
+          transition.actorId,
+          transition.changedAt
+        )
+        .run();
+    },
+    async listShipmentStatusTransitions(filter) {
+      const result = await db
+        .prepare(
+          `SELECT ${TRANSITION_COLS}
+             FROM shipment_status_transitions
+            WHERE tenant_id = ? AND shipment_id = ?
+            ORDER BY changed_at DESC
+            LIMIT ?`
+        )
+        .bind(filter.tenantId, filter.shipmentId, filter.limit ?? 100)
+        .all<Record<string, unknown>>();
+      return (result.results ?? []).map(rowToTransition);
     },
     async writeEvent(event) {
       await db

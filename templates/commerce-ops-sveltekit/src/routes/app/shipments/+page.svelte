@@ -66,6 +66,8 @@
 
   {#if form?.created}
     <Alert tone="success">Shipment created.</Alert>
+  {:else if form?.processingStarted}
+    <Alert tone="success">Shipment moved to processing.</Alert>
   {:else if form?.completed}
     <Alert tone="success">Shipment completed and stock deducted.</Alert>
   {:else if form?.error}
@@ -97,6 +99,12 @@
                   <Button href={`/app/shipments/${shipment.id}`} variant="ghost" size="sm">Open</Button>
                   <Button type="button" variant="ghost" size="sm" onclick={() => printShipmentPackingSlip(printData(shipment))}>Packing slip</Button>
                   <Button type="button" variant="ghost" size="sm" onclick={() => printShipmentPickList(printData(shipment))}>Pick list</Button>
+                  {#if data.canManage && shipment.status === "draft"}
+                    <form method="POST" action="?/startProcessing" use:enhance>
+                      <input type="hidden" name="shipmentId" value={shipment.id} />
+                      <Button type="submit" variant="ghost" size="sm">Start processing</Button>
+                    </form>
+                  {/if}
                   {#if data.canManage && shipment.status !== "completed" && shipment.status !== "cancelled"}
                     <form method="POST" action="?/complete" use:enhance>
                       <input type="hidden" name="shipmentId" value={shipment.id} />

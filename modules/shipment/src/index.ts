@@ -9,7 +9,9 @@ export {
   shipmentItemInputSchema,
   shipmentRecordSchema,
   shipmentSourceTypeSchema,
-  shipmentStatusSchema
+  shipmentStatusSchema,
+  shipmentStatusTransitionFilterSchema,
+  startShipmentProcessingSchema
 } from "./schemas";
 export { defaultShipmentHooks } from "./hooks";
 export { shipmentEvents } from "./events";
@@ -21,7 +23,9 @@ export { cancelShipment } from "./use-cases/cancel-shipment";
 export { completeShipment } from "./use-cases/complete-shipment";
 export { createShipment } from "./use-cases/create-shipment";
 export { getShipment } from "./use-cases/get-shipment";
+export { listShipmentStatusTransitions } from "./use-cases/list-shipment-status-transitions";
 export { listShipments } from "./use-cases/list-shipments";
+export { startShipmentProcessing } from "./use-cases/start-shipment-processing";
 export type { ShipmentInventoryPort, ShipmentStore } from "./ports";
 export type {
   Actor,
@@ -33,6 +37,8 @@ export type {
   ShipmentItem,
   ShipmentSourceType,
   ShipmentStatus,
+  ShipmentStatusTransition,
+  ShipmentStatusTransitionFilter,
   ShipmentWithItems
 } from "./types";
 

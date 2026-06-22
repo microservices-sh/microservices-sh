@@ -1,6 +1,6 @@
 import { cancelShipmentSchema } from "../schemas";
 import { isoNow } from "../service";
-import { enrichShipment, err, hooks, ok, type ShipmentDeps } from "./shared";
+import { enrichShipment, err, hooks, ok, recordStatusTransition, type ShipmentDeps } from "./shared";
 
 export async function cancelShipment(input: unknown, deps: ShipmentDeps) {
   const parsed = cancelShipmentSchema.safeParse(input);
@@ -13,6 +13,15 @@ export async function cancelShipment(input: unknown, deps: ShipmentDeps) {
   const now = isoNow(deps.now);
   const cancelled = { ...batch, status: "cancelled" as const, updatedAt: now };
   await deps.shipmentStore.updateShipment(cancelled);
+  await recordStatusTransition(deps.shipmentStore, {
+    tenantId: cancelled.tenantId,
+    shipmentId: cancelled.id,
+    fromStatus: batch.status,
+    toStatus: "cancelled",
+    reason: parsed.data.reason ?? "cancelled",
+    actorId: deps.actor?.id ?? null,
+    changedAt: now
+  });
   await deps.shipmentStore.writeEvent({
     eventName: "shipment.cancelled",
     entityType: "shipment",

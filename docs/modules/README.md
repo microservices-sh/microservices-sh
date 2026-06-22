@@ -78,7 +78,7 @@ Future MCP/CLI tools should expose the same content through:
 | [`product-catalog`](./product-catalog.md) | Draft | Product/category catalog, SKU uniqueness, external mappings, and combo products. |
 | [`inventory`](./inventory.md) | Draft | Tenant-scoped stock movements, reservations, deductions, reconciliation documents, low-stock alerts, and balances. |
 | [`sales-order`](./sales-order.md) | Draft | Sales orders, line items, status transitions, reservation handoff, and invoice draft handoff. |
-| [`shipment`](./shipment.md) | Draft | Shipment batches, fulfillment workflow, idempotent completion, and shipment events. |
+| [`shipment`](./shipment.md) | Draft | Shipment batches, fulfillment workflow, status history, idempotent completion, and shipment events. |
 | [`commerce-sync`](./commerce-sync.md) | Draft | Commerce connections, mappings, sync runs, webhook receipts, and normalized payload envelopes. |
 | [`accounting-core`](./accounting-core.md) | Draft | Double-entry accounting foundation, chart of accounts, fiscal periods, posting, voiding, and trial balance. |
 | [`accounts-payable`](./accounts-payable.md) | Draft | Vendors, bills, payable lifecycle, recurring bill templates, payment application, and aging. |

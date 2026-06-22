@@ -1,7 +1,7 @@
 import { shipmentInputSchema } from "../schemas";
 import { isoNow, normalizeOptional, shipmentId } from "../service";
 import type { ShipmentBatch, ShipmentItem } from "../types";
-import { enrichShipment, err, hooks, ok, type ShipmentDeps } from "./shared";
+import { enrichShipment, err, hooks, ok, recordStatusTransition, type ShipmentDeps } from "./shared";
 
 export async function createShipment(input: unknown, deps: ShipmentDeps) {
   const filtered = await hooks(deps).beforeShipmentCreate(input);
@@ -52,6 +52,15 @@ export async function createShipment(input: unknown, deps: ShipmentDeps) {
   }));
 
   await deps.shipmentStore.insertShipment(batch, items);
+  await recordStatusTransition(deps.shipmentStore, {
+    tenantId: batch.tenantId,
+    shipmentId: batch.id,
+    fromStatus: null,
+    toStatus: "draft",
+    reason: "created",
+    actorId: deps.actor?.id ?? null,
+    changedAt: now
+  });
   await deps.shipmentStore.writeEvent({
     eventName: "shipment.created",
     entityType: "shipment",

@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 117
+Phase 118
 
 ## Phases
 
@@ -925,6 +925,15 @@ Phase 117
 - [x] Add a regression test proving install clones once for a transitive module graph.
 - [x] Sync the canonical shim into the create-app shim and generated SvelteKit template shims.
 - [x] Verify shim sync/install/version/remove tests, create-app bundle closure, full workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 118: Shipment Status Transition History
+- [x] Add shipment status transition persistence with memory/D1 store parity and module/template migrations.
+- [x] Add `startShipmentProcessing` and `listShipmentStatusTransitions` use cases while keeping inventory deduction exclusive to `completeShipment`.
+- [x] Record status transitions for create, processing, complete, and cancel flows.
+- [x] Wire commerce shipment list/detail pages to start processing and show module-owned status history.
+- [x] Update shipment docs, metadata, events, MCP wiring, commerce lock/spec, and module-contract catalog coverage.
+- [x] Verify shipment build/tests/spec, commerce template spec/build, module-contract tests, migration smoke, workspace specs, create-app template closure, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

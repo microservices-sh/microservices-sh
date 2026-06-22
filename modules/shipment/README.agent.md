@@ -11,3 +11,5 @@ Safe first actions:
 5. Run `pnpm build` after source edits.
 
 Do not add provider calls, secrets, migrations, or production deploy behavior without approval.
+
+Shipment status mutations are approval-sensitive. Use `startShipmentProcessing` for draft-to-processing work and `completeShipment` for inventory-deducting completion; do not bypass those use cases by writing `shipment_batches.status` directly.

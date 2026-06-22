@@ -1,5 +1,5 @@
 import type { ShipmentStore } from "../ports";
-import type { ShipmentBatch, ShipmentEvent, ShipmentFilter, ShipmentItem } from "../types";
+import type { ShipmentBatch, ShipmentEvent, ShipmentFilter, ShipmentItem, ShipmentStatusTransition } from "../types";
 
 function cloneBatch(batch: ShipmentBatch): ShipmentBatch {
   return { ...batch };
@@ -7,6 +7,10 @@ function cloneBatch(batch: ShipmentBatch): ShipmentBatch {
 
 function cloneItem(item: ShipmentItem): ShipmentItem {
   return { ...item };
+}
+
+function cloneTransition(transition: ShipmentStatusTransition): ShipmentStatusTransition {
+  return { ...transition };
 }
 
 function visible(batch: ShipmentBatch, filter: ShipmentFilter, items: ShipmentItem[]): boolean {
@@ -22,6 +26,7 @@ function visible(batch: ShipmentBatch, filter: ShipmentFilter, items: ShipmentIt
 export function createMemoryShipmentStore(): ShipmentStore {
   const batches = new Map<string, ShipmentBatch>();
   const itemsByShipment = new Map<string, ShipmentItem[]>();
+  const transitionsByShipment = new Map<string, ShipmentStatusTransition[]>();
   const events: ShipmentEvent[] = [];
 
   return {
@@ -55,6 +60,18 @@ export function createMemoryShipmentStore(): ShipmentStore {
     },
     async listShipmentItems(tenantId, shipmentId) {
       return (itemsByShipment.get(shipmentId) ?? []).filter((item) => item.tenantId === tenantId).map(cloneItem);
+    },
+    async insertShipmentStatusTransition(transition) {
+      const transitions = transitionsByShipment.get(transition.shipmentId) ?? [];
+      transitions.push(cloneTransition(transition));
+      transitionsByShipment.set(transition.shipmentId, transitions);
+    },
+    async listShipmentStatusTransitions(filter) {
+      return (transitionsByShipment.get(filter.shipmentId) ?? [])
+        .filter((transition) => transition.tenantId === filter.tenantId)
+        .sort((a, b) => b.changedAt.localeCompare(a.changedAt))
+        .slice(0, filter.limit ?? 100)
+        .map(cloneTransition);
     },
     async writeEvent(event) {
       events.push({ ...event, payload: { ...event.payload } });

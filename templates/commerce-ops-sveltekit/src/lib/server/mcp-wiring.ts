@@ -87,8 +87,10 @@ import {
   listShipments,
   getShipment,
   createShipment,
+  startShipmentProcessing,
   completeShipment,
   cancelShipment,
+  listShipmentStatusTransitions,
   createMemoryShipmentStore
 } from "@microservices-sh/shipment";
 
@@ -321,8 +323,10 @@ export const handlers: Record<string, (input: unknown, ctx?: ToolContext) => Pro
   shipment_listShipments: (input) => listShipments(input, { shipmentStore }),
   shipment_getShipment: (input) => getShipment(input, { shipmentStore }),
   shipment_createShipment: (input, ctx) => createShipment(input, { shipmentStore, actor: actor(ctx) }),
+  shipment_startShipmentProcessing: (input, ctx) => startShipmentProcessing(input, { shipmentStore, actor: actor(ctx) }),
   shipment_completeShipment: (input, ctx) => completeCommerceShipment(input, ctx),
-  shipment_cancelShipment: (input, ctx) => cancelShipment(input, { shipmentStore, actor: actor(ctx) })
+  shipment_cancelShipment: (input, ctx) => cancelShipment(input, { shipmentStore, actor: actor(ctx) }),
+  shipment_listShipmentStatusTransitions: (input) => listShipmentStatusTransitions(input, { shipmentStore })
 };
 
 export function authorize(ctx: { scopes?: string[] } | undefined, scope: string | null): boolean {

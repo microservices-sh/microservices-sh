@@ -626,6 +626,11 @@
             "public": false
           },
           {
+            "method": "startShipmentProcessing",
+            "scope": "shipment.write",
+            "public": false
+          },
+          {
             "method": "completeShipment",
             "scope": "shipment.write",
             "public": false
@@ -633,6 +638,11 @@
           {
             "method": "cancelShipment",
             "scope": "shipment.write",
+            "public": false
+          },
+          {
+            "method": "listShipmentStatusTransitions",
+            "scope": "shipment.read",
             "public": false
           }
         ],
@@ -643,6 +653,7 @@
         ],
         "events": [
           "shipment.created",
+          "shipment.processing_started",
           "shipment.completed",
           "shipment.cancelled"
         ],

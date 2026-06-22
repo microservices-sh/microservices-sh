@@ -6,6 +6,6 @@ Purpose: Shipment batches and fulfillment workflow with idempotent completion an
 Entrypoint: src/index.ts
 Check: pnpm check:spec
 Build: pnpm build
-Owned tables: shipment_batches, shipment_items, domain_events
-Primary use cases: createShipment, getShipment, listShipments, completeShipment, cancelShipment
-Invariants: external references are unique per tenant/source, completion references are unique per tenant, completed shipments replay safely, completed shipments cannot be cancelled, cancelled shipments cannot be completed.
+Owned tables: shipment_batches, shipment_items, shipment_status_transitions, domain_events
+Primary use cases: createShipment, getShipment, listShipments, startShipmentProcessing, completeShipment, cancelShipment, listShipmentStatusTransitions
+Invariants: external references are unique per tenant/source, draft shipments can move to processing, processing replay is idempotent, completion references are unique per tenant, completed shipments replay safely, completed shipments cannot be cancelled or processed, cancelled shipments cannot be completed or processed.

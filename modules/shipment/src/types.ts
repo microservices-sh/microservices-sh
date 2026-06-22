@@ -40,6 +40,17 @@ export interface ShipmentItem {
   quantity: number;
 }
 
+export interface ShipmentStatusTransition {
+  id: string;
+  tenantId: string;
+  shipmentId: string;
+  fromStatus: ShipmentStatus | null;
+  toStatus: ShipmentStatus;
+  reason: string | null;
+  actorId: string | null;
+  changedAt: string;
+}
+
 export interface ShipmentWithItems extends ShipmentBatch {
   items: ShipmentItem[];
 }
@@ -50,6 +61,12 @@ export interface ShipmentFilter {
   sourceType?: ShipmentSourceType;
   sourceId?: string;
   includeCancelled?: boolean;
+  limit?: number;
+}
+
+export interface ShipmentStatusTransitionFilter {
+  tenantId: string;
+  shipmentId: string;
   limit?: number;
 }
 

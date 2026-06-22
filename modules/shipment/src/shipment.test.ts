@@ -4,7 +4,9 @@ import {
   completeShipment,
   createMemoryShipmentStore,
   createShipment,
+  listShipmentStatusTransitions,
   listShipments,
+  startShipmentProcessing,
   type ShipmentInventoryPort
 } from "./index";
 
@@ -86,6 +88,61 @@ describe("shipment", () => {
     expect(replay.ok).toBe(true);
     if (replay.ok) expect(replay.data.replayed).toBe(true);
     expect(calls).toHaveLength(1);
+  });
+
+  it("starts shipment processing once and records status transition history", async () => {
+    const store = createMemoryShipmentStore();
+    const shipment = await createBasicShipment(store);
+
+    const first = await startShipmentProcessing(
+      { tenantId: "tenant-1", shipmentId: shipment.id, reason: "picked" },
+      { shipmentStore: store, now: fixedNow(T0 + 1), actor: { id: "user-1" } }
+    );
+    expect(first.ok).toBe(true);
+    if (first.ok) {
+      expect(first.data.shipment.status).toBe("processing");
+      expect(first.data.replayed).toBe(false);
+    }
+
+    const replay = await startShipmentProcessing(
+      { tenantId: "tenant-1", shipmentId: shipment.id, reason: "duplicate" },
+      { shipmentStore: store, now: fixedNow(T0 + 2), actor: { id: "user-1" } }
+    );
+    expect(replay.ok).toBe(true);
+    if (replay.ok) expect(replay.data.replayed).toBe(true);
+
+    const transitions = await listShipmentStatusTransitions(
+      { tenantId: "tenant-1", shipmentId: shipment.id },
+      { shipmentStore: store }
+    );
+    expect(transitions.ok).toBe(true);
+    if (transitions.ok) {
+      expect(transitions.data.transitions).toHaveLength(2);
+      expect(transitions.data.transitions[0]).toMatchObject({
+        fromStatus: "draft",
+        toStatus: "processing",
+        reason: "picked",
+        actorId: "user-1"
+      });
+      expect(transitions.data.transitions[1]).toMatchObject({ fromStatus: null, toStatus: "draft" });
+    }
+  });
+
+  it("rejects processing transitions from terminal shipments", async () => {
+    const store = createMemoryShipmentStore();
+    const shipment = await createBasicShipment(store);
+    const completed = await completeShipment(
+      { tenantId: "tenant-1", shipmentId: shipment.id, completionRef: "ship-complete-terminal" },
+      { shipmentStore: store, now: fixedNow(T0 + 1) }
+    );
+    expect(completed.ok).toBe(true);
+
+    const processing = await startShipmentProcessing(
+      { tenantId: "tenant-1", shipmentId: shipment.id },
+      { shipmentStore: store, now: fixedNow(T0 + 2) }
+    );
+    expect(processing.ok).toBe(false);
+    if (!processing.ok) expect(processing.error.code).toBe("shipment.ALREADY_COMPLETED");
   });
 
   it("rejects completing cancelled shipments and cancelling completed shipments", async () => {

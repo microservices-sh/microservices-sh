@@ -1,6 +1,6 @@
 import { completeShipmentSchema } from "../schemas";
 import { isoNow } from "../service";
-import { enrichShipment, err, hooks, ok, type ShipmentDeps } from "./shared";
+import { enrichShipment, err, hooks, ok, recordStatusTransition, type ShipmentDeps } from "./shared";
 
 export async function completeShipment(input: unknown, deps: ShipmentDeps) {
   const filtered = await hooks(deps).beforeShipmentComplete(input);
@@ -52,6 +52,15 @@ export async function completeShipment(input: unknown, deps: ShipmentDeps) {
   };
 
   await deps.shipmentStore.updateShipment(completed);
+  await recordStatusTransition(deps.shipmentStore, {
+    tenantId: completed.tenantId,
+    shipmentId: completed.id,
+    fromStatus: batch.status,
+    toStatus: "completed",
+    reason: "completed",
+    actorId: deps.actor?.id ?? null,
+    changedAt: now
+  });
   await deps.shipmentStore.writeEvent({
     eventName: "shipment.completed",
     entityType: "shipment",

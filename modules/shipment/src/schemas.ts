@@ -50,6 +50,15 @@ export const cancelShipmentSchema = getShipmentSchema.extend({
   reason: z.string().optional()
 });
 
+export const startShipmentProcessingSchema = getShipmentSchema.extend({
+  reason: z.string().optional(),
+  changedAt: z.string().optional()
+});
+
+export const shipmentStatusTransitionFilterSchema = getShipmentSchema.extend({
+  limit: z.number().int().min(1).max(500).optional()
+});
+
 export const shipmentRecordSchema = z.object({
   id: z.string().min(1),
   tenantId: z.string().min(1),

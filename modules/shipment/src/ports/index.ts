@@ -1,4 +1,11 @@
-import type { ShipmentBatch, ShipmentEvent, ShipmentFilter, ShipmentItem } from "../types";
+import type {
+  ShipmentBatch,
+  ShipmentEvent,
+  ShipmentFilter,
+  ShipmentItem,
+  ShipmentStatusTransition,
+  ShipmentStatusTransitionFilter
+} from "../types";
 
 export interface ShipmentStore {
   insertShipment(batch: ShipmentBatch, items: ShipmentItem[]): Promise<void>;
@@ -8,6 +15,8 @@ export interface ShipmentStore {
   findByCompletionRef(tenantId: string, completionRef: string): Promise<ShipmentBatch | null>;
   listShipments(filter: ShipmentFilter): Promise<ShipmentBatch[]>;
   listShipmentItems(tenantId: string, shipmentId: string): Promise<ShipmentItem[]>;
+  insertShipmentStatusTransition(transition: ShipmentStatusTransition): Promise<void>;
+  listShipmentStatusTransitions(filter: ShipmentStatusTransitionFilter): Promise<ShipmentStatusTransition[]>;
   writeEvent(event: ShipmentEvent): Promise<void>;
 }
 

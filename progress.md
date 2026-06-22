@@ -2442,3 +2442,25 @@ Note: an initial `create-microservices-app` test run overlapped with `create-mic
 | Create app bundle closure | Bundled repo templates still close over required modules/packages | `pnpm exec vitest run packages/create-microservices-app/tests` passed, 33/33 | Pass |
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 118 shipment status transition history
+
+- **Status:** complete.
+- Goal: close the StackSuite shipment transition gap without expanding shipment completion semantics or duplicating inventory behavior.
+- Added module-owned `shipment_status_transitions` persistence with memory and D1 store parity.
+- Added `startShipmentProcessing` for draft-to-processing workflow and `listShipmentStatusTransitions` for history review.
+- Completion remains the only inventory-deducting path; create, processing, complete, and cancel now record status transitions.
+- Wired commerce shipment list/detail pages to start processing and show status history; MCP wiring and lock snapshots expose the new RPC methods.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Shipment build | New module types/use cases compile | `pnpm --filter @microservices-sh/shipment build` passed | Pass |
+| Shipment tests | Processing transition, replay, terminal rejection, and completion behavior remain covered | `pnpm --filter @microservices-sh/shipment test` passed, 7/7 | Pass |
+| Shipment spec | Module migration/export guards pass | `pnpm --filter @microservices-sh/shipment check:spec` passed | Pass |
+| Commerce template spec | Route, MCP, lock, and migration policy checks pass | `pnpm --dir templates/commerce-ops-sveltekit check:spec` passed | Pass |
+| Commerce template build | SvelteKit/Cloudflare build compiles after shipment route updates | `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
+| Module contract | Catalog exposes shipment transition RPC/events | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js` passed, 20/20 | Pass |
+| Migration smoke | Shipment module and commerce template migrations apply to SQLite | SQLite `.read` smoke passed | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Create app closure | Bundled repo templates still close over required modules/packages | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

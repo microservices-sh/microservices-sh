@@ -3,6 +3,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const productCatalogMigration = readText("migrations/0019_product_catalog.sql");
   const salesOrderMigration = readText("migrations/0021_sales_order.sql");
   const shipmentMigration = readText("migrations/0022_shipment.sql");
+  const shipmentTransitionMigration = readText("migrations/0029_shipment_status_transitions.sql");
   const commerceSyncMigration = readText("migrations/0027_commerce_sync.sql");
   const inventoryReconciliationMigration = readText("migrations/0028_inventory_reconciliation_documents.sql");
   const mcpGenerator = readText("scripts/generate-mcp.mjs");
@@ -149,7 +150,9 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       "\"method\": \"createProduct\"",
       "\"method\": \"stockIn\"",
       "\"method\": \"createDraftOrder\"",
-      "\"method\": \"createShipment\""
+      "\"method\": \"createShipment\"",
+      "\"method\": \"startShipmentProcessing\"",
+      "\"method\": \"listShipmentStatusTransitions\""
     ],
     "Commerce lock snapshot carries RPC methods for catalog, inventory, sales-order, and shipment agent tools."
   );
@@ -160,6 +163,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       "inventory_stockIn",
       "sales-order_createDraftOrder",
       "shipment_createShipment",
+      "shipment_startShipmentProcessing",
+      "shipment_listShipmentStatusTransitions",
       "support-ticket_createTicket",
       "file-media_createUploadTicket",
       "authorize",
@@ -218,8 +223,18 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/shipments/+page.server.ts",
-    ["createShipmentInventoryPort", "completeShipment", "shipmentDocuments", "buildShipmentPrintDocument", "salesOrderIdsForShipment"],
-    "Shipment completion uses the shared inventory bridge and exposes alias-aware, combo-expanded shipping context for packing slips."
+    ["createShipmentInventoryPort", "completeShipment", "startShipmentProcessing", "shipment.processing_started", "shipmentDocuments", "buildShipmentPrintDocument", "salesOrderIdsForShipment"],
+    "Shipment list route starts processing, completes through the shared inventory bridge, and exposes alias-aware, combo-expanded shipping context for packing slips."
+  );
+  assertFileIncludesAll(
+    "migrations/0029_shipment_status_transitions.sql",
+    ["CREATE TABLE IF NOT EXISTS shipment_status_transitions", "idx_shipment_status_transitions_shipment"],
+    "Commerce template carries the shipment status transition history migration."
+  );
+  assert(
+    shipmentTransitionMigration.includes("shipment_id TEXT NOT NULL REFERENCES shipment_batches"),
+    "Shipment transition migration links history rows to shipment batches.",
+    "policy:shipment-status-transitions-linked"
   );
   assertFileIncludesAll(
     "src/lib/server/shipment-documents.ts",
@@ -238,18 +253,18 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/shipments/+page.svelte",
-    ["printShipmentPackingSlip", "printShipmentPickList", "pickItems", "Packing slip", "Pick list", "/app/shipments/${shipment.id}"],
-    "Shipments page exposes StackSuite-style packing slip, pick-list, and detail route actions."
+    ["printShipmentPackingSlip", "printShipmentPickList", "pickItems", "Packing slip", "Pick list", "Start processing", "/app/shipments/${shipment.id}"],
+    "Shipments page exposes StackSuite-style packing slip, pick-list, processing, and detail route actions."
   );
   assertFileIncludesAll(
     "src/routes/app/shipments/[id]/+page.server.ts",
-    ["getShipment", "buildShipmentPrintDocument", "completeShipment", "source: \"app/shipments/detail\""],
-    "Shipment detail route resolves one batch through the module, reuses print document context, and completes through the inventory bridge."
+    ["getShipment", "listShipmentStatusTransitions", "startShipmentProcessing", "buildShipmentPrintDocument", "completeShipment", "source: \"app/shipments/detail\""],
+    "Shipment detail route resolves one batch through the module, loads status history, starts processing, reuses print document context, and completes through the inventory bridge."
   );
   assertFileIncludesAll(
     "src/routes/app/shipments/[id]/+page.svelte",
-    ["printShipmentPackingSlip", "printShipmentPickList", "Packing slip", "Pick list", "Complete shipment", "shipment.items"],
-    "Shipment detail page exposes printable documents, line review, and guarded completion."
+    ["printShipmentPackingSlip", "printShipmentPickList", "Packing slip", "Pick list", "Start processing", "Status history", "Complete shipment", "shipment.items"],
+    "Shipment detail page exposes printable documents, line review, status history, processing, and guarded completion."
   );
   assertFileIncludesAll(
     "src/lib/packing-slip.ts",

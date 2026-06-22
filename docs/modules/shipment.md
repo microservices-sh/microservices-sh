@@ -5,7 +5,7 @@ Module ID: `shipment`
 Mount: `/shipments`
 
 ## Summary
-Shipment batches and fulfillment workflow with idempotent completion and shipment events.
+Shipment batches, fulfillment workflow, auditable status transitions, idempotent completion, and shipment events.
 
 ## Dependencies
 - none required
@@ -28,14 +28,16 @@ Shipment batches and fulfillment workflow with idempotent completion and shipmen
 
 ## Events
 - shipment.created
+- shipment.processing_started
 - shipment.completed
 - shipment.cancelled
 
 ## Invariants
 - External references are unique per tenant and source.
+- Draft shipments can move to processing without inventory side effects.
 - Completion references are unique per tenant.
 - Duplicate completion attempts replay without duplicate inventory deduction.
-- Completed shipments cannot be cancelled, and cancelled shipments cannot be completed.
+- Completed shipments cannot be cancelled or processed, and cancelled shipments cannot be completed or processed.
 
 ## Approval Gate
 Risk: medium

@@ -1,7 +1,7 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { recordEvent } from "@microservices-sh/audit-log";
-import { createShipment, completeShipment, listShipments } from "@microservices-sh/shipment";
+import { completeShipment, createShipment, listShipments, startShipmentProcessing } from "@microservices-sh/shipment";
 import { getOrder, listOrders } from "@microservices-sh/sales-order";
 import { money } from "$lib/format";
 import { buildShipmentPrintDocument, salesOrderIdsForShipment } from "$lib/server/shipment-documents";
@@ -205,5 +205,47 @@ export const actions: Actions = {
     );
 
     return { completed: true };
+  },
+
+  startProcessing: async ({ request, locals, cookies, platform }) => {
+    requireModule("shipment", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const shipmentId = text(form.get("shipmentId"));
+    if (!shipmentId) return fail(400, { error: "Missing shipment id." });
+
+    const result = await startShipmentProcessing(
+      {
+        tenantId: org.id,
+        shipmentId,
+        reason: "operator_started"
+      },
+      {
+        shipmentStore: locals.shipmentStore,
+        actor: { id: locals.user.id }
+      }
+    );
+    if (!result.ok || !result.data) return fail(result.status, { error: result.error.message });
+
+    await recordEvent(
+      {
+        eventName: "shipment.processing_started",
+        actorId: locals.user.id,
+        entityType: "shipment",
+        entityId: result.data.shipment.id,
+        source: "app/shipments",
+        payload: {
+          replayed: result.data.replayed,
+          itemCount: result.data.shipment.items.length
+        }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { processingStarted: true };
   }
 };
