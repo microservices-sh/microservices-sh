@@ -30,6 +30,7 @@ export async function createBill(input: unknown, deps: AccountsPayableDeps) {
   const now = isoNow(deps.now);
   const billId = accountsPayableId("bill");
   const lineItems: BillLineItem[] = parsed.data.lineItems.map((line, index) => {
+    const expenseAccountId = normalizeOptional(line.expenseAccountId) ?? vendor.defaultExpenseAccountId;
     const totals = calculateLineTotals({
       quantity: line.quantity,
       unitAmountCents: line.unitAmountCents,
@@ -39,7 +40,7 @@ export async function createBill(input: unknown, deps: AccountsPayableDeps) {
       id: accountsPayableId("bil"),
       tenantId: parsed.data.tenantId,
       billId,
-      expenseAccountId: normalizeOptional(line.expenseAccountId),
+      expenseAccountId,
       description: line.description.trim(),
       quantity: line.quantity,
       unitAmountCents: line.unitAmountCents,

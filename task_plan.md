@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 101
+Phase 102
 
 ## Phases
 
@@ -795,6 +795,14 @@ Phase 101
 - [x] Expose payment deposit and Stripe deposit selectors on the accounting settings route.
 - [x] Make AR payment posting consume the persisted deposit default and make Stripe webhooks pass the Stripe override when configured.
 - [x] Verify accounting-core tests/spec/build, accounting template spec/build, migration replay, AR tests, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 102: AP Vendor Default Expense Account Parity
+- [x] Confirm StackSuite donor behavior for vendor default expense accounts and bill-form defaulting.
+- [x] Make accounts-payable bill and recurring bill creation fill blank line expense accounts from the selected vendor default.
+- [x] Expose and validate vendor default expense account selection in the focused accounting Payables template.
+- [x] Add module/template policy checks for vendor default expense account persistence and fallback behavior.
+- [x] Verify AP tests/spec/build, accounting template spec/build, accounting template build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

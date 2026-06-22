@@ -329,6 +329,21 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Payables AP account selectors default to persisted accounting settings when the bill has no AP account."
   );
   assertFileIncludesAll(
+    "src/routes/app/payables/+page.server.ts",
+    [
+      "defaultExpenseAccount",
+      "defaultExpenseAccountId",
+      "values.expenseAccountId || (await defaultExpenseAccount",
+      "Choose an expense account or set a default on the vendor."
+    ],
+    "Payables route persists vendor default expense accounts and falls back to them for bill and recurring bill line accounts."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/payables/+page.svelte",
+    ["vendor-default-expense-account", "name=\"defaultExpenseAccountId\"", "Vendor default"],
+    "Payables UI exposes vendor default expense accounts and lets bill lines use the vendor default."
+  );
+  assertFileIncludesAll(
     "src/routes/app/reports/+page.server.ts",
     [
       "getAgingReport",

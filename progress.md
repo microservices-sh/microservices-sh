@@ -2068,6 +2068,27 @@ Note: an initial `create-microservices-app` test run overlapped with `create-mic
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 102 AP vendor default expense account parity
+
+- **Status:** in_progress.
+- Goal: close the donor-backed AP vendor default expense account gap without adding a new migration because the module/template schemas already include `default_expense_account_id`.
+- Confirmed donor accounting-system stores vendor default expense accounts, exposes the field in vendor UI, and uses the preselected vendor default in bill creation; invoice-system-bao has no AP/vendor default-account behavior for this slice.
+- Added accounts-payable behavior so bill lines and recurring bill template lines fill a blank expense account from the selected vendor default while preserving explicit line accounts.
+- Added AP tests for vendor default persistence, bill-line fallback, and recurring-line fallback.
+- Added focused accounting Payables UI/server wiring for vendor default expense account selection, active expense-account validation through accounting-core, and server-side fallback for bill and recurring bill creation.
+- Added module/template policy checks for the default expense persistence and fallback behavior.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounts-payable tests | Vendor default expense persistence and bill/recurring fallback behavior remain green | `pnpm --filter @microservices-sh/accounts-payable test` passed, 14/14 | Pass |
+| Accounts-payable spec/build | Module contract and TypeScript build remain green | `pnpm --filter @microservices-sh/accounts-payable check:spec` and `pnpm --filter @microservices-sh/accounts-payable build` passed | Pass |
+| Accounting template spec/build | Payables route/UI policy and SvelteKit build compile with default expense validation | `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Bundled accounting template regenerates and create-app tests remain green | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+Note: an attempted donor `sed` read failed because the shell parsed an unquoted `(app)` path. The same reads were rerun with quoted paths and succeeded.
+
 ### Phase 87 commerce sync logs route proof
 
 - **Status:** complete.

@@ -11,6 +11,21 @@ export default function check({ assertFileIncludes }) {
   );
   assertFileIncludes(
     "migrations/0001_initial.sql",
+    "default_expense_account_id TEXT",
+    "Accounts Payable vendors persist a default expense account reference."
+  );
+  assertFileIncludes(
+    "src/use-cases/create-bill.ts",
+    "vendor.defaultExpenseAccountId",
+    "Bill creation falls back to a vendor default expense account when line accounts are blank."
+  );
+  assertFileIncludes(
+    "src/use-cases/create-recurring-bill-template.ts",
+    "vendor.defaultExpenseAccountId",
+    "Recurring bill templates fall back to a vendor default expense account when line accounts are blank."
+  );
+  assertFileIncludes(
+    "migrations/0001_initial.sql",
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_ap_payments_idempotency",
     "Bill payments are idempotent per tenant."
   );

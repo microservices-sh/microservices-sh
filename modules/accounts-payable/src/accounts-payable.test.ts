@@ -20,13 +20,15 @@ const fixedNow = (ms: number) => () => ms;
 
 async function seedVendor(
   store: ReturnType<typeof createMemoryAccountsPayableStore>,
-  tenantId = "tenant-1"
+  tenantId = "tenant-1",
+  overrides: Record<string, unknown> = {}
 ) {
   const result = await createVendor(
     {
       tenantId,
       name: tenantId === "tenant-1" ? "Acme Supplies" : "Other Vendor",
-      email: `${tenantId}@example.com`
+      email: `${tenantId}@example.com`,
+      ...overrides
     },
     { accountsPayableStore: store, now: fixedNow(T0) }
   );
@@ -62,7 +64,7 @@ async function seedPayableBill(
 describe("accounts-payable: vendors", () => {
   it("creates and lists vendors within a tenant", async () => {
     const store = createMemoryAccountsPayableStore();
-    const vendor = await seedVendor(store, "tenant-1");
+    const vendor = await seedVendor(store, "tenant-1", { defaultExpenseAccountId: "acct-expense-supplies" });
     await seedVendor(store, "tenant-2");
 
     const listed = await listVendors({ tenantId: "tenant-1" }, { accountsPayableStore: store });
@@ -70,7 +72,12 @@ describe("accounts-payable: vendors", () => {
     expect(listed.ok).toBe(true);
     if (!listed.ok) throw new Error(listed.error.message);
     expect(listed.data.vendors).toHaveLength(1);
-    expect(listed.data.vendors[0]).toMatchObject({ id: vendor.id, tenantId: "tenant-1", name: "Acme Supplies" });
+    expect(listed.data.vendors[0]).toMatchObject({
+      id: vendor.id,
+      tenantId: "tenant-1",
+      name: "Acme Supplies",
+      defaultExpenseAccountId: "acct-expense-supplies"
+    });
   });
 });
 
@@ -108,6 +115,38 @@ describe("accounts-payable: bills", () => {
       amountDueCents: 14_000
     });
     expect(result.data.bill.lineItems.map((line) => line.totalCents)).toEqual([11_000, 3_000]);
+  });
+
+  it("uses the vendor default expense account for bill lines without an explicit account", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const vendor = await seedVendor(store, "tenant-1", { defaultExpenseAccountId: "acct-expense-default" });
+
+    const result = await createBill(
+      {
+        tenantId: "tenant-1",
+        vendorId: vendor.id,
+        billDate: "2026-01-01T00:00:00.000Z",
+        dueDate: "2026-01-31T00:00:00.000Z",
+        lineItems: [
+          { description: "Defaulted line", quantity: 1, unitAmountCents: 5_000, taxCents: 0 },
+          {
+            description: "Explicit line",
+            quantity: 1,
+            unitAmountCents: 3_000,
+            taxCents: 0,
+            expenseAccountId: "acct-expense-explicit"
+          }
+        ]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0) }
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error.message);
+    expect(result.data.bill.lineItems.map((line) => line.expenseAccountId)).toEqual([
+      "acct-expense-default",
+      "acct-expense-explicit"
+    ]);
   });
 
   it("rejects supplied totals that do not match line totals", async () => {
@@ -382,6 +421,27 @@ describe("accounts-payable: recurring bill templates", () => {
     );
     expect(foreign.ok).toBe(false);
     if (!foreign.ok) expect(foreign.status).toBe(404);
+  });
+
+  it("uses the vendor default expense account for recurring bill lines without an explicit account", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const vendor = await seedVendor(store, "tenant-1", { defaultExpenseAccountId: "acct-expense-rent" });
+
+    const result = await createRecurringBillTemplate(
+      {
+        tenantId: "tenant-1",
+        name: "Monthly rent",
+        vendorId: vendor.id,
+        frequency: "monthly",
+        startDate: "2026-01-01T00:00:00.000Z",
+        lineItems: [{ description: "Rent", quantity: 1, unitAmountCents: 100_000, taxCents: 0 }]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0) }
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error.message);
+    expect(result.data.template.lineItems[0].expenseAccountId).toBe("acct-expense-rent");
   });
 
   it("updates recurring template status with terminal-state protection", async () => {

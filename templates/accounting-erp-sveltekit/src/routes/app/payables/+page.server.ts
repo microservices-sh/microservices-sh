@@ -13,6 +13,7 @@ import {
   markBillPayable,
   recordBillPayment,
   updateRecurringBillTemplateStatus,
+  type AccountsPayableStore,
   type RecurringBillFrequency,
   type RecurringBillStatus
 } from "@microservices-sh/accounts-payable";
@@ -60,6 +61,22 @@ async function defaultApAccount(accountingCoreStore: AccountingCoreStore, tenant
   return { accountId: settings?.defaultApAccountId ?? null, settingsConfigured: Boolean(settings) };
 }
 
+async function defaultExpenseAccount(accountsPayableStore: AccountsPayableStore, tenantId: string, vendorId: string) {
+  const vendor = await accountsPayableStore.getVendor(tenantId, vendorId);
+  return vendor?.defaultExpenseAccountId ?? null;
+}
+
+async function checkedExpenseAccountId(
+  accountingCoreStore: AccountingCoreStore,
+  tenantId: string,
+  accountId: string | null
+): Promise<string | null> {
+  if (!accountId) return null;
+  const account = await accountingCoreStore.getAccount(tenantId, accountId);
+  if (!account || account.type !== "expense" || account.isHeader || !account.active) return null;
+  return account.id;
+}
+
 export const load: PageServerLoad = async ({ locals, cookies, parent, platform }) => {
   requireModule("accounts-payable", platform);
   requireModule("accounting-core", platform);
@@ -91,6 +108,7 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
 export const actions: Actions = {
   createVendor: async ({ request, locals, cookies, platform }) => {
     requireModule("accounts-payable", platform);
+    requireModule("accounting-core", platform);
     if (!locals.user) return fail(403, { error: "Not signed in to a company." });
     const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
     if (!org) return fail(403, { error: "Not signed in to a company." });
@@ -100,9 +118,18 @@ export const actions: Actions = {
     const values = {
       name: text(form.get("name")),
       email: text(form.get("email")),
-      currency: text(form.get("currency")).toUpperCase() || "USD"
+      currency: text(form.get("currency")).toUpperCase() || "USD",
+      defaultExpenseAccountId: text(form.get("defaultExpenseAccountId"))
     };
     if (!values.name) return fail(400, { error: "Enter a vendor name.", values });
+    const defaultExpenseAccountId = await checkedExpenseAccountId(
+      locals.accountingCoreStore,
+      org.id,
+      values.defaultExpenseAccountId || null
+    );
+    if (values.defaultExpenseAccountId && !defaultExpenseAccountId) {
+      return fail(400, { error: "Choose an active expense account for the vendor default.", values });
+    }
 
     const result = await createVendor(
       {
@@ -111,6 +138,7 @@ export const actions: Actions = {
         email: values.email || null,
         currency: values.currency,
         is1099Vendor: false,
+        defaultExpenseAccountId,
         defaultPaymentTermsDays: 30
       },
       {
@@ -166,6 +194,14 @@ export const actions: Actions = {
     }
     const apDefault = await defaultApAccount(locals.accountingCoreStore, org.id);
     const apAccountId = values.apAccountId || apDefault.accountId;
+    const expenseAccountId = await checkedExpenseAccountId(
+      locals.accountingCoreStore,
+      org.id,
+      values.expenseAccountId || (await defaultExpenseAccount(locals.accountsPayableStore, org.id, values.vendorId))
+    );
+    if (!expenseAccountId) {
+      return fail(400, { error: "Choose an expense account or set a default on the vendor.", values });
+    }
 
     const result = await createBill(
       {
@@ -178,7 +214,7 @@ export const actions: Actions = {
         memo: values.memo || null,
         apAccountId,
         requiresApproval: false,
-        lineItems: [{ description: values.description, quantity, unitAmountCents, taxCents: 0, expenseAccountId: values.expenseAccountId || null }]
+        lineItems: [{ description: values.description, quantity, unitAmountCents, taxCents: 0, expenseAccountId }]
       },
       {
         accountsPayableStore: locals.accountsPayableStore,
@@ -204,6 +240,7 @@ export const actions: Actions = {
 
   createRecurringBillTemplate: async ({ request, locals, cookies, platform }) => {
     requireModule("accounts-payable", platform);
+    requireModule("accounting-core", platform);
     if (!locals.user) return fail(403, { error: "Not signed in to a company." });
     const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
     if (!org) return fail(403, { error: "Not signed in to a company." });
@@ -251,6 +288,15 @@ export const actions: Actions = {
       return fail(400, { error: "Enter vendor, schedule, start date, line description, quantity, and amount.", values });
     }
 
+    const expenseAccountId = await checkedExpenseAccountId(
+      locals.accountingCoreStore,
+      org.id,
+      values.expenseAccountId || (await defaultExpenseAccount(locals.accountsPayableStore, org.id, values.vendorId))
+    );
+    if (!expenseAccountId) {
+      return fail(400, { error: "Choose an expense account or set a default on the vendor.", values });
+    }
+
     const result = await createRecurringBillTemplate(
       {
         tenantId: org.id,
@@ -270,7 +316,7 @@ export const actions: Actions = {
             quantity,
             unitAmountCents,
             taxCents,
-            expenseAccountId: values.expenseAccountId || null
+            expenseAccountId
           }
         ]
       },

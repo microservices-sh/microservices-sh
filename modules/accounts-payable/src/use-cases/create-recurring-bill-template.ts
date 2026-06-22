@@ -30,6 +30,7 @@ export async function createRecurringBillTemplate(input: unknown, deps: Accounts
   const now = isoNow(deps.now);
   const templateId = accountsPayableId("rbt");
   const lineItems: RecurringBillLineItem[] = parsed.data.lineItems.map((line, index) => {
+    const expenseAccountId = normalizeOptional(line.expenseAccountId) ?? vendor.defaultExpenseAccountId;
     const totals = calculateLineTotals({
       quantity: line.quantity,
       unitAmountCents: line.unitAmountCents,
@@ -39,7 +40,7 @@ export async function createRecurringBillTemplate(input: unknown, deps: Accounts
       id: accountsPayableId("rbl"),
       tenantId: parsed.data.tenantId,
       recurringBillTemplateId: templateId,
-      expenseAccountId: normalizeOptional(line.expenseAccountId),
+      expenseAccountId,
       description: line.description.trim(),
       quantity: line.quantity,
       unitAmountCents: line.unitAmountCents,

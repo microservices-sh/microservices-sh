@@ -220,6 +220,14 @@
           <Field label="Name" id="vendor-name"><input id="vendor-name" name="name" required placeholder="Northwind Supplies" value={form?.values?.name ?? ""} /></Field>
           <Field label="Email" id="vendor-email"><input id="vendor-email" name="email" type="email" placeholder="ap@vendor.example" value={form?.values?.email ?? ""} /></Field>
           <Field label="Currency" id="vendor-currency"><input id="vendor-currency" name="currency" maxlength="3" value={form?.values?.currency ?? "USD"} /></Field>
+          <Field label="Default expense account" id="vendor-default-expense-account">
+            <select id="vendor-default-expense-account" name="defaultExpenseAccountId">
+              <option value="">None</option>
+              {#each expenseAccounts as account (account.id)}
+                <option value={account.id} selected={(form?.values?.defaultExpenseAccountId ?? "") === account.id}>{account.code} · {account.name}</option>
+              {/each}
+            </select>
+          </Field>
           <Button type="submit" variant="primary">Create vendor</Button>
         </form>
       </Card>
@@ -249,10 +257,10 @@
           </div>
           <div class="form-row">
             <Field label="Expense account" id="bill-expense-account">
-              <select id="bill-expense-account" name="expenseAccountId" required>
-                <option value="">Choose account</option>
+              <select id="bill-expense-account" name="expenseAccountId">
+                <option value="">Vendor default</option>
                 {#each expenseAccounts as account (account.id)}
-                  <option value={account.id}>{account.code} · {account.name}</option>
+                  <option value={account.id} selected={(form?.values?.expenseAccountId ?? "") === account.id}>{account.code} · {account.name}</option>
                 {/each}
               </select>
             </Field>
@@ -308,10 +316,10 @@
             <Field label="Currency" id="recurring-currency"><input id="recurring-currency" name="currency" maxlength="3" value={form?.values?.currency ?? "USD"} /></Field>
           </div>
           <Field label="Expense account" id="recurring-expense-account">
-            <select id="recurring-expense-account" name="expenseAccountId" required>
-              <option value="">Choose account</option>
+            <select id="recurring-expense-account" name="expenseAccountId">
+              <option value="">Vendor default</option>
               {#each expenseAccounts as account (account.id)}
-                <option value={account.id}>{account.code} · {account.name}</option>
+                <option value={account.id} selected={(form?.values?.expenseAccountId ?? "") === account.id}>{account.code} · {account.name}</option>
               {/each}
             </select>
           </Field>
