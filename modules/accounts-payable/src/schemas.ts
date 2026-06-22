@@ -133,6 +133,13 @@ export const billPaymentIdentitySchema = z.object({
   paymentId: z.string().min(1)
 });
 
+export const voidBillPaymentInputSchema = billPaymentIdentitySchema.extend({
+  reason: z.string().max(2000).nullable().optional(),
+  voidedById: z.string().nullable().optional(),
+  reversalDate: z.string().date().nullable().optional(),
+  reversalPeriodId: z.string().nullable().optional()
+});
+
 export const listBillPaymentsInputSchema = z.object({
   tenantId: z.string().min(1),
   vendorId: z.string().optional(),
@@ -215,6 +222,7 @@ export type VoidBillInput = z.infer<typeof voidBillInputSchema>;
 export type ListBillsInput = z.infer<typeof listBillsInputSchema>;
 export type RecordBillPaymentInput = z.infer<typeof recordBillPaymentInputSchema>;
 export type BillPaymentIdentityInput = z.infer<typeof billPaymentIdentitySchema>;
+export type VoidBillPaymentInput = z.infer<typeof voidBillPaymentInputSchema>;
 export type ListBillPaymentsInput = z.infer<typeof listBillPaymentsInputSchema>;
 export type Vendor1099ReportInput = z.infer<typeof vendor1099ReportInputSchema>;
 export type AgingReportInput = z.infer<typeof agingReportInputSchema>;

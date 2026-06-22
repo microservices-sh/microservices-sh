@@ -286,6 +286,7 @@ export interface AccountsPayableEvent {
     | "accounts-payable.bill_posted"
     | "accounts-payable.bill_voided"
     | "accounts-payable.bill_payment_recorded"
+    | "accounts-payable.bill_payment_voided"
     | "accounts-payable.bill_paid"
     | "accounts-payable.recurring_bill_template_created"
     | "accounts-payable.recurring_bill_template_status_updated"
@@ -310,8 +311,22 @@ export interface AccountingBillPaymentPostRequest {
   correlationId?: string | null;
 }
 
+export interface AccountingBillPaymentVoidRequest {
+  tenantId: string;
+  payment: BillPaymentWithApplications;
+  reason?: string | null;
+  voidedById?: string | null;
+  reversalDate?: string | null;
+  reversalPeriodId?: string | null;
+  correlationId?: string | null;
+}
+
 export interface AccountingPostResult {
   journalEntryId?: string | null;
+}
+
+export interface AccountingVoidResult {
+  reversalEntryId?: string | null;
 }
 
 export type AccountsPayableResult<T> = Result<T>;

@@ -42,7 +42,7 @@
     "optional": ["auth", "accounting-core", "audit-log", "jobs-workflows"],
     "rpc": {
       "exposes": [],
-      "calls": ["accounting-core.createJournalEntry", "accounting-core.postJournalEntry"]
+      "calls": ["accounting-core.createJournalEntry", "accounting-core.postJournalEntry", "accounting-core.voidJournalEntry"]
     },
     "events": {
       "emits": [
@@ -54,6 +54,7 @@
         "accounts-payable.bill_posted",
         "accounts-payable.bill_voided",
         "accounts-payable.bill_payment_recorded",
+        "accounts-payable.bill_payment_voided",
         "accounts-payable.bill_paid",
         "accounts-payable.recurring_bill_template_created",
         "accounts-payable.recurring_bill_template_status_updated",
@@ -66,8 +67,10 @@
       "beforeBillCreate": { "kind": "filter", "scope": "accounts-payable.extend" },
       "beforeBillMarkPayable": { "kind": "filter", "scope": "accounts-payable.extend" },
       "beforeBillVoid": { "kind": "filter", "scope": "accounts-payable.extend" },
+      "beforeBillPaymentVoid": { "kind": "filter", "scope": "accounts-payable.extend" },
       "afterBillPayable": { "kind": "observer", "scope": "accounts-payable.observe" },
       "afterBillPaymentRecorded": { "kind": "observer", "scope": "accounts-payable.observe" },
+      "afterBillPaymentVoided": { "kind": "observer", "scope": "accounts-payable.observe" },
       "afterBillVoided": { "kind": "observer", "scope": "accounts-payable.observe" },
       "afterVendorCreated": { "kind": "observer", "scope": "accounts-payable.observe" }
     },
@@ -108,6 +111,7 @@
         "accounts-payable.postBillToAccounting",
         "accounts-payable.voidBill",
         "accounts-payable.recordBillPayment",
+        "accounts-payable.voidBillPayment",
         "accounts-payable.getBillPayment",
         "accounts-payable.listBillPayments",
         "accounts-payable.getAgingReport",
@@ -125,6 +129,7 @@
         "accounts-payable.postBillToAccounting",
         "accounts-payable.voidBill",
         "accounts-payable.recordBillPayment",
+        "accounts-payable.voidBillPayment",
         "accounts-payable.createRecurringBillTemplate",
         "accounts-payable.updateRecurringBillTemplateStatus",
         "accounts-payable.generateDueRecurringBills"

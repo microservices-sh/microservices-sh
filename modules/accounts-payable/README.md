@@ -6,4 +6,4 @@ Money is stored as integer cents. The module owns AP records and emits events; h
 
 Bill approval and accounting posting are separate: `markBillPayable` approves the payable state, while `postBillToAccounting` records the accounting handoff for approved unpaid bills.
 
-`voidBill` supports unpaid, unposted bill voids. Posted bill reversals and payment voids are intentionally separate accounting workflows.
+`voidBill` supports unpaid, unposted bill voids. `voidBillPayment` reverses posted payment applications and requires an accounting reversal hook when the payment has a journal entry.

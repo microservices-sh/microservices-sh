@@ -848,29 +848,47 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Vendor detail page exposes AP profile, 1099 readiness, payment history, recurring context, and vendor master controls."
   );
   assertFileIncludesAll(
+    "src/lib/server/accounts-payable-accounting.ts",
+    ["voidJournalEntry", "void:${originalEntryId}", "findPostedEntryBySourceRef", "reversalPeriodId", "reversalDate"],
+    "AP accounting poster voids payment journals through accounting-core reversal semantics and checks reversal source refs for retry safety."
+  );
+  assertFileIncludesAll(
     "src/routes/app/payables/payments/[id]/+page.server.ts",
-    ["getBillPayment", "getVendor", "listBills", "listAccounts", "requireModule(\"accounts-payable\"", "requireOrgPermission", "\"org.read\""],
-    "Payment detail route loads one tenant-scoped AP payment with vendor, bill application, and account labels."
+    [
+      "getBillPayment",
+      "voidBillPayment",
+      "createAccountsPayableAccountingPoster",
+      "getVendor",
+      "listBills",
+      "listAccounts",
+      "requireModule(\"accounts-payable\"",
+      "requireModule(\"accounting-core\"",
+      "requireOrgPermission",
+      "\"org.read\"",
+      "\"member.manage\"",
+      "accounts-payable.bill_payment_voided"
+    ],
+    "Payment detail route loads one tenant-scoped AP payment and exposes guarded accounting-backed payment void."
   );
   assert(
     !paymentDetailServer.includes("recordBillPayment(") &&
       !paymentDetailServer.includes("updateVendor(") &&
-      !paymentDetailServer.includes("export const actions"),
-    "Payment detail route stays read-only; payment mutations and reversals remain absent.",
-    "policy:accounting-ap-payment-detail-read-only"
+      !paymentDetailServer.includes("postBillToAccounting(") &&
+      !paymentDetailServer.includes("markBillPayable("),
+    "Payment detail route only exposes guarded payment void; bill posting and payment creation stay on the Payables operator page.",
+    "policy:accounting-ap-payment-detail-void-only"
   );
   assertFileIncludesAll(
     "src/routes/app/payables/payments/[id]/+page.svelte",
-    ["AP payment", "Payment details", "Applications", "Lifecycle", "journal-safe design", "/app/payables/${application.billId}"],
-    "Payment detail page exposes payment, application, lifecycle, and reversal-boundary context."
+    ["AP payment", "Payment details", "Applications", "Lifecycle", "Void payment", "?/voidPayment", "/app/payables/${application.billId}"],
+    "Payment detail page exposes payment, application, lifecycle, and guarded void controls."
   );
   assert(
-    !paymentDetailPage.includes("<form") &&
-      !paymentDetailPage.includes("method=\"POST\"") &&
-      !paymentDetailPage.includes("use:enhance") &&
-      !paymentDetailPage.includes("?/"),
-    "Payment detail page does not render write-capable forms or SvelteKit action targets.",
-    "policy:accounting-ap-payment-detail-ui-read-only"
+    !paymentDetailPage.includes("?/recordPayment") &&
+      !paymentDetailPage.includes("?/postBillToAccounting") &&
+      !paymentDetailPage.includes("use:enhance"),
+    "Payment detail page only exposes a guarded payment void form; creation/posting actions remain on the Payables operator page.",
+    "policy:accounting-ap-payment-detail-void-only-ui"
   );
   assertFileIncludesAll(
     "src/routes/app/payables/[id]/+page.server.ts",

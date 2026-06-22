@@ -21,7 +21,8 @@ import {
   updateVendor,
   updateVendorStatus,
   updateRecurringBillTemplateStatus,
-  voidBill
+  voidBill,
+  voidBillPayment
 } from "./index";
 import type { BillPayment } from "./index";
 
@@ -777,6 +778,162 @@ describe("accounts-payable: payments", () => {
       ok: false,
       status: 409,
       error: { code: "accounts-payable.OVERPAYMENT" }
+    });
+  });
+
+  it("voids an AP-only bill payment, restores open balance, and replays idempotently", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const bill = await seedPayableBill(store);
+
+    const payment = await recordBillPayment(
+      {
+        tenantId: "tenant-1",
+        vendorId: bill.vendorId,
+        paymentDate: "2026-01-02T00:00:00.000Z",
+        amountCents: 4_000,
+        applications: [{ billId: bill.id, amountCents: 4_000 }]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0 + 2), actor: { id: "actor-1" } }
+    );
+    expect(payment.ok).toBe(true);
+    if (!payment.ok) throw new Error(payment.error.message);
+
+    const foreign = await voidBillPayment(
+      { tenantId: "tenant-2", paymentId: payment.data.payment.id, reason: "Wrong tenant" },
+      { accountsPayableStore: store }
+    );
+    expect(foreign).toMatchObject({ ok: false, status: 404 });
+
+    const voided = await voidBillPayment(
+      { tenantId: "tenant-1", paymentId: payment.data.payment.id, reason: "Duplicate payment", voidedById: "actor-1" },
+      { accountsPayableStore: store, now: fixedNow(T0 + 3), actor: { id: "actor-1" } }
+    );
+    expect(voided.ok).toBe(true);
+    if (!voided.ok) throw new Error(voided.error.message);
+    expect(voided.data.payment).toMatchObject({
+      status: "void",
+      voidedAt: "2026-01-01T00:00:00.003Z",
+      voidReason: "Duplicate payment"
+    });
+    expect(voided.data.bills[0]).toMatchObject({
+      id: bill.id,
+      status: "payable",
+      amountPaidCents: 0,
+      amountDueCents: 11_000,
+      paidAt: null
+    });
+    if (!voided.data.event) throw new Error("Expected bill_payment_voided event");
+    expect(voided.data.event.payload).toMatchObject({
+      voidedById: "actor-1",
+      appliedCents: 4_000,
+      reversalEntryId: null
+    });
+
+    const postedPayments = await listBillPayments(
+      { tenantId: "tenant-1", status: "posted" },
+      { accountsPayableStore: store }
+    );
+    expect(postedPayments.ok).toBe(true);
+    if (postedPayments.ok) expect(postedPayments.data.payments).toHaveLength(0);
+
+    const replay = await voidBillPayment(
+      { tenantId: "tenant-1", paymentId: payment.data.payment.id, reason: "Duplicate payment" },
+      { accountsPayableStore: store }
+    );
+    expect(replay.ok).toBe(true);
+    if (replay.ok) {
+      expect(replay.data.idempotent).toBe(true);
+      expect(replay.data.event).toBeNull();
+    }
+  });
+
+  it("requires accounting reversal for posted payment journals and restores paid bills after reversal", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const bill = await seedPayableBill(store);
+    const posted = await postBillToAccounting(
+      { tenantId: "tenant-1", billId: bill.id, apAccountId: "acct-ap" },
+      {
+        accountsPayableStore: store,
+        accountingPoster: {
+          postAccountsPayableBill: async () => ({ journalEntryId: "je-ap-bill-1" }),
+          postAccountsPayablePayment: async () => ({ journalEntryId: "unused" })
+        },
+        now: fixedNow(T0 + 2)
+      }
+    );
+    expect(posted.ok).toBe(true);
+
+    const payment = await recordBillPayment(
+      {
+        tenantId: "tenant-1",
+        vendorId: bill.vendorId,
+        paymentDate: "2026-01-03T00:00:00.000Z",
+        amountCents: 11_000,
+        paymentAccountId: "acct-cash",
+        applications: [{ billId: bill.id, amountCents: 11_000 }]
+      },
+      {
+        accountsPayableStore: store,
+        accountingPoster: {
+          postAccountsPayableBill: async () => ({ journalEntryId: "unused" }),
+          postAccountsPayablePayment: async () => ({ journalEntryId: "je-ap-payment-1" })
+        },
+        now: fixedNow(T0 + 3)
+      }
+    );
+    expect(payment.ok).toBe(true);
+    if (!payment.ok) throw new Error(payment.error.message);
+
+    const missingPoster = await voidBillPayment(
+      { tenantId: "tenant-1", paymentId: payment.data.payment.id, reason: "Needs GL reversal" },
+      { accountsPayableStore: store }
+    );
+    expect(missingPoster).toMatchObject({
+      ok: false,
+      status: 409,
+      error: { code: "accounts-payable.BILL_PAYMENT_REQUIRES_ACCOUNTING_REVERSAL" }
+    });
+
+    const voidRequests: Array<{ journalEntryId: string | null; reason: string | null | undefined }> = [];
+    const voided = await voidBillPayment(
+      {
+        tenantId: "tenant-1",
+        paymentId: payment.data.payment.id,
+        reason: "Wrong bank account",
+        voidedById: "actor-2",
+        reversalDate: "2026-01-04"
+      },
+      {
+        accountsPayableStore: store,
+        accountingPoster: {
+          postAccountsPayableBill: async () => ({ journalEntryId: "unused" }),
+          postAccountsPayablePayment: async () => ({ journalEntryId: "unused" }),
+          voidAccountsPayablePayment: async (request) => {
+            voidRequests.push({ journalEntryId: request.payment.journalEntryId, reason: request.reason });
+            return { reversalEntryId: "je-ap-payment-reversal-1" };
+          }
+        },
+        now: fixedNow(T0 + 4),
+        actor: { id: "actor-2" }
+      }
+    );
+    expect(voided.ok).toBe(true);
+    if (!voided.ok) throw new Error(voided.error.message);
+    expect(voidRequests).toEqual([{ journalEntryId: "je-ap-payment-1", reason: "Wrong bank account" }]);
+    expect(voided.data).toMatchObject({
+      reversalEntryId: "je-ap-payment-reversal-1",
+      payment: { status: "void", journalEntryId: "je-ap-payment-1" }
+    });
+    expect(voided.data.bills[0]).toMatchObject({
+      id: bill.id,
+      status: "payable",
+      amountPaidCents: 0,
+      amountDueCents: 11_000
+    });
+    if (!voided.data.event) throw new Error("Expected bill_payment_voided event");
+    expect(voided.data.event.payload).toMatchObject({
+      originalJournalEntryId: "je-ap-payment-1",
+      reversalEntryId: "je-ap-payment-reversal-1"
     });
   });
 });

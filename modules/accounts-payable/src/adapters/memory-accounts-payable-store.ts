@@ -221,6 +221,13 @@ export function createMemoryAccountsPayableStore(): AccountsPayableStore {
       }
     },
 
+    async voidPaymentWithBillUpdates({ payment, updatedBills }) {
+      if (payments.has(payment.id)) payments.set(payment.id, clonePayment(payment));
+      for (const bill of updatedBills) {
+        bills.set(bill.id, cloneBill(bill));
+      }
+    },
+
     async insertRecurringBillTemplate(template, lineItems) {
       recurringTemplates.set(template.id, { ...template });
       recurringLinesByTemplate.set(template.id, lineItems.map((line) => ({ ...line })));

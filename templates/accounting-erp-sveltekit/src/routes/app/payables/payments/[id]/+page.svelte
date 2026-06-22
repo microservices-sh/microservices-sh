@@ -1,7 +1,7 @@
 <script>
   import { Badge, Button, Card, PageHeader } from "$lib/ui";
 
-  let { data } = $props();
+  let { data, form } = $props();
   const payment = $derived(data.payment);
 </script>
 
@@ -20,6 +20,16 @@
       <span>{payment.amount}</span>
     {/snippet}
   </PageHeader>
+
+  {#if form?.paymentVoided}
+    <div class="mt-6">
+      <Card><p class="status-note success">Payment voided.</p></Card>
+    </div>
+  {:else if form?.error}
+    <div class="mt-6">
+      <Card><p class="status-note error">{form.error}</p></Card>
+    </div>
+  {/if}
 
   <div class="grid">
     <div class="grid__main">
@@ -78,7 +88,20 @@
           <div><dt>Voided</dt><dd>{payment.voidedAtShort}</dd></div>
           <div><dt>Void reason</dt><dd>{payment.voidReason ?? "-"}</dd></div>
         </dl>
-        <p class="status-note">Void and reversal actions are intentionally absent until AP payment reversal has a journal-safe design.</p>
+        {#if payment.canVoid}
+          <form method="POST" action="?/voidPayment">
+            <label for="reversal-date">Reversal date</label>
+            <input id="reversal-date" name="reversalDate" type="date" value={form?.values?.reversalDate ?? payment.defaultReversalDate} />
+            <label for="void-reason">Void reason</label>
+            <textarea id="void-reason" name="reason" rows="3" maxlength="2000" placeholder="Wrong bank account or duplicate payment">{form?.values?.reason ?? ""}</textarea>
+            <Button type="submit" variant="ghost">Void payment</Button>
+          </form>
+          <p class="status-note">Voiding reverses the payment journal and restores the applied bill balances.</p>
+        {:else if payment.status === "void"}
+          <p class="status-note">This payment has already been voided.</p>
+        {:else}
+          <p class="status-note">Payment void is available only for posted accounting-backed payments.</p>
+        {/if}
       </Card>
 
       {#if payment.memo}
@@ -135,6 +158,30 @@
     margin: 12px 0 0;
     color: var(--color-ink-faint);
     font-size: 0.9rem;
+  }
+  .success {
+    color: var(--color-success);
+  }
+  .error {
+    color: var(--color-danger);
+  }
+  label {
+    display: block;
+    margin-block: 12px 6px;
+    color: var(--color-ink-faint);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  input,
+  textarea {
+    width: 100%;
+    margin-block-end: 10px;
+  }
+  textarea {
+    min-height: 92px;
   }
   @media (max-width: 900px) {
     .grid {

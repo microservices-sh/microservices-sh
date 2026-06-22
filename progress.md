@@ -1507,6 +1507,26 @@
 | Create package | Bundled template closure and generated-app smoke still pass | `pnpm --filter create-microservices-app build` and `smoke:built` passed | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 111 AP payment void and reversal
+
+- **Status:** complete.
+- Goal: port donor-backed AP payment void while preserving local accounting-core reversal semantics instead of directly marking journals void.
+- Added `voidBillPayment` to `modules/accounts-payable`; it voids posted payments, restores each applied bill balance, and leaves payment application rows intact for audit.
+- Added `voidPaymentWithBillUpdates` to memory and D1 AP stores so payment status and affected bill balances persist through one store boundary.
+- Accounting-backed payment voids now require `AccountingPoster.voidAccountsPayablePayment`; AP refuses to update balances for journaled payments without a reversal hook.
+- Added `beforeBillPaymentVoid`/`afterBillPaymentVoided` hooks and emitted `accounts-payable.bill_payment_voided`.
+- Added accounting template poster support for `voidJournalEntry` with `void:${originalEntryId}` retry checks and open reversal period resolution.
+- Added a guarded `/app/payables/payments/[id]` action/form for journaled posted payment voids; creation/posting workflows remain on the Payables operator route.
+- Synced module docs, OpenAPI, event schema, module-contract metadata, docs catalog, and accounting/ERP template locks.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounts-payable tests | Payment void, reversal requirements, idempotent replay, and existing AP behavior remain green | `pnpm --filter @microservices-sh/accounts-payable test` passed, 25/25 | Pass |
+| Accounts-payable spec/build | Module contract and TypeScript build include payment void | `pnpm --filter @microservices-sh/accounts-payable check:spec` and `pnpm --filter @microservices-sh/accounts-payable build` passed | Pass |
+| Accounting-core build | Reversal use case exports still typecheck for the template poster | `pnpm --filter @microservices-sh/accounting-core build` passed | Pass |
+| Accounting template spec/build | Payment detail guarded void action and accounting reversal poster compile | `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Catalog/create/workspace checks | Catalog metadata, create-package bundling/tests, accounting-core tests, workspace specs, and whitespace stay green | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js packages/sdk-internal/tests/module-versioning.test.js` passed, 29/29; `pnpm --filter @microservices-sh/accounting-core test` passed, 19/19; `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19; `pnpm spec:check:all` passed, 64 targets | Pass |
+
 ### Phase 110 AP unpaid bill void
 
 - **Status:** complete.

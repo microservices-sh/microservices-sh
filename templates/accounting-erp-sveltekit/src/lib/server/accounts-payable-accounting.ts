@@ -1,13 +1,16 @@
 import {
   createJournalEntry,
   postJournalEntry,
+  voidJournalEntry,
   type AccountingCoreStore,
   type Actor
 } from "@microservices-sh/accounting-core";
 import type {
   AccountingBillPaymentPostRequest,
+  AccountingBillPaymentVoidRequest,
   AccountingBillPostRequest,
   AccountingPostResult,
+  AccountingVoidResult,
   AccountingPoster
 } from "@microservices-sh/accounts-payable";
 
@@ -38,6 +41,11 @@ function unwrapJournal(result: Awaited<ReturnType<typeof createJournalEntry>>): 
 function unwrapPosted(result: Awaited<ReturnType<typeof postJournalEntry>>): AccountingPostResult {
   if (!result.ok) fail(result.error.message);
   return { journalEntryId: result.data.entry.id };
+}
+
+function unwrapVoided(result: Awaited<ReturnType<typeof voidJournalEntry>>): AccountingVoidResult {
+  if (!result.ok) fail(result.error.message);
+  return { reversalEntryId: result.data.reversalEntry.id };
 }
 
 async function existingPostedEntry(
@@ -141,6 +149,31 @@ export function createAccountsPayableAccountingPoster(input: {
       const entryId = unwrapJournal(entry);
       return unwrapPosted(
         await postJournalEntry({ tenantId: request.tenantId, entryId, postedById: actor?.id ?? null }, { accountingCoreStore, actor })
+      );
+    },
+
+    async voidAccountsPayablePayment(request: AccountingBillPaymentVoidRequest): Promise<AccountingVoidResult> {
+      const originalEntryId = request.payment.journalEntryId;
+      if (!originalEntryId) fail("Only accounting-posted payments can be voided through accounting reversal.");
+
+      const reversalSourceRef = `void:${originalEntryId}`;
+      const existingReversal = await existingPostedEntry(accountingCoreStore, request.tenantId, reversalSourceRef);
+      if (existingReversal) return { reversalEntryId: existingReversal.journalEntryId ?? null };
+
+      const reversalDate = dateOnly(request.reversalDate ?? new Date().toISOString());
+      const reversalPeriodId = request.reversalPeriodId ?? (await openPeriodId(accountingCoreStore, request.tenantId, reversalDate));
+      return unwrapVoided(
+        await voidJournalEntry(
+          {
+            tenantId: request.tenantId,
+            entryId: originalEntryId,
+            reason: request.reason ?? `Void AP payment ${request.payment.paymentNumber}`,
+            voidedById: request.voidedById ?? actor?.id ?? null,
+            reversalDate,
+            reversalPeriodId
+          },
+          { accountingCoreStore, actor }
+        )
       );
     }
   };

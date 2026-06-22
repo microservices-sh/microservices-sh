@@ -1,7 +1,9 @@
 import type {
   AccountingBillPaymentPostRequest,
+  AccountingBillPaymentVoidRequest,
   AccountingBillPostRequest,
   AccountingPostResult,
+  AccountingVoidResult,
   AccountsPayableEvent,
   Bill,
   BillFilter,
@@ -45,6 +47,10 @@ export interface AccountsPayableStore {
     applications: BillPaymentApplication[];
     updatedBills: Bill[];
   }): Promise<void>;
+  voidPaymentWithBillUpdates(input: {
+    payment: BillPayment;
+    updatedBills: Bill[];
+  }): Promise<void>;
 
   insertRecurringBillTemplate(template: RecurringBillTemplate, lineItems: RecurringBillLineItem[]): Promise<void>;
   getRecurringBillTemplate(tenantId: string, templateId: string): Promise<RecurringBillTemplateWithLineItems | null>;
@@ -57,4 +63,5 @@ export interface AccountsPayableStore {
 export interface AccountingPoster {
   postAccountsPayableBill(request: AccountingBillPostRequest): Promise<AccountingPostResult>;
   postAccountsPayablePayment(request: AccountingBillPaymentPostRequest): Promise<AccountingPostResult>;
+  voidAccountsPayablePayment?(request: AccountingBillPaymentVoidRequest): Promise<AccountingVoidResult>;
 }

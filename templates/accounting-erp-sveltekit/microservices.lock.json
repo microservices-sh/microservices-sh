@@ -413,9 +413,11 @@
           "beforeBillCreate",
           "beforeBillMarkPayable",
           "beforeBillVoid",
+          "beforeBillPaymentVoid",
           "afterBillPayable",
           "afterBillVoided",
           "afterBillPaymentRecorded",
+          "afterBillPaymentVoided",
           "afterVendorCreated"
         ],
         "events": [
@@ -427,6 +429,7 @@
           "accounts-payable.bill_posted",
           "accounts-payable.bill_voided",
           "accounts-payable.bill_payment_recorded",
+          "accounts-payable.bill_payment_voided",
           "accounts-payable.bill_paid",
           "accounts-payable.recurring_bill_template_created",
           "accounts-payable.recurring_bill_template_status_updated",

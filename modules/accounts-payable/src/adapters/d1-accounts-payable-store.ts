@@ -661,6 +661,34 @@ export function createD1AccountsPayableStore(db: D1Database): AccountsPayableSto
       ]);
     },
 
+    async voidPaymentWithBillUpdates({ payment, updatedBills }) {
+      await db.batch([
+        db
+          .prepare(
+            `UPDATE accounts_payable_bill_payments
+             SET status = ?, voided_at = ?, void_reason = ?, updated_at = ?
+             WHERE tenant_id = ? AND id = ?`
+          )
+          .bind(
+            payment.status,
+            payment.voidedAt,
+            payment.voidReason,
+            payment.updatedAt,
+            payment.tenantId,
+            payment.id
+          ),
+        ...updatedBills.map((bill) =>
+          db
+            .prepare(
+              `UPDATE accounts_payable_bills
+               SET status = ?, paid_at = ?, amount_paid_cents = ?, amount_due_cents = ?, updated_at = ?
+               WHERE tenant_id = ? AND id = ?`
+            )
+            .bind(bill.status, bill.paidAt, bill.amountPaidCents, bill.amountDueCents, bill.updatedAt, bill.tenantId, bill.id)
+        )
+      ]);
+    },
+
     async insertRecurringBillTemplate(template, lineItems) {
       await db.batch([
         db

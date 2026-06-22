@@ -1,12 +1,14 @@
-import type { BillWithLineItems, Vendor } from "./types";
+import type { BillPaymentWithApplications, BillWithLineItems, Vendor } from "./types";
 
 export interface AccountsPayableHooks {
   beforeVendorCreate(input: unknown): Promise<unknown>;
   beforeBillCreate(input: unknown): Promise<unknown>;
   beforeBillMarkPayable(bill: BillWithLineItems): Promise<BillWithLineItems | null>;
   beforeBillVoid(bill: BillWithLineItems): Promise<BillWithLineItems | null>;
+  beforeBillPaymentVoid(payment: BillPaymentWithApplications): Promise<BillPaymentWithApplications | null>;
   afterBillPayable(bill: BillWithLineItems): Promise<void>;
   afterBillPaymentRecorded(bill: BillWithLineItems): Promise<void>;
+  afterBillPaymentVoided(payment: BillPaymentWithApplications): Promise<void>;
   afterBillVoided(bill: BillWithLineItems): Promise<void>;
   afterVendorCreated(vendor: Vendor): Promise<void>;
 }
@@ -24,10 +26,16 @@ export const defaultAccountsPayableHooks: AccountsPayableHooks = {
   async beforeBillVoid(bill) {
     return bill;
   },
+  async beforeBillPaymentVoid(payment) {
+    return payment;
+  },
   async afterBillPayable() {
     return;
   },
   async afterBillPaymentRecorded() {
+    return;
+  },
+  async afterBillPaymentVoided() {
     return;
   },
   async afterBillVoided() {
@@ -54,12 +62,22 @@ export async function beforeBillVoid(bill: BillWithLineItems): Promise<BillWithL
   return defaultAccountsPayableHooks.beforeBillVoid(bill);
 }
 
+export async function beforeBillPaymentVoid(
+  payment: BillPaymentWithApplications
+): Promise<BillPaymentWithApplications | null> {
+  return defaultAccountsPayableHooks.beforeBillPaymentVoid(payment);
+}
+
 export async function afterBillPayable(bill: BillWithLineItems): Promise<void> {
   return defaultAccountsPayableHooks.afterBillPayable(bill);
 }
 
 export async function afterBillPaymentRecorded(bill: BillWithLineItems): Promise<void> {
   return defaultAccountsPayableHooks.afterBillPaymentRecorded(bill);
+}
+
+export async function afterBillPaymentVoided(payment: BillPaymentWithApplications): Promise<void> {
+  return defaultAccountsPayableHooks.afterBillPaymentVoided(payment);
 }
 
 export async function afterBillVoided(bill: BillWithLineItems): Promise<void> {

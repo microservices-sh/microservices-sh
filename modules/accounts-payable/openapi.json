@@ -82,6 +82,12 @@
         "responses": { "200": { "description": "Bill payment detail" }, "404": { "description": "Payment not found" } }
       }
     },
+    "/bill-payments/{id}/void": {
+      "post": {
+        "summary": "Void a posted bill payment and restore applied bill balances",
+        "responses": { "200": { "description": "Bill payment voided" }, "409": { "description": "Accounting reversal required or payment not voidable" } }
+      }
+    },
     "/aging": {
       "get": {
         "summary": "Open balance aging report",

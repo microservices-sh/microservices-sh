@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 110
+Phase 111
 
 ## Phases
 
@@ -867,6 +867,15 @@ Phase 110
 - [x] Add void hooks, `accounts-payable.bill_voided`, catalog metadata, module contract entries, template locks, docs, OpenAPI, and schema exports.
 - [x] Cover idempotent void replay plus rejection after payment or accounting posting.
 - [x] Add a guarded bill-detail action/form for unpaid unposted voids while keeping post and payment workflows on the Payables operator page.
+- [x] Verify AP tests/spec/build and accounting template spec/build before workspace checks.
+- **Status:** complete
+
+### Phase 111: AP Payment Void And Reversal
+- [x] Add module-level `voidBillPayment` for posted bill payments.
+- [x] Restore applied bill balances through a combined store method and keep payment application rows as the reversal audit trail.
+- [x] Require accounting reversal through the AP accounting poster when the payment has a journal entry.
+- [x] Add payment-void hooks, event metadata, docs, OpenAPI, catalog entries, and template locks.
+- [x] Add a guarded payment-detail action/form backed by accounting-core `voidJournalEntry` reversal semantics.
 - [x] Verify AP tests/spec/build and accounting template spec/build before workspace checks.
 - **Status:** complete
 

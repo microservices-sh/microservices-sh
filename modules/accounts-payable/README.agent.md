@@ -5,6 +5,7 @@ Use approval for money mutations: creating bills, marking bills payable, posting
 Bill approval and accounting posting are separate. Use `markBillPayable` for approval/payable transition, then `postBillToAccounting` when a journal entry should be created. Payments posted through an accounting poster require the target bills to already have `accountingStatus: "posted"`.
 
 Use `voidBill` only for unpaid bills that have not been posted to accounting. Posted bills and bills with payment applications must wait for an accounting reversal or payment-void workflow.
+Use `voidBillPayment` for payment reversals. If the payment has a journal entry, supply an accounting poster that reverses the journal before AP bill balances are restored.
 
 Use `getVendor` for tenant-scoped vendor profile and 1099 metadata before building vendor-specific reports. Use `get1099VendorReport` for calendar-year 1099 readiness totals; it reports active 1099 vendors, payment totals, and missing-tax-ID warnings, but it does not file forms or validate TINs. Use `listBillPayments` for read-only AP payment history by tenant, vendor, bill, or status. Use `getBillPayment` when an operator needs the full payment record with applications before investigating journal references or a future void/reversal workflow.
 
