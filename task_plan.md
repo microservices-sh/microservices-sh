@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 109
+Phase 110
 
 ## Phases
 
@@ -860,6 +860,14 @@ Phase 109
 - [x] Split the focused Payables operator flow into approve, post, and pay states.
 - [x] Sync AP module docs, events, catalog metadata, and template locks with the new post boundary.
 - [x] Verify AP tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, catalog tests, and whitespace checks.
+- **Status:** complete
+
+### Phase 110: AP Unpaid Bill Void
+- [x] Add module-level `voidBill` for unpaid bills that have not been posted to accounting.
+- [x] Add void hooks, `accounts-payable.bill_voided`, catalog metadata, module contract entries, template locks, docs, OpenAPI, and schema exports.
+- [x] Cover idempotent void replay plus rejection after payment or accounting posting.
+- [x] Add a guarded bill-detail action/form for unpaid unposted voids while keeping post and payment workflows on the Payables operator page.
+- [x] Verify AP tests/spec/build and accounting template spec/build before workspace checks.
 - **Status:** complete
 
 ## Key Questions

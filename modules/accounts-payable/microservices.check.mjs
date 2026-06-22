@@ -70,9 +70,24 @@ export default function check({ assertFileIncludes }) {
     "Accounts Payable exports a separate accounting post use case for approved bills."
   );
   assertFileIncludes(
+    "src/index.ts",
+    "export { voidBill }",
+    "Accounts Payable exports an unpaid unposted bill void use case."
+  );
+  assertFileIncludes(
     "src/use-cases/post-bill-to-accounting.ts",
     "BILL_NOT_APPROVED",
     "Bill posting is split from approval and rejects unapproved bills."
+  );
+  assertFileIncludes(
+    "src/use-cases/void-bill.ts",
+    "BILL_POSTED_TO_ACCOUNTING",
+    "Bill void rejects posted bills until an accounting reversal workflow exists."
+  );
+  assertFileIncludes(
+    "src/use-cases/void-bill.ts",
+    "BILL_HAS_PAYMENTS",
+    "Bill void rejects bills with payment applications."
   );
   assertFileIncludes(
     "src/use-cases/record-bill-payment.ts",

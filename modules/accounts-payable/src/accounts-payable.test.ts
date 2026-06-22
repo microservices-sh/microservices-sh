@@ -20,7 +20,8 @@ import {
   recordBillPayment,
   updateVendor,
   updateVendorStatus,
-  updateRecurringBillTemplateStatus
+  updateRecurringBillTemplateStatus,
+  voidBill
 } from "./index";
 import type { BillPayment } from "./index";
 
@@ -488,6 +489,92 @@ describe("accounts-payable: bills", () => {
     );
     expect(replay.ok).toBe(true);
     if (replay.ok) expect(replay.data.idempotent).toBe(true);
+  });
+
+  it("voids an unposted unpaid bill and makes repeated voids idempotent", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const bill = await seedPayableBill(store);
+
+    const voided = await voidBill(
+      { tenantId: "tenant-1", billId: bill.id, reason: "Duplicate vendor bill", voidedById: "actor-1" },
+      { accountsPayableStore: store, now: fixedNow(T0 + 5), actor: { id: "actor-1" } }
+    );
+    expect(voided.ok).toBe(true);
+    if (!voided.ok) throw new Error(voided.error.message);
+    expect(voided.data.bill).toMatchObject({
+      status: "void",
+      amountDueCents: 0,
+      voidReason: "Duplicate vendor bill",
+      voidedAt: "2026-01-01T00:00:00.005Z"
+    });
+    if (!voided.data.event) throw new Error("Expected bill_voided event");
+    expect(voided.data.event.payload).toMatchObject({ voidedById: "actor-1", reason: "Duplicate vendor bill" });
+
+    const replay = await voidBill(
+      { tenantId: "tenant-1", billId: bill.id, reason: "Duplicate vendor bill" },
+      { accountsPayableStore: store }
+    );
+    expect(replay.ok).toBe(true);
+    if (replay.ok) expect(replay.data.idempotent).toBe(true);
+
+    const aging = await getAgingReport(
+      { tenantId: "tenant-1", asOfDate: "2026-02-15T00:00:00.000Z" },
+      { accountsPayableStore: store }
+    );
+    expect(aging.ok).toBe(true);
+    if (aging.ok) expect(aging.data.report.totals.totalCents).toBe(0);
+  });
+
+  it("rejects bill voids after payment or accounting posting", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const paidBill = await seedPayableBill(store);
+    const payment = await recordBillPayment(
+      {
+        tenantId: "tenant-1",
+        vendorId: paidBill.vendorId,
+        paymentDate: "2026-01-02T00:00:00.000Z",
+        amountCents: 1_000,
+        applications: [{ billId: paidBill.id, amountCents: 1_000 }]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0 + 2) }
+    );
+    expect(payment.ok).toBe(true);
+
+    const paidVoid = await voidBill(
+      { tenantId: "tenant-1", billId: paidBill.id, reason: "Too late" },
+      { accountsPayableStore: store }
+    );
+    expect(paidVoid).toMatchObject({
+      ok: false,
+      status: 409,
+      error: { code: "accounts-payable.BILL_HAS_PAYMENTS" }
+    });
+
+    const postedBill = await seedPayableBill(store, {
+      lineItems: [{ description: "Posted bill", quantity: 1, unitAmountCents: 3_000, taxCents: 0 }]
+    });
+    const posted = await postBillToAccounting(
+      { tenantId: "tenant-1", billId: postedBill.id, apAccountId: "acct-ap" },
+      {
+        accountsPayableStore: store,
+        accountingPoster: {
+          postAccountsPayableBill: async () => ({ journalEntryId: "je-posted-void-test" }),
+          postAccountsPayablePayment: async () => ({ journalEntryId: "unused" })
+        },
+        now: fixedNow(T0 + 3)
+      }
+    );
+    expect(posted.ok).toBe(true);
+
+    const postedVoid = await voidBill(
+      { tenantId: "tenant-1", billId: postedBill.id, reason: "Needs reversal" },
+      { accountsPayableStore: store }
+    );
+    expect(postedVoid).toMatchObject({
+      ok: false,
+      status: 409,
+      error: { code: "accounts-payable.BILL_POSTED_TO_ACCOUNTING" }
+    });
   });
 });
 

@@ -1,7 +1,7 @@
 <script>
   import { Badge, Button, Card, PageHeader } from "$lib/ui";
 
-  let { data } = $props();
+  let { data, form } = $props();
   const bill = $derived(data.bill);
   const paymentHistory = $derived(data.paymentHistory ?? []);
   const canUseActions = $derived(
@@ -10,6 +10,7 @@
       bill.status === "payable" ||
       bill.status === "partial"
   );
+  const canVoid = $derived(bill.status !== "void" && bill.accountingStatus !== "posted" && bill.amountPaidCents === 0);
 </script>
 
 <svelte:head>
@@ -27,6 +28,16 @@
       <span>{bill.vendorName}</span>
     {/snippet}
   </PageHeader>
+
+  {#if form?.billVoided}
+    <div class="mt-6">
+      <Card><p class="status-note success">Bill voided.</p></Card>
+    </div>
+  {:else if form?.error}
+    <div class="mt-6">
+      <Card><p class="status-note error">{form.error}</p></Card>
+    </div>
+  {/if}
 
   <div class="grid">
     <div class="grid__main">
@@ -131,6 +142,13 @@
           {#if bill.voidedAt}
             <p class="status-note">Voided on {bill.voidedAt.slice(0, 10)}.</p>
             {#if bill.voidReason}<p class="status-note">{bill.voidReason}</p>{/if}
+          {:else if canVoid}
+            <form method="POST" action="?/voidBill">
+              <label for="void-reason">Void reason</label>
+              <textarea id="void-reason" name="reason" rows="3" maxlength="2000" placeholder="Duplicate bill or entered in error">{form?.values?.reason ?? ""}</textarea>
+              <Button type="submit" variant="ghost">Void bill</Button>
+            </form>
+            <p class="status-note">Only unpaid, unposted bills can be voided here. Posted bills need an accounting reversal workflow.</p>
           {:else if canUseActions}
             <p class="status-note">Use the Payables ledger for posting and payment actions so AP side effects stay in one operator workflow.</p>
             <Button href="/app/payables" variant="ghost">Open payables actions</Button>
@@ -202,6 +220,27 @@
     margin: 0;
     color: var(--color-ink-faint);
     font-size: 0.9rem;
+  }
+  .success {
+    color: var(--color-success);
+  }
+  .error {
+    color: var(--color-danger);
+  }
+  label {
+    display: block;
+    margin-block-end: 6px;
+    color: var(--color-ink-faint);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  textarea {
+    width: 100%;
+    min-height: 92px;
+    margin-block-end: 10px;
   }
   @media (max-width: 900px) {
     .grid {

@@ -284,6 +284,7 @@ export interface AccountsPayableEvent {
     | "accounts-payable.bill_created"
     | "accounts-payable.bill_marked_payable"
     | "accounts-payable.bill_posted"
+    | "accounts-payable.bill_voided"
     | "accounts-payable.bill_payment_recorded"
     | "accounts-payable.bill_paid"
     | "accounts-payable.recurring_bill_template_created"

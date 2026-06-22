@@ -1507,6 +1507,24 @@
 | Create package | Bundled template closure and generated-app smoke still pass | `pnpm --filter create-microservices-app build` and `smoke:built` passed | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 110 AP unpaid bill void
+
+- **Status:** complete.
+- Goal: port the lower-risk donor bill-void behavior while avoiding posted-bill and payment reversal semantics until accounting-core-safe reversal workflows are explicit.
+- Added `voidBill` to `modules/accounts-payable` for unpaid, unposted bills, with idempotent replay for already-void bills.
+- Added `beforeBillVoid`/`afterBillVoided` hooks and emitted `accounts-payable.bill_voided`.
+- Added AP tests for successful void, aging exclusion, idempotent replay, rejection after a payment application, and rejection after accounting posting.
+- Added a guarded `/app/payables/[id]` action/form that only exposes void for unpaid unposted bills; payment and posting side effects remain on the Payables operator route.
+- Synced module docs, OpenAPI, event schema, module-contract metadata, docs catalog, and accounting/ERP template locks.
+- Subagent review confirmed the next AP adoption slice should be payment void/reversal, using accounting-core reversal semantics rather than donor direct journal voiding.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounts-payable tests | Void behavior and existing AP lifecycle behavior remain green | `pnpm --filter @microservices-sh/accounts-payable test` passed, 23/23 | Pass |
+| Accounts-payable spec/build | Module contract and TypeScript build include the void boundary | `pnpm --filter @microservices-sh/accounts-payable check:spec` and `pnpm --filter @microservices-sh/accounts-payable build` passed | Pass |
+| Accounting template spec/build | Bill detail guarded void action compiles and policy checks keep post/payment out | `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Catalog/create/workspace checks | Catalog metadata, create-package bundling/tests, workspace specs, and whitespace stay green | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js packages/sdk-internal/tests/module-versioning.test.js` passed, 29/29; `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19; `pnpm spec:check:all` passed, 64 targets | Pass |
+
 ### Phase 109 AP approval and posting split
 
 - **Status:** complete.

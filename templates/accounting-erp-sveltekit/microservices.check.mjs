@@ -877,34 +877,49 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     [
       "getBill",
       "listBillPayments",
+      "voidBill",
       "paymentHistory",
       "listVendors",
       "listAccounts",
       "requireModule(\"accounts-payable\"",
       "requireOrgPermission",
-      "\"org.read\""
+      "\"org.read\"",
+      "\"member.manage\"",
+      "accounts-payable.bill_voided"
     ],
-    "Bill detail route loads one tenant-scoped bill and read-only payment history through accounts-payable with vendor and account labels."
+    "Bill detail route loads one tenant-scoped bill, payment history, and guarded unpaid bill void action through accounts-payable."
   );
   assert(
     !billDetailServer.includes("markBillPayable(") &&
       !billDetailServer.includes("recordBillPayment(") &&
-      !billDetailServer.includes("export const actions"),
-    "Bill detail route stays read-only; posting and payment side effects remain on the Payables operator page.",
-    "policy:accounting-ap-bill-detail-read-only"
+      !billDetailServer.includes("postBillToAccounting("),
+    "Bill detail route only exposes unpaid unposted void; posting and payment side effects remain on the Payables operator page.",
+    "policy:accounting-ap-bill-detail-no-post-pay"
   );
   assertFileIncludesAll(
     "src/routes/app/payables/[id]/+page.svelte",
-    ["Vendor bill", "Bill details", "Line items", "Payment history", "paymentHistory", "/app/payables/payments/${payment.id}", "Totals", "Open payables actions"],
-    "Bill detail page exposes vendor, line-item, payment history, totals, and lifecycle context."
+    [
+      "Vendor bill",
+      "Bill details",
+      "Line items",
+      "Payment history",
+      "paymentHistory",
+      "/app/payables/payments/${payment.id}",
+      "Totals",
+      "Open payables actions",
+      "Void bill",
+      "?/voidBill",
+      "Only unpaid, unposted bills"
+    ],
+    "Bill detail page exposes vendor, line-item, payment history, totals, lifecycle context, and guarded unpaid void."
   );
   assert(
-    !billDetailPage.includes("<form") &&
-      !billDetailPage.includes("method=\"POST\"") &&
-      !billDetailPage.includes("use:enhance") &&
-      !billDetailPage.includes("?/"),
-    "Bill detail page does not render write-capable forms or SvelteKit action targets.",
-    "policy:accounting-ap-bill-detail-ui-read-only"
+    !billDetailPage.includes("?/markPayable") &&
+      !billDetailPage.includes("?/recordPayment") &&
+      !billDetailPage.includes("?/postBillToAccounting") &&
+      !billDetailPage.includes("use:enhance"),
+    "Bill detail page only exposes a guarded void form; post/payment actions remain on the Payables operator page.",
+    "policy:accounting-ap-bill-detail-void-only"
   );
   assertFileIncludesAll(
     "src/routes/app/payables/recurring/[id]/+page.server.ts",

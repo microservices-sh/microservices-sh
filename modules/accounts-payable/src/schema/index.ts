@@ -19,5 +19,6 @@ export {
   recurringBillTemplateIdentitySchema,
   recurringBillFrequencySchema,
   recurringBillStatusSchema,
-  updateRecurringBillTemplateStatusInputSchema
+  updateRecurringBillTemplateStatusInputSchema,
+  voidBillInputSchema
 } from "../schemas";

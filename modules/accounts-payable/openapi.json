@@ -60,6 +60,12 @@
         "responses": { "200": { "description": "Bill posted to accounting" }, "409": { "description": "Bill not approved or already paid" } }
       }
     },
+    "/bills/{id}/void": {
+      "post": {
+        "summary": "Void an unpaid, unposted bill",
+        "responses": { "200": { "description": "Bill voided" }, "409": { "description": "Bill has payments or needs accounting reversal" } }
+      }
+    },
     "/bill-payments": {
       "post": {
         "summary": "Record bill payment and applications",

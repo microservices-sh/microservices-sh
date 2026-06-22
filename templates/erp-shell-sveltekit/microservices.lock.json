@@ -320,8 +320,8 @@
         "resources": ["D1"],
         "permissions": ["accounts-payable.read", "accounts-payable.write", "accounts-payable.pay", "accounts-payable.admin", "accounts-payable.extend", "accounts-payable.observe"],
         "rpc": [],
-        "hooks": ["beforeVendorCreate", "beforeBillCreate", "beforeBillMarkPayable", "afterBillPayable", "afterBillPaymentRecorded", "afterVendorCreated"],
-        "events": ["accounts-payable.vendor_created", "accounts-payable.vendor_updated", "accounts-payable.vendor_status_updated", "accounts-payable.bill_created", "accounts-payable.bill_marked_payable", "accounts-payable.bill_posted", "accounts-payable.bill_payment_recorded", "accounts-payable.bill_paid", "accounts-payable.recurring_bill_template_created", "accounts-payable.recurring_bill_template_status_updated", "accounts-payable.recurring_bill_generated"],
+        "hooks": ["beforeVendorCreate", "beforeBillCreate", "beforeBillMarkPayable", "beforeBillVoid", "afterBillPayable", "afterBillVoided", "afterBillPaymentRecorded", "afterVendorCreated"],
+        "events": ["accounts-payable.vendor_created", "accounts-payable.vendor_updated", "accounts-payable.vendor_status_updated", "accounts-payable.bill_created", "accounts-payable.bill_marked_payable", "accounts-payable.bill_posted", "accounts-payable.bill_voided", "accounts-payable.bill_payment_recorded", "accounts-payable.bill_paid", "accounts-payable.recurring_bill_template_created", "accounts-payable.recurring_bill_template_status_updated", "accounts-payable.recurring_bill_generated"],
         "requires": ["accounting-core"]
       }
     },

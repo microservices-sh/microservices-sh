@@ -6,9 +6,11 @@ export { resources } from "./resources";
 export {
   afterBillPayable,
   afterBillPaymentRecorded,
+  afterBillVoided,
   afterVendorCreated,
   beforeBillCreate,
   beforeBillMarkPayable,
+  beforeBillVoid,
   beforeVendorCreate,
   defaultAccountsPayableHooks
 } from "./hooks";
@@ -22,6 +24,7 @@ export { getBill } from "./use-cases/get-bill";
 export { listBills } from "./use-cases/list-bills";
 export { markBillPayable } from "./use-cases/mark-bill-payable";
 export { postBillToAccounting } from "./use-cases/post-bill-to-accounting";
+export { voidBill } from "./use-cases/void-bill";
 export { recordBillPayment } from "./use-cases/record-bill-payment";
 export { getBillPayment } from "./use-cases/get-bill-payment";
 export { listBillPayments } from "./use-cases/list-bill-payments";

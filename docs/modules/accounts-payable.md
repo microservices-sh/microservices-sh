@@ -26,7 +26,9 @@ Tenant-scoped vendor, bill, bill-line, payment application, recurring bill, 1099
 - beforeVendorCreate
 - beforeBillCreate
 - beforeBillMarkPayable
+- beforeBillVoid
 - afterBillPayable
+- afterBillVoided
 - afterBillPaymentRecorded
 - afterVendorCreated
 
@@ -37,6 +39,7 @@ Tenant-scoped vendor, bill, bill-line, payment application, recurring bill, 1099
 - accounts-payable.bill_created
 - accounts-payable.bill_marked_payable
 - accounts-payable.bill_posted
+- accounts-payable.bill_voided
 - accounts-payable.bill_payment_recorded
 - accounts-payable.bill_paid
 - accounts-payable.recurring_bill_template_created
@@ -48,6 +51,7 @@ Tenant-scoped vendor, bill, bill-line, payment application, recurring bill, 1099
 - Vendor bill numbers are unique per tenant and vendor when present.
 - Bill line totals must equal bill totals before approval.
 - Bill approval and accounting posting are separate; `postBillToAccounting` only posts approved unpaid bills.
+- `voidBill` only voids unpaid bills that have not been posted to accounting.
 - Accounting-backed payments require target bills to already be posted.
 - Payment applications cannot exceed the open bill balance.
 - Payment idempotency keys are unique per tenant.
@@ -56,4 +60,4 @@ Tenant-scoped vendor, bill, bill-line, payment application, recurring bill, 1099
 ## Approval Gate
 Risk: medium
 
-Bill approval, payment application, accounting posting, migrations, and production deploys require explicit approval.
+Bill approval, bill voids, payment application, accounting posting, migrations, and production deploys require explicit approval.

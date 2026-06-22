@@ -1,9 +1,10 @@
-import type { PageServerLoad } from "./$types";
-import { error, redirect } from "@sveltejs/kit";
-import { getBill, listBillPayments, listVendors } from "@microservices-sh/accounts-payable";
+import type { Actions, PageServerLoad } from "./$types";
+import { error, fail, redirect } from "@sveltejs/kit";
+import { recordEvent } from "@microservices-sh/audit-log";
+import { getBill, listBillPayments, listVendors, voidBill } from "@microservices-sh/accounts-payable";
 import { listAccounts } from "@microservices-sh/accounting-core";
 import { money, relativeTime } from "$lib/format";
-import { requireOrgPermission } from "$lib/server/org-context";
+import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 import type { Tone } from "$lib/ui/types";
 
@@ -14,6 +15,10 @@ const accountingTone = (status: string): Tone => (status === "posted" ? "good" :
 
 function shortDate(value: string | null): string {
   return value ? value.slice(0, 10) : "-";
+}
+
+function text(value: FormDataEntryValue | null): string {
+  return String(value ?? "").trim();
 }
 
 export const load: PageServerLoad = async ({ params, locals, cookies, parent, platform }) => {
@@ -88,4 +93,39 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
     },
     paymentHistory
   };
+};
+
+export const actions: Actions = {
+  voidBill: async ({ request, params, locals, cookies, platform }) => {
+    requireModule("accounts-payable", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const values = { reason: text(form.get("reason")) };
+    const result = await voidBill(
+      { tenantId: org.id, billId: params.id, reason: values.reason || null, voidedById: locals.user.id },
+      {
+        accountsPayableStore: locals.accountsPayableStore,
+        actor: { id: locals.user.id, email: locals.user.email, permissions }
+      }
+    );
+    if (!result.ok) return fail(result.status, { error: result.error.message, values });
+
+    await recordEvent(
+      {
+        eventName: "accounts-payable.bill_voided",
+        actorId: locals.user.id,
+        entityType: "bill",
+        entityId: result.data.bill.id,
+        source: "app/payables/bill",
+        payload: { reason: result.data.bill.voidReason }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { billVoided: true };
+  }
 };
