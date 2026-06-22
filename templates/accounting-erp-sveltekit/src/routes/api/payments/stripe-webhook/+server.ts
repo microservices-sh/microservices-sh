@@ -36,6 +36,7 @@ export const POST: RequestHandler = async ({ request, platform, locals }) => {
 
   const ctx = authContext({ orgId: invoice.tenantId, actorId: "stripe:webhook", roles: ["*"] });
   const paymentDate = new Date().toISOString();
+  const accountingSettings = await locals.accountingCoreStore.getAccountingSettings(invoice.tenantId);
   const arService = createAccountsReceivableService({
     store: locals.accountsReceivableStore,
     accountingPoster: createAccountsReceivableAccountingPoster({
@@ -51,6 +52,7 @@ export const POST: RequestHandler = async ({ request, platform, locals }) => {
       currency: invoice.currency,
       paymentMethod: "stripe",
       providerPaymentId: parsed.providerPaymentId,
+      depositAccountId: accountingSettings?.stripeDepositAccountId ?? undefined,
       paymentDate,
       idempotencyKey: parsed.eventId
     }

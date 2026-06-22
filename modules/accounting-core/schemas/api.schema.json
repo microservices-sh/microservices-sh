@@ -43,7 +43,16 @@
     "accountingSettingsFields": {
       "type": "array",
       "items": {
-        "enum": ["accountingStandard", "baseCurrency", "fiscalYearStartMonth", "defaultArAccountId", "defaultApAccountId", "defaultIncomeAccountId"]
+        "enum": [
+          "accountingStandard",
+          "baseCurrency",
+          "fiscalYearStartMonth",
+          "defaultArAccountId",
+          "defaultApAccountId",
+          "defaultIncomeAccountId",
+          "defaultDepositAccountId",
+          "stripeDepositAccountId"
+        ]
       }
     }
   }

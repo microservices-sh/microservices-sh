@@ -59,6 +59,8 @@ function rowToAccountingSettings(row: Record<string, unknown>): AccountingSettin
     defaultArAccountId: nullableString(row.default_ar_account_id),
     defaultApAccountId: nullableString(row.default_ap_account_id),
     defaultIncomeAccountId: nullableString(row.default_income_account_id),
+    defaultDepositAccountId: nullableString(row.default_deposit_account_id),
+    stripeDepositAccountId: nullableString(row.stripe_deposit_account_id),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at)
   };
@@ -160,7 +162,7 @@ function rowToGeneralLedgerPosting(row: Record<string, unknown>): GeneralLedgerP
 const ACCOUNT_COLS =
   "id, tenant_id, code, name, type, account_subtype, parent_id, currency, normal_balance, description, is_system, is_reconcilable, is_header, active, created_at, updated_at";
 const SETTINGS_COLS =
-  "tenant_id, accounting_standard, fiscal_year_start_month, base_currency, default_ar_account_id, default_ap_account_id, default_income_account_id, created_at, updated_at";
+  "tenant_id, accounting_standard, fiscal_year_start_month, base_currency, default_ar_account_id, default_ap_account_id, default_income_account_id, default_deposit_account_id, stripe_deposit_account_id, created_at, updated_at";
 const PERIOD_COLS =
   "id, tenant_id, name, period_type, starts_on, ends_on, status, closed_by_id, closed_at, locked_at, created_at, updated_at";
 const ENTRY_COLS =
@@ -253,7 +255,7 @@ export function createD1AccountingCoreStore(db: D1Database): AccountingCoreStore
     async upsertAccountingSettings(settings) {
       await db
         .prepare(
-          `INSERT INTO accounting_settings (${SETTINGS_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO accounting_settings (${SETTINGS_COLS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(tenant_id) DO UPDATE SET
              accounting_standard = excluded.accounting_standard,
              fiscal_year_start_month = excluded.fiscal_year_start_month,
@@ -261,6 +263,8 @@ export function createD1AccountingCoreStore(db: D1Database): AccountingCoreStore
              default_ar_account_id = excluded.default_ar_account_id,
              default_ap_account_id = excluded.default_ap_account_id,
              default_income_account_id = excluded.default_income_account_id,
+             default_deposit_account_id = excluded.default_deposit_account_id,
+             stripe_deposit_account_id = excluded.stripe_deposit_account_id,
              updated_at = excluded.updated_at`
         )
         .bind(
@@ -271,6 +275,8 @@ export function createD1AccountingCoreStore(db: D1Database): AccountingCoreStore
           settings.defaultArAccountId,
           settings.defaultApAccountId,
           settings.defaultIncomeAccountId,
+          settings.defaultDepositAccountId,
+          settings.stripeDepositAccountId,
           settings.createdAt,
           settings.updatedAt
         )

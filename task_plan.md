@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 100
+Phase 101
 
 ## Phases
 
@@ -786,6 +786,15 @@ Phase 100
 - [x] Make AP bill creation and payable posting resolve persisted AP defaults server-side while preserving bill-level AP posting contracts.
 - [x] Add template policy checks for persisted AR/income/AP default consumption.
 - [x] Verify accounting template spec/build, accounting-core/AP/AR tests, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 101: Accounting Deposit Account Defaults
+- [x] Add accounting-core settings fields for a general payment deposit account and source-compatible Stripe deposit override.
+- [x] Add module/template D1 upgrade migrations for deposit-account settings.
+- [x] Auto-map seeded chart code `1120` into the general payment deposit default.
+- [x] Expose payment deposit and Stripe deposit selectors on the accounting settings route.
+- [x] Make AR payment posting consume the persisted deposit default and make Stripe webhooks pass the Stripe override when configured.
+- [x] Verify accounting-core tests/spec/build, accounting template spec/build, migration replay, AR tests, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

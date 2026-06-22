@@ -240,7 +240,9 @@
           "baseCurrency": { "type": "string" },
           "defaultArAccountId": { "type": ["string", "null"] },
           "defaultApAccountId": { "type": ["string", "null"] },
-          "defaultIncomeAccountId": { "type": ["string", "null"] }
+          "defaultIncomeAccountId": { "type": ["string", "null"] },
+          "defaultDepositAccountId": { "type": ["string", "null"] },
+          "stripeDepositAccountId": { "type": ["string", "null"] }
         }
       }
     }

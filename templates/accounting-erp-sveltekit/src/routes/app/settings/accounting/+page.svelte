@@ -7,6 +7,7 @@
   const periodTone = $derived(data.setup.fiscalPeriodsConfigured ? "good" : "neutral");
   const settingDefaults = $derived(form?.values ?? data.setup.settings ?? {});
   const receivableAccounts = $derived(data.accounts.filter((account) => account.type === "asset" && account.active && !account.isHeader));
+  const depositAccounts = $derived(data.accounts.filter((account) => account.type === "asset" && account.active && !account.isHeader));
   const payableAccounts = $derived(data.accounts.filter((account) => account.type === "liability" && account.active && !account.isHeader));
   const incomeAccounts = $derived(data.accounts.filter((account) => account.type === "revenue" && account.active && !account.isHeader));
 
@@ -110,6 +111,22 @@
             <option value="">Not set</option>
             {#each incomeAccounts as account}
               <option value={account.id} selected={settingDefaults.defaultIncomeAccountId === account.id}>{accountLabel(account)}</option>
+            {/each}
+          </select>
+        </Field>
+        <Field label="Payment deposit" id="defaultDepositAccountId">
+          <select id="defaultDepositAccountId" name="defaultDepositAccountId" disabled={!data.canManage || !data.setup.accountsConfigured}>
+            <option value="">Not set</option>
+            {#each depositAccounts as account}
+              <option value={account.id} selected={settingDefaults.defaultDepositAccountId === account.id}>{accountLabel(account)}</option>
+            {/each}
+          </select>
+        </Field>
+        <Field label="Stripe deposit" id="stripeDepositAccountId">
+          <select id="stripeDepositAccountId" name="stripeDepositAccountId" disabled={!data.canManage || !data.setup.accountsConfigured}>
+            <option value="">Use payment deposit</option>
+            {#each depositAccounts as account}
+              <option value={account.id} selected={settingDefaults.stripeDepositAccountId === account.id}>{accountLabel(account)}</option>
             {/each}
           </select>
         </Field>

@@ -59,6 +59,8 @@ CREATE TABLE accounting_settings (
   default_ar_account_id TEXT,
   default_ap_account_id TEXT,
   default_income_account_id TEXT,
+  default_deposit_account_id TEXT,
+  stripe_deposit_account_id TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -625,6 +627,7 @@ describe("accounting-core: setup", () => {
     const assets = accounts.find((account) => account.code === "1000");
     const fixedAssets = accounts.find((account) => account.code === "1500");
     const checking = accounts.find((account) => account.code === "1111");
+    const deposit = accounts.find((account) => account.code === "1120");
     const ar = accounts.find((account) => account.code === "1200");
     const ap = accounts.find((account) => account.code === "2110");
     const income = accounts.find((account) => account.code === "4100");
@@ -639,7 +642,9 @@ describe("accounting-core: setup", () => {
         baseCurrency: "USD",
         defaultArAccountId: ar?.id,
         defaultApAccountId: ap?.id,
-        defaultIncomeAccountId: income?.id
+        defaultIncomeAccountId: income?.id,
+        defaultDepositAccountId: deposit?.id,
+        stripeDepositAccountId: null
       })
     );
     expect(allowance).toEqual(expect.objectContaining({ normalBalance: "credit" }));
@@ -660,7 +665,9 @@ describe("accounting-core: setup", () => {
         expect.objectContaining({
           defaultArAccountId: ar?.id,
           defaultApAccountId: ap?.id,
-          defaultIncomeAccountId: income?.id
+          defaultIncomeAccountId: income?.id,
+          defaultDepositAccountId: deposit?.id,
+          stripeDepositAccountId: null
         })
       );
     }
@@ -681,11 +688,15 @@ describe("accounting-core: setup", () => {
       { tenantId: TENANT_ID, code: "4100", name: "Sales Revenue", type: "revenue" },
       deps
     );
+    const deposit = await createAccount(
+      { tenantId: TENANT_ID, code: "1120", name: "Undeposited Funds", type: "asset" },
+      deps
+    );
     const header = await createAccount(
       { tenantId: TENANT_ID, code: "4000", name: "Revenue", type: "revenue", isHeader: true },
       deps
     );
-    if (!asset.ok || !liability.ok || !revenue.ok || !header.ok) throw new Error("setup failed");
+    if (!asset.ok || !liability.ok || !revenue.ok || !deposit.ok || !header.ok) throw new Error("setup failed");
 
     const updated = await updateAccountingSettings(
       {
@@ -695,7 +706,9 @@ describe("accounting-core: setup", () => {
         baseCurrency: "eur",
         defaultArAccountId: asset.data.account.id,
         defaultApAccountId: liability.data.account.id,
-        defaultIncomeAccountId: revenue.data.account.id
+        defaultIncomeAccountId: revenue.data.account.id,
+        defaultDepositAccountId: deposit.data.account.id,
+        stripeDepositAccountId: deposit.data.account.id
       },
       deps
     );
@@ -709,7 +722,9 @@ describe("accounting-core: setup", () => {
           baseCurrency: "EUR",
           defaultArAccountId: asset.data.account.id,
           defaultApAccountId: liability.data.account.id,
-          defaultIncomeAccountId: revenue.data.account.id
+          defaultIncomeAccountId: revenue.data.account.id,
+          defaultDepositAccountId: deposit.data.account.id,
+          stripeDepositAccountId: deposit.data.account.id
         })
       );
     }

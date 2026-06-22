@@ -86,6 +86,18 @@ async function defaultInvoiceAccounts(accountingCoreStore: AccountingCoreStore, 
   return { arAccountId, revenueAccountId };
 }
 
+async function defaultDepositAccount(accountingCoreStore: AccountingCoreStore, tenantId: string): Promise<string> {
+  const settings = await accountingCoreStore.getAccountingSettings(tenantId);
+  return accountByIdOrCode({
+    accountingCoreStore,
+    tenantId,
+    accountId: settings?.defaultDepositAccountId,
+    fallbackCode: "1120",
+    label: "Payment Deposit",
+    settingsConfigured: Boolean(settings)
+  });
+}
+
 function ensureAccount(accountId: string | null | undefined, label: string): string {
   return accountId ?? fail(`Select ${label} before posting to accounting.`);
 }
@@ -177,8 +189,10 @@ export function createAccountsReceivableAccountingPoster(input: {
       const entryDate = dateOnly(request.payment.paymentDate);
       const periodId = await openPeriodId(accountingCoreStore, request.tenantId, entryDate);
       const arAccountId = await defaultArAccount(accountingCoreStore, request.tenantId);
-      const defaultDepositAccountId = await accountByCode(accountingCoreStore, request.tenantId, "1120", "Undeposited Funds");
-      const depositAccountId = ensureAccount(request.payment.depositAccountId ?? defaultDepositAccountId, "a deposit asset account");
+      const depositAccountId = ensureAccount(
+        request.payment.depositAccountId ?? (await defaultDepositAccount(accountingCoreStore, request.tenantId)),
+        "a deposit asset account"
+      );
 
       const creditLines = request.applications.map((application) => {
         const invoice = request.invoices.find((candidate) => candidate.id === application.invoiceId);

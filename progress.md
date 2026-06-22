@@ -2047,6 +2047,27 @@ Note: an initial `create-microservices-app` test run overlapped with `create-mic
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 101 accounting deposit account defaults
+
+- **Status:** complete.
+- Goal: remove the remaining AR payment deposit-account hard-code while keeping source StackSuite's Stripe deposit override concept available.
+- Added `defaultDepositAccountId` and `stripeDepositAccountId` to accounting-core settings types, schemas, D1 adapter, OpenAPI, API schema, docs, and policy checks.
+- Added module/template upgrade migrations for `default_deposit_account_id` and `stripe_deposit_account_id`.
+- Chart seeding now maps code `1120` into the general payment deposit default; Stripe deposit remains an optional override.
+- Accounting Settings now exposes Payment deposit and Stripe deposit selectors.
+- AR customer-payment posting now resolves the persisted payment deposit default before legacy code fallback, and the Stripe webhook passes `stripeDepositAccountId` when configured.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounting-core tests | Settings persistence, seeded deposit default, validation, setup, GL, fiscal periods, posting, CAS, and trial balance behavior remain green | `pnpm --filter @microservices-sh/accounting-core test` passed, 19/19 | Pass |
+| Accounting-core spec/build | Module migrations/docs/OpenAPI/schema/source guard stay aligned with deposit settings | `pnpm --filter @microservices-sh/accounting-core check:spec` and `pnpm --filter @microservices-sh/accounting-core build` passed | Pass |
+| Accounting template spec/build | Settings UI, AR bridge, Stripe webhook, and template migration checks remain green | `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Migration replay | Fresh module/template D1 stacks add deposit setting columns after accounting settings table creation | Module and accounting template SQLite replays showed `default_deposit_account_id` and `stripe_deposit_account_id` | Pass |
+| Accounts-receivable tests | AR payment service contract remains green with explicit deposit account support | `pnpm --filter @microservices-sh/accounts-receivable test` passed, 4/4 | Pass |
+| Create app package | Bundled accounting template and vendored accounting-core module regenerate cleanly | `pnpm --filter create-microservices-app build` passed; `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 87 commerce sync logs route proof
 
 - **Status:** complete.

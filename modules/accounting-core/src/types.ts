@@ -141,6 +141,8 @@ export interface AccountingSettings {
   defaultArAccountId: string | null;
   defaultApAccountId: string | null;
   defaultIncomeAccountId: string | null;
+  defaultDepositAccountId: string | null;
+  stripeDepositAccountId: string | null;
   createdAt: string;
   updatedAt: string;
 }

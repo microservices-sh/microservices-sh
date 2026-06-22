@@ -19,6 +19,11 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
     ["CREATE TABLE IF NOT EXISTS accounting_settings", "default_ar_account_id", "default_ap_account_id", "default_income_account_id"],
     "Accounting Core persists source-style accounting setup settings and default account IDs."
   );
+  assertFileIncludesAll(
+    "migrations/0005_accounting_deposit_settings.sql",
+    ["default_deposit_account_id", "stripe_deposit_account_id"],
+    "Accounting Core upgrade migration adds source-style deposit account defaults."
+  );
   assertFileIncludes(
     "migrations/0001_initial.sql",
     "CREATE TABLE IF NOT EXISTS accounting_journal_entries",
@@ -66,7 +71,9 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
       "accountingSettingsSchema",
       "defaultArAccountId",
       "defaultApAccountId",
-      "defaultIncomeAccountId"
+      "defaultIncomeAccountId",
+      "defaultDepositAccountId",
+      "stripeDepositAccountId"
     ],
     "Accounting Core setup schema accepts GAAP/IFRS chart seed standards, base currency, and default account settings."
   );
@@ -82,6 +89,8 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
       "defaultArAccountId",
       "defaultApAccountId",
       "defaultIncomeAccountId",
+      "defaultDepositAccountId",
+      "stripeDepositAccountId",
       "DEFAULT_ACCOUNT_TYPE_MISMATCH"
     ],
     "Accounting Core setup use case carries source-parity IFRS chart seed, base-currency status metadata, and persisted default account settings."

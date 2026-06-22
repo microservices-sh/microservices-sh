@@ -134,7 +134,9 @@ export const actions: Actions = {
     const values = {
       defaultArAccountId: optionalAccountId(form.get("defaultArAccountId")),
       defaultApAccountId: optionalAccountId(form.get("defaultApAccountId")),
-      defaultIncomeAccountId: optionalAccountId(form.get("defaultIncomeAccountId"))
+      defaultIncomeAccountId: optionalAccountId(form.get("defaultIncomeAccountId")),
+      defaultDepositAccountId: optionalAccountId(form.get("defaultDepositAccountId")),
+      stripeDepositAccountId: optionalAccountId(form.get("stripeDepositAccountId"))
     };
     const result = await updateAccountingSettings(
       { tenantId: org.id, ...values },
@@ -149,7 +151,7 @@ export const actions: Actions = {
         entityType: "organization",
         entityId: org.id,
         source: "app/settings/accounting",
-        payload: { setupAction: "updateAccountingSettings", defaultAccountsConfigured: true }
+        payload: { setupAction: "updateAccountingSettings", defaultAccountsConfigured: true, stripeDepositConfigured: Boolean(values.stripeDepositAccountId) }
       },
       { auditStore: locals.auditStore }
     );

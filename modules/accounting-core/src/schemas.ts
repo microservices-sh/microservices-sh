@@ -160,7 +160,9 @@ export const accountingSettingsSchema = z.object({
   baseCurrency: z.string().min(3).max(3).optional(),
   defaultArAccountId: z.string().min(1).nullable().optional(),
   defaultApAccountId: z.string().min(1).nullable().optional(),
-  defaultIncomeAccountId: z.string().min(1).nullable().optional()
+  defaultIncomeAccountId: z.string().min(1).nullable().optional(),
+  defaultDepositAccountId: z.string().min(1).nullable().optional(),
+  stripeDepositAccountId: z.string().min(1).nullable().optional()
 });
 
 export const seedChartOfAccountsSchema = z.object({

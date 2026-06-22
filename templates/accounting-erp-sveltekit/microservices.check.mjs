@@ -4,6 +4,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const bankReconciliationMigration = readText("migrations/0026_bank_reconciliation.sql");
   const accountingFiscalPeriodMetadataMigration = readText("migrations/0030_accounting_fiscal_period_metadata.sql");
   const accountingSettingsMigration = readText("migrations/0031_accounting_settings.sql");
+  const accountingDepositSettingsMigration = readText("migrations/0032_accounting_deposit_settings.sql");
   const recurringBillDetailServer = readText("src/routes/app/payables/recurring/[id]/+page.server.ts");
   const bankingImportDetailServer = readText("src/routes/app/banking/imports/[id]/+page.server.ts");
   const bankingImportDetailPage = readText("src/routes/app/banking/imports/[id]/+page.svelte");
@@ -247,7 +248,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/lib/server/accounts-receivable-accounting.ts",
-    ["postIssuedInvoiceToAccounting", "createAccountsReceivableAccountingPoster", "\"1200\"", "\"4100\"", "\"1120\"", "postAccountsReceivablePayment"],
+    ["postIssuedInvoiceToAccounting", "createAccountsReceivableAccountingPoster", "\"1200\"", "\"4100\"", "defaultDepositAccount", "defaultDepositAccountId", "postAccountsReceivablePayment"],
     "Accounting template posts issued invoices and applied customer payments into accounting-core journals."
   );
   assertFileIncludesAll(
@@ -282,8 +283,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/api/payments/stripe-webhook/+server.ts",
-    ["request.text()", "verifyWebhookSignature", "parseStripeInvoiceSettlementEvent", "recordCustomerPayment", "applyCustomerPayment", "recordPaymentScoped", "syncInvoiceToReceivables", "stripe-signature"],
-    "Stripe webhook route verifies raw signed payloads before applying AR settlement, recording invoice payments, and refreshing receivables snapshots."
+    ["request.text()", "verifyWebhookSignature", "parseStripeInvoiceSettlementEvent", "getAccountingSettings", "stripeDepositAccountId", "depositAccountId", "recordCustomerPayment", "applyCustomerPayment", "recordPaymentScoped", "syncInvoiceToReceivables", "stripe-signature"],
+    "Stripe webhook route verifies raw signed payloads before applying AR settlement with configured deposit-account routing."
   );
   assertFileIncludesAll(
     "src/lib/server/stripe-invoice-settlement.ts",
@@ -307,8 +308,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/lib/server/accounts-receivable-accounting.ts",
-    ["getAccountingSettings", "settingsConfigured", "defaultInvoiceAccounts", "defaultArAccount", "defaultArAccountId", "defaultIncomeAccountId"],
-    "Accounts Receivable posting consumes persisted accounting default AR/income accounts before legacy code fallback."
+    ["getAccountingSettings", "settingsConfigured", "defaultInvoiceAccounts", "defaultArAccount", "defaultDepositAccount", "defaultArAccountId", "defaultIncomeAccountId", "defaultDepositAccountId"],
+    "Accounts Receivable posting consumes persisted accounting default AR/income/deposit accounts before legacy code fallback."
   );
   assertFileIncludesAll(
     "src/routes/app/payables/+page.server.ts",
@@ -370,6 +371,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       "form.get(\"defaultArAccountId\")",
       "form.get(\"defaultApAccountId\")",
       "form.get(\"defaultIncomeAccountId\")",
+      "form.get(\"defaultDepositAccountId\")",
+      "form.get(\"stripeDepositAccountId\")",
       "{ tenantId: org.id, standard, currency }"
     ],
     "Accounting settings seeds chart setup and persists default posting accounts through accounting-core."
@@ -385,7 +388,9 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       "Default posting accounts",
       "name=\"defaultArAccountId\"",
       "name=\"defaultApAccountId\"",
-      "name=\"defaultIncomeAccountId\""
+      "name=\"defaultIncomeAccountId\"",
+      "name=\"defaultDepositAccountId\"",
+      "name=\"stripeDepositAccountId\""
     ],
     "Accounting settings UI exposes chart standard, base-currency setup, and default posting account fields."
   );
@@ -396,6 +401,12 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       accountingSettingsMigration.includes("default_income_account_id"),
     "Accounting template includes the accounting settings/default-account persistence migration.",
     "policy:accounting-settings-migration"
+  );
+  assert(
+    accountingDepositSettingsMigration.includes("default_deposit_account_id") &&
+      accountingDepositSettingsMigration.includes("stripe_deposit_account_id"),
+    "Accounting template includes the deposit-account settings upgrade migration.",
+    "policy:accounting-deposit-settings-migration"
   );
   assertFileIncludesAll(
     "src/routes/app/ledger/+page.server.ts",

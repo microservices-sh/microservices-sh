@@ -179,18 +179,27 @@ function setupBaseCurrency(accounts: { currency: string }[]): string | null {
   return currencies.length === 1 ? currencies[0] : null;
 }
 
-type DefaultAccountKey = "defaultArAccountId" | "defaultApAccountId" | "defaultIncomeAccountId";
+type DefaultAccountKey =
+  | "defaultArAccountId"
+  | "defaultApAccountId"
+  | "defaultIncomeAccountId"
+  | "defaultDepositAccountId"
+  | "stripeDepositAccountId";
 
 const DEFAULT_ACCOUNT_CODES: Record<DefaultAccountKey, string> = {
   defaultArAccountId: "1200",
   defaultApAccountId: "2110",
-  defaultIncomeAccountId: "4100"
+  defaultIncomeAccountId: "4100",
+  defaultDepositAccountId: "1120",
+  stripeDepositAccountId: "1120"
 };
 
 const DEFAULT_ACCOUNT_TYPES: Record<DefaultAccountKey, AccountType> = {
   defaultArAccountId: "asset",
   defaultApAccountId: "liability",
-  defaultIncomeAccountId: "revenue"
+  defaultIncomeAccountId: "revenue",
+  defaultDepositAccountId: "asset",
+  stripeDepositAccountId: "asset"
 };
 
 function cleanCurrency(value: string): string {
@@ -198,7 +207,12 @@ function cleanCurrency(value: string): string {
 }
 
 function defaultAccountsConfigured(settings: AccountingSettings | null): boolean {
-  return Boolean(settings?.defaultArAccountId && settings.defaultApAccountId && settings.defaultIncomeAccountId);
+  return Boolean(
+    settings?.defaultArAccountId &&
+      settings.defaultApAccountId &&
+      settings.defaultIncomeAccountId &&
+      settings.defaultDepositAccountId
+  );
 }
 
 function hasOwn(data: object, key: string): boolean {
@@ -221,6 +235,8 @@ function baseSettings(input: {
     defaultArAccountId: input.existing?.defaultArAccountId ?? null,
     defaultApAccountId: input.existing?.defaultApAccountId ?? null,
     defaultIncomeAccountId: input.existing?.defaultIncomeAccountId ?? null,
+    defaultDepositAccountId: input.existing?.defaultDepositAccountId ?? null,
+    stripeDepositAccountId: input.existing?.stripeDepositAccountId ?? null,
     createdAt: input.existing?.createdAt ?? input.nowIso,
     updatedAt: input.nowIso
   };
@@ -275,6 +291,8 @@ function seededDefaultSettings(
   settings.defaultApAccountId = accountIdsByCode.get(DEFAULT_ACCOUNT_CODES.defaultApAccountId) ?? settings.defaultApAccountId;
   settings.defaultIncomeAccountId =
     accountIdsByCode.get(DEFAULT_ACCOUNT_CODES.defaultIncomeAccountId) ?? settings.defaultIncomeAccountId;
+  settings.defaultDepositAccountId =
+    accountIdsByCode.get(DEFAULT_ACCOUNT_CODES.defaultDepositAccountId) ?? settings.defaultDepositAccountId;
   return settings;
 }
 
