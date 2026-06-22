@@ -95,7 +95,7 @@
             <tbody>
               {#each data.bills as bill (bill.id)}
                 <tr>
-                  <td><code>{bill.billNumber}</code></td>
+                  <td><a href={`/app/payables/${bill.id}`}><code>{bill.billNumber}</code></a></td>
                   <td>{data.vendors.find((vendor) => vendor.id === bill.vendorId)?.name ?? bill.vendorId}</td>
                   <td>{money(bill.totalCents, bill.currency)}</td>
                   <td>{money(bill.amountDueCents, bill.currency)}</td>

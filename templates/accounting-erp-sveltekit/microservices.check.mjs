@@ -5,6 +5,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const accountingFiscalPeriodMetadataMigration = readText("migrations/0030_accounting_fiscal_period_metadata.sql");
   const accountingSettingsMigration = readText("migrations/0031_accounting_settings.sql");
   const accountingDepositSettingsMigration = readText("migrations/0032_accounting_deposit_settings.sql");
+  const billDetailServer = readText("src/routes/app/payables/[id]/+page.server.ts");
+  const billDetailPage = readText("src/routes/app/payables/[id]/+page.svelte");
   const recurringBillDetailServer = readText("src/routes/app/payables/recurring/[id]/+page.server.ts");
   const bankingImportDetailServer = readText("src/routes/app/banking/imports/[id]/+page.server.ts");
   const bankingImportDetailPage = readText("src/routes/app/banking/imports/[id]/+page.svelte");
@@ -734,8 +736,33 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/payables/+page.svelte",
-    ["Recurring bills", "Create recurring bill", "?/createRecurringBillTemplate", "?/generateDueRecurringBills", "?/updateRecurringBillStatus", "/app/payables/recurring/${template.id}"],
-    "Payables page exposes AP recurring bill route proof for schedule creation, status changes, and due generation."
+    ["Recurring bills", "Create recurring bill", "?/createRecurringBillTemplate", "?/generateDueRecurringBills", "?/updateRecurringBillStatus", "/app/payables/recurring/${template.id}", "/app/payables/${bill.id}"],
+    "Payables page exposes AP bill detail links and recurring bill route proof for schedule creation, status changes, and due generation."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/payables/[id]/+page.server.ts",
+    ["getBill", "listVendors", "listAccounts", "requireModule(\"accounts-payable\"", "requireOrgPermission", "\"org.read\""],
+    "Bill detail route loads one tenant-scoped bill through the accounts-payable module with vendor and account labels."
+  );
+  assert(
+    !billDetailServer.includes("markBillPayable(") &&
+      !billDetailServer.includes("recordBillPayment(") &&
+      !billDetailServer.includes("export const actions"),
+    "Bill detail route stays read-only; posting and payment side effects remain on the Payables operator page.",
+    "policy:accounting-ap-bill-detail-read-only"
+  );
+  assertFileIncludesAll(
+    "src/routes/app/payables/[id]/+page.svelte",
+    ["Vendor bill", "Bill details", "Line items", "Totals", "Open payables actions"],
+    "Bill detail page exposes vendor, line-item, totals, and lifecycle context."
+  );
+  assert(
+    !billDetailPage.includes("<form") &&
+      !billDetailPage.includes("method=\"POST\"") &&
+      !billDetailPage.includes("use:enhance") &&
+      !billDetailPage.includes("?/"),
+    "Bill detail page does not render write-capable forms or SvelteKit action targets.",
+    "policy:accounting-ap-bill-detail-ui-read-only"
   );
   assertFileIncludesAll(
     "src/routes/app/payables/recurring/[id]/+page.server.ts",

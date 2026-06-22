@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 102
+Phase 103
 
 ## Phases
 
@@ -803,6 +803,14 @@ Phase 102
 - [x] Expose and validate vendor default expense account selection in the focused accounting Payables template.
 - [x] Add module/template policy checks for vendor default expense account persistence and fallback behavior.
 - [x] Verify AP tests/spec/build, accounting template spec/build, accounting template build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 103: AP Bill Detail Route Proof
+- [x] Add a tenant-scoped `getBill` use case over the existing accounts-payable store method.
+- [x] Add a focused accounting Payables bill detail route with vendor, line item, totals, lifecycle, and memo views.
+- [x] Link the Payables bill ledger to the detail route while keeping mark-payable/payment side effects on the existing Payables action surface.
+- [x] Add module/template policy checks for the read use case and route boundary.
+- [x] Verify AP tests/spec/build, accounting template spec/build/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

@@ -15,6 +15,7 @@ export {
 export { createVendor } from "./use-cases/create-vendor";
 export { listVendors } from "./use-cases/list-vendors";
 export { createBill } from "./use-cases/create-bill";
+export { getBill } from "./use-cases/get-bill";
 export { listBills } from "./use-cases/list-bills";
 export { markBillPayable } from "./use-cases/mark-bill-payable";
 export { recordBillPayment } from "./use-cases/record-bill-payment";

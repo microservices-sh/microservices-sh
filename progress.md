@@ -2089,6 +2089,24 @@ Note: an initial `create-microservices-app` test run overlapped with `create-mic
 
 Note: an attempted donor `sed` read failed because the shell parsed an unquoted `(app)` path. The same reads were rerun with quoted paths and succeeded.
 
+### Phase 103 AP bill detail route proof
+
+- **Status:** complete.
+- Goal: close the donor-backed AP bill detail gap with a read-only route proof before splitting approval/posting or payment workbench behavior.
+- Added `getBill` to `modules/accounts-payable`, backed by the existing tenant-scoped `accountsPayableStore.getBill` method and covered by tenant-isolation/line-item tests.
+- Added `/app/payables/[id]` to the focused accounting template with vendor, date, status, AP account, journal entry, line-item, totals, lifecycle, and memo context.
+- Linked bill numbers in the Payables ledger to the new detail route.
+- Kept mark-payable and payment side effects on `/app/payables`; policy checks prevent actions/forms from being added to the detail route.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounts-payable tests | New `getBill` read use case remains tenant-scoped and includes line items | `pnpm --filter @microservices-sh/accounts-payable test` passed, 15/15 | Pass |
+| Accounts-payable spec/build | Module contract and TypeScript build remain green | `pnpm --filter @microservices-sh/accounts-payable check:spec` and `pnpm --filter @microservices-sh/accounts-payable build` passed | Pass |
+| Accounting template spec/build | Bill detail route policy and SvelteKit build compile | `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Bundled accounting template regenerates and create-app tests remain green | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 87 commerce sync logs route proof
 
 - **Status:** complete.

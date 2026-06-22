@@ -6,6 +6,7 @@ import {
   createVendor,
   generateDueRecurringBills,
   getAgingReport,
+  getBill,
   getRecurringBillTemplate,
   listBills,
   listRecurringBillTemplates,
@@ -147,6 +148,57 @@ describe("accounts-payable: bills", () => {
       "acct-expense-default",
       "acct-expense-explicit"
     ]);
+  });
+
+  it("gets one bill by tenant and includes line items", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const vendor = await seedVendor(store, "tenant-1");
+    const otherTenantVendor = await seedVendor(store, "tenant-2");
+
+    const created = await createBill(
+      {
+        tenantId: "tenant-1",
+        vendorId: vendor.id,
+        billDate: "2026-01-01T00:00:00.000Z",
+        dueDate: "2026-01-31T00:00:00.000Z",
+        lineItems: [{ description: "Paper", quantity: 2, unitAmountCents: 5_000, taxCents: 1_000 }]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0) }
+    );
+    if (!created.ok) throw new Error(created.error.message);
+
+    const otherTenant = await createBill(
+      {
+        tenantId: "tenant-2",
+        vendorId: otherTenantVendor.id,
+        billDate: "2026-01-01T00:00:00.000Z",
+        dueDate: "2026-01-31T00:00:00.000Z",
+        lineItems: [{ description: "Other", quantity: 1, unitAmountCents: 1_000, taxCents: 0 }]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0 + 1) }
+    );
+    if (!otherTenant.ok) throw new Error(otherTenant.error.message);
+
+    const found = await getBill(
+      { tenantId: "tenant-1", billId: created.data.bill.id },
+      { accountsPayableStore: store }
+    );
+    expect(found.ok).toBe(true);
+    if (!found.ok) throw new Error(found.error.message);
+    expect(found.data.bill).toMatchObject({
+      id: created.data.bill.id,
+      tenantId: "tenant-1",
+      vendorId: vendor.id,
+      totalCents: 11_000
+    });
+    expect(found.data.bill.lineItems).toHaveLength(1);
+
+    const foreign = await getBill(
+      { tenantId: "tenant-1", billId: otherTenant.data.bill.id },
+      { accountsPayableStore: store }
+    );
+    expect(foreign.ok).toBe(false);
+    if (!foreign.ok) expect(foreign.status).toBe(404);
   });
 
   it("rejects supplied totals that do not match line totals", async () => {

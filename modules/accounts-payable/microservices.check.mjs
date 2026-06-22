@@ -20,6 +20,16 @@ export default function check({ assertFileIncludes }) {
     "Bill creation falls back to a vendor default expense account when line accounts are blank."
   );
   assertFileIncludes(
+    "src/index.ts",
+    "export { getBill }",
+    "Accounts Payable exports a tenant-scoped bill detail read use case."
+  );
+  assertFileIncludes(
+    "src/use-cases/get-bill.ts",
+    "accountsPayableStore.getBill",
+    "Bill detail read use case is backed by the tenant-scoped store lookup."
+  );
+  assertFileIncludes(
     "src/use-cases/create-recurring-bill-template.ts",
     "vendor.defaultExpenseAccountId",
     "Recurring bill templates fall back to a vendor default expense account when line accounts are blank."
