@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 99
+Phase 100
 
 ## Phases
 
@@ -778,6 +778,14 @@ Phase 99
 - [x] Add `updateAccountingSettings` validation for same-tenant active non-header default accounts with compatible account types.
 - [x] Expose default AR/AP/income account selectors on the accounting settings template page.
 - [x] Verify accounting-core tests/spec/build, accounting template spec/build, migration replay, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 100: Accounting Posting Bridges Consume Setup Defaults
+- [x] Make AR invoice and payment posting resolve persisted accounting AR/income defaults before legacy code fallback.
+- [x] Fail configured tenants that have a settings row but missing AR/income defaults instead of silently falling back to hard-coded codes.
+- [x] Make AP bill creation and payable posting resolve persisted AP defaults server-side while preserving bill-level AP posting contracts.
+- [x] Add template policy checks for persisted AR/income/AP default consumption.
+- [x] Verify accounting template spec/build, accounting-core/AP/AR tests, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

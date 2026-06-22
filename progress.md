@@ -2028,6 +2028,25 @@ Note: an initial `create-microservices-app` test run overlapped with `create-mic
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 100 accounting posting bridges consume setup defaults
+
+- **Status:** complete.
+- Goal: make the accounting template posting bridges consume the persisted default account settings added in Phase 99 instead of relying on hard-coded AR/income/AP choices.
+- AR invoice issue and customer-payment posting now resolve persisted default AR/income accounts, validate configured IDs with account lookup, reject inactive/header accounts, and only use legacy code fallback when no accounting settings row exists.
+- AP bill creation and mark-payable posting now resolve persisted AP defaults server-side while preserving bill-level AP account storage and the existing AP poster contract.
+- Payables UI selectors now preselect the persisted AP default when a bill/form has no AP account, and template checks guard the server-side AR/AP default consumption.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounting template spec | Policy catches AR default consumption, strict configured-tenant fallback, AP server-side defaults, and AP selector defaults | `pnpm --dir templates/accounting-erp-sveltekit check:spec` passed | Pass |
+| Accounting template build | SvelteKit/Cloudflare build compiles after posting bridge changes | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Accounting-core tests | Settings, setup, GL, fiscal period, posting, CAS, and trial balance behavior remain green | `pnpm --filter @microservices-sh/accounting-core test` passed, 19/19 | Pass |
+| Accounts-payable tests | AP bill/payment contracts remain green with route-level default fallback | `pnpm --filter @microservices-sh/accounts-payable test` passed, 12/12 | Pass |
+| Accounts-receivable tests | AR invoice/payment contracts remain green with route-level posting bridge defaults | `pnpm --filter @microservices-sh/accounts-receivable test` passed, 4/4 | Pass |
+| Create app package | Bundled accounting template is regenerated and create-app tests remain green | `pnpm --filter create-microservices-app build` passed; `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 87 commerce sync logs route proof
 
 - **Status:** complete.

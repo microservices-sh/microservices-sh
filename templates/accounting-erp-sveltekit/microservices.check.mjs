@@ -306,6 +306,28 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Receivables payment actions apply AR settlement, update the invoice module lifecycle, and refresh AR snapshots."
   );
   assertFileIncludesAll(
+    "src/lib/server/accounts-receivable-accounting.ts",
+    ["getAccountingSettings", "settingsConfigured", "defaultInvoiceAccounts", "defaultArAccount", "defaultArAccountId", "defaultIncomeAccountId"],
+    "Accounts Receivable posting consumes persisted accounting default AR/income accounts before legacy code fallback."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/payables/+page.server.ts",
+    [
+      "getAccountingSetupStatus",
+      "defaultApAccount",
+      "defaultApAccountId",
+      "requireModule(\"accounting-core\"",
+      "values.apAccountId || apDefault.accountId",
+      "Choose Accounts Payable in Accounting settings"
+    ],
+    "Payables route loads and applies persisted accounting AP default settings server-side."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/payables/+page.svelte",
+    ["data.defaultApAccountId", "(bill.apAccountId ?? data.defaultApAccountId)", "form?.values?.apAccountId ?? data.defaultApAccountId"],
+    "Payables AP account selectors default to persisted accounting settings when the bill has no AP account."
+  );
+  assertFileIncludesAll(
     "src/routes/app/reports/+page.server.ts",
     [
       "getAgingReport",

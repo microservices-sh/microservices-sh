@@ -29,7 +29,61 @@ async function openPeriodId(accountingCoreStore: AccountingCoreStore, tenantId: 
 async function accountByCode(accountingCoreStore: AccountingCoreStore, tenantId: string, code: string, label: string): Promise<string> {
   const account = await accountingCoreStore.findAccountByCode(tenantId, code);
   if (!account || !account.active) fail(`Seed or activate ${label} (${code}) before posting to accounting.`);
+  if (account.isHeader) fail(`${label} (${code}) must be a postable account before posting to accounting.`);
   return account.id;
+}
+
+async function accountByIdOrCode(input: {
+  accountingCoreStore: AccountingCoreStore;
+  tenantId: string;
+  accountId: string | null | undefined;
+  fallbackCode: string;
+  label: string;
+  settingsConfigured: boolean;
+}): Promise<string> {
+  const { accountingCoreStore, tenantId, accountId, fallbackCode, label, settingsConfigured } = input;
+  if (!accountId) {
+    if (settingsConfigured) fail(`Choose ${label} in Accounting settings before posting to accounting.`);
+    return accountByCode(accountingCoreStore, tenantId, fallbackCode, label);
+  }
+  const account = await accountingCoreStore.getAccount(tenantId, accountId);
+  if (!account) fail(`Choose ${label} in Accounting settings before posting to accounting.`);
+  if (!account.active) fail(`Activate ${label} in Accounting settings before posting to accounting.`);
+  if (account.isHeader) fail(`Choose a postable ${label} in Accounting settings before posting to accounting.`);
+  return account.id;
+}
+
+async function defaultArAccount(accountingCoreStore: AccountingCoreStore, tenantId: string): Promise<string> {
+  const settings = await accountingCoreStore.getAccountingSettings(tenantId);
+  return accountByIdOrCode({
+    accountingCoreStore,
+    tenantId,
+    accountId: settings?.defaultArAccountId,
+    fallbackCode: "1200",
+    label: "Accounts Receivable",
+    settingsConfigured: Boolean(settings)
+  });
+}
+
+async function defaultInvoiceAccounts(accountingCoreStore: AccountingCoreStore, tenantId: string) {
+  const settings = await accountingCoreStore.getAccountingSettings(tenantId);
+  const arAccountId = await accountByIdOrCode({
+    accountingCoreStore,
+    tenantId,
+    accountId: settings?.defaultArAccountId,
+    fallbackCode: "1200",
+    label: "Accounts Receivable",
+    settingsConfigured: Boolean(settings)
+  });
+  const revenueAccountId = await accountByIdOrCode({
+    accountingCoreStore,
+    tenantId,
+    accountId: settings?.defaultIncomeAccountId,
+    fallbackCode: "4100",
+    label: "Sales Revenue",
+    settingsConfigured: Boolean(settings)
+  });
+  return { arAccountId, revenueAccountId };
 }
 
 function ensureAccount(accountId: string | null | undefined, label: string): string {
@@ -69,8 +123,7 @@ export async function postIssuedInvoiceToAccounting(input: {
 
   const entryDate = dateOnly(invoice.issuedAt);
   const periodId = await openPeriodId(accountingCoreStore, invoice.tenantId, entryDate);
-  const arAccountId = await accountByCode(accountingCoreStore, invoice.tenantId, "1200", "Accounts Receivable");
-  const revenueAccountId = await accountByCode(accountingCoreStore, invoice.tenantId, "4100", "Sales Revenue");
+  const { arAccountId, revenueAccountId } = await defaultInvoiceAccounts(accountingCoreStore, invoice.tenantId);
   const invoiceNumber = invoice.number ?? invoice.id;
 
   const entry = await createJournalEntry(
@@ -123,7 +176,7 @@ export function createAccountsReceivableAccountingPoster(input: {
 
       const entryDate = dateOnly(request.payment.paymentDate);
       const periodId = await openPeriodId(accountingCoreStore, request.tenantId, entryDate);
-      const arAccountId = await accountByCode(accountingCoreStore, request.tenantId, "1200", "Accounts Receivable");
+      const arAccountId = await defaultArAccount(accountingCoreStore, request.tenantId);
       const defaultDepositAccountId = await accountByCode(accountingCoreStore, request.tenantId, "1120", "Undeposited Funds");
       const depositAccountId = ensureAccount(request.payment.depositAccountId ?? defaultDepositAccountId, "a deposit asset account");
 

@@ -109,7 +109,7 @@
                           <select name="apAccountId" aria-label="AP account" required>
                             <option value="">AP account</option>
                             {#each liabilityAccounts as account (account.id)}
-                              <option value={account.id} selected={bill.apAccountId === account.id}>{account.code} · {account.name}</option>
+                              <option value={account.id} selected={(bill.apAccountId ?? data.defaultApAccountId) === account.id}>{account.code} · {account.name}</option>
                             {/each}
                           </select>
                           <Button type="submit" variant="ghost">Post</Button>
@@ -260,7 +260,7 @@
               <select id="bill-ap-account" name="apAccountId" required>
                 <option value="">Choose account</option>
                 {#each liabilityAccounts as account (account.id)}
-                  <option value={account.id}>{account.code} · {account.name}</option>
+                  <option value={account.id} selected={(form?.values?.apAccountId ?? data.defaultApAccountId) === account.id}>{account.code} · {account.name}</option>
                 {/each}
               </select>
             </Field>

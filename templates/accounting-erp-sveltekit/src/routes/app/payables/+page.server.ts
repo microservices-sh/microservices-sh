@@ -16,7 +16,7 @@ import {
   type RecurringBillFrequency,
   type RecurringBillStatus
 } from "@microservices-sh/accounts-payable";
-import { listAccounts } from "@microservices-sh/accounting-core";
+import { getAccountingSetupStatus, listAccounts, type AccountingCoreStore } from "@microservices-sh/accounting-core";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 import { createAccountsPayableAccountingPoster } from "$lib/server/accounts-payable-accounting";
@@ -55,18 +55,25 @@ function recurringBillStatus(value: string): RecurringBillStatus | null {
   return RECURRING_BILL_STATUSES.has(value as RecurringBillStatus) ? (value as RecurringBillStatus) : null;
 }
 
+async function defaultApAccount(accountingCoreStore: AccountingCoreStore, tenantId: string) {
+  const settings = await accountingCoreStore.getAccountingSettings(tenantId);
+  return { accountId: settings?.defaultApAccountId ?? null, settingsConfigured: Boolean(settings) };
+}
+
 export const load: PageServerLoad = async ({ locals, cookies, parent, platform }) => {
   requireModule("accounts-payable", platform);
+  requireModule("accounting-core", platform);
   const { activeOrgId } = await parent();
   if (!activeOrgId || !locals.user) throw redirect(303, "/app");
 
   const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "org.read", locals.rbacStore);
-  const [vendorsResult, billsResult, agingResult, accountsResult, recurringTemplatesResult] = await Promise.all([
+  const [vendorsResult, billsResult, agingResult, accountsResult, recurringTemplatesResult, setupStatus] = await Promise.all([
     listVendors({ tenantId: activeOrgId, includeInactive: true, limit: 250 }, { accountsPayableStore: locals.accountsPayableStore }),
     listBills({ tenantId: activeOrgId, limit: 100 }, { accountsPayableStore: locals.accountsPayableStore }),
     getAgingReport({ tenantId: activeOrgId }, { accountsPayableStore: locals.accountsPayableStore }),
     listAccounts({ tenantId: activeOrgId, includeInactive: false, limit: 500 }, { accountingCoreStore: locals.accountingCoreStore }),
-    listRecurringBillTemplates({ tenantId: activeOrgId, limit: 100 }, { accountsPayableStore: locals.accountsPayableStore })
+    listRecurringBillTemplates({ tenantId: activeOrgId, limit: 100 }, { accountsPayableStore: locals.accountsPayableStore }),
+    getAccountingSetupStatus({ tenantId: activeOrgId }, { accountingCoreStore: locals.accountingCoreStore })
   ]);
 
   return {
@@ -75,6 +82,7 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
     bills: billsResult.ok ? billsResult.data.bills : [],
     aging: agingResult.ok ? agingResult.data.report : null,
     accounts: accountsResult.ok ? accountsResult.data.accounts : [],
+    defaultApAccountId: setupStatus.ok ? setupStatus.data.status.settings?.defaultApAccountId ?? null : null,
     recurringBillTemplates: recurringTemplatesResult.ok ? recurringTemplatesResult.data.templates : [],
     today: today()
   };
@@ -129,6 +137,7 @@ export const actions: Actions = {
 
   createBill: async ({ request, locals, cookies, platform }) => {
     requireModule("accounts-payable", platform);
+    requireModule("accounting-core", platform);
     if (!locals.user) return fail(403, { error: "Not signed in to a company." });
     const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
     if (!org) return fail(403, { error: "Not signed in to a company." });
@@ -155,6 +164,8 @@ export const actions: Actions = {
     if (!values.vendorId || !values.description || !quantity || unitAmountCents == null || !billDate || !dueDate) {
       return fail(400, { error: "Enter vendor, dates, line description, quantity, and amount.", values });
     }
+    const apDefault = await defaultApAccount(locals.accountingCoreStore, org.id);
+    const apAccountId = values.apAccountId || apDefault.accountId;
 
     const result = await createBill(
       {
@@ -165,7 +176,7 @@ export const actions: Actions = {
         dueDate,
         currency: values.currency,
         memo: values.memo || null,
-        apAccountId: values.apAccountId || null,
+        apAccountId,
         requiresApproval: false,
         lineItems: [{ description: values.description, quantity, unitAmountCents, taxCents: 0, expenseAccountId: values.expenseAccountId || null }]
       },
@@ -398,7 +409,17 @@ export const actions: Actions = {
       billId: text(form.get("billId")),
       apAccountId: text(form.get("apAccountId"))
     };
-    if (!values.billId || !values.apAccountId) return fail(400, { error: "Choose a bill and AP account.", values });
+    if (!values.billId) return fail(400, { error: "Choose a bill.", values });
+    const apDefault = await defaultApAccount(locals.accountingCoreStore, org.id);
+    const apAccountId = values.apAccountId || apDefault.accountId;
+    if (!apAccountId) {
+      return fail(400, {
+        error: apDefault.settingsConfigured
+          ? "Choose Accounts Payable in Accounting settings before posting to accounting."
+          : "Choose an AP account.",
+        values
+      });
+    }
 
     try {
       const result = await markBillPayable(
@@ -406,7 +427,7 @@ export const actions: Actions = {
           tenantId: org.id,
           billId: values.billId,
           approvedById: locals.user.id,
-          apAccountId: values.apAccountId,
+          apAccountId,
           postToAccounting: true
         },
         {
