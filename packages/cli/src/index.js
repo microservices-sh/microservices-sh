@@ -32,6 +32,84 @@ const DEFAULT_CONFIG_PATH = process.env.MICROSERVICES_CONFIG_PATH
   ? resolve(process.env.MICROSERVICES_CONFIG_PATH)
   : join(process.env.MICROSERVICES_CONFIG_DIR || join(homedir(), ".microservices"), "config.json");
 
+const VALUE_FLAGS = new Set([
+  "--out",
+  "--modules",
+  "--config",
+  "--api-url",
+  "--operate-app",
+  "--actor",
+  "--name",
+  "--subject",
+  "--description",
+  "--message",
+  "--category",
+  "--priority",
+  "--email",
+  "--contact-email",
+  "--contact-name",
+  "--project-id",
+  "--deployment-id",
+  "--page-url",
+  "--url",
+  "--visibility",
+  "--repo-visibility",
+  "--ref",
+  "--default-branch",
+  "--path",
+  "--source-path",
+  "--slug",
+  "--purpose",
+  "--files",
+  "--dependencies",
+  "--deps",
+  "--required-env",
+  "--inputs",
+  "--outputs",
+  "--tests",
+  "--constraints",
+  "--do-not-use-for",
+  "--reuse-mode",
+  "--hostname",
+  "--app",
+  "--org",
+  "--region",
+  "--volume",
+  "--machine-id",
+  "--dashboard-user",
+  "--dashboard-username",
+  "--search",
+  "--q",
+  "--query",
+  "--level",
+  "--source",
+  "--event-type",
+  "--eventType",
+  "--since",
+  "--before",
+  "--api-key",
+  "--token",
+  "--env",
+  "--environment",
+  "--confirm",
+  "--mode",
+  "--version",
+  "--to",
+  "--target-version",
+  "--validation-method",
+  "--cf-custom-hostname-id",
+  "--cf-hostname-status",
+  "--cf-ssl-status",
+  "--dir",
+  "--from-report",
+  "--target",
+  "--goal",
+  "--limit",
+  "--max-candidates",
+  "--d1",
+  "--kv",
+]);
+
 function parseArgs(argv) {
   const args = [];
   let parseError = null;
@@ -111,6 +189,13 @@ function parseArgs(argv) {
     const value = argv[index];
     if (value === "--") {
       continue;
+    } else if (VALUE_FLAGS.has(value) && (!argv[index + 1] || argv[index + 1].startsWith("--"))) {
+      parseError ??= failResponse(
+        "CLI_FLAG_VALUE_REQUIRED",
+        `Missing value for ${value}.`,
+        `Pass ${value} <value>, or remove ${value}.`,
+        { option: value }
+      );
     } else if (value === "--help-all") {
       flags.helpAll = true;
     } else if (value === "--json") {
@@ -125,7 +210,12 @@ function parseArgs(argv) {
       try {
         flags.config = JSON.parse(argv[index + 1] ?? "{}");
       } catch (error) {
-        throw new Error(`Invalid --config JSON: ${error.message}`);
+        parseError ??= failResponse(
+          "CLI_FLAG_VALUE_INVALID",
+          `Invalid --config JSON: ${error.message}`,
+          "Pass a valid JSON object, e.g. --config '{\"appName\":\"Demo\"}'.",
+          { option: "--config" }
+        );
       }
       index += 1;
     } else if (value === "--api-url") {
@@ -613,6 +703,43 @@ function failResponse(code, message, remediation, details = {}) {
   };
 }
 
+// Structured CLI error. Carries a stable code + remediation so the top-level
+// catch can render a proper {ok:false} response that honors --json instead of
+// printing a bare stderr message. Prefer throwing this (or returning
+// failResponse) over `throw new Error(...)` for user-facing failures.
+class CliError extends Error {
+  constructor(code, message, remediation, details = {}) {
+    super(message);
+    this.name = "CliError";
+    this.response = failResponse(code, message, remediation, details);
+  }
+}
+
+function missingDeploymentId() {
+  return new CliError(
+    "DEPLOYMENT_ID_REQUIRED",
+    "Missing deployment id.",
+    "Pass the deployment id, e.g. `microservices deploy status <deployment-id>`."
+  );
+}
+
+function missingHostname() {
+  return new CliError(
+    "HOSTNAME_REQUIRED",
+    "Missing --hostname <hostname>.",
+    "Pass --hostname app.customer.com."
+  );
+}
+
+function invalidResourceAssignment(resourceType, value) {
+  return new CliError(
+    "RESOURCE_ASSIGNMENT_INVALID",
+    `Invalid --${resourceType} assignment. Use BINDING=<id>.`,
+    `Pass --${resourceType} DB=<resource-id> or remove the flag.`,
+    { resourceType, value }
+  );
+}
+
 function writeJson(response) {
   process.stdout.write(`${JSON.stringify(response, null, 2)}\n`);
 }
@@ -786,7 +913,12 @@ async function readCliConfig() {
   } catch (error) {
     if (error.code === "ENOENT") return {};
     if (error instanceof SyntaxError) {
-      throw new Error(`Invalid CLI config JSON at ${DEFAULT_CONFIG_PATH}: ${error.message}`);
+      throw new CliError(
+        "CLI_CONFIG_INVALID",
+        `Invalid CLI config JSON at ${DEFAULT_CONFIG_PATH}: ${error.message}`,
+        "Fix the JSON file or run `microservices auth logout` to remove it.",
+        { configPath: DEFAULT_CONFIG_PATH }
+      );
     }
     throw error;
   }
@@ -843,7 +975,11 @@ Hooks: ${composition.hooks.map((hook) => hook.name).join(", ")}
 
 async function writeGeneratedFiles(outputDirectory, files) {
   if (!outputDirectory) {
-    throw new Error("Missing --out <dir> for generate.");
+    throw new CliError(
+      "OUTPUT_DIR_REQUIRED",
+      "Missing --out <dir> for generate.",
+      "Pass --out <dir>, e.g. `microservices generate booking-business --out ./app`."
+    );
   }
 
   const root = resolve(USER_CWD, outputDirectory);
@@ -852,7 +988,12 @@ async function writeGeneratedFiles(outputDirectory, files) {
   for (const file of files) {
     const target = resolve(root, normalize(file.path));
     if (target !== root && !target.startsWith(`${root}/`)) {
-      throw new Error(`Refusing to write outside output directory: ${file.path}`);
+      throw new CliError(
+        "OUTPUT_PATH_INVALID",
+        `Refusing to write outside output directory: ${file.path}`,
+        "Regenerate with safe relative file paths.",
+        { path: file.path, outputDirectory: root }
+      );
     }
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, file.contents, "utf8");
@@ -2115,13 +2256,22 @@ function safeArtifactPath(root, relativePath) {
 
 async function writeDeploymentManifest(outputDirectory, manifest) {
   if (!outputDirectory) {
-    throw new Error("Missing --out <dir> for deployment artifact.");
+    throw new CliError(
+      "OUTPUT_DIR_REQUIRED",
+      "Missing --out <dir> for deployment artifact.",
+      "Pass --out <dir>, e.g. `microservices deploy artifact <deployment-id> --out ./artifact`."
+    );
   }
 
   const root = resolve(USER_CWD, outputDirectory);
   const target = safeArtifactPath(root, "microservices.deployment.json");
   if (!target) {
-    throw new Error("Refusing to write deployment manifest outside output directory.");
+    throw new CliError(
+      "OUTPUT_PATH_INVALID",
+      "Refusing to write deployment manifest outside output directory.",
+      "Pass a normal output directory path.",
+      { outputDirectory: root }
+    );
   }
   await mkdir(dirname(target), { recursive: true });
   await writeFile(target, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
@@ -3314,12 +3464,12 @@ async function readMutableArtifactManifest(directory) {
 function parseResourceAssignments(flags) {
   const parseAssignment = (resourceType, value) => {
     if (typeof value !== "string" || !value.includes("=")) {
-      throw new Error(`Invalid --${resourceType} assignment. Use BINDING=<id>.`);
+      throw invalidResourceAssignment(resourceType, value);
     }
     const [binding, ...rest] = value.split("=");
     const externalId = rest.join("=").trim();
     if (!binding.trim() || !externalId) {
-      throw new Error(`Invalid --${resourceType} assignment. Use BINDING=<id>.`);
+      throw invalidResourceAssignment(resourceType, value);
     }
     return {
       resourceType,
@@ -4042,7 +4192,17 @@ function inspectionLimit(flags) {
 
 async function apiRequest(flags, path, options = {}) {
   const settings = await resolvedApiSettings(flags);
-  const target = apiUrl(settings.apiUrl, path);
+  let target;
+  try {
+    target = apiUrl(settings.apiUrl, path);
+  } catch (error) {
+    return failResponse(
+      "API_URL_REQUIRED",
+      error.message,
+      "Pass --api-url or set MICROSERVICES_API_URL.",
+      { path }
+    );
+  }
   const authHeader = settings.apiKey ? { Authorization: `Bearer ${settings.apiKey}` } : {};
   let response;
   try {
@@ -4056,7 +4216,12 @@ async function apiRequest(flags, path, options = {}) {
     });
   } catch (error) {
     const cause = error.cause?.message ? ` (${error.cause.message})` : "";
-    throw new Error(`Failed to reach API at ${target}: ${error.message}${cause}`);
+    return failResponse(
+      "API_UNREACHABLE",
+      `Failed to reach API at ${target}: ${error.message}${cause}`,
+      "Check --api-url, network access, and the API service status, then retry.",
+      { path, target }
+    );
   }
 
   const payload = await response.json().catch(() => ({
@@ -4084,7 +4249,7 @@ function readError(label, response) {
 
 async function inspectDeployment(deploymentId, flags) {
   if (!deploymentId) {
-    throw new Error("Missing deployment id.");
+    throw missingDeploymentId();
   }
 
   const status = await apiRequest(flags, `/deployments/${deploymentId}`);
@@ -4972,7 +5137,7 @@ ${plan.sideEffects.map((item) => `- ${item}`).join("\n")}
 
   if (resource === "deploy" && action === "status") {
     if (!value) {
-      throw new Error("Missing deployment id.");
+      throw missingDeploymentId();
     }
     response = await apiRequest(flags, `/deployments/${value}`);
     return flags.json
@@ -4990,7 +5155,7 @@ Artifact: ${result.artifact?.checksum ?? "unknown"}
 
   if (resource === "deploy" && action === "artifact") {
     if (!value) {
-      throw new Error("Missing deployment id.");
+      throw missingDeploymentId();
     }
     response = await apiRequest(flags, `/deployments/${value}/artifact`);
     if (!response?.ok) {
@@ -5186,7 +5351,7 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
 
   if (resource === "deploy" && action === "upload-plan") {
     if (!value) {
-      throw new Error("Missing deployment id.");
+      throw missingDeploymentId();
     }
     response = await apiRequest(flags, `/deployments/${value}/upload-plan`);
     return flags.json
@@ -5207,7 +5372,7 @@ ${result.localFallback.commands.map((command) => `- ${command}`).join("\n")}
 
   if (resource === "deploy" && action === "cleanup") {
     if (!value) {
-      throw new Error("Missing deployment id.");
+      throw missingDeploymentId();
     }
 
     if (flags.plan) {
@@ -5243,10 +5408,10 @@ ${result.localFallback.commands.map((command) => `- ${command}`).join("\n")}
 
   if (resource === "deploy" && (action === "domain" || action === "custom-domain")) {
     if (!value) {
-      throw new Error("Missing deployment id.");
+      throw missingDeploymentId();
     }
     if (!flags.hostname) {
-      throw new Error("Missing --hostname <hostname>.");
+      throw missingHostname();
     }
 
     response = await apiRequest(flags, `/deployments/${value}/routes/custom-domain`, {
@@ -5266,10 +5431,10 @@ ${result.localFallback.commands.map((command) => `- ${command}`).join("\n")}
 
   if (resource === "deploy" && (action === "domain-refresh" || action === "custom-domain-refresh")) {
     if (!value) {
-      throw new Error("Missing deployment id.");
+      throw missingDeploymentId();
     }
     if (!flags.hostname) {
-      throw new Error("Missing --hostname <hostname>.");
+      throw missingHostname();
     }
 
     response = await apiRequest(flags, `/deployments/${value}/routes/custom-domain/refresh`, {
@@ -5286,7 +5451,7 @@ ${result.localFallback.commands.map((command) => `- ${command}`).join("\n")}
 
   if (resource === "deploy" && action === "activate") {
     if (!value) {
-      throw new Error("Missing deployment id.");
+      throw missingDeploymentId();
     }
 
     response = await apiRequest(flags, `/deployments/${value}/activate`, {
@@ -5312,7 +5477,7 @@ Next: ${result.nextSteps.join(" ")}
 
   if (resource === "deploy" && action === "provision") {
     if (!value) {
-      throw new Error("Missing deployment id.");
+      throw missingDeploymentId();
     }
     response = await apiRequest(flags, `/deployments/${value}/provision`, {
       method: "POST",
@@ -5334,7 +5499,7 @@ Next: ${result.nextSteps.join(" ")}
 
   if (resource === "deploy" && action === "resources") {
     if (!value) {
-      throw new Error("Missing deployment id.");
+      throw missingDeploymentId();
     }
     response = await apiRequest(flags, `/deployments/${value}/resources`);
     return flags.json
@@ -5354,7 +5519,7 @@ ${result.resources.length ? result.resources.map((item) => `- ${item.resourceTyp
   ) {
     const deploymentId = value;
     if (!deploymentId) {
-      throw new Error("Missing deployment id.");
+      throw missingDeploymentId();
     }
     response = await apiRequest(flags, `/deployments/${deploymentId}/resources/usage`);
     return flags.json ? writeJson(response) : printApiHuman(response, formatDeploymentResourceUsage);
@@ -5363,7 +5528,7 @@ ${result.resources.length ? result.resources.map((item) => `- ${item.resourceTyp
   if ((resource === "deploy" && action === "logs") || resource === "logs") {
     const deploymentId = resource === "logs" ? action : value;
     if (!deploymentId) {
-      throw new Error("Missing deployment id.");
+      throw missingDeploymentId();
     }
     response = await apiRequest(flags, pathWithQuery(`/deployments/${deploymentId}/logs`, logQuery(flags)));
     return flags.json
@@ -5376,7 +5541,7 @@ ${result.resources.length ? result.resources.map((item) => `- ${item.resourceTyp
 
   if (resource === "observe" && (action === "logs" || action === "events")) {
     if (!value) {
-      throw new Error("Missing deployment id.");
+      throw missingDeploymentId();
     }
     response = await apiRequest(flags, pathWithQuery(`/deployments/${value}/observability/events`, observabilityQuery(flags)));
     return flags.json ? writeJson(response) : printApiHuman(response, formatObservabilityEvents);
@@ -5385,7 +5550,12 @@ ${result.resources.length ? result.resources.map((item) => `- ${item.resourceTyp
   if (resource === "observe" && (action === "token" || action === "tokens")) {
     const tokenAction = value ?? "create";
     if (tokenAction !== "create") {
-      throw new Error("Unknown observe token action. Use `microservices observe token create`.");
+      throw new CliError(
+        "UNKNOWN_OBSERVE_TOKEN_ACTION",
+        "Unknown observe token action.",
+        "Use `microservices observe token create`.",
+        { action: tokenAction }
+      );
     }
     response = await apiRequest(flags, "/observability/tokens", {
       method: "POST",
@@ -5397,7 +5567,7 @@ ${result.resources.length ? result.resources.map((item) => `- ${item.resourceTyp
   if ((resource === "observe" && action === "errors") || resource === "errors") {
     const deploymentId = resource === "errors" ? action : value;
     if (!deploymentId) {
-      throw new Error("Missing deployment id.");
+      throw missingDeploymentId();
     }
     response = await apiRequest(flags, pathWithQuery(`/deployments/${deploymentId}/errors`, observabilityQuery(flags)));
     return flags.json ? writeJson(response) : printApiHuman(response, formatErrorGroups);
@@ -5405,7 +5575,11 @@ ${result.resources.length ? result.resources.map((item) => `- ${item.resourceTyp
 
   if (resource === "metrics") {
     if (!flags.token) {
-      throw new Error("Missing --token or METRICS_TOKEN env for metrics request.");
+      throw new CliError(
+        "METRICS_TOKEN_REQUIRED",
+        "Missing --token or METRICS_TOKEN env for metrics request.",
+        "Pass --token <token> or set METRICS_TOKEN."
+      );
     }
     response = await apiRequest(flags, "/metrics", {
       headers: { Authorization: `Bearer ${flags.token}` },
@@ -5429,10 +5603,19 @@ ${result.resources.length ? result.resources.map((item) => `- ${item.resourceTyp
 }
 
 main().catch((error) => {
-  if (error.response) {
-    writeJson(error.response);
+  const json = process.argv.includes("--json");
+  const response =
+    error.response ??
+    failResponse(
+      "CLI_FAILED",
+      error.message || "CLI command failed.",
+      "Review the command arguments and retry.",
+      {}
+    );
+  if (json) {
+    writeJson(response);
   } else {
-    process.stderr.write(`Error: ${error.message}\n`);
+    printHuman(response, () => "");
   }
   process.exitCode = 1;
 });

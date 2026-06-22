@@ -1,6 +1,6 @@
 {
   "name": "create-microservices-app",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Scaffold a Cloudflare-native SaaS app in one command — Workers, D1, SvelteKit or Hono, with verified auth, booking, payment & email modules.",
   "type": "module",
   "homepage": "https://microservices.sh",

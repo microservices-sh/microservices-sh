@@ -17,6 +17,18 @@ const PACKAGE_VERSION = readOwnPackageVersion(PACKAGE_ROOT);
 const USER_CWD = process.env.INIT_CWD || process.cwd();
 
 const TEMPLATES_DIR = resolve(PACKAGE_ROOT, "templates");
+const VALUE_FLAGS = new Set([
+  "--template",
+  "--dir",
+  "--package-manager",
+  "--modules",
+  "--git-repo",
+  "--category",
+  "--search",
+  "--q",
+  "--config",
+]);
+
 function readOwnPackageVersion(packageRoot) {
   try {
     const packageJson = JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8"));
@@ -227,6 +239,7 @@ function durationMs(startedAt) {
 
 function parseArgs(argv) {
   const args = [];
+  let parseError = null;
   const flags = {
     template: "booking-sveltekit",
     packageManager: detectPackageManager(),
@@ -254,6 +267,13 @@ function parseArgs(argv) {
     const value = argv[index];
     if (value === "--") {
       continue;
+    } else if (VALUE_FLAGS.has(value) && (!argv[index + 1] || argv[index + 1].startsWith("--"))) {
+      parseError ??= fail(
+        "CLI_FLAG_VALUE_REQUIRED",
+        `Missing value for ${value}.`,
+        `Pass ${value} <value>, or remove ${value}.`,
+        { option: value }
+      );
     } else if (value === "--template") {
       flags.template = argv[index + 1] || flags.template;
       flags.explicit.template = true;
@@ -302,19 +322,29 @@ function parseArgs(argv) {
       try {
         flags.config = JSON.parse(argv[index + 1] || "{}");
       } catch (error) {
-        throw new Error(`Invalid --config JSON: ${error.message}`);
+        parseError ??= fail(
+          "CLI_FLAG_VALUE_INVALID",
+          `Invalid --config JSON: ${error.message}`,
+          "Pass a valid JSON object, e.g. --config '{\"appName\":\"Demo\"}'.",
+          { option: "--config" }
+        );
       }
       index += 1;
     } else if (value === "--help" || value === "-h") {
       args.push("help");
     } else if (value.startsWith("-")) {
-      throw new Error(`Unknown option: ${value}. Run --help for supported flags.`);
+      parseError ??= fail(
+        "CLI_UNKNOWN_OPTION",
+        `Unknown option: ${value}.`,
+        "Run --help for supported flags.",
+        { option: value }
+      );
     } else {
       args.push(value);
     }
   }
 
-  return { targetName: args[0], flags };
+  return { targetName: args[0], flags, error: parseError };
 }
 
 function detectPackageManager() {
@@ -764,6 +794,13 @@ function nextCommands(packageManager, appName, installed, planOnlyModules = [], 
 async function main() {
   const parsed = parseArgs(process.argv.slice(2));
   const startedAt = Date.now();
+
+  if (parsed.error) {
+    process.exitCode = 1;
+    return parsed.flags.json
+      ? writeJson(parsed.error)
+      : process.stderr.write(`Error: ${parsed.error.error.message}\nNext: ${parsed.error.error.remediation}\n`);
+  }
 
   if (parsed.targetName === "help") {
     process.stdout.write(usage());
