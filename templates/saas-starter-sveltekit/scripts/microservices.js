@@ -858,6 +858,102 @@ async function addModule(id, flags = {}) {
   }
 }
 
+async function removeModule(id, flags = {}) {
+  if (!id) {
+    return fail("MODULE_ID_REQUIRED", "Missing module id.", "Run microservices remove <module-id>.");
+  }
+  const baseId = String(id).split("@")[0];
+
+  const lockPath = "microservices.lock.json";
+  const lockData = readJson(lockPath, { modules: [] });
+  const modules = lockData.modules ?? [];
+  const entry = modules.find((module) => module.id === baseId);
+  if (!entry) {
+    return fail(
+      "MODULE_NOT_INSTALLED",
+      `Module ${baseId} is not installed.`,
+      "Run microservices modules list to see installed modules.",
+      { moduleId: baseId }
+    );
+  }
+
+  // Dependency guard: refuse if another installed module still requires this one.
+  // The shim has no resolver, so read each remaining module's vendored module.json.
+  const dependents = [];
+  for (const other of modules) {
+    if (other.id === baseId) continue;
+    const manifestPath = resolve(other.path ?? `modules/${other.id}`, "module.json");
+    if (!existsSync(manifestPath)) continue;
+    const requires = readJson(manifestPath, {})?.connections?.requires ?? [];
+    if (Array.isArray(requires) && requires.includes(baseId)) dependents.push(other.id);
+  }
+  if (dependents.length) {
+    return fail(
+      "MODULE_REQUIRED",
+      `Cannot remove ${baseId}; still required by ${dependents.join(", ")}.`,
+      "Remove the dependent module(s) first.",
+      { moduleId: baseId, dependents }
+    );
+  }
+
+  // --plan is read-only: report what `remove` would do without touching the project.
+  if (flags.plan) {
+    return {
+      ok: true,
+      data: {
+        id: baseId,
+        plan: true,
+        version: entry.version ?? null,
+        wouldRemoveDir: `modules/${baseId}`,
+        lockEntry: entry.version ? `${baseId}@${entry.version}` : baseId
+      },
+      warnings: [
+        `Plan only — nothing removed. Re-run "microservices remove ${baseId}" (no --plan) to delete modules/${baseId} and its lockfile entry.`
+      ]
+    };
+  }
+
+  // Local-change guard: do not delete user-modified source without --confirm overwrite.
+  const dest = resolve("modules", baseId);
+  if (existsSync(dest)) {
+    const expectedIntegrity = entry.integrity ?? entry.checksum ?? null;
+    if (expectedIntegrity) {
+      const currentIntegrity = integrityOf(dest);
+      if (currentIntegrity !== expectedIntegrity && flags.confirm !== "overwrite") {
+        return fail(
+          "MODULE_LOCAL_CHANGES",
+          `Local changes were detected in modules/${baseId}.`,
+          `Review or commit your changes, then rerun with --confirm overwrite to remove modules/${baseId} anyway.`,
+          {
+            moduleId: baseId,
+            path: `modules/${baseId}`,
+            expectedIntegrity,
+            currentIntegrity,
+            confirmationRequired: "overwrite"
+          }
+        );
+      }
+    }
+    rmSync(dest, { recursive: true, force: true });
+  }
+
+  lockData.modules = modules.filter((module) => module.id !== baseId);
+  writeJsonFile(lockPath, lockData);
+
+  return {
+    ok: true,
+    data: {
+      id: baseId,
+      removed: baseId,
+      removedDir: `modules/${baseId}`,
+      version: entry.version ?? null
+    },
+    warnings: [
+      `Remove "@microservices-sh/${baseId}": "file:./modules/${baseId}" from dependencies and reinstall.`
+    ]
+  };
+}
+
 function localModuleVersion(id) {
   const moduleDir = resolve("modules", id);
   if (!existsSync(moduleDir)) return null;
@@ -3737,6 +3833,7 @@ function usage() {
   return `${appId} microservices commands:
   microservices modules list                     # list installed modules
   microservices add <id[@version]>               # vendor a module into this app
+  microservices remove <id>                      # remove a vendored module from this app
   microservices docs <id>                        # show a module's agent docs
   microservices memory search <query>            # search approved Code Memory capsules
   microservices memory get <capsule-id-or-slug>  # inspect an approved Logic Capsule
@@ -3764,6 +3861,7 @@ function usageAll() {
       {"auth":"oauth|api-token","accountId":"...","zoneId":"...","previewBaseDomain":"...","connectionId":"...","apiToken":"..."}
   microservices modules list [--json]
   microservices add <id[@version]> [--version x] [--json]
+  microservices remove <id> [--plan] [--confirm overwrite] [--json]
   microservices docs <id> [--json]
   microservices memory source list [--limit 50] [--json]
   microservices memory github status [--json]
@@ -3998,6 +4096,31 @@ async function main() {
       workspaceTelemetryProps(flags, { moduleId: action ?? null, durationMs: durationMs(startedAt) })
     );
     emit(response, (data) => `Vendored ${data.id} to ${data.vendoredTo}.\n`, flags);
+  } else if (resource === "remove") {
+    const startedAt = Date.now();
+    await track("module_remove_started", workspaceTelemetryProps(flags, { moduleId: action ?? null }));
+    let response;
+    try {
+      response = await removeModule(action, { plan: flags.plan, confirm: flags.confirm });
+    } catch (error) {
+      response = fail(
+        "MODULE_REMOVE_FAILED",
+        `Module remove failed${action ? `: ${action}` : ""}.`,
+        "Review the command output and retry.",
+        { moduleId: action ?? null, reason: error?.message ?? String(error) }
+      );
+    }
+    await trackResponse(
+      "module_remove_completed",
+      "module_remove_failed",
+      response,
+      workspaceTelemetryProps(flags, { moduleId: action ?? null, durationMs: durationMs(startedAt) })
+    );
+    emit(
+      response,
+      (data) => (data.plan ? `Plan: would remove ${data.wouldRemoveDir}\n` : `Removed ${data.removedDir}.\n`),
+      flags
+    );
   } else if (resource === "docs") {
     const moduleDocs = [];
     if (action) {
