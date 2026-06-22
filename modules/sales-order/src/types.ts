@@ -49,6 +49,10 @@ export interface SalesOrder {
   cancelledAt: string | null;
   cancelReason: string | null;
   invoicedAt: string | null;
+  lastSentAt: string | null;
+  lastSentToEmail: string | null;
+  lastSendStatus: string | null;
+  lastEmailDeliveryId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -90,11 +94,30 @@ export interface SalesOrderEvent {
     | "sales-order.order_created"
     | "sales-order.order_confirmed"
     | "sales-order.order_cancelled"
-    | "sales-order.order_invoiced";
+    | "sales-order.order_invoiced"
+    | "sales-order.order_sent"
+    | "sales-order.order_send_failed";
   entityType: "sales-order";
   entityId: string;
   tenantId: string;
   payload: Record<string, unknown>;
+}
+
+export interface SalesOrderSendAttempt {
+  id: string;
+  tenantId: string;
+  orderId: string;
+  recipientEmail: string;
+  subject: string;
+  message: string | null;
+  provider: string | null;
+  deliveryId: string | null;
+  deliveryStatus: string;
+  idempotencyKey: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  createdById: string | null;
+  createdAt: string;
 }
 
 export interface InventoryReservationRequest {
@@ -112,6 +135,22 @@ export interface InvoiceDraftRequest {
 export interface InvoiceDraftResult {
   invoiceId: string;
   invoiceNumber?: string | null;
+}
+
+export interface SalesOrderDeliveryRequest {
+  order: SalesOrderWithLineItems;
+  toEmail: string;
+  subject: string;
+  message: string | null;
+  idempotencyKey?: string | null;
+}
+
+export interface SalesOrderDeliveryResult {
+  provider?: string | null;
+  deliveryId?: string | null;
+  status?: string | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
 }
 
 export type ModuleResult<T> =

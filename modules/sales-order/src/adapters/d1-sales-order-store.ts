@@ -4,6 +4,7 @@ import type {
   SalesOrder,
   SalesOrderFilter,
   SalesOrderLineItem,
+  SalesOrderSendAttempt,
   SalesOrderStatus,
   SalesOrderWithLineItems
 } from "../types";
@@ -49,6 +50,10 @@ function rowToOrder(row: Record<string, unknown>): SalesOrder {
     cancelledAt: row.cancelled_at == null ? null : String(row.cancelled_at),
     cancelReason: row.cancel_reason == null ? null : String(row.cancel_reason),
     invoicedAt: row.invoiced_at == null ? null : String(row.invoiced_at),
+    lastSentAt: row.last_sent_at == null ? null : String(row.last_sent_at),
+    lastSentToEmail: row.last_sent_to_email == null ? null : String(row.last_sent_to_email),
+    lastSendStatus: row.last_send_status == null ? null : String(row.last_send_status),
+    lastEmailDeliveryId: row.last_email_delivery_id == null ? null : String(row.last_email_delivery_id),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at)
   };
@@ -76,11 +81,33 @@ function rowToLineItem(row: Record<string, unknown>): SalesOrderLineItem {
   };
 }
 
+function rowToSendAttempt(row: Record<string, unknown>): SalesOrderSendAttempt {
+  return {
+    id: String(row.id),
+    tenantId: String(row.tenant_id),
+    orderId: String(row.order_id),
+    recipientEmail: String(row.recipient_email),
+    subject: String(row.subject),
+    message: row.message == null ? null : String(row.message),
+    provider: row.provider == null ? null : String(row.provider),
+    deliveryId: row.delivery_id == null ? null : String(row.delivery_id),
+    deliveryStatus: String(row.delivery_status ?? "queued"),
+    idempotencyKey: row.idempotency_key == null ? null : String(row.idempotency_key),
+    errorCode: row.error_code == null ? null : String(row.error_code),
+    errorMessage: row.error_message == null ? null : String(row.error_message),
+    createdById: row.created_by_id == null ? null : String(row.created_by_id),
+    createdAt: String(row.created_at)
+  };
+}
+
 const ORDER_COLS =
-  "id, tenant_id, order_number, status, currency, customer_id, customer_snapshot, external_id, external_source, subtotal_cents, discount_cents, tax_cents, total_cents, inventory_reservation_id, invoice_id, notes, created_by_id, confirmed_at, cancelled_at, cancel_reason, invoiced_at, created_at, updated_at";
+  "id, tenant_id, order_number, status, currency, customer_id, customer_snapshot, external_id, external_source, subtotal_cents, discount_cents, tax_cents, total_cents, inventory_reservation_id, invoice_id, notes, created_by_id, confirmed_at, cancelled_at, cancel_reason, invoiced_at, last_sent_at, last_sent_to_email, last_send_status, last_email_delivery_id, created_at, updated_at";
 
 const LINE_COLS =
   "id, tenant_id, order_id, product_id, sku, name, description, quantity, unit_price_cents, subtotal_cents, discount_cents, tax_cents, total_cents, external_id, external_source, created_at, updated_at";
+
+const SEND_ATTEMPT_COLS =
+  "id, tenant_id, order_id, recipient_email, subject, message, provider, delivery_id, delivery_status, idempotency_key, error_code, error_message, created_by_id, created_at";
 
 export function createD1SalesOrderStore(db: D1Database): SalesOrderStore {
   async function listLineItems(tenantId: string, orderId: string): Promise<SalesOrderLineItem[]> {
@@ -101,7 +128,7 @@ export function createD1SalesOrderStore(db: D1Database): SalesOrderStore {
         db
           .prepare(
             `INSERT INTO sales_orders (${ORDER_COLS})
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
           .bind(
             order.id,
@@ -125,6 +152,10 @@ export function createD1SalesOrderStore(db: D1Database): SalesOrderStore {
             order.cancelledAt,
             order.cancelReason,
             order.invoicedAt,
+            order.lastSentAt,
+            order.lastSentToEmail,
+            order.lastSendStatus,
+            order.lastEmailDeliveryId,
             order.createdAt,
             order.updatedAt
           ),
@@ -164,7 +195,8 @@ export function createD1SalesOrderStore(db: D1Database): SalesOrderStore {
            SET order_number = ?, status = ?, currency = ?, customer_id = ?, customer_snapshot = ?,
              external_id = ?, external_source = ?, subtotal_cents = ?, discount_cents = ?, tax_cents = ?,
              total_cents = ?, inventory_reservation_id = ?, invoice_id = ?, notes = ?, confirmed_at = ?,
-             cancelled_at = ?, cancel_reason = ?, invoiced_at = ?, updated_at = ?
+             cancelled_at = ?, cancel_reason = ?, invoiced_at = ?, last_sent_at = ?, last_sent_to_email = ?,
+             last_send_status = ?, last_email_delivery_id = ?, updated_at = ?
            WHERE tenant_id = ? AND id = ?`
         )
         .bind(
@@ -186,6 +218,10 @@ export function createD1SalesOrderStore(db: D1Database): SalesOrderStore {
           order.cancelledAt,
           order.cancelReason,
           order.invoicedAt,
+          order.lastSentAt,
+          order.lastSentToEmail,
+          order.lastSendStatus,
+          order.lastEmailDeliveryId,
           order.updatedAt,
           order.tenantId,
           order.id
@@ -230,6 +266,39 @@ export function createD1SalesOrderStore(db: D1Database): SalesOrderStore {
         .bind(...binds, filter.limit ?? 100)
         .all<Record<string, unknown>>();
       return Promise.all((result.results ?? []).map((row) => withLineItems(rowToOrder(row))));
+    },
+
+    async insertSendAttempt(attempt) {
+      await db
+        .prepare(
+          `INSERT INTO sales_order_send_attempts (${SEND_ATTEMPT_COLS})
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(
+          attempt.id,
+          attempt.tenantId,
+          attempt.orderId,
+          attempt.recipientEmail,
+          attempt.subject,
+          attempt.message,
+          attempt.provider,
+          attempt.deliveryId,
+          attempt.deliveryStatus,
+          attempt.idempotencyKey,
+          attempt.errorCode,
+          attempt.errorMessage,
+          attempt.createdById,
+          attempt.createdAt
+        )
+        .run();
+    },
+
+    async findSendAttemptByIdempotencyKey(tenantId, idempotencyKey) {
+      const row = await db
+        .prepare(`SELECT ${SEND_ATTEMPT_COLS} FROM sales_order_send_attempts WHERE tenant_id = ? AND idempotency_key = ?`)
+        .bind(tenantId, idempotencyKey)
+        .first<Record<string, unknown>>();
+      return row ? rowToSendAttempt(row) : null;
     },
 
     async writeEvent(event) {

@@ -1651,19 +1651,42 @@
 - **Status:** complete.
 - Goal: close stale residual StackSuite backlog language without implementing template-only behavior that lacks a module contract.
 - Verified commerce sales-order draft creation is already implemented through the ledger route and `createDraftOrder`; the route also handles confirm, invoice handoff, cancel, print, CSV export, and read-only detail review.
-- Verified sales-order send is not implemented and should stay deferred until `@microservices-sh/sales-order` or a document-delivery module exposes a send contract with audit/idempotency semantics.
+- Verified sales-order send was not implemented before this audit; Phase 123 adds the missing module-owned send contract and commerce route proof.
 - Verified commerce MCP exists as lock-generated stdio tooling with env-scoped actor/scopes, governed confirmation, and audit hooks; persisted MCP settings plus audited scoped-token/API-key lifecycle remain a reusable auth/gateway prerequisite and accounting does not yet have the commerce MCP generator/wiring.
 - Fixed the commerce MCP lock/handler parity gap for inventory reconciliation document and low-stock alert RPCs.
 - Updated StackSuite porting docs, findings, and commerce template policy checks to reflect the real residual backlog.
 
 | Check | Expectation | Result | Status |
 |---|---|---|---|
-| Commerce route inspection | Sales-order create is module-backed and send is not ad hoc | `src/routes/app/sales-orders/+page.server.ts` uses `createDraftOrder`; no send API exists in `modules/sales-order` | Pass |
+| Commerce route inspection | Sales-order create is module-backed; send needed a module contract before route work | `src/routes/app/sales-orders/+page.server.ts` already used `createDraftOrder`; Phase 123 adds `sendSalesOrder` | Pass |
 | MCP route inspection | Existing MCP surface is not a persisted audited-token settings flow | `commerce-ops-sveltekit` has `scripts/generate-mcp.mjs` and `mcp-wiring.ts`; accounting lacks equivalent wiring | Pass |
 | MCP handler parity | Lock-declared inventory reconciliation/alert tools have handlers | Added handlers for `inventory_createReconciliationDocument`, `inventory_listReconciliationDocuments`, `inventory_completeReconciliationDocument`, and `inventory_listLowStockAlerts` | Pass |
 | Commerce template spec | Residual route/MCP policy checks pass | `pnpm --dir templates/commerce-ops-sveltekit check:spec` passed | Pass |
 | Commerce MCP integration | Lock-generated tools all have handlers | `pnpm exec vitest run tests/integration/commerce-ops-mcp-wiring.test.ts` passed, 5/5 | Pass |
 | Commerce template build | SvelteKit/Cloudflare build compiles after MCP wiring changes | `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 123 sales-order send contract
+
+- **Status:** complete.
+- Goal: close the focused commerce sales-order send gap with a module-owned delivery contract instead of template-only email glue.
+- Added `sendSalesOrder` to `@microservices-sh/sales-order`, backed by a `SalesOrderDeliveryPort`, persisted send attempts, last-send metadata on orders, idempotency-key replay, send/failure events, and a `beforeSalesOrderSend` hook.
+- Updated memory and D1 sales-order stores plus module/template migrations for `sales_order_send_attempts` and last-send columns.
+- Wired `commerce-ops-sveltekit` sales-order ledger to send customer emails through the existing email module provider/repository, with a template-side `buildSalesOrderEmail` helper and sanitized audit payload.
+- Updated module metadata, static catalog, commerce lockfile, MCP wiring, template spec guards, StackSuite docs, and README route descriptions.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Sales-order tests | Send success, idempotency, missing recipient, and delivery failure are covered | `pnpm --filter @microservices-sh/sales-order test` passed, 10/10 | Pass |
+| Sales-order build | New module types and exports compile | `pnpm --filter @microservices-sh/sales-order build` passed | Pass |
+| Sales-order spec | Module metadata, migrations, OpenAPI, and exports remain contract-valid | `pnpm --filter @microservices-sh/sales-order check:spec` passed | Pass |
+| Module contract | Static catalog exposes `sendSalesOrder`, send events, and hook | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js` passed, 21/21 | Pass |
+| Commerce template spec | Sales-order send route, migration, MCP, and policy checks pass | `pnpm --dir templates/commerce-ops-sveltekit check:spec` passed | Pass |
+| Commerce MCP wiring | Lock-generated sales-order send tool has a handler | `pnpm exec vitest run tests/integration/commerce-ops-mcp-wiring.test.ts` passed, 5/5 | Pass |
+| Commerce template build | SvelteKit/Cloudflare build compiles after send route additions | `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
+| Create-app build | Bundled repo templates refresh from source after sales-order send updates | `pnpm --dir packages/create-microservices-app build` passed | Pass |
+| Create-app closure | Bundled StackSuite template closure includes the updated sales-order send surface | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 

@@ -76,6 +76,7 @@ import {
   createDraftOrder,
   confirmOrder,
   cancelOrder,
+  sendSalesOrder,
   markOrderInvoiced,
   createMemorySalesOrderStore
 } from "@microservices-sh/sales-order";
@@ -254,6 +255,25 @@ async function invoiceSalesOrder(input: unknown, ctx?: ToolContext) {
   return result;
 }
 
+function mcpSalesOrderDeliveryPort(ctx?: ToolContext) {
+  return {
+    async sendSalesOrder({ order, toEmail }: { order: Awaited<ReturnType<typeof salesOrderStore.getOrder>> extends infer T ? NonNullable<T> : never; toEmail: string }) {
+      await recordEvent(
+        {
+          eventName: "sales-order.order_sent",
+          actorId: actor(ctx).id,
+          entityType: "sales-order",
+          entityId: order.id,
+          source: "agent-mcp",
+          payload: { to: toEmail, provider: "mcp-memory" }
+        },
+        { auditStore }
+      );
+      return { provider: "mcp-memory", deliveryId: `mcp_${order.id}`, status: "queued" };
+    }
+  };
+}
+
 async function completeCommerceShipment(input: unknown, ctx?: ToolContext) {
   return completeShipment(input, {
     shipmentStore,
@@ -328,6 +348,12 @@ export const handlers: Record<string, (input: unknown, ctx?: ToolContext) => Pro
   "sales-order_createDraftOrder": (input, ctx) => createDraftOrder(input, { salesOrderStore, actor: actorWithPermissions(ctx) }),
   "sales-order_confirmOrder": (input, ctx) => confirmSalesOrder(input, ctx),
   "sales-order_cancelOrder": (input, ctx) => cancelSalesOrder(input, ctx),
+  "sales-order_sendSalesOrder": (input, ctx) =>
+    sendSalesOrder(input, {
+      salesOrderStore,
+      salesOrderDeliveryPort: mcpSalesOrderDeliveryPort(ctx),
+      actor: actorWithPermissions(ctx)
+    }),
   "sales-order_markOrderInvoiced": (input, ctx) => invoiceSalesOrder(input, ctx),
 
   shipment_listShipments: (input) => listShipments(input, { shipmentStore }),

@@ -6,7 +6,7 @@ export const manifest = {
   status: "draft",
   class: "core",
   summary:
-    "Tenant-scoped sales orders with line items, external references, status transitions, reservation handoff, and invoice draft handoff.",
+    "Tenant-scoped sales orders with line items, external references, status transitions, send attempts, reservation handoff, and invoice draft handoff.",
   runtime: {
     language: "typescript",
     platform: "cloudflare-workers",
@@ -18,7 +18,7 @@ export const manifest = {
     {
       type: "d1",
       binding: "DB",
-      tables: ["sales_orders", "sales_order_line_items", "domain_events"]
+      tables: ["sales_orders", "sales_order_line_items", "sales_order_send_attempts", "domain_events"]
     }
   ],
   permissions: [
@@ -30,17 +30,27 @@ export const manifest = {
   ],
   connections: {
     requires: [],
-    optional: ["auth", "audit-log", "inventory", "invoice"],
+    optional: ["auth", "audit-log", "inventory", "invoice", "email"],
     rpc: {
-      exposes: [],
-      calls: ["inventory.reserveSalesOrder", "invoice.createDraftFromSalesOrder"]
+      exposes: [
+        { method: "listOrders", scope: "sales-order.read", public: false },
+        { method: "getOrder", scope: "sales-order.read", public: false },
+        { method: "createDraftOrder", scope: "sales-order.write", public: false },
+        { method: "confirmOrder", scope: "sales-order.write", public: false },
+        { method: "cancelOrder", scope: "sales-order.write", public: false },
+        { method: "sendSalesOrder", scope: "sales-order.write", public: false },
+        { method: "markOrderInvoiced", scope: "sales-order.write", public: false }
+      ],
+      calls: ["inventory.reserveSalesOrder", "invoice.createDraftFromSalesOrder", "email.sendEmail"]
     },
     events: {
       emits: [
         "sales-order.order_created",
         "sales-order.order_confirmed",
         "sales-order.order_cancelled",
-        "sales-order.order_invoiced"
+        "sales-order.order_invoiced",
+        "sales-order.order_sent",
+        "sales-order.order_send_failed"
       ],
       consumes: []
     },
@@ -58,6 +68,10 @@ export const manifest = {
         scope: "sales-order.extend"
       },
       beforeSalesOrderInvoice: {
+        kind: "filter",
+        scope: "sales-order.extend"
+      },
+      beforeSalesOrderSend: {
         kind: "filter",
         scope: "sales-order.extend"
       },
@@ -99,6 +113,7 @@ export const manifest = {
         "sales-order.createDraftOrder",
         "sales-order.confirmOrder",
         "sales-order.cancelOrder",
+        "sales-order.sendSalesOrder",
         "sales-order.markOrderInvoiced"
       ],
       skillPaths: ["skills/sales-order-operator/SKILL.md"],
@@ -106,6 +121,7 @@ export const manifest = {
         "sales-order.createDraftOrder",
         "sales-order.confirmOrder",
         "sales-order.cancelOrder",
+        "sales-order.sendSalesOrder",
         "sales-order.markOrderInvoiced"
       ]
     }

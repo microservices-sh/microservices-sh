@@ -2,6 +2,7 @@ import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { getCustomer, listCustomers, upsertCustomer } from "@microservices-sh/customer";
+import { sendEmail } from "@microservices-sh/email";
 import { authContext, createInvoice, issueInvoiceScoped } from "@microservices-sh/invoice";
 import { listProducts } from "@microservices-sh/product-catalog";
 import {
@@ -10,10 +11,13 @@ import {
   createDraftOrder,
   listOrders,
   markOrderInvoiced,
-  type InvoiceDraftPort
+  sendSalesOrder,
+  type InvoiceDraftPort,
+  type SalesOrderDeliveryPort
 } from "@microservices-sh/sales-order";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
+import { buildSalesOrderEmail } from "$lib/server/sales-order-email";
 import {
   createSalesOrderInventoryReservationPort,
   releaseSalesOrderReservations
@@ -115,6 +119,51 @@ function invoiceDraftPort(locals: App.Locals, actorId: string, permissions: stri
       );
 
       return { invoiceId: created.data.id, invoiceNumber: issued.data.number };
+    }
+  };
+}
+
+function salesOrderDeliveryPort(locals: App.Locals, orgName: string, actorId: string, actorEmail?: string): SalesOrderDeliveryPort {
+  return {
+    async sendSalesOrder({ order, toEmail, subject, message, idempotencyKey }) {
+      const email = buildSalesOrderEmail({ order, companyName: orgName, message });
+      const sent = await sendEmail(
+        {
+          from: locals.emailFrom,
+          to: [toEmail],
+          subject: subject || email.subject,
+          html: email.html,
+          text: email.text,
+          idempotencyKey: idempotencyKey ?? `sales-order-send:${order.id}:${Date.now()}`,
+          tags: [
+            { name: "module", value: "sales-order" },
+            { name: "template", value: "commerce-ops-sveltekit" }
+          ],
+          metadata: {
+            salesOrderId: order.id,
+            orderNumber: order.orderNumber,
+            status: order.status
+          }
+        },
+        {
+          provider: locals.emailProvider,
+          emailRepository: locals.emailRepository,
+          actor: { id: actorId, email: actorEmail }
+        }
+      );
+      if (!sent.ok || !sent.data) {
+        return {
+          provider: "email",
+          status: "failed",
+          errorCode: sent.ok ? "email.UNKNOWN_SEND_FAILURE" : sent.error.code,
+          errorMessage: sent.ok ? "Could not send the sales order email." : sent.error.message
+        };
+      }
+      return {
+        provider: sent.data.delivery.provider,
+        deliveryId: sent.data.delivery.id,
+        status: sent.data.delivery.status
+      };
     }
   };
 }
@@ -357,6 +406,49 @@ export const actions: Actions = {
     );
 
     return { invoiced: true, invoiceId: result.data.order.invoiceId };
+  },
+
+  send: async ({ request, locals, cookies, platform }) => {
+    requireModule("sales-order", platform);
+    requireModule("email", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const orderId = text(form.get("orderId"));
+    const message = text(form.get("message")) || null;
+    if (!orderId) return fail(400, { error: "Missing sales order id." });
+
+    const result = await sendSalesOrder(
+      { tenantId: org.id, orderId, message },
+      {
+        salesOrderStore: locals.salesOrderStore,
+        salesOrderDeliveryPort: salesOrderDeliveryPort(locals, org.name, locals.user.id, locals.user.email),
+        actor: { id: locals.user.id, email: locals.user.email, permissions }
+      }
+    );
+    if (!result.ok || !result.data) return fail(result.status, { error: result.error.message });
+
+    await recordEvent(
+      {
+        eventName: "sales-order.order_sent",
+        actorId: locals.user.id,
+        entityType: "sales-order",
+        entityId: result.data.order.id,
+        source: "app/sales-orders",
+        payload: {
+          to: result.data.attempt.recipientEmail,
+          emailDeliveryId: result.data.attempt.deliveryId,
+          provider: result.data.attempt.provider,
+          deliveryStatus: result.data.attempt.deliveryStatus
+        }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { sent: true, recipient: result.data.attempt.recipientEmail };
   },
 
   cancel: async ({ request, locals, cookies, platform }) => {

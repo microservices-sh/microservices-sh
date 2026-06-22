@@ -214,6 +214,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       "inventory_completeReconciliationDocument",
       "inventory_listLowStockAlerts",
       "sales-order_createDraftOrder",
+      "sales-order_sendSalesOrder",
       "shipment_createShipment",
       "shipment_startShipmentProcessing",
       "shipment_listShipmentStatusTransitions",
@@ -379,8 +380,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/sales-orders/+page.svelte",
-    ["generateSalesOrderPrintHtml", "generateSalesOrderLedgerCsv", "generateSalesOrderLineItemsCsv", "printSalesOrder", "exportSalesOrder", "Export CSV", "Create draft order", "?/create", "?/cancel", "/app/sales-orders/${order.id}"],
-    "Sales order ledger exposes draft creation, row-level print, CSV, detail route, and cancellation actions."
+    ["generateSalesOrderPrintHtml", "generateSalesOrderLedgerCsv", "generateSalesOrderLineItemsCsv", "printSalesOrder", "exportSalesOrder", "Export CSV", "Create draft order", "?/create", "?/send", "?/cancel", "lastSentAt", "/app/sales-orders/${order.id}"],
+    "Sales order ledger exposes draft creation, sending, row-level print, CSV, detail route, and cancellation actions."
   );
   assertFileIncludesAll(
     "src/lib/server/sales-order-inventory.ts",
@@ -389,8 +390,13 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/sales-orders/+page.server.ts",
-    ["createDraftOrder", "cancelOrder", "createSalesOrderInventoryReservationPort", "releaseSalesOrderReservations", "sales-order.order_created", "releasedReservations", "sales-order.order_cancelled"],
-    "Sales order route wires create, confirm, invoice, and cancel lifecycle actions through module ports plus inventory side effects."
+    ["createDraftOrder", "sendSalesOrder", "salesOrderDeliveryPort", "sendEmail", "cancelOrder", "createSalesOrderInventoryReservationPort", "releaseSalesOrderReservations", "sales-order.order_created", "sales-order.order_sent", "releasedReservations", "sales-order.order_cancelled"],
+    "Sales order route wires create, send, confirm, invoice, and cancel lifecycle actions through module ports plus inventory/email side effects."
+  );
+  assertFileIncludesAll(
+    "migrations/0021_sales_order.sql",
+    ["last_sent_at", "last_sent_to_email", "CREATE TABLE IF NOT EXISTS sales_order_send_attempts", "idx_sales_order_send_attempts_idempotency"],
+    "Commerce sales-order migration persists last-send metadata and send attempts."
   );
   assertFileIncludesAll(
     "src/routes/app/sales-orders/[id]/+page.server.ts",

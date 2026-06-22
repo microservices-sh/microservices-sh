@@ -103,6 +103,8 @@
     <Alert tone="success">
       Invoice issued.{#if form.invoiceId} <a href={`/app/invoices/${form.invoiceId}`}>Open invoice</a>{/if}
     </Alert>
+  {:else if form?.sent}
+    <Alert tone="success">Sales order sent{#if form.recipient} to {form.recipient}{/if}.</Alert>
   {:else if form?.cancelled}
     <Alert tone="success">Sales order cancelled and reservations released.</Alert>
   {:else if form?.error}
@@ -132,6 +134,7 @@
                 <th scope="col">Total</th>
                 <th scope="col">Reservation</th>
                 <th scope="col">Status</th>
+                <th scope="col">Sent</th>
                 <th scope="col">Created</th>
                 <th scope="col">Actions</th>
               </tr>
@@ -145,12 +148,26 @@
                   <td>{money(order.totalCents, order.currency)}</td>
                   <td>{#if order.inventoryReservationId}<code>{order.inventoryReservationId}</code>{:else}<span class="muted">none</span>{/if}</td>
                   <td><Badge tone={orderTone(order.status)}>{order.status}</Badge></td>
+                  <td>
+                    {#if order.lastSentAt}
+                      <span>{relativeTime(order.lastSentAt)}</span><br />
+                      <span class="muted">{order.lastSendStatus ?? "sent"}</span>
+                    {:else}
+                      <span class="muted">not sent</span>
+                    {/if}
+                  </td>
                   <td>{relativeTime(order.createdAt)}</td>
                   <td>
                     <div class="row-actions">
                       <Button type="button" variant="ghost" size="sm" onclick={() => printSalesOrder(order)}>Print</Button>
                       <Button type="button" variant="ghost" size="sm" onclick={() => exportSalesOrder(order)}>CSV</Button>
                       <Button href={`/app/sales-orders/${order.id}`} variant="ghost" size="sm">Open</Button>
+                      {#if data.canManage && order.status !== "cancelled"}
+                        <form class="action-form" method="POST" action="?/send" use:enhance>
+                          <input type="hidden" name="orderId" value={order.id} />
+                          <Button type="submit" variant="ghost" size="sm">Send</Button>
+                        </form>
+                      {/if}
                       {#if data.canManage && order.status === "draft"}
                         <form class="action-form" method="POST" action="?/confirm" use:enhance>
                           <input type="hidden" name="orderId" value={order.id} />
@@ -246,7 +263,7 @@
   }
   table {
     width: 100%;
-    min-width: 840px;
+    min-width: 960px;
     border-collapse: collapse;
   }
   caption {

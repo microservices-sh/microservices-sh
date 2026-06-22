@@ -5,11 +5,11 @@ Module ID: `sales-order`
 Mount: `/sales-orders`
 
 ## Summary
-Tenant-scoped sales orders with line items, external references, status transitions, reservation handoff, and invoice draft handoff.
+Tenant-scoped sales orders with line items, external references, status transitions, send attempts, reservation handoff, and invoice draft handoff.
 
 ## Dependencies
 - none required
-- optional: inventory, invoice, audit-log
+- optional: inventory, invoice, email, audit-log
 
 ## Permissions
 - sales-order.read
@@ -26,6 +26,7 @@ Tenant-scoped sales orders with line items, external references, status transiti
 - beforeSalesOrderConfirm
 - beforeSalesOrderCancel
 - beforeSalesOrderInvoice
+- beforeSalesOrderSend
 - afterSalesOrderUpdated
 
 ## Events
@@ -33,12 +34,15 @@ Tenant-scoped sales orders with line items, external references, status transiti
 - sales-order.order_confirmed
 - sales-order.order_cancelled
 - sales-order.order_invoiced
+- sales-order.order_sent
+- sales-order.order_send_failed
 
 ## Invariants
 - Money is stored as integer cents.
 - External references are unique per tenant and source.
 - Orders follow draft, confirmed, cancelled, and invoiced status transitions.
-- Reservation and invoice handoff happen through ports, not template code.
+- Reservation, invoice, and delivery handoff happen through ports, not template code.
+- Sales-order sends record attempt metadata and never store provider secrets.
 
 ## Approval Gate
 Risk: medium

@@ -1177,8 +1177,8 @@ const INTERNAL_CATALOG_MODULES = Object.freeze([
     id: "sales-order",
     name: "Sales Order",
     status: "draft",
-    summary: "Tenant-scoped sales orders with line items, external references, status transitions, reservation handoff, and invoice draft handoff.",
-    optional: ["auth", "audit-log", "inventory", "invoice"],
+    summary: "Tenant-scoped sales orders with line items, external references, status transitions, send attempts, reservation handoff, and invoice draft handoff.",
+    optional: ["auth", "audit-log", "inventory", "invoice", "email"],
     mount: "/sales-orders",
     surfaces: {
       admin: {
@@ -1198,6 +1198,7 @@ const INTERNAL_CATALOG_MODULES = Object.freeze([
           "sales-order.createDraftOrder",
           "sales-order.confirmOrder",
           "sales-order.cancelOrder",
+          "sales-order.sendSalesOrder",
           "sales-order.markOrderInvoiced",
         ],
         skillPaths: ["skills/sales-order-operator/SKILL.md"],
@@ -1205,6 +1206,7 @@ const INTERNAL_CATALOG_MODULES = Object.freeze([
           "sales-order.createDraftOrder",
           "sales-order.confirmOrder",
           "sales-order.cancelOrder",
+          "sales-order.sendSalesOrder",
           "sales-order.markOrderInvoiced",
         ],
       },
@@ -1214,6 +1216,8 @@ const INTERNAL_CATALOG_MODULES = Object.freeze([
       "sales-order.order_confirmed",
       "sales-order.order_cancelled",
       "sales-order.order_invoiced",
+      "sales-order.order_sent",
+      "sales-order.order_send_failed",
     ],
     permissions: [
       "sales-order.read",
@@ -1228,6 +1232,7 @@ const INTERNAL_CATALOG_MODULES = Object.freeze([
       { method: "createDraftOrder", scope: "sales-order.write", public: false },
       { method: "confirmOrder", scope: "sales-order.write", public: false },
       { method: "cancelOrder", scope: "sales-order.write", public: false },
+      { method: "sendSalesOrder", scope: "sales-order.write", public: false },
       { method: "markOrderInvoiced", scope: "sales-order.write", public: false },
     ],
     hooks: [
@@ -1235,6 +1240,7 @@ const INTERNAL_CATALOG_MODULES = Object.freeze([
       "beforeSalesOrderConfirm",
       "beforeSalesOrderCancel",
       "beforeSalesOrderInvoice",
+      "beforeSalesOrderSend",
       "afterSalesOrderUpdated",
     ],
     skills: [

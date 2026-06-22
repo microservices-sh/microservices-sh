@@ -1,5 +1,5 @@
 import { defaultSalesOrderHooks, type SalesOrderHooks } from "../hooks";
-import type { InventoryReservationPort, InvoiceDraftPort, SalesOrderStore } from "../ports";
+import type { InventoryReservationPort, InvoiceDraftPort, SalesOrderDeliveryPort, SalesOrderStore } from "../ports";
 import type { ModuleResult, SalesOrderStatus, SalesOrderWithLineItems } from "../types";
 
 export interface SalesOrderDeps {
@@ -7,6 +7,7 @@ export interface SalesOrderDeps {
   hooks?: SalesOrderHooks;
   inventoryReservationPort?: InventoryReservationPort;
   invoiceDraftPort?: InvoiceDraftPort;
+  salesOrderDeliveryPort?: SalesOrderDeliveryPort;
   now?: () => number;
 }
 

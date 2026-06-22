@@ -20,6 +20,10 @@ CREATE TABLE IF NOT EXISTS sales_orders (
   cancelled_at TEXT,
   cancel_reason TEXT,
   invoiced_at TEXT,
+  last_sent_at TEXT,
+  last_sent_to_email TEXT,
+  last_send_status TEXT,
+  last_email_delivery_id TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -53,6 +57,23 @@ CREATE TABLE IF NOT EXISTS domain_events (
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS sales_order_send_attempts (
+  id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  order_id TEXT NOT NULL REFERENCES sales_orders(id) ON DELETE CASCADE,
+  recipient_email TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  message TEXT,
+  provider TEXT,
+  delivery_id TEXT,
+  delivery_status TEXT NOT NULL DEFAULT 'queued',
+  idempotency_key TEXT,
+  error_code TEXT,
+  error_message TEXT,
+  created_by_id TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_domain_events_entity ON domain_events(entity_type, entity_id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_sales_orders_tenant_external
@@ -62,3 +83,7 @@ CREATE INDEX IF NOT EXISTS idx_sales_orders_tenant_status ON sales_orders (tenan
 CREATE INDEX IF NOT EXISTS idx_sales_orders_tenant_customer ON sales_orders (tenant_id, customer_id);
 CREATE INDEX IF NOT EXISTS idx_sales_orders_created_at ON sales_orders (tenant_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_sales_order_line_items_order ON sales_order_line_items (tenant_id, order_id);
+CREATE INDEX IF NOT EXISTS idx_sales_order_send_attempts_order ON sales_order_send_attempts (tenant_id, order_id, created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sales_order_send_attempts_idempotency
+  ON sales_order_send_attempts (tenant_id, idempotency_key)
+  WHERE idempotency_key IS NOT NULL;

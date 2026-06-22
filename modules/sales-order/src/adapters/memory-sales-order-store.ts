@@ -1,5 +1,12 @@
 import type { SalesOrderStore } from "../ports";
-import type { SalesOrder, SalesOrderEvent, SalesOrderFilter, SalesOrderLineItem, SalesOrderWithLineItems } from "../types";
+import type {
+  SalesOrder,
+  SalesOrderEvent,
+  SalesOrderFilter,
+  SalesOrderLineItem,
+  SalesOrderSendAttempt,
+  SalesOrderWithLineItems
+} from "../types";
 
 function cloneOrder(order: SalesOrder): SalesOrder {
   return {
@@ -10,6 +17,10 @@ function cloneOrder(order: SalesOrder): SalesOrder {
 
 function cloneLineItem(lineItem: SalesOrderLineItem): SalesOrderLineItem {
   return { ...lineItem };
+}
+
+function cloneSendAttempt(attempt: SalesOrderSendAttempt): SalesOrderSendAttempt {
+  return { ...attempt };
 }
 
 function withLineItems(order: SalesOrder, lineItems: SalesOrderLineItem[]): SalesOrderWithLineItems {
@@ -28,6 +39,7 @@ function matchesFilter(order: SalesOrder, filter: SalesOrderFilter): boolean {
 export function createMemorySalesOrderStore(): SalesOrderStore {
   const orders = new Map<string, SalesOrder>();
   const lineItemsByOrder = new Map<string, SalesOrderLineItem[]>();
+  const sendAttempts = new Map<string, SalesOrderSendAttempt>();
   const events: SalesOrderEvent[] = [];
 
   return {
@@ -62,6 +74,17 @@ export function createMemorySalesOrderStore(): SalesOrderStore {
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         .slice(0, filter.limit ?? 100)
         .map((order) => withLineItems(order, lineItemsByOrder.get(order.id) ?? []));
+    },
+
+    async insertSendAttempt(attempt) {
+      sendAttempts.set(attempt.id, cloneSendAttempt(attempt));
+    },
+
+    async findSendAttemptByIdempotencyKey(tenantId, idempotencyKey) {
+      const attempt = [...sendAttempts.values()].find(
+        (candidate) => candidate.tenantId === tenantId && candidate.idempotencyKey === idempotencyKey
+      );
+      return attempt ? cloneSendAttempt(attempt) : null;
     },
 
     async writeEvent(event) {

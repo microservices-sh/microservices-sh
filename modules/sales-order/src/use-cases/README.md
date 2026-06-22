@@ -7,6 +7,7 @@ Framework-neutral use cases:
 - `listOrders`
 - `confirmOrder`
 - `cancelOrder`
+- `sendSalesOrder`
 - `markOrderInvoiced`
 
-Inventory reservation and invoice draft creation are optional ports. Do not import inventory, invoice, SvelteKit, Hono, provider clients, or secret values directly in use cases.
+Inventory reservation, invoice draft creation, and sales-order delivery are optional ports. Do not import inventory, invoice, email, SvelteKit, Hono, provider clients, or secret values directly in use cases.

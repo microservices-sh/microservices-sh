@@ -164,8 +164,8 @@ Use the source commerce schema to extend the existing modules:
 
 The modules exist, but source UI expects more workflow endpoints:
 
-- sales-order detail, draft creation, confirm, invoice, cancel, print, and CSV export are now implemented in `commerce-ops-sveltekit` over `@microservices-sh/sales-order`.
-- remaining sales-order send action and bulk status transitions should wait for a module-owned document-delivery/send contract rather than template-only email glue.
+- sales-order detail, draft creation, send, confirm, invoice, cancel, print, and CSV export are now implemented in `commerce-ops-sveltekit` over `@microservices-sh/sales-order`.
+- remaining sales-order bulk status transitions should wait for a module-owned bulk transition API rather than template-only loops.
 - order-to-invoice handoff is implemented; order-to-shipment handoff should stay module/port-backed when expanded beyond the current shipment workflow.
 - shipment batch detail, shipment item links, status transitions, and completion constraints.
 - packing slip print/export data contract.
@@ -220,7 +220,7 @@ Port in this order:
 
 Port in this order:
 
-1. Sales-order create/detail/confirm/invoice/cancel/print/export are implemented; add send and bulk status routes only after the sales-order module exposes a document-delivery/send API.
+1. Sales-order create/detail/send/confirm/invoice/cancel/print/export are implemented; add bulk status routes only after the sales-order module exposes a bulk transition API.
 2. Shipment batch detail/status/packing-slip routes.
 3. Inventory receive/adjust/reconcile routes and movement history.
 4. WooCommerce connection settings, sync logs, and webhook setup.
@@ -353,7 +353,7 @@ Done for the first accounting/commerce operator surface:
 Remaining routes should be added only after the backing module API exists:
 
 - additional statement export routes and retained-earnings setup defaults.
-- commerce sales-order send/bulk status transitions after a module-owned delivery/status API exists.
+- commerce sales-order bulk status transitions after a module-owned bulk transition API exists.
 - focused-template MCP settings after persisted scoped API keys, token issuance, and audit-log wiring exist across accounting and commerce.
 
 ### Phase 3: External Operations

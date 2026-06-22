@@ -566,6 +566,11 @@
             "public": false
           },
           {
+            "method": "sendSalesOrder",
+            "scope": "sales-order.write",
+            "public": false
+          },
+          {
             "method": "markOrderInvoiced",
             "scope": "sales-order.write",
             "public": false
@@ -576,13 +581,16 @@
           "beforeSalesOrderConfirm",
           "beforeSalesOrderCancel",
           "beforeSalesOrderInvoice",
+          "beforeSalesOrderSend",
           "afterSalesOrderUpdated"
         ],
         "events": [
           "sales-order.order_created",
           "sales-order.order_confirmed",
           "sales-order.order_cancelled",
-          "sales-order.order_invoiced"
+          "sales-order.order_invoiced",
+          "sales-order.order_sent",
+          "sales-order.order_send_failed"
         ],
         "requires": []
       }

@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 122
+Phase 123
 
 ## Phases
 
@@ -960,10 +960,17 @@ Phase 122
 
 ### Phase 122: StackSuite Residual Route Gate Audit
 - [x] Verify commerce sales-order create is already implemented through `createDraftOrder` and the ledger route.
-- [x] Verify sales-order send lacks a module-owned delivery/send API and should remain deferred.
+- [x] Verify the pre-Phase-123 sales-order send gap lacked a module-owned delivery/send API.
 - [x] Verify commerce MCP exists as lock-generated stdio tooling, while persisted settings/audited scoped tokens remain a reusable auth/gateway prerequisite.
 - [x] Restore commerce MCP lock/handler parity for inventory reconciliation documents and low-stock alerts.
 - [x] Update StackSuite porting docs, findings, and commerce template spec guards for the clarified residual backlog.
+- **Status:** complete
+
+### Phase 123: Sales Order Send Contract
+- [x] Add module-owned `sendSalesOrder` with a delivery port, send attempt persistence, last-send metadata, idempotency, events, hooks, and tests.
+- [x] Wire `commerce-ops-sveltekit` sales-order ledger send action through the email module and template-side sales-order email builder.
+- [x] Expose the new sales-order send RPC through module metadata, static catalog, commerce lockfile, and MCP wiring.
+- [x] Update StackSuite docs so sales-order send is implemented and only bulk status transitions remain gated.
 - **Status:** complete
 
 ## Key Questions

@@ -12,6 +12,7 @@
     "listOrders",
     "confirmOrder",
     "cancelOrder",
+    "sendSalesOrder",
     "markOrderInvoiced"
   ]
 }

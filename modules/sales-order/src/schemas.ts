@@ -50,6 +50,13 @@ export const cancelOrderInputSchema = salesOrderIdentitySchema.extend({
   reason: z.string().nullable().optional()
 });
 
+export const sendSalesOrderInputSchema = salesOrderIdentitySchema.extend({
+  toEmail: z.string().email().nullable().optional(),
+  subject: z.string().min(1).max(200).optional(),
+  message: z.string().max(2000).nullable().optional(),
+  idempotencyKey: z.string().min(1).max(200).nullable().optional()
+});
+
 export const salesOrderFilterSchema = z.object({
   tenantId: z.string().min(1),
   status: salesOrderStatusSchema.optional(),

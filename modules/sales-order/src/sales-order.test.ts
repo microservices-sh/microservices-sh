@@ -4,7 +4,8 @@ import {
   confirmOrder,
   createDraftOrder,
   createMemorySalesOrderStore,
-  markOrderInvoiced
+  markOrderInvoiced,
+  sendSalesOrder
 } from "./index";
 
 const T0 = Date.parse("2026-01-01T00:00:00.000Z");
@@ -189,5 +190,115 @@ describe("sales-order: transitions", () => {
     expect(replay.ok).toBe(true);
     if (replay.ok) expect(replay.data.idempotent).toBe(true);
     expect(invoiceCalls).toEqual([draft.id]);
+  });
+});
+
+describe("sales-order: send", () => {
+  it("sends a non-cancelled order through the delivery port and stores last-send metadata", async () => {
+    const store = createMemorySalesOrderStore();
+    const draft = await seedDraft(store);
+    const deliveries: string[] = [];
+    const result = await sendSalesOrder(
+      { tenantId: draft.tenantId, orderId: draft.id, idempotencyKey: "send-1" },
+      {
+        salesOrderStore: store,
+        salesOrderDeliveryPort: {
+          async sendSalesOrder(request) {
+            deliveries.push(request.toEmail);
+            return { provider: "test", deliveryId: "eml-1", status: "queued" };
+          }
+        },
+        actor: { id: "agent-1" },
+        now: fixedNow(T0 + 1)
+      }
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error.message);
+    expect(result.status).toBe(202);
+    expect(result.data.idempotent).toBe(false);
+    expect(result.data.attempt).toMatchObject({
+      recipientEmail: "ada@example.com",
+      provider: "test",
+      deliveryId: "eml-1",
+      deliveryStatus: "queued",
+      idempotencyKey: "send-1",
+      createdById: "agent-1"
+    });
+    expect(result.data.order.lastSentToEmail).toBe("ada@example.com");
+    expect(result.data.order.lastEmailDeliveryId).toBe("eml-1");
+    expect(deliveries).toEqual(["ada@example.com"]);
+  });
+
+  it("does not replay delivery when the idempotency key was already recorded", async () => {
+    const store = createMemorySalesOrderStore();
+    const draft = await seedDraft(store);
+    let deliveryCount = 0;
+    const deps = {
+      salesOrderStore: store,
+      salesOrderDeliveryPort: {
+        async sendSalesOrder() {
+          deliveryCount += 1;
+          return { provider: "test", deliveryId: `eml-${deliveryCount}`, status: "sent" };
+        }
+      },
+      now: fixedNow(T0 + 1)
+    };
+
+    const first = await sendSalesOrder({ tenantId: draft.tenantId, orderId: draft.id, idempotencyKey: "same-send" }, deps);
+    const second = await sendSalesOrder({ tenantId: draft.tenantId, orderId: draft.id, idempotencyKey: "same-send" }, deps);
+
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    if (second.ok) {
+      expect(second.data.idempotent).toBe(true);
+      expect(second.data.attempt.deliveryId).toBe("eml-1");
+    }
+    expect(deliveryCount).toBe(1);
+  });
+
+  it("requires a recipient email", async () => {
+    const store = createMemorySalesOrderStore();
+    const draft = await seedDraft(store, { customerSnapshot: { displayName: "No Email", email: null } });
+    const result = await sendSalesOrder(
+      { tenantId: draft.tenantId, orderId: draft.id },
+      {
+        salesOrderStore: store,
+        salesOrderDeliveryPort: {
+          async sendSalesOrder() {
+            return { status: "sent" };
+          }
+        }
+      }
+    );
+    expect(result).toMatchObject({
+      ok: false,
+      status: 400,
+      error: { code: "sales-order.RECIPIENT_EMAIL_REQUIRED" }
+    });
+  });
+
+  it("records failed delivery attempts and returns a gateway error", async () => {
+    const store = createMemorySalesOrderStore();
+    const draft = await seedDraft(store);
+    const result = await sendSalesOrder(
+      { tenantId: draft.tenantId, orderId: draft.id },
+      {
+        salesOrderStore: store,
+        salesOrderDeliveryPort: {
+          async sendSalesOrder() {
+            return { provider: "test", status: "failed", errorMessage: "Provider rejected the message." };
+          }
+        },
+        now: fixedNow(T0 + 1)
+      }
+    );
+    expect(result).toMatchObject({
+      ok: false,
+      status: 502,
+      error: { code: "sales-order.DELIVERY_FAILED" }
+    });
+    const updated = await store.getOrder(draft.tenantId, draft.id);
+    expect(updated?.lastSendStatus).toBe("failed");
   });
 });

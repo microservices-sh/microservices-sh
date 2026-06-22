@@ -57,6 +57,7 @@ describe("commerce-ops app MCP wiring", () => {
     expect(names).toContain("inventory_completeReconciliationDocument");
     expect(names).toContain("inventory_listLowStockAlerts");
     expect(names).toContain("sales-order_createDraftOrder");
+    expect(names).toContain("sales-order_sendSalesOrder");
     expect(names).toContain("shipment_createShipment");
     expect(names).toContain("support-ticket_createTicket");
     expect(names).toContain("file-media_createUploadTicket");

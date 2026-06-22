@@ -2,6 +2,7 @@ export {
   cancelOrderInputSchema,
   createDraftOrderInputSchema,
   customerSnapshotSchema,
+  sendSalesOrderInputSchema,
   salesOrderConfigSchema,
   salesOrderFilterSchema,
   salesOrderIdentitySchema,

@@ -5,6 +5,7 @@ export interface SalesOrderHooks {
   beforeSalesOrderConfirm?: (input: unknown, order: SalesOrderWithLineItems) => Promise<unknown> | unknown;
   beforeSalesOrderCancel?: (input: unknown, order: SalesOrderWithLineItems) => Promise<unknown> | unknown;
   beforeSalesOrderInvoice?: (input: unknown, order: SalesOrderWithLineItems) => Promise<unknown> | unknown;
+  beforeSalesOrderSend?: (input: unknown, order: SalesOrderWithLineItems) => Promise<unknown> | unknown;
   afterSalesOrderUpdated?: (order: SalesOrderWithLineItems) => Promise<void> | void;
 }
 
@@ -19,6 +20,9 @@ export const defaultSalesOrderHooks: Required<SalesOrderHooks> = {
     return input;
   },
   beforeSalesOrderInvoice(input) {
+    return input;
+  },
+  beforeSalesOrderSend(input) {
     return input;
   },
   afterSalesOrderUpdated() {

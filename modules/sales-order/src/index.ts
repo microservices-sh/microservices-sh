@@ -3,6 +3,7 @@ export {
   cancelOrderInputSchema,
   createDraftOrderInputSchema,
   customerSnapshotSchema,
+  sendSalesOrderInputSchema,
   salesOrderConfigSchema,
   salesOrderFilterSchema,
   salesOrderIdentitySchema,
@@ -22,7 +23,8 @@ export { createDraftOrder } from "./use-cases/create-draft-order";
 export { getOrder } from "./use-cases/get-order";
 export { listOrders } from "./use-cases/list-orders";
 export { markOrderInvoiced } from "./use-cases/mark-order-invoiced";
-export type { InventoryReservationPort, InvoiceDraftPort, SalesOrderStore } from "./ports";
+export { sendSalesOrder } from "./use-cases/send-sales-order";
+export type { InventoryReservationPort, InvoiceDraftPort, SalesOrderDeliveryPort, SalesOrderStore } from "./ports";
 export type {
   Actor,
   CustomerSnapshot,
@@ -33,9 +35,12 @@ export type {
   ModuleResult,
   SalesOrder,
   SalesOrderConfig,
+  SalesOrderDeliveryRequest,
+  SalesOrderDeliveryResult,
   SalesOrderEvent,
   SalesOrderFilter,
   SalesOrderLineItem,
+  SalesOrderSendAttempt,
   SalesOrderStatus,
   SalesOrderTotals,
   SalesOrderWithLineItems

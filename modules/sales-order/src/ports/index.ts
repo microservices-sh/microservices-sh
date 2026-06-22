@@ -4,9 +4,12 @@ import type {
   InvoiceDraftRequest,
   InvoiceDraftResult,
   SalesOrder,
+  SalesOrderDeliveryRequest,
+  SalesOrderDeliveryResult,
   SalesOrderEvent,
   SalesOrderFilter,
   SalesOrderLineItem,
+  SalesOrderSendAttempt,
   SalesOrderWithLineItems
 } from "../types";
 
@@ -16,6 +19,8 @@ export interface SalesOrderStore {
   getOrder(tenantId: string, orderId: string): Promise<SalesOrderWithLineItems | null>;
   findOrderByExternalRef(tenantId: string, externalSource: string, externalId: string): Promise<SalesOrderWithLineItems | null>;
   listOrders(filter: SalesOrderFilter): Promise<SalesOrderWithLineItems[]>;
+  insertSendAttempt(attempt: SalesOrderSendAttempt): Promise<void>;
+  findSendAttemptByIdempotencyKey(tenantId: string, idempotencyKey: string): Promise<SalesOrderSendAttempt | null>;
   writeEvent(event: SalesOrderEvent): Promise<void>;
 }
 
@@ -25,4 +30,8 @@ export interface InventoryReservationPort {
 
 export interface InvoiceDraftPort {
   createDraftFromSalesOrder(request: InvoiceDraftRequest): Promise<InvoiceDraftResult>;
+}
+
+export interface SalesOrderDeliveryPort {
+  sendSalesOrder(request: SalesOrderDeliveryRequest): Promise<SalesOrderDeliveryResult>;
 }

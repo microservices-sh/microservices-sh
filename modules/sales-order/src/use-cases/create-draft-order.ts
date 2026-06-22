@@ -92,6 +92,10 @@ export async function createDraftOrder(input: unknown, deps: SalesOrderDeps & { 
     cancelledAt: null,
     cancelReason: null,
     invoicedAt: null,
+    lastSentAt: null,
+    lastSentToEmail: null,
+    lastSendStatus: null,
+    lastEmailDeliveryId: null,
     createdAt: now,
     updatedAt: now
   };

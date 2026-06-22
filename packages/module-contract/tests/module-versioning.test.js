@@ -377,6 +377,21 @@ describe("module version selectors", () => {
       ]),
     });
 
+    expect(inspectModule("sales-order@0.1.0")).toMatchObject({
+      id: "sales-order",
+      status: "draft",
+      optional: expect.arrayContaining(["inventory", "invoice", "email"]),
+      rpc: expect.arrayContaining([
+        { method: "createDraftOrder", scope: "sales-order.write", public: false },
+        { method: "sendSalesOrder", scope: "sales-order.write", public: false },
+      ]),
+      eventsEmitted: expect.arrayContaining([
+        "sales-order.order_sent",
+        "sales-order.order_send_failed",
+      ]),
+      hooks: expect.arrayContaining([expect.objectContaining({ name: "beforeSalesOrderSend" })]),
+    });
+
     expect(inspectModule("accounts-receivable@0.1.0")).toMatchObject({
       id: "accounts-receivable",
       status: "draft",

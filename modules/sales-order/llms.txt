@@ -7,5 +7,5 @@ Entrypoint: src/index.ts
 Check: pnpm check:spec
 Build: pnpm build
 Owned tables: sales_orders, sales_order_line_items, domain_events
-Primary use cases: createDraftOrder, getOrder, listOrders, confirmOrder, cancelOrder, markOrderInvoiced
+Primary use cases: createDraftOrder, getOrder, listOrders, confirmOrder, cancelOrder, sendSalesOrder, markOrderInvoiced
 Invariants: orders are tenant scoped, external references are unique per tenant/source, totals are integer cents, new orders start as draft, allowed transitions are draft->confirmed, draft->cancelled, confirmed->cancelled, and confirmed->invoiced, confirmation and invoice replay are idempotent.
