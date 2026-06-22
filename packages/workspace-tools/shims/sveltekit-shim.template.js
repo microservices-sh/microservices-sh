@@ -870,6 +870,13 @@ async function addModule(id, flags = {}) {
   }
 }
 
+// The shim has no resolver, so a module's dependencies are read from its
+// vendored module.json. Always returns an array (missing file/field -> []).
+function vendoredModuleRequires(manifestPath) {
+  const requires = readJson(manifestPath, {})?.connections?.requires ?? [];
+  return Array.isArray(requires) ? requires : [];
+}
+
 async function removeModule(id, flags = {}) {
   if (!id) {
     return fail("MODULE_ID_REQUIRED", "Missing module id.", "Run microservices remove <module-id>.");
@@ -895,9 +902,7 @@ async function removeModule(id, flags = {}) {
   for (const other of modules) {
     if (other.id === baseId) continue;
     const manifestPath = resolve(other.path ?? `modules/${other.id}`, "module.json");
-    if (!existsSync(manifestPath)) continue;
-    const requires = readJson(manifestPath, {})?.connections?.requires ?? [];
-    if (Array.isArray(requires) && requires.includes(baseId)) dependents.push(other.id);
+    if (vendoredModuleRequires(manifestPath).includes(baseId)) dependents.push(other.id);
   }
   if (dependents.length) {
     return fail(
@@ -1093,14 +1098,8 @@ async function installModules(flags = {}) {
       }
 
       // Enqueue transitive requires from the (now) vendored module.json.
-      const manifestPath = join(dest, "module.json");
-      if (existsSync(manifestPath)) {
-        const requires = readJson(manifestPath, {})?.connections?.requires ?? [];
-        if (Array.isArray(requires)) {
-          for (const dep of requires) {
-            if (dep && !seen.has(dep)) queue.push(dep);
-          }
-        }
+      for (const dep of vendoredModuleRequires(join(dest, "module.json"))) {
+        if (dep && !seen.has(dep)) queue.push(dep);
       }
     }
   } finally {
