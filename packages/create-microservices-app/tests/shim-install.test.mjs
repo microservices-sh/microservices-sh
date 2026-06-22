@@ -20,6 +20,7 @@ const path = require("node:path");
 
 const args = process.argv.slice(2);
 const spec = JSON.parse(process.env.FAKE_MODULES || "{}");
+if (process.env.FAKE_GIT_LOG) fs.appendFileSync(process.env.FAKE_GIT_LOG, JSON.stringify(args) + "\\n");
 
 function writeModules(repoDir) {
   for (const [id, requires] of Object.entries(spec)) {
@@ -54,6 +55,7 @@ async function createHarness(modules) {
   const root = await mkdtemp(join(tmpdir(), "msh-shim-install-"));
   const app = join(root, "app");
   const bin = join(root, "bin");
+  const logPath = join(root, "git.log");
   await mkdir(app, { recursive: true });
   await mkdir(bin, { recursive: true });
   const gitPath = join(bin, "git");
@@ -62,14 +64,26 @@ async function createHarness(modules) {
   return {
     root,
     app,
+    logPath,
     env: {
       ...process.env,
       PATH: `${bin}${delimiter}${process.env.PATH}`,
       MICROSERVICES_TELEMETRY: "0",
       MICROSERVICES_MODULE_SOURCE_URL: "https://example.test/repo.git",
       FAKE_MODULES: JSON.stringify(modules),
+      FAKE_GIT_LOG: logPath,
     },
   };
+}
+
+async function countClones(harness) {
+  if (!existsSync(harness.logPath)) return 0;
+  return (await readFile(harness.logPath, "utf8"))
+    .trim()
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => JSON.parse(line))
+    .filter((args) => args[0] === "clone").length;
 }
 
 function runShim(harness, args) {
@@ -115,6 +129,22 @@ test("install vendors the listed module and its transitive requires", async () =
     const lock = await readLock(harness);
     const ids = lock.modules.map((m) => m.id).sort();
     assert.deepEqual(ids, ["customer", "payment"]);
+  } finally {
+    await rm(harness.root, { recursive: true, force: true });
+  }
+});
+
+test("install clones the source repo once regardless of module count", async () => {
+  const harness = await createHarness({ payment: ["customer"], customer: ["gateway"], gateway: [] });
+  try {
+    await writeConfig(harness, { template: "booking-business", modules: ["payment"] });
+    const result = runShim(harness, ["install", "--json"]);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+
+    // payment -> customer -> gateway all vendored from a single clone
+    const lock = await readLock(harness);
+    assert.deepEqual(lock.modules.map((m) => m.id).sort(), ["customer", "gateway", "payment"]);
+    assert.equal(await countClones(harness), 1);
   } finally {
     await rm(harness.root, { recursive: true, force: true });
   }
@@ -179,6 +209,24 @@ test("remove drops the module from microservices.config.json", async () => {
     const config = await readConfig(harness);
     assert.equal(config.modules.some((m) => m.startsWith("payment")), false);
     assert.ok(config.modules.some((m) => m.startsWith("customer")));
+  } finally {
+    await rm(harness.root, { recursive: true, force: true });
+  }
+});
+
+test("install does not mis-vendor a pin that the current snapshot cannot satisfy", async () => {
+  // HEAD only has payment@0.1.0; intent pins payment@9.9.9. The shared clone
+  // must NOT be passed off as 9.9.9 — it falls back to a release-tag fetch,
+  // which (in this harness) also only yields 0.1.0, so the install fails.
+  const harness = await createHarness({ payment: [] });
+  try {
+    await writeConfig(harness, { template: "booking-business", modules: ["payment@9.9.9"] });
+    const result = runShim(harness, ["install", "--json"]);
+    assert.equal(result.status, 1);
+    const payload = parseJson(result);
+    assert.equal(payload.ok, false);
+    assert.ok(payload.data.failed.some((f) => f.id === "payment"));
+    assert.equal(existsSync(join(harness.app, "modules", "payment")), false);
   } finally {
     await rm(harness.root, { recursive: true, force: true });
   }

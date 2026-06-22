@@ -780,6 +780,47 @@ function versionDirection(currentVersion, targetVersion) {
   return "none";
 }
 
+// Copies a resolved module source into modules/<id> and records it in the lock.
+// `source` carries { src, version, ref, integrity, resolvedSourceRef, sourceResolution }.
+// Shared by `add` (clone-per-module) and `install` (one shared clone).
+function vendorFromSource(id, source) {
+  const dest = resolve("modules", id);
+  mkdirSync(dest, { recursive: true });
+  cpSync(source.src, dest, {
+    recursive: true,
+    filter: (entry) => !entry.split(/[\\/]/).some((part) => IGNORE.has(part))
+  });
+  normalizeVendoredModulePackage(dest);
+
+  const lockPath = "microservices.lock.json";
+  const lockData = readJson(lockPath, { modules: [] });
+  lockData.modules = (lockData.modules ?? []).filter((module) => module.id !== id);
+  lockData.modules.push({
+    id,
+    version: source.version,
+    source: `registry:${id}@${source.version}`,
+    sourceRef: source.resolvedSourceRef,
+    repo: SOURCE_REPO,
+    url: SOURCE_URL,
+    ref: source.ref,
+    sourceResolution: source.sourceResolution,
+    path: `modules/${id}`,
+    integrity: source.integrity
+  });
+  writeJsonFile(lockPath, lockData);
+
+  return {
+    id,
+    vendoredTo: `modules/${id}`,
+    integrity: source.integrity,
+    version: source.version,
+    source: SOURCE_REPO,
+    sourceUrl: SOURCE_URL,
+    sourceRef: source.resolvedSourceRef,
+    sourceResolution: source.sourceResolution
+  };
+}
+
 async function addModule(id, flags = {}) {
   if (!id) {
     return fail("MODULE_ID_REQUIRED", "Missing module id.", "Run microservices add <module-id>.");
@@ -817,43 +858,9 @@ async function addModule(id, flags = {}) {
       };
     }
 
-    const dest = resolve("modules", selector.id);
-    mkdirSync(dest, { recursive: true });
-    cpSync(source.src, dest, {
-      recursive: true,
-      filter: (source) => !source.split(/[\\/]/).some((part) => IGNORE.has(part))
-    });
-    normalizeVendoredModulePackage(dest);
-
-    const lockPath = "microservices.lock.json";
-    const lockData = readJson(lockPath, { modules: [] });
-    lockData.modules = (lockData.modules ?? []).filter((module) => module.id !== selector.id);
-    lockData.modules.push({
-      id: selector.id,
-      version: source.version,
-      source: `registry:${selector.id}@${source.version}`,
-      sourceRef: source.resolvedSourceRef,
-      repo: SOURCE_REPO,
-      url: SOURCE_URL,
-      ref: source.ref,
-      sourceResolution: source.sourceResolution,
-      path: `modules/${selector.id}`,
-      integrity: source.integrity
-    });
-    writeJsonFile(lockPath, lockData);
-
     return {
       ok: true,
-      data: {
-        id: selector.id,
-        vendoredTo: `modules/${selector.id}`,
-        integrity: source.integrity,
-        version: source.version,
-        source: SOURCE_REPO,
-        sourceUrl: SOURCE_URL,
-        sourceRef: source.resolvedSourceRef,
-        sourceResolution: source.sourceResolution
-      },
+      data: vendorFromSource(selector.id, source),
       warnings: [
         `Add "@microservices-sh/${selector.id}": "file:./modules/${selector.id}" to dependencies and reinstall to wire it in.`
       ]
@@ -1005,38 +1012,99 @@ async function installModules(flags = {}) {
   const installed = [];
   const failed = [];
 
-  while (queue.length) {
-    const ref = String(queue.shift());
-    const baseId = ref.split("@")[0];
-    if (!baseId || seen.has(baseId)) continue;
-    seen.add(baseId);
+  // One shared HEAD clone serves every current-snapshot module. It is created
+  // lazily on the first module that actually needs vendoring, so an
+  // already-satisfied project (every module present) clones nothing.
+  const tmp = mkdtempSync(join(tmpdir(), "ms-install-"));
+  const sharedRepo = join(tmp, "repo");
+  let sharedClone = null; // { ok, ref } once cloned
+  function ensureSharedClone() {
+    if (sharedClone) return sharedClone;
+    const clone = cloneModuleRepository(sharedRepo, { id: "_shared", version: null });
+    if (!clone.ok) {
+      sharedClone = { ok: false, response: clone.response };
+      return sharedClone;
+    }
+    const ref = execFileSync("git", ["-C", sharedRepo, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    sharedClone = { ok: true, ref };
+    return sharedClone;
+  }
 
-    const dest = resolve("modules", baseId);
-    const lockNow = readJson("microservices.lock.json", { modules: [] });
-    const lockEntry = (lockNow.modules ?? []).find((module) => module.id === baseId);
-    const present = existsSync(dest) && Boolean(lockEntry);
+  // Vendors one module from the shared clone. Normalises the source before
+  // hashing so integrity matches what `add` records (resolveModuleSource does
+  // the same). A pin that doesn't match the current snapshot falls back to a
+  // per-module release-tag fetch via addModule.
+  async function vendorOne(id, requestedVersion) {
+    const clone = ensureSharedClone();
+    if (!clone.ok) return { ok: false, error: clone.response.error };
 
-    if (present) {
-      installed.push({ id: baseId, status: "present", version: lockEntry.version ?? null });
-    } else {
-      const result = await addModule(ref, { version: flags.version });
-      if (!result.ok) {
-        failed.push({ id: baseId, error: result.error });
-        continue;
-      }
-      installed.push({ id: baseId, status: "vendored", version: result.data.version ?? null });
+    const src = join(sharedRepo, "modules", id);
+    if (!existsSync(src)) {
+      return {
+        ok: false,
+        error: fail(
+          "MODULE_NOT_FOUND",
+          `Unknown module: ${id}.`,
+          "Run microservices modules list, or browse modules/ in microservices-sh/microservices-sh.",
+          { id }
+        ).error
+      };
     }
 
-    // Enqueue transitive requires from the (now) vendored module.json.
-    const manifestPath = join(dest, "module.json");
-    if (existsSync(manifestPath)) {
-      const requires = readJson(manifestPath, {})?.connections?.requires ?? [];
-      if (Array.isArray(requires)) {
-        for (const dep of requires) {
-          if (dep && !seen.has(dep)) queue.push(dep);
+    normalizeVendoredModulePackage(src);
+    const version = moduleSourceVersion(src);
+    if (requestedVersion && version !== requestedVersion) {
+      const fallback = await addModule(`${id}@${requestedVersion}`, {});
+      return fallback.ok ? { ok: true, version: fallback.data.version } : { ok: false, error: fallback.error };
+    }
+
+    const data = vendorFromSource(id, {
+      src,
+      version,
+      ref: clone.ref,
+      integrity: integrityOf(src),
+      resolvedSourceRef: version ? moduleSourceRef(id, version) : null,
+      sourceResolution: "current-snapshot"
+    });
+    return { ok: true, version: data.version };
+  }
+
+  try {
+    while (queue.length) {
+      const ref = String(queue.shift());
+      const baseId = ref.split("@")[0];
+      if (!baseId || seen.has(baseId)) continue;
+      seen.add(baseId);
+
+      const requestedVersion = ref.includes("@") ? ref.split("@")[1] : null;
+      const dest = resolve("modules", baseId);
+      const lockNow = readJson("microservices.lock.json", { modules: [] });
+      const lockEntry = (lockNow.modules ?? []).find((module) => module.id === baseId);
+
+      if (existsSync(dest) && lockEntry) {
+        installed.push({ id: baseId, status: "present", version: lockEntry.version ?? null });
+      } else {
+        const result = await vendorOne(baseId, requestedVersion);
+        if (!result.ok) {
+          failed.push({ id: baseId, error: result.error });
+          continue;
+        }
+        installed.push({ id: baseId, status: "vendored", version: result.version });
+      }
+
+      // Enqueue transitive requires from the (now) vendored module.json.
+      const manifestPath = join(dest, "module.json");
+      if (existsSync(manifestPath)) {
+        const requires = readJson(manifestPath, {})?.connections?.requires ?? [];
+        if (Array.isArray(requires)) {
+          for (const dep of requires) {
+            if (dep && !seen.has(dep)) queue.push(dep);
+          }
         }
       }
     }
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
   }
 
   if (failed.length) {
