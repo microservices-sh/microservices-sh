@@ -26,7 +26,10 @@ const SECTIONS: { section: string; items: { label: string; href: string; module?
   },
   {
     section: "Integrations",
-    items: [{ label: "Webhook endpoints", href: "/app/settings/webhooks", module: "webhook-delivery" }]
+    items: [
+      { label: "Providers", href: "/app/settings/providers", module: "commerce-sync" },
+      { label: "Webhook endpoints", href: "/app/settings/webhooks", module: "webhook-delivery" }
+    ]
   },
   {
     section: "Automation",

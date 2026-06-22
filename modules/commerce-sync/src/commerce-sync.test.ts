@@ -427,6 +427,61 @@ describe("commerce-sync", () => {
     expect(parseWooCommerceCredentials("{}")).toBeNull();
   });
 
+  it("tests WooCommerce connection through system status", async () => {
+    const requests: string[] = [];
+    const client = new WooCommerceClient({
+      storeUrl: "https://store.example.test",
+      consumerKey: "ck_test",
+      consumerSecret: "cs_test",
+      fetcher: async (input) => {
+        requests.push(String(input));
+        return new Response(JSON.stringify({ store: { name: "Demo Store" } }), { status: 200 });
+      }
+    });
+
+    await expect(client.testConnection()).resolves.toEqual({
+      success: true,
+      message: "Connected successfully",
+      storeName: "Demo Store"
+    });
+    expect(new URL(requests[0]).pathname).toBe("/wp-json/wc/v3/system_status");
+  });
+
+  it("falls back to a product probe when WooCommerce system status is unavailable", async () => {
+    const requests: string[] = [];
+    const client = new WooCommerceClient({
+      storeUrl: "https://store.example.test",
+      consumerKey: "ck_test",
+      consumerSecret: "cs_test",
+      fetcher: async (input) => {
+        requests.push(String(input));
+        if (requests.length === 1) return new Response("blocked", { status: 403 });
+        return new Response(JSON.stringify([{ id: 1 }]), { status: 200 });
+      }
+    });
+
+    await expect(client.testConnection()).resolves.toEqual({
+      success: true,
+      message: "Connected successfully"
+    });
+    expect(new URL(requests[0]).pathname).toBe("/wp-json/wc/v3/system_status");
+    expect(new URL(requests[1]).pathname).toBe("/wp-json/wc/v3/products");
+  });
+
+  it("returns a failed WooCommerce connection test when both probes fail", async () => {
+    const client = new WooCommerceClient({
+      storeUrl: "https://store.example.test",
+      consumerKey: "ck_test",
+      consumerSecret: "cs_test",
+      fetcher: async () => new Response("bad provider", { status: 500 })
+    });
+
+    await expect(client.testConnection()).resolves.toEqual({
+      success: false,
+      message: "WooCommerce API error: 500 - bad provider"
+    });
+  });
+
   it("syncs one WooCommerce product page into envelopes, mappings, and run counters", async () => {
     const service = createCommerceSyncService({
       store: createMemoryCommerceSyncStore(),

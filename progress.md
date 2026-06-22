@@ -2484,3 +2484,24 @@ Note: an initial `create-microservices-app` test run overlapped with `create-mic
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Create app closure | Bundled repo templates still close over required modules/packages | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 120 provider readiness settings
+
+- **Status:** complete.
+- Goal: close the StackSuite provider setup/health UX gap without adding new credential storage, OAuth, or provider write setup flows.
+- Added `/app/settings/providers` to `accounting-erp-sveltekit` as a read-only readiness page for Stripe payment links, payment webhooks, email delivery, and outbound webhooks.
+- Added `/app/settings/providers` to `commerce-ops-sveltekit` for Stripe, WooCommerce, and email readiness, including WooCommerce connection state and a manager-gated connection test that resolves credentials server-side and audits only sanitized results.
+- Added provider-health helpers, settings nav links, README route rows, template spec guards, and WooCommerce connection-test coverage in `commerce-sync`.
+- Updated StackSuite findings/porting docs so provider readiness is no longer listed as an open hardening item; remaining focused-template hardening is post-shipment delivery semantics if required and dependency/migration pruning.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Commerce-sync spec | WooCommerce connection test API and provider checks remain contract-valid | `pnpm --filter @microservices-sh/commerce-sync check:spec` passed | Pass |
+| Commerce-sync tests | System-status success, product-probe fallback, and failure paths are covered | `pnpm --filter @microservices-sh/commerce-sync test` passed, 11/11 | Pass |
+| Accounting template spec | Provider readiness route/nav/read-only/redaction guards pass | `pnpm --dir templates/accounting-erp-sveltekit check:spec` passed | Pass |
+| Commerce template spec | Provider readiness route/nav/WooCommerce action/redaction guards pass | `pnpm --dir templates/commerce-ops-sveltekit check:spec` passed | Pass |
+| Accounting template build | SvelteKit/Cloudflare build compiles after provider readiness route additions | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Commerce template build | SvelteKit/Cloudflare build compiles after provider readiness route additions | `pnpm --dir templates/commerce-ops-sveltekit build` passed | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Create app closure | Bundled repo templates still close over required modules/packages | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

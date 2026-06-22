@@ -50,12 +50,15 @@ and sync review.
 | `/app/sales-orders` | Draft sales order intake and order ledger |
 | `/app/shipments` | Fulfillment batches, shipment line review, packing slip print, and pick-list print |
 | `/app/commerce-sync` | Provider connection, sync-run, mapping, and webhook contract review |
+| `/app/commerce-sync/logs` | Read-only provider sync runs, webhook receipts, and mappings |
 | `/api/commerce-sync/woocommerce/[tenantId]/[connectionId]` | Raw WooCommerce webhook endpoint; verifies `WOOCOMMERCE_WEBHOOK_SECRET`, records receipts, and imports order webhooks as draft sales orders |
 | `/app/invoices` | Invoice ledger |
 | `/app/payments` | Payment review |
 | `/app/files` | Stored files |
 | `/app/jobs` | Queue health and recurring schedules |
 | `/app/webhooks` | Endpoint inventory and delivery attempts |
+| `/app/settings/providers` | Provider readiness for Stripe, WooCommerce, and email plus WooCommerce connection tests |
+| `/app/settings/webhooks` | Outbound webhook endpoint registration |
 | `/admin`, `/admin/[resource]` | Super-admin table gateway via `admin-shell` |
 
 ## Architecture

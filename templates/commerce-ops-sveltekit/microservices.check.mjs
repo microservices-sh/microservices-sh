@@ -12,6 +12,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const commerceSyncLogsServer = readText("src/routes/app/commerce-sync/logs/+page.server.ts");
   const commerceSyncLogsPage = readText("src/routes/app/commerce-sync/logs/+page.svelte");
   const salesOrderDetailServer = readText("src/routes/app/sales-orders/[id]/+page.server.ts");
+  const providerHealth = readText("src/lib/server/provider-health.ts");
 
   assertFileIncludesAll(
     "docs/api-boundary.md",
@@ -109,8 +110,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/commerce-sync/+page.svelte",
-    ["/app/commerce-sync/logs", "Sync logs"],
-    "Commerce sync page links to the read-only logs route."
+    ["/app/settings/providers", "Provider settings", "/app/commerce-sync/logs", "Sync logs"],
+    "Commerce sync page links to provider settings and the read-only logs route."
   );
   assertFileIncludesAll(
     "src/routes/app/commerce-sync/logs/+page.server.ts",
@@ -129,6 +130,53 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       `policy:commerce-sync-logs-redacts-${token}`
     );
   }
+  assertFileIncludesAll(
+    "src/lib/server/settings-nav.ts",
+    ["Providers", "/app/settings/providers", "module: \"commerce-sync\"", "Webhook endpoints"],
+    "Commerce settings nav exposes provider readiness under Integrations."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/provider-health.ts",
+    [
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "RESEND_API_KEY",
+      "EMAIL_FROM",
+      "WOOCOMMERCE_CREDENTIALS_JSON",
+      "WOOCOMMERCE_WEBHOOK_SECRET",
+      "/api/commerce-sync/woocommerce/${tenantId}/${connection.id}",
+      "sanitizeProviderMessage"
+    ],
+    "Commerce provider health helper reports Stripe, email, and WooCommerce readiness from sanitized metadata."
+  );
+  assert(
+    providerHealth.includes("resolveWooCommerceCredentialsJson") &&
+      !providerHealth.includes("secretValue") &&
+      !providerHealth.includes("consumerSecret: connection"),
+    "Commerce provider health helper resolves credentials for tests without exposing provider secret values.",
+    "policy:commerce-provider-health-no-secret-values"
+  );
+  assertFileIncludesAll(
+    "src/routes/app/settings/providers/+page.server.ts",
+    [
+      "testWooCommerceConnection",
+      "WooCommerceClient",
+      "testConnection",
+      "parseWooCommerceCredentials",
+      "resolveWooCommerceCredentialsJson",
+      "sanitizeProviderMessage",
+      "recordEvent",
+      "commerce-sync.woocommerce_connection_tested",
+      "requireOrgPermission",
+      "member.manage"
+    ],
+    "Commerce provider settings route can test WooCommerce using configured credentials and sanitized results."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/settings/providers/+page.svelte",
+    ["Webhook callback", "provider.label", "provider.secrets", "provider.details", "data.wooConnections", "Test connection"],
+    "Commerce provider settings page renders provider readiness and WooCommerce connection tests."
+  );
   assertFileIncludesAll(
     "package.json",
     ["generate:mcp", "mcp", "@microservices-sh/sdk-internal", "@modelcontextprotocol/sdk", "tsx"],

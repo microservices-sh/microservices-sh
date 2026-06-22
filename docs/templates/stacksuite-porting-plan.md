@@ -33,8 +33,8 @@ As of the latest StackSuite porting slices, the focused templates are CLI-discov
 
 - `create-microservices-app` lists and bundles `accounting-erp-sveltekit` and `commerce-ops-sveltekit`.
 - Bundle closure and smoke coverage include the module source required by both templates.
-- Accounting routes cover ledger account/fiscal-period/journal workflows, account and fiscal-period detail review, trial balance, payables, receivables, banking, reports, invoice collection, signed Stripe settlement, and scheduled recurring-invoice posting/AR sync.
-- Commerce routes cover product catalog, inventory, sales orders, shipments, commerce sync, sync logs, signed WooCommerce order webhooks, invoice/payment handoff, document exports, packing slips, pick lists, and scheduled runtime glue.
+- Accounting routes cover ledger account/fiscal-period/journal workflows, account and fiscal-period detail review, trial balance, payables, receivables, banking, reports, invoice collection, signed Stripe settlement, provider readiness, and scheduled recurring-invoice posting/AR sync.
+- Commerce routes cover product catalog, inventory, sales orders, shipments, commerce sync, sync logs, provider readiness, signed WooCommerce order webhooks, invoice/payment handoff, document exports, packing slips, pick lists, and scheduled runtime glue.
 - Request hooks, locks, manifests, enabled modules, migrations, docs, and template policy checks now agree on the focused module set.
 
 Keep the templates source-visible and module-backed. Template-side adapters may bridge modules, providers, and UI workflows, but durable business behavior should remain in module use cases or documented ports.
@@ -49,7 +49,7 @@ Two read-only explorer passes on 2026-06-21 identified the remaining adoption ga
 - Banking now exposes imports, import detail review, match suggestions, match creation, reconciliation start, reconciliation completion, and reconciliation detail review in the accounting template workflow. Remaining backlog is CSV field mapping, duplicate handling, confirm/remove/exclude match lifecycle, clear/unclear operations, richer summaries/history, and provider/OCR hooks.
 - BAO invoice documents include commerce-specific projections: sales-order link, product-backed lines, contact/address snapshots, shipping status, shipping fee, discount, terms, payment method, PDF key, Stripe payment-link fields, and external IDs. Keep invoice core lean and put document snapshots in a template projection or an invoice-document extension.
 - BAO fulfillment links invoices, shipment batches, and stock movement. The commerce template now covers reservation/release, combo-component reservation, invoice-originated shipment deduction, shipment batches, shipment detail, packing slips, pick lists, inventory reconciliation documents, low-stock alert read models, and draft-to-processing shipment status transition history. Remaining backlog is post-shipment delivery semantics if needed beyond current completion.
-- BAO WooCommerce behavior remains provider-specific. The current template has HMAC verification, manual page sync, signed order webhooks, order import, and audit events; future provider depth should stay below `commerce-sync` adapters and template bridges.
+- BAO WooCommerce behavior remains provider-specific. The current template has HMAC verification, manual page sync, signed order webhooks, order import, provider readiness, a manager-gated connection test, and audit events; future provider depth should stay below `commerce-sync` adapters and template bridges.
 - BAO MCP/reporting tools are useful, but write-capable tools still need scoped tokens, audit logging, and strict provider/tenant wrappers before public exposure.
 - The focused-template metadata mismatch around `gateway` has been closed by declaring gateway in manifests, locks, enabled-module lists, checks, and migrations while leaving API-key UI as future work.
 
@@ -359,11 +359,12 @@ Partially done:
 - Stripe payment links and signed settlement webhooks.
 - WooCommerce manual page sync, signed order webhooks, order import, and scheduled runtime glue.
 - email send attempts through template-side provider dependencies.
+- read-only provider readiness for Stripe, email, payment webhooks, outbound webhooks, and WooCommerce, with a manager-gated WooCommerce connection test.
 
 Still pending:
 
-- Stripe OAuth/connect status and richer provider account health.
-- WooCommerce provider setup UX and richer sync log rollups.
+- Stripe OAuth/connect status and provider account health beyond local readiness.
+- write-capable WooCommerce setup/OAuth and richer sync log rollups.
 - OCR/document extraction review loops.
 - MCP tools with audited tokens.
 

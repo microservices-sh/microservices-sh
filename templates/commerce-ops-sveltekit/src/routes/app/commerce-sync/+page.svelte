@@ -23,6 +23,7 @@
     description="Connection, mapping, sync-run, and webhook receipt contracts for external commerce platforms."
   >
     {#snippet actions()}
+      <Button href="/app/settings/providers" variant="ghost">Provider settings</Button>
       <Button href="/app/commerce-sync/logs" variant="ghost">Sync logs</Button>
     {/snippet}
   </PageHeader>

@@ -61,6 +61,9 @@ import, reconciliation, quotes, and recurring document schedules.
 | `/app/files` | Stored files |
 | `/app/jobs` | Queue health and recurring schedules |
 | `/app/webhooks` | Endpoint inventory and delivery attempts |
+| `/app/settings/providers` | Provider readiness for payment links, payment webhooks, email, and outbound webhooks |
+| `/app/settings/webhooks` | Outbound webhook endpoint registration |
+| `/app/settings/accounting` | Accounting setup, chart seed, fiscal periods, and posting defaults |
 | `/admin`, `/admin/[resource]` | Super-admin table gateway via `admin-shell` |
 
 ## Architecture

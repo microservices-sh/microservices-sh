@@ -23,6 +23,9 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const hooksServer = readText("src/hooks.server.ts");
   const templateLock = JSON.parse(readText("microservices.lock.json"));
   const accountingCoreLock = templateLock.modules.find((entry) => entry.id === "accounting-core");
+  const providerHealth = readText("src/lib/server/provider-health.ts");
+  const providerReadinessServer = readText("src/routes/app/settings/providers/+page.server.ts");
+  const providerReadinessPage = readText("src/routes/app/settings/providers/+page.svelte");
 
   assertFileIncludesAll(
     "docs/api-boundary.md",
@@ -309,6 +312,77 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "src/lib/server/invoice-email.ts",
     ["buildInvoiceEmail", "Pay this invoice online", "Accounting ERP"],
     "Invoice email helper renders accounting invoice collection emails with optional payment links."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/settings-nav.ts",
+    ["Provider readiness", "/app/settings/providers", "module: \"payment\"", "section: \"Integrations\""],
+    "Accounting settings nav exposes provider readiness under Integrations."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/provider-health.ts",
+    ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "RESEND_API_KEY", "EMAIL_FROM", "/api/payments/stripe-webhook"],
+    "Accounting provider health helper reports Stripe and email readiness from secret presence only."
+  );
+  assert(
+    !providerHealth.includes("consumerSecret") && !providerHealth.includes("secretValue"),
+    "Accounting provider health helper does not expose provider secret values.",
+    "policy:accounting-provider-health-no-secret-values"
+  );
+  assertFileIncludesAll(
+    "src/routes/app/settings/providers/+page.server.ts",
+    [
+      "requireModule(\"payment\"",
+      "requireModule(\"invoice\"",
+      "requireModule(\"accounting-core\"",
+      "requireModule(\"email\"",
+      "requireModule(\"webhook-delivery\"",
+      "requireOrgPermission",
+      "\"org.read\"",
+      "listInvoicesScoped",
+      "getAccountingSetupStatus",
+      "listEndpoints",
+      "listDeliveries",
+      "locals.emailRepository.listDeliveries",
+      "locals.emailProvider.id",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "RESEND_API_KEY",
+      "EMAIL_FROM",
+      "/api/payments/stripe-webhook"
+    ],
+    "Provider readiness loads Stripe, payment-link, webhook, accounting deposit, and email status read-only."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/settings/providers/+page.svelte",
+    [
+      "Provider readiness",
+      "Payment links",
+      "Payment webhook",
+      "Email delivery",
+      "Outbound webhooks",
+      "MetricStrip",
+      "Badge",
+      "/app/settings/accounting",
+      "/app/settings/webhooks",
+      "/app/webhooks"
+    ],
+    "Provider readiness UI renders setup and health panels."
+  );
+  assert(
+    !providerReadinessServer.includes("export const actions") &&
+      !providerReadinessServer.includes("sendEmail(") &&
+      !providerReadinessServer.includes("createInvoicePaymentLinkScoped") &&
+      !providerReadinessPage.includes("<form"),
+    "Provider readiness is read-only and does not send email, create links, or expose POST forms.",
+    "policy:accounting-provider-readiness-read-only"
+  );
+  assert(
+    !providerReadinessPage.includes("STRIPE_SECRET_KEY") &&
+      !providerReadinessPage.includes("STRIPE_WEBHOOK_SECRET") &&
+      !providerReadinessPage.includes("RESEND_API_KEY") &&
+      !providerReadinessPage.includes("EMAIL_FROM"),
+    "Provider readiness UI does not render secret env names or values.",
+    "policy:accounting-provider-readiness-redacted"
   );
   assertFileIncludesAll(
     "src/routes/app/invoices/new/+page.server.ts",

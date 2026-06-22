@@ -944,6 +944,13 @@ Phase 119
 - [x] Verify accounting-core build/tests/spec, accounting template spec/build, module-contract tests, workspace specs, create-app template closure, and whitespace checks.
 - **Status:** complete
 
+### Phase 120: Provider Readiness Settings
+- [x] Add read-only accounting provider readiness covering Stripe payment links, payment webhooks, email delivery, and outbound webhooks without provider write actions.
+- [x] Add commerce provider readiness covering Stripe, WooCommerce, email, WooCommerce connection state, and a manager-gated sanitized WooCommerce connection test.
+- [x] Update settings navigation, template READMEs, template policy checks, and commerce-sync WooCommerce connection-test coverage.
+- [x] Verify commerce-sync spec/tests, focused template specs/builds, workspace specs, create-app template closure, and whitespace checks.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

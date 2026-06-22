@@ -39,4 +39,24 @@ export default function check({ assertFileIncludes }) {
     "\"risk\": \"high\"",
     "Commerce Sync approval risk matches provider credential and webhook operations."
   );
+  assertFileIncludes(
+    "src/providers/woocommerce.ts",
+    "testConnection",
+    "Commerce Sync WooCommerce provider exposes a connection health probe."
+  );
+  assertFileIncludes(
+    "src/providers/woocommerce.ts",
+    "/system_status",
+    "WooCommerce connection health checks the system status endpoint first."
+  );
+  assertFileIncludes(
+    "src/providers/woocommerce.ts",
+    "getProducts(1, 1)",
+    "WooCommerce connection health falls back to a minimal product probe."
+  );
+  assertFileIncludes(
+    "src/providers/woocommerce.ts",
+    "storeName",
+    "WooCommerce connection health returns sanitized store name metadata."
+  );
 }
