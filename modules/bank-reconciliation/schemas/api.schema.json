@@ -21,6 +21,12 @@
       "items": {
         "enum": ["in_progress", "completed", "abandoned"]
       }
+    },
+    "statementImportFieldMappingPresets": {
+      "type": "array",
+      "items": {
+        "enum": ["standard_amount", "details_debit_credit", "posted_amount"]
+      }
     }
   }
 }

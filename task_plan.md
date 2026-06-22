@@ -988,6 +988,13 @@ Phase 125
 - [x] Update module metadata, docs, static catalog, and accounting template policy checks.
 - **Status:** complete
 
+### Phase 126: Banking CSV Mapping Presets
+- [x] Add module-owned statement import mapping presets and allow CSV import by preset id or custom field mapping.
+- [x] Expose the preset list through module metadata/static catalog and accounting template lockfile.
+- [x] Wire `/app/banking` import UI to preset selection while preserving custom mapping fallback.
+- [x] Update module/template docs, policy checks, and validation coverage.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

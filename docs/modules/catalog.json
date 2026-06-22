@@ -2048,7 +2048,7 @@
       "class": "core",
       "mount": "/banking",
       "docPath": "docs/modules/bank-reconciliation.md",
-      "summary": "Tenant-scoped bank accounts, statement imports, matching corrections, exclusions, and reconciliation completion with integer-cent balances.",
+      "summary": "Tenant-scoped bank accounts, statement import mapping presets, matching corrections, exclusions, and reconciliation completion with integer-cent balances.",
       "requires": [],
       "permissions": [
         "bank-reconciliation.read",
@@ -2065,6 +2065,11 @@
         },
         {
           "method": "listBankAccounts",
+          "scope": "bank-reconciliation.read",
+          "public": false
+        },
+        {
+          "method": "listStatementImportFieldMappingPresets",
           "scope": "bank-reconciliation.read",
           "public": false
         },

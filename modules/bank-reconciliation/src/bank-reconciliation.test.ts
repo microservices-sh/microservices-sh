@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { createMemoryBankReconciliationStore } from "./adapters/memory-bank-reconciliation-store";
 import {
+  bankStatementImportMappingPresets,
   createBankReconciliationMemoryService,
   createBankReconciliationService,
-  createSequentialBankReconciliationIdFactory
+  createSequentialBankReconciliationIdFactory,
+  resolveStatementImportFieldMapping
 } from "./service";
 
 const ctx = { tenantId: "tenant_1", now: "2026-06-21T00:00:00.000Z" };
@@ -261,5 +263,54 @@ describe("bank-reconciliation", () => {
     const imports = await service.listStatementImports(ctx, account.data!.id);
     expect(imports.data).toHaveLength(2);
     expect(imports.data?.map((statementImport) => statementImport.fileName)).toEqual(["operating.csv", "operating-repeat.csv"]);
+  });
+
+  it("imports CSV statements through a field mapping preset", async () => {
+    const service = createBankReconciliationService({
+      store: createMemoryBankReconciliationStore(),
+      createId: createSequentialBankReconciliationIdFactory()
+    });
+    const account = await service.createBankAccount(ctx, { name: "Operating" });
+    const presets = await service.listStatementImportFieldMappingPresets();
+    expect(presets.ok).toBe(true);
+    expect(presets.data?.map((preset) => preset.id)).toEqual(bankStatementImportMappingPresets.map((preset) => preset.id));
+
+    const imported = await service.importStatementCsv(ctx, account.data!.id, {
+      fileName: "standard.csv",
+      fieldMappingPresetId: "standard_amount",
+      csvContent: ["Date,Description,Amount", "2026-06-20,Stripe payout,840.00", "2026-06-21,Cloud hosting,-125.50"].join("\n")
+    });
+
+    expect(imported.ok).toBe(true);
+    expect(imported.data!.imported.map((tx) => tx.amountCents)).toEqual([84000, -12550]);
+    expect(imported.data!.statementImport?.fieldMapping).toEqual({
+      presetId: "standard_amount",
+      date: "Date",
+      description: "Description",
+      amount: "Amount"
+    });
+  });
+
+  it("rejects unknown CSV mapping presets before creating an import", async () => {
+    const store = createMemoryBankReconciliationStore();
+    const service = createBankReconciliationService({
+      store,
+      createId: createSequentialBankReconciliationIdFactory()
+    });
+    const account = await service.createBankAccount(ctx, { name: "Operating" });
+
+    expect(resolveStatementImportFieldMapping({ fieldMappingPresetId: "missing" as never, csvContent: "Date,Description,Amount" })).toMatchObject({
+      ok: false,
+      error: { code: "field_mapping_preset_not_found" }
+    });
+    const imported = await service.importStatementCsv(ctx, account.data!.id, {
+      fileName: "missing-preset.csv",
+      fieldMappingPresetId: "missing" as never,
+      csvContent: ["Date,Description,Amount", "2026-06-20,Stripe payout,840.00"].join("\n")
+    });
+
+    expect(imported.ok).toBe(false);
+    expect(imported.error?.code).toBe("field_mapping_preset_not_found");
+    await expect(store.listStatementImports(ctx.tenantId, account.data!.id)).resolves.toHaveLength(0);
   });
 });

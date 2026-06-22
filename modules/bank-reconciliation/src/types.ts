@@ -133,13 +133,22 @@ export interface StatementImportResult {
 
 export type BankStatementImportSource = "csv" | "ofx" | "qfx" | "qif" | "api";
 export type BankStatementImportStatus = "pending" | "processing" | "completed" | "failed";
+export type BankStatementImportMappingPresetId = "standard_amount" | "details_debit_credit" | "posted_amount";
 
 export interface BankStatementImportFieldMapping {
+  presetId?: BankStatementImportMappingPresetId;
   date: string;
   description: string;
   amount?: string;
   debit?: string;
   credit?: string;
+}
+
+export interface BankStatementImportMappingPreset {
+  id: BankStatementImportMappingPresetId;
+  label: string;
+  description: string;
+  fieldMapping: BankStatementImportFieldMapping;
 }
 
 export interface BankStatementImport {

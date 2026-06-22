@@ -211,6 +211,14 @@
           <Field label="File name" id="import-file-name">
             <input id="import-file-name" name="fileName" placeholder="operating.csv" value={form?.values?.fileName ?? "operating.csv"} />
           </Field>
+          <Field label="Mapping preset" id="import-mapping-preset">
+            <select id="import-mapping-preset" name="mappingPresetId">
+              {#each data.mappingPresets as preset (preset.id)}
+                <option value={preset.id} selected={(form?.values?.mappingPresetId ?? "standard_amount") === preset.id}>{preset.label}</option>
+              {/each}
+              <option value="custom" selected={form?.values?.mappingPresetId === "custom"}>Custom fields</option>
+            </select>
+          </Field>
           <div class="mapping-row">
             <Field label="Date field" id="import-date-field">
               <input id="import-date-field" name="dateField" value={form?.values?.dateField ?? "Date"} />

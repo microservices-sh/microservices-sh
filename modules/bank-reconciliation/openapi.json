@@ -16,6 +16,25 @@
         "operationId": "createBankAccount"
       }
     },
+    "/statement-import-mapping-presets": {
+      "get": {
+        "summary": "List CSV field mapping presets",
+        "operationId": "listStatementImportFieldMappingPresets",
+        "responses": {
+          "200": {
+            "description": "Available field mapping presets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/StatementImportMappingPreset" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/statement-imports": {
       "get": {
         "summary": "List statement imports",
@@ -23,7 +42,15 @@
       },
       "post": {
         "summary": "Import a mapped CSV statement",
-        "operationId": "importStatementCsv"
+        "operationId": "importStatementCsv",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ImportStatementCsvRequest" }
+            }
+          }
+        }
       }
     },
     "/statement-transactions/import": {
@@ -133,6 +160,54 @@
       "MatchTargetType": {
         "type": "string",
         "enum": ["ledger_entry", "ledger_line", "payment", "external_ref"]
+      },
+      "StatementImportFieldMappingPresetId": {
+        "type": "string",
+        "enum": ["standard_amount", "details_debit_credit", "posted_amount"]
+      },
+      "StatementImportFieldMapping": {
+        "type": "object",
+        "required": ["date", "description"],
+        "properties": {
+          "presetId": { "$ref": "#/components/schemas/StatementImportFieldMappingPresetId" },
+          "date": { "type": "string" },
+          "description": { "type": "string" },
+          "amount": { "type": "string" },
+          "debit": { "type": "string" },
+          "credit": { "type": "string" }
+        },
+        "oneOf": [
+          { "required": ["amount"] },
+          { "required": ["debit", "credit"] }
+        ]
+      },
+      "StatementImportMappingPreset": {
+        "type": "object",
+        "required": ["id", "label", "description", "fieldMapping"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/StatementImportFieldMappingPresetId" },
+          "label": { "type": "string" },
+          "description": { "type": "string" },
+          "fieldMapping": { "$ref": "#/components/schemas/StatementImportFieldMapping" }
+        }
+      },
+      "ImportStatementCsvRequest": {
+        "type": "object",
+        "required": ["tenantId", "bankAccountId", "csvContent"],
+        "properties": {
+          "tenantId": { "type": "string" },
+          "bankAccountId": { "type": "string" },
+          "source": { "type": "string", "enum": ["csv", "ofx", "qfx", "qif", "api"], "default": "csv" },
+          "fileName": { "type": ["string", "null"] },
+          "importedById": { "type": ["string", "null"] },
+          "fieldMapping": { "$ref": "#/components/schemas/StatementImportFieldMapping" },
+          "fieldMappingPresetId": { "$ref": "#/components/schemas/StatementImportFieldMappingPresetId" },
+          "csvContent": { "type": "string" }
+        },
+        "anyOf": [
+          { "required": ["fieldMapping"] },
+          { "required": ["fieldMappingPresetId"] }
+        ]
       },
       "MatchCandidate": {
         "type": "object",

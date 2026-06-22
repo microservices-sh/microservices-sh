@@ -18,6 +18,7 @@ export {
   restoreExcludedTransactionSchema,
   statementImportFieldMappingSchema,
   startReconciliationSchema,
+  statementImportFieldMappingPresetIdSchema,
   statementImportSourceSchema,
   statementImportStatusSchema,
   statementTransactionFilterSchema,

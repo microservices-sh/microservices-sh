@@ -1,6 +1,6 @@
 import type { PageServerLoad } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
-import type { BankStatementImportFieldMapping } from "@microservices-sh/bank-reconciliation";
+import type { BankStatementImportFieldMapping, BankStatementImportMappingPreset } from "@microservices-sh/bank-reconciliation";
 import { money, relativeTime } from "$lib/format";
 import { requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
@@ -18,9 +18,11 @@ function shortDate(value: string | null | undefined): string {
   return value ? value.slice(0, 10) : "-";
 }
 
-function mappingSummary(mapping: BankStatementImportFieldMapping | undefined): string[] {
+function mappingSummary(mapping: BankStatementImportFieldMapping | undefined, presets: BankStatementImportMappingPreset[]): string[] {
   if (!mapping) return [];
+  const preset = mapping.presetId ? presets.find((candidate) => candidate.id === mapping.presetId) : null;
   return [
+    preset ? `Preset: ${preset.label}` : mapping.presetId ? `Preset: ${mapping.presetId}` : null,
     `Date: ${mapping.date}`,
     `Description: ${mapping.description}`,
     mapping.amount ? `Amount: ${mapping.amount}` : `Debit: ${mapping.debit ?? "-"}`,
@@ -59,6 +61,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
     service.listStatementTransactions(ctx, statementImport.bankAccountId),
     service.listReconciliations(ctx, statementImport.bankAccountId)
   ]);
+  const presetsResult = await service.listStatementImportFieldMappingPresets();
   if (!transactionsResult.ok) {
     throw error(500, transactionsResult.error?.message ?? "Could not load statement transactions.");
   }
@@ -90,7 +93,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
       importedAtShort: shortDate(statementImport.importedAt),
       startDateShort: shortDate(statementImport.startDate),
       endDateShort: shortDate(statementImport.endDate),
-      mapping: mappingSummary(statementImport.fieldMapping)
+      mapping: mappingSummary(statementImport.fieldMapping, presetsResult.ok ? presetsResult.data ?? [] : [])
     },
     account: account
       ? {

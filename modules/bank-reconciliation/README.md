@@ -2,7 +2,7 @@
 
 Status: `draft`
 
-Tenant-scoped bank accounts, statement imports, transaction matching corrections, exclusions, and reconciliation completion with integer-cent balances.
+Tenant-scoped bank accounts, statement import mapping presets, transaction matching corrections, exclusions, and reconciliation completion with integer-cent balances.
 
 ## Public Surface
 
@@ -20,7 +20,9 @@ const service = createBankReconciliationService({
 ## Core Behavior
 
 - Creates and lists tenant/org-scoped bank accounts.
+- Lists module-owned CSV mapping presets for common statement shapes.
 - Imports mapped CSV statements into persisted import sessions.
+- Resolves preset-based CSV imports into stored concrete field mappings before parsing.
 - Imports prepared signed statement transactions in integer cents.
 - Lists statement import history with row, duplicate, skipped, date-range, and uploader metadata.
 - Guards duplicate statement transactions by stable transaction hash per tenant and bank account.

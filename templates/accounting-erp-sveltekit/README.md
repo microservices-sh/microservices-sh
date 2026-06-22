@@ -53,7 +53,7 @@ import, reconciliation, quotes, and recurring document schedules.
 | `/app/ledger/fiscal-periods/[id]` | Read-only fiscal period detail |
 | `/app/payables` | Vendor, bill, and AP aging review |
 | `/app/receivables` | Open receivables and AR aging buckets |
-| `/app/banking` | Statement import, match correction, exclusion, and reconciliation review |
+| `/app/banking` | Statement import presets, match correction, exclusion, and reconciliation review |
 | `/app/quotes` | Estimate quote pipeline and invoice draft preview |
 | `/app/recurring-documents` | Recurring invoice and bill schedules with generated draft payloads |
 | `/app/invoices` | Invoice ledger |

@@ -757,13 +757,13 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/banking/+page.server.ts",
-    ["createBankAccount", "importStatementCsv", "suggestMatches", "createMatch", "matchTransaction", "unmatchTransaction", "excludeTransaction", "restoreExcludedTransaction", "startReconciliation", "listReconciliations", "completeReconciliation", "recordEvent"],
+    ["createBankAccount", "listStatementImportFieldMappingPresets", "importStatementCsv", "fieldMappingPresetId", "mappingPresetId", "suggestMatches", "createMatch", "matchTransaction", "unmatchTransaction", "excludeTransaction", "restoreExcludedTransaction", "startReconciliation", "listReconciliations", "completeReconciliation", "recordEvent"],
     "Banking route exposes operator actions, correction actions, and persisted reconciliation sessions through bank-reconciliation service methods."
   );
   assertFileIncludesAll(
     "src/routes/app/banking/+page.svelte",
-    ["?/unmatchTransaction", "?/excludeTransaction", "?/restoreExcludedTransaction", "transactionTone", "Excluded transactions"],
-    "Banking page exposes transaction unmatch, exclude, and restore actions over the bank-reconciliation module."
+    ["name=\"mappingPresetId\"", "data.mappingPresets", "standard_amount", "?/unmatchTransaction", "?/excludeTransaction", "?/restoreExcludedTransaction", "transactionTone", "Excluded transactions"],
+    "Banking page exposes CSV mapping presets plus transaction unmatch, exclude, and restore actions over the bank-reconciliation module."
   );
   assertFileIncludes(
     "src/routes/app/banking/+page.svelte",
@@ -784,6 +784,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       "listBankAccounts(ctx)",
       "service.listStatementImports(ctx, account.id)",
       "listStatementTransactions(ctx, statementImport.bankAccountId)",
+      "listStatementImportFieldMappingPresets",
+      "Preset:",
       "transaction.statementImportId === statementImport.id",
       "transaction.bankAccountId === statementImport.bankAccountId",
       "transaction.tenantId === activeOrgId"
@@ -1082,7 +1084,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "microservices.lock.json",
-    ["beforeMatchCreate", "beforeReconciliationStart", "afterReconciliationChanged"],
+    ["\"method\": \"listStatementImportFieldMappingPresets\"", "\"method\": \"importStatementCsv\"", "beforeMatchCreate", "beforeReconciliationStart", "afterReconciliationChanged"],
     "Accounting template lock keeps bank-reconciliation hook names aligned with the module contract."
   );
   assertFileIncludesAll(

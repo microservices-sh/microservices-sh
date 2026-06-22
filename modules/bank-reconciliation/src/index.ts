@@ -5,10 +5,12 @@ export { bankReconciliationEvents } from "./events";
 export { bankReconciliationPermissions } from "./permissions";
 export { bankReconciliationResources } from "./resources";
 export {
+  bankStatementImportMappingPresets,
   createBankReconciliationMemoryService,
   createBankReconciliationService,
   createSequentialBankReconciliationIdFactory,
-  getBankReconciliationModuleStatus
+  getBankReconciliationModuleStatus,
+  resolveStatementImportFieldMapping
 } from "./service";
 export { createMemoryBankReconciliationStore } from "./adapters/memory-bank-reconciliation-store";
 export { createD1BankReconciliationStore } from "./adapters/d1-bank-reconciliation-store";
@@ -30,6 +32,8 @@ export type {
   BankReconciliationRecord,
   BankStatementImport,
   BankStatementImportFieldMapping,
+  BankStatementImportMappingPreset,
+  BankStatementImportMappingPresetId,
   BankStatementImportSource,
   BankStatementImportStatus,
   BankTransactionMatch,

@@ -1798,7 +1798,7 @@ const INTERNAL_CATALOG_MODULES = Object.freeze([
     id: "bank-reconciliation",
     name: "Bank Reconciliation",
     status: "draft",
-    summary: "Tenant-scoped bank accounts, statement imports, matching corrections, exclusions, and reconciliation completion with integer-cent balances.",
+    summary: "Tenant-scoped bank accounts, statement import mapping presets, matching corrections, exclusions, and reconciliation completion with integer-cent balances.",
     optional: ["auth", "audit-log", "accounting-core", "payment"],
     mount: "/banking",
     surfaces: {
@@ -1816,6 +1816,7 @@ const INTERNAL_CATALOG_MODULES = Object.freeze([
         tools: [
           "bank-reconciliation.createBankAccount",
           "bank-reconciliation.listBankAccounts",
+          "bank-reconciliation.listStatementImportFieldMappingPresets",
           "bank-reconciliation.listStatementImports",
           "bank-reconciliation.importStatementCsv",
           "bank-reconciliation.importStatementTransactions",
@@ -1866,6 +1867,7 @@ const INTERNAL_CATALOG_MODULES = Object.freeze([
     rpc: [
       { method: "createBankAccount", scope: "bank-reconciliation.write", public: false },
       { method: "listBankAccounts", scope: "bank-reconciliation.read", public: false },
+      { method: "listStatementImportFieldMappingPresets", scope: "bank-reconciliation.read", public: false },
       { method: "listStatementImports", scope: "bank-reconciliation.read", public: false },
       { method: "importStatementCsv", scope: "bank-reconciliation.write", public: false },
       { method: "importStatementTransactions", scope: "bank-reconciliation.write", public: false },

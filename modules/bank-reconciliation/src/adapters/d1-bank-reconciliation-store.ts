@@ -3,6 +3,7 @@ import type {
   BankAccount,
   BankStatementImport,
   BankStatementImportFieldMapping,
+  BankStatementImportMappingPresetId,
   BankStatementImportSource,
   BankStatementImportStatus,
   BankTransaction,
@@ -126,6 +127,7 @@ function parseFieldMapping(value: unknown): BankStatementImportFieldMapping | un
     const parsed = JSON.parse(String(value)) as Partial<BankStatementImportFieldMapping>;
     if (!parsed.date || !parsed.description) return undefined;
     return {
+      presetId: parsed.presetId == null ? undefined : (String(parsed.presetId) as BankStatementImportMappingPresetId),
       date: String(parsed.date),
       description: String(parsed.description),
       amount: optionalString(parsed.amount),

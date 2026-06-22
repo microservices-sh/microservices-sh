@@ -2,7 +2,7 @@ import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { getBankReconciliationModuleStatus } from "@microservices-sh/bank-reconciliation";
-import type { BankTransaction, MatchCandidate } from "@microservices-sh/bank-reconciliation";
+import type { BankStatementImportMappingPresetId, BankTransaction, MatchCandidate } from "@microservices-sh/bank-reconciliation";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 
@@ -100,6 +100,7 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
   const accounts = await service.listBankAccounts(ctx);
   const transactions = bankAccount ? await service.listStatementTransactions(ctx, bankAccount.id) : null;
   const statementImports = bankAccount ? await service.listStatementImports(ctx, bankAccount.id) : null;
+  const mappingPresets = await service.listStatementImportFieldMappingPresets();
   const reconciliations = bankAccount ? await service.listReconciliations(ctx, bankAccount.id) : null;
   const transactionRows = transactions?.ok ? transactions.data : [];
   const matchSuggestions = await Promise.all(
@@ -123,6 +124,7 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
     accounts: accounts.ok ? accounts.data : [],
     transactions: transactionRows,
     matchSuggestions,
+    mappingPresets: mappingPresets.ok ? mappingPresets.data : [],
     statementImports: statementImports?.ok ? statementImports.data : [],
     reconciliations: reconciliations?.ok ? reconciliations.data : [],
     imported: imported?.ok ? imported.data : null,
@@ -187,6 +189,7 @@ export const actions: Actions = {
     const values = {
       bankAccountId: text(form.get("bankAccountId")),
       fileName: text(form.get("fileName")) || "statement.csv",
+      mappingPresetId: text(form.get("mappingPresetId")),
       dateField: text(form.get("dateField")) || "Date",
       descriptionField: text(form.get("descriptionField")) || "Description",
       amountField: text(form.get("amountField")),
@@ -194,12 +197,14 @@ export const actions: Actions = {
       creditField: text(form.get("creditField")),
       csvContent: text(form.get("csvContent"))
     };
-    const fieldMapping =
-      values.amountField.length > 0
+    const usePreset = values.mappingPresetId && values.mappingPresetId !== "custom";
+    const fieldMapping = usePreset
+      ? undefined
+      : values.amountField.length > 0
         ? { date: values.dateField, description: values.descriptionField, amount: values.amountField }
         : { date: values.dateField, description: values.descriptionField, debit: values.debitField, credit: values.creditField };
-    if (!values.bankAccountId || !values.csvContent || (!values.amountField && (!values.debitField || !values.creditField))) {
-      return fail(400, { error: "Choose an account, paste CSV rows, and map amount or debit/credit fields.", values });
+    if (!values.bankAccountId || !values.csvContent || (!usePreset && !values.amountField && (!values.debitField || !values.creditField))) {
+      return fail(400, { error: "Choose an account, paste CSV rows, and select a preset or map amount/debit/credit fields.", values });
     }
 
     const imported = await locals.bankReconciliationService.importStatementCsv(
@@ -208,6 +213,7 @@ export const actions: Actions = {
       {
         fileName: values.fileName,
         importedById: locals.user.id,
+        fieldMappingPresetId: usePreset ? (values.mappingPresetId as BankStatementImportMappingPresetId) : undefined,
         fieldMapping,
         csvContent: values.csvContent
       }
@@ -223,6 +229,7 @@ export const actions: Actions = {
         source: "app/banking",
         payload: {
           bankAccountId: values.bankAccountId,
+          mappingPresetId: usePreset ? values.mappingPresetId : null,
           importedCount: imported.data.importedCount,
           skippedDuplicateCount: imported.data.skippedDuplicateCount
         }

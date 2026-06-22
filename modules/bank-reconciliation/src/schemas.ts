@@ -13,6 +13,7 @@ export const bankReconciliationConfigSchema = z.object({
 export const bankAccountTypeSchema = z.enum(["checking", "savings", "credit_card", "money_market", "other"]);
 export const statementImportSourceSchema = z.enum(["csv", "ofx", "qfx", "qif", "api"]);
 export const statementImportStatusSchema = z.enum(["pending", "processing", "completed", "failed"]);
+export const statementImportFieldMappingPresetIdSchema = z.enum(["standard_amount", "details_debit_credit", "posted_amount"]);
 export const statementTransactionTypeSchema = z.enum([
   "deposit",
   "withdrawal",
@@ -67,6 +68,7 @@ export const statementTransactionInputSchema = z.object({
 
 export const statementImportFieldMappingSchema = z
   .object({
+    presetId: statementImportFieldMappingPresetIdSchema.optional(),
     date: z.string().min(1),
     description: z.string().min(1),
     amount: z.string().min(1).optional(),
@@ -98,8 +100,11 @@ export const importStatementCsvSchema = z.object({
   source: statementImportSourceSchema.default("csv"),
   fileName: nullableText,
   importedById: nullableText,
-  fieldMapping: statementImportFieldMappingSchema,
+  fieldMapping: statementImportFieldMappingSchema.optional(),
+  fieldMappingPresetId: statementImportFieldMappingPresetIdSchema.nullable().optional(),
   csvContent: z.string().min(1)
+}).refine((input) => Boolean(input.fieldMapping || input.fieldMappingPresetId), {
+  message: "CSV import requires a field mapping or mapping preset."
 });
 
 export const statementTransactionFilterSchema = z.object({

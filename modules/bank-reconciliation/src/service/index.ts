@@ -2,6 +2,8 @@ import type {
   BankAccount,
   BankStatementImport,
   BankStatementImportFieldMapping,
+  BankStatementImportMappingPreset,
+  BankStatementImportMappingPresetId,
   BankStatementImportSource,
   BankTransaction,
   BankTransactionMatch,
@@ -39,7 +41,8 @@ export interface StatementTransactionInput {
 export interface ImportStatementCsvInput {
   fileName?: string;
   source?: BankStatementImportSource;
-  fieldMapping: BankStatementImportFieldMapping;
+  fieldMapping?: BankStatementImportFieldMapping;
+  fieldMappingPresetId?: BankStatementImportMappingPresetId | null;
   csvContent: string;
   importedById?: string;
 }
@@ -53,6 +56,7 @@ export interface BankReconciliationServiceDeps {
 }
 
 export interface BankReconciliationService {
+  listStatementImportFieldMappingPresets(): Promise<ModuleResult<BankStatementImportMappingPreset[]>>;
   createBankAccount(ctx: TenantContext, input: CreateBankAccountInput): Promise<ModuleResult<BankAccount>>;
   listBankAccounts(ctx: TenantContext): Promise<ModuleResult<BankAccount[]>>;
   importStatementTransactions(
@@ -84,6 +88,34 @@ export interface BankReconciliationService {
   ): Promise<ModuleResult<ReconciliationSession>>;
   listReconciliations(ctx: TenantContext, bankAccountId?: string): Promise<ModuleResult<ReconciliationSession[]>>;
   completeReconciliation(ctx: TenantContext, reconciliationId: string): Promise<ModuleResult<ReconciliationSession>>;
+}
+
+export const bankStatementImportMappingPresets: BankStatementImportMappingPreset[] = [
+  {
+    id: "standard_amount",
+    label: "Standard amount",
+    description: "Date, Description, and signed Amount columns.",
+    fieldMapping: { date: "Date", description: "Description", amount: "Amount" }
+  },
+  {
+    id: "details_debit_credit",
+    label: "Debit and credit",
+    description: "Date and Details columns with separate Debit and Credit amounts.",
+    fieldMapping: { date: "Date", description: "Details", debit: "Debit", credit: "Credit" }
+  },
+  {
+    id: "posted_amount",
+    label: "Posted amount",
+    description: "Posted Date, Description, and signed Amount columns.",
+    fieldMapping: { date: "Posted Date", description: "Description", amount: "Amount" }
+  }
+];
+
+function cloneMappingPreset(preset: BankStatementImportMappingPreset): BankStatementImportMappingPreset {
+  return {
+    ...preset,
+    fieldMapping: cloneFieldMapping(preset.fieldMapping)
+  };
 }
 
 function ok<T>(data: T): ModuleResult<T> {
@@ -304,6 +336,20 @@ function fieldValue(valuesByHeader: Map<string, string>, header: string | undefi
   return valuesByHeader.get(normalizeHeader(header)) ?? "";
 }
 
+function cloneFieldMapping(mapping: BankStatementImportFieldMapping): BankStatementImportFieldMapping {
+  return { ...mapping };
+}
+
+export function resolveStatementImportFieldMapping(input: ImportStatementCsvInput): ModuleResult<BankStatementImportFieldMapping> {
+  if (input.fieldMapping) return ok(cloneFieldMapping(input.fieldMapping));
+  if (!input.fieldMappingPresetId) {
+    return fail("field_mapping_required", "CSV import requires a field mapping or mapping preset.");
+  }
+  const preset = bankStatementImportMappingPresets.find((candidate) => candidate.id === input.fieldMappingPresetId);
+  if (!preset) return fail("field_mapping_preset_not_found", "CSV field mapping preset not found.");
+  return ok({ ...cloneFieldMapping(preset.fieldMapping), presetId: preset.id });
+}
+
 function mapCsvRows(csvContent: string, mapping: BankStatementImportFieldMapping): ModuleResult<ParsedCsvImportRows> {
   if (!mapping.amount && (!mapping.debit || !mapping.credit)) {
     return fail("field_mapping_amount_required", "CSV mapping must include amount or both debit and credit fields.");
@@ -427,6 +473,10 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
   }
 
   return {
+    async listStatementImportFieldMappingPresets() {
+      return ok(bankStatementImportMappingPresets.map(cloneMappingPreset));
+    },
+
     async createBankAccount(ctx, input) {
       const createdAt = now(ctx);
       const account: BankAccount = {
@@ -459,6 +509,8 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
     async importStatementCsv(ctx, bankAccountId, input) {
       const account = await deps.store.getBankAccount(ctx.tenantId, bankAccountId);
       if (!account) return fail("bank_account_not_found", "Bank account not found.");
+      const fieldMapping = resolveStatementImportFieldMapping(input);
+      if (!fieldMapping.ok || !fieldMapping.data) return fail(fieldMapping.error?.code ?? "field_mapping_invalid", fieldMapping.error?.message ?? "CSV field mapping is invalid.");
 
       const createdAt = now(ctx);
       const statementImport: BankStatementImport = {
@@ -471,14 +523,14 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
         importedRows: 0,
         skippedRows: 0,
         duplicateRows: 0,
-        fieldMapping: input.fieldMapping,
+        fieldMapping: fieldMapping.data,
         status: "processing",
         importedById: input.importedById ?? ctx.actorId,
         createdAt
       };
       await deps.store.insertStatementImport(statementImport);
 
-      const parsed = mapCsvRows(input.csvContent, input.fieldMapping);
+      const parsed = mapCsvRows(input.csvContent, fieldMapping.data);
       if (!parsed.ok || !parsed.data) {
         const failedImport: BankStatementImport = {
           ...statementImport,
@@ -759,6 +811,10 @@ export function createBankReconciliationMemoryService() {
   }
 
   return {
+    listStatementImportFieldMappingPresets(): ModuleResult<BankStatementImportMappingPreset[]> {
+      return ok(bankStatementImportMappingPresets.map(cloneMappingPreset));
+    },
+
     createBankAccount(ctx: TenantContext, input: CreateBankAccountInput): ModuleResult<BankAccount> {
       const createdAt = now(ctx);
       const account: BankAccount = {
@@ -788,6 +844,8 @@ export function createBankReconciliationMemoryService() {
     importStatementCsv(ctx: TenantContext, bankAccountId: string, input: ImportStatementCsvInput): ModuleResult<StatementImportResult> {
       const account = accounts.get(bankAccountId);
       if (!account || account.tenantId !== ctx.tenantId) return fail("bank_account_not_found", "Bank account not found.");
+      const fieldMapping = resolveStatementImportFieldMapping(input);
+      if (!fieldMapping.ok || !fieldMapping.data) return fail(fieldMapping.error?.code ?? "field_mapping_invalid", fieldMapping.error?.message ?? "CSV field mapping is invalid.");
 
       const createdAt = now(ctx);
       const statementImport: BankStatementImport = {
@@ -800,14 +858,14 @@ export function createBankReconciliationMemoryService() {
         importedRows: 0,
         skippedRows: 0,
         duplicateRows: 0,
-        fieldMapping: input.fieldMapping,
+        fieldMapping: fieldMapping.data,
         status: "processing",
         importedById: input.importedById ?? ctx.actorId,
         createdAt
       };
       statementImports.set(statementImport.id, statementImport);
 
-      const parsed = mapCsvRows(input.csvContent, input.fieldMapping);
+      const parsed = mapCsvRows(input.csvContent, fieldMapping.data);
       if (!parsed.ok || !parsed.data) {
         const failedImport: BankStatementImport = {
           ...statementImport,

@@ -15,4 +15,6 @@ Do not add route adapters, shared template wiring, external bank-provider calls,
 
 Money is represented as signed integer cents. Statement deposits are positive and withdrawals are negative.
 
+Use `listStatementImportFieldMappingPresets` before CSV imports when the statement shape is standard. Preset-based imports store the resolved field names plus `presetId` in the import history.
+
 Use `unmatchTransaction`, `excludeTransaction`, and `restoreExcludedTransaction` for correction workflows. Do not delete match rows or update `matchStatus` directly from routes or agents.

@@ -1669,6 +1669,25 @@
 | Create-app closure | Bundled StackSuite template closure includes the updated bulk transition surface | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 126 banking CSV mapping presets
+
+- **Status:** complete.
+- Goal: close the first banking CSV mapping gap with module-owned presets, without adding the donor app's broader auto-detection/preview wizard yet.
+- Added `listStatementImportFieldMappingPresets`, exported preset metadata, preset-aware `importStatementCsv`, and stored `fieldMapping.presetId`.
+- Wired `/app/banking` to load mapping presets and import by preset id or custom field mapping.
+- Updated import detail to render preset context alongside the resolved field mapping.
+- Donor scan result: `accounting-system` has auto-detection/header preview and row preview, not reusable saved presets; `invoice-system-bao` has no relevant banking import behavior.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Bank-reconciliation tests | Preset imports, stored mapping metadata, invalid-preset rejection, and existing CSV behavior remain covered | `pnpm --filter @microservices-sh/bank-reconciliation test` passed, 8/8 | Pass |
+| Bank-reconciliation build/spec | Preset types, schemas, OpenAPI, module metadata, and adapters compile and meet module spec | `pnpm --filter @microservices-sh/bank-reconciliation build` and `pnpm --filter @microservices-sh/bank-reconciliation check:spec` passed | Pass |
+| Accounting template spec/build | Banking preset select, route wiring, lock snapshot, and import-detail mapping compile and pass policy checks | `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Module contract | Static catalog exposes the preset-list read RPC | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js` passed, 21/21 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Create-app build | Bundled repo templates refresh from source after preset updates | `pnpm --dir packages/create-microservices-app build` passed | Pass |
+| Create-app closure | Bundled StackSuite template closure includes the updated preset surface | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
+
 ### Phase 125 banking transaction correction lifecycle
 
 - **Status:** complete.
