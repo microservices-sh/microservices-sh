@@ -133,6 +133,7 @@ export const statementTransactionFilterSchema = z.object({
   startDate: isoDate.optional(),
   endDate: isoDate.optional(),
   matchStatus: matchStatusSchema.optional(),
+  cleared: z.boolean().optional(),
   reconciled: z.boolean().optional(),
   includeExcluded: z.boolean().optional(),
   limit: z.number().int().min(1).max(1000).optional()
@@ -193,6 +194,16 @@ export const restoreExcludedTransactionSchema = z.object({
   orgId: z.string().nullable().optional(),
   transactionId: z.string().min(1)
 });
+
+export const reconciliationTransactionStateSchema = z.object({
+  tenantId: z.string().min(1),
+  orgId: z.string().nullable().optional(),
+  reconciliationId: z.string().min(1),
+  transactionId: z.string().min(1)
+});
+
+export const clearReconciliationTransactionSchema = reconciliationTransactionStateSchema;
+export const unclearReconciliationTransactionSchema = reconciliationTransactionStateSchema;
 
 export const startReconciliationSchema = z.object({
   tenantId: z.string().min(1),

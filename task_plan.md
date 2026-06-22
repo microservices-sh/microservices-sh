@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 125
+Phase 129
 
 ## Phases
 
@@ -1007,6 +1007,14 @@ Phase 125
 - [x] Detect duplicates against existing bank transactions and duplicate rows within the pasted CSV.
 - [x] Wire `/app/banking` to preview rows before the separate import action.
 - [x] Update module/template docs, static contracts, lock snapshots, policy checks, and validation coverage.
+- **Status:** complete
+
+### Phase 129: Banking Reconciliation Clear And Unclear
+- [x] Add module-owned provisional clear/unclear state for bank transactions with memory and D1 persistence.
+- [x] Make reconciliation completion finalize only transactions cleared for the active session.
+- [x] Wire `/app/banking` clear/unclear actions, audit events, badges, and metrics while keeping reconciliation detail read-only.
+- [x] Update module metadata, OpenAPI/schema docs, static catalog, template lock, and policy checks.
+- [x] Verify bank tests/build/spec, accounting template spec/build, module-contract tests, workspace specs, create-app bundle, migration replay, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

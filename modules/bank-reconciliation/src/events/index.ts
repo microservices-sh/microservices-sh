@@ -6,6 +6,8 @@ export const bankReconciliationEvents = {
     "bank-reconciliation.transaction_unmatched",
     "bank-reconciliation.transaction_excluded",
     "bank-reconciliation.transaction_restored",
+    "bank-reconciliation.transaction_cleared",
+    "bank-reconciliation.transaction_uncleared",
     "bank-reconciliation.reconciliation_started",
     "bank-reconciliation.reconciliation_completed"
   ],

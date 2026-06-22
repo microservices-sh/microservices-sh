@@ -11,6 +11,7 @@ Workflow:
 5. Suggest matches from ledger/payment references.
 6. Create manual or auto matches.
 7. Start a reconciliation session from the account's last reconciled balance.
-8. Complete only after every in-period statement transaction is matched or excluded and the statement ending balance matches.
+8. Clear reviewed transactions with `clearReconciliationTransaction`; use `unclearReconciliationTransaction` for corrections before finalization.
+9. Complete only after every in-period statement transaction is matched or excluded and the current-session cleared balance matches the statement ending balance.
 
 Do not post journals or mutate accounting-core from this module. Use emitted events or candidate-provider ports for integration.

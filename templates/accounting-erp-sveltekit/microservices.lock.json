@@ -634,6 +634,16 @@
             "public": false
           },
           {
+            "method": "clearReconciliationTransaction",
+            "scope": "bank-reconciliation.write",
+            "public": false
+          },
+          {
+            "method": "unclearReconciliationTransaction",
+            "scope": "bank-reconciliation.write",
+            "public": false
+          },
+          {
             "method": "completeReconciliation",
             "scope": "bank-reconciliation.write",
             "public": false
@@ -654,6 +664,8 @@
           "bank-reconciliation.transaction_unmatched",
           "bank-reconciliation.transaction_excluded",
           "bank-reconciliation.transaction_restored",
+          "bank-reconciliation.transaction_cleared",
+          "bank-reconciliation.transaction_uncleared",
           "bank-reconciliation.reconciliation_started",
           "bank-reconciliation.reconciliation_completed"
         ],

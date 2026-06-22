@@ -52,6 +52,8 @@ export type {
   MatchSuggestion,
   ModuleResult,
   ReconciliationSession,
+  ReconciliationTransactionStateInput,
+  ReconciliationTransactionStateResult,
   ReconciliationStatus,
   RestoreExcludedTransactionInput,
   SuggestMatchesInput,

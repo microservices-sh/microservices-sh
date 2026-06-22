@@ -17,6 +17,8 @@ import type {
   MatchSuggestion,
   ModuleResult,
   ReconciliationSession,
+  ReconciliationTransactionStateInput,
+  ReconciliationTransactionStateResult,
   RestoreExcludedTransactionInput,
   SuggestMatchesInput,
   StatementImportResult,
@@ -100,6 +102,14 @@ export interface BankReconciliationService {
     statementBalanceCents: number
   ): Promise<ModuleResult<ReconciliationSession>>;
   listReconciliations(ctx: TenantContext, bankAccountId?: string): Promise<ModuleResult<ReconciliationSession[]>>;
+  clearReconciliationTransaction(
+    ctx: TenantContext,
+    input: ReconciliationTransactionStateInput
+  ): Promise<ModuleResult<ReconciliationTransactionStateResult>>;
+  unclearReconciliationTransaction(
+    ctx: TenantContext,
+    input: ReconciliationTransactionStateInput
+  ): Promise<ModuleResult<ReconciliationTransactionStateResult>>;
   completeReconciliation(ctx: TenantContext, reconciliationId: string): Promise<ModuleResult<ReconciliationSession>>;
 }
 
@@ -286,6 +296,26 @@ function matchStatusFromMatches(matches: BankTransactionMatch[]): BankTransactio
   const match = matches[0];
   if (!match) return "unmatched";
   return matchStatus(match.matchType);
+}
+
+function recalculateReconciliationFromCleared(
+  reconciliation: ReconciliationSession,
+  account: BankAccount,
+  transactions: BankTransaction[],
+  updatedAt: string
+): ReconciliationSession {
+  const clearedTransactions = transactions.filter(
+    (tx) => tx.reconciled || (tx.cleared && tx.clearedReconciliationId === reconciliation.id)
+  );
+  const clearedTotals = calculateClearedTotals(account, clearedTransactions);
+  return {
+    ...reconciliation,
+    ...clearedTotals,
+    differenceCents: reconciliation.statementBalanceCents - clearedTotals.clearedBalanceCents,
+    transactionsCleared: clearedTransactions.length,
+    transactionsUnmatched: transactions.filter((tx) => tx.matchStatus === "unmatched").length,
+    updatedAt
+  };
 }
 
 function normalizeHeader(value: string): string {
@@ -567,6 +597,28 @@ async function buildStatementCsvPreview(
 export function createBankReconciliationService(deps: BankReconciliationServiceDeps): BankReconciliationService {
   const createId = deps.createId ?? defaultId;
 
+  async function recalculateInProgressReconciliationsForTransaction(ctx: TenantContext, transaction: BankTransaction, updatedAt: string) {
+    const reconciliations = await deps.store.listReconciliations(ctx.tenantId, transaction.bankAccountId);
+    const affected = reconciliations.filter(
+      (session) => session.status === "in_progress" && transaction.transactionDate <= session.statementDate
+    );
+    if (affected.length === 0) return;
+    const account = await deps.store.getBankAccount(ctx.tenantId, transaction.bankAccountId);
+    if (!account) return;
+
+    for (const reconciliation of affected) {
+      const scopedTransactions = await deps.store.listTransactionsForReconciliation(
+        ctx.tenantId,
+        reconciliation.bankAccountId,
+        reconciliation.statementDate
+      );
+      const nonExcludedTransactions = scopedTransactions.filter((tx) => tx.matchStatus !== "excluded");
+      await deps.store.updateReconciliation(
+        recalculateReconciliationFromCleared(reconciliation, account, nonExcludedTransactions, updatedAt)
+      );
+    }
+  }
+
   async function insertStatementRows(ctx: TenantContext, bankAccountId: string, rows: StatementTransactionInput[]): Promise<StatementImportResult> {
     const imported: BankTransaction[] = [];
     let skippedDuplicateCount = 0;
@@ -581,6 +633,7 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
         amountCents: row.amountCents,
         transactionHash: row.transactionHash,
         matchStatus: "unmatched",
+        cleared: false,
         reconciled: false,
         createdAt: now(ctx)
       };
@@ -629,7 +682,66 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
 
     await deps.store.upsertMatch(match);
     await deps.store.updateTransaction(updated);
+    await recalculateInProgressReconciliationsForTransaction(ctx, updated, createdAt);
     return ok({ transaction: updated, match });
+  }
+
+  async function setReconciliationTransactionClearedState(
+    ctx: TenantContext,
+    input: ReconciliationTransactionStateInput,
+    cleared: boolean
+  ): Promise<ModuleResult<ReconciliationTransactionStateResult>> {
+    const reconciliation = await deps.store.getReconciliation(ctx.tenantId, input.reconciliationId);
+    if (!reconciliation) return fail("reconciliation_not_found", "Reconciliation not found.");
+    if (reconciliation.status !== "in_progress") {
+      return fail("reconciliation_not_in_progress", "Only in-progress reconciliations can clear or unclear transactions.");
+    }
+    const account = await deps.store.getBankAccount(ctx.tenantId, reconciliation.bankAccountId);
+    if (!account) return fail("bank_account_not_found", "Bank account not found.");
+    const transaction = await deps.store.getTransaction(ctx.tenantId, input.transactionId);
+    if (!transaction) return fail("transaction_not_found", "Bank transaction not found.");
+    if (transaction.bankAccountId !== reconciliation.bankAccountId) {
+      return fail("transaction_outside_reconciliation", "Transaction does not belong to this reconciliation account.");
+    }
+    if (transaction.transactionDate > reconciliation.statementDate) {
+      return fail("transaction_outside_reconciliation", "Transaction is after the reconciliation statement date.");
+    }
+    if (transaction.reconciled) return fail("transaction_reconciled", "Reconciled transactions cannot be cleared or uncleared.");
+    if (transaction.matchStatus === "excluded") return fail("transaction_excluded", "Excluded transactions cannot be cleared.");
+    if (cleared && transaction.cleared && transaction.clearedReconciliationId && transaction.clearedReconciliationId !== reconciliation.id) {
+      return fail("transaction_already_cleared", "Transaction is already cleared in another reconciliation.");
+    }
+    if (!cleared && (!transaction.cleared || transaction.clearedReconciliationId !== reconciliation.id)) {
+      return fail("transaction_not_cleared", "Transaction is not cleared in this reconciliation.");
+    }
+
+    const changedAt = now(ctx);
+    const updated: BankTransaction = cleared
+      ? {
+          ...transaction,
+          cleared: true,
+          clearedAt: transaction.cleared && transaction.clearedReconciliationId === reconciliation.id ? transaction.clearedAt : changedAt,
+          clearedById: transaction.cleared && transaction.clearedReconciliationId === reconciliation.id ? transaction.clearedById : ctx.actorId,
+          clearedReconciliationId: reconciliation.id
+        }
+      : {
+          ...transaction,
+          cleared: false,
+          clearedAt: undefined,
+          clearedById: undefined,
+          clearedReconciliationId: undefined
+        };
+    await deps.store.updateTransaction(updated);
+
+    const scopedTransactions = await deps.store.listTransactionsForReconciliation(
+      ctx.tenantId,
+      reconciliation.bankAccountId,
+      reconciliation.statementDate
+    );
+    const nonExcludedTransactions = scopedTransactions.filter((tx) => tx.matchStatus !== "excluded");
+    const recalculated = recalculateReconciliationFromCleared(reconciliation, account, nonExcludedTransactions, changedAt);
+    await deps.store.updateReconciliation(recalculated);
+    return ok({ transaction: updated, reconciliation: recalculated });
   }
 
   return {
@@ -780,6 +892,7 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
         ledgerReferenceId: ledgerReferenceFromMatch(remainingMatches[0])
       };
       await deps.store.updateTransaction(updated);
+      await recalculateInProgressReconciliationsForTransaction(ctx, updated, now(ctx));
       return ok({ transaction: updated, removedMatchCount });
     },
 
@@ -792,9 +905,14 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
       const updated: BankTransaction = {
         ...transaction,
         matchStatus: "excluded",
-        ledgerReferenceId: undefined
+        ledgerReferenceId: undefined,
+        cleared: false,
+        clearedAt: undefined,
+        clearedById: undefined,
+        clearedReconciliationId: undefined
       };
       await deps.store.updateTransaction(updated);
+      await recalculateInProgressReconciliationsForTransaction(ctx, updated, now(ctx));
       return ok({ transaction: updated, removedMatchCount });
     },
 
@@ -810,6 +928,7 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
         ledgerReferenceId: undefined
       };
       await deps.store.updateTransaction(updated);
+      await recalculateInProgressReconciliationsForTransaction(ctx, updated, now(ctx));
       return ok({ transaction: updated, removedMatchCount: 0 });
     },
 
@@ -844,9 +963,20 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
       return ok(await deps.store.listReconciliations(ctx.tenantId, bankAccountId));
     },
 
+    async clearReconciliationTransaction(ctx, input) {
+      return setReconciliationTransactionClearedState(ctx, input, true);
+    },
+
+    async unclearReconciliationTransaction(ctx, input) {
+      return setReconciliationTransactionClearedState(ctx, input, false);
+    },
+
     async completeReconciliation(ctx, reconciliationId) {
       const reconciliation = await deps.store.getReconciliation(ctx.tenantId, reconciliationId);
       if (!reconciliation) return fail("reconciliation_not_found", "Reconciliation not found.");
+      if (reconciliation.status !== "in_progress") {
+        return fail("reconciliation_not_in_progress", "Only in-progress reconciliations can be completed.");
+      }
       const account = await deps.store.getBankAccount(ctx.tenantId, reconciliation.bankAccountId);
       if (!account) return fail("bank_account_not_found", "Bank account not found.");
       const scopedTransactions = await deps.store.listTransactionsForReconciliation(
@@ -858,15 +988,22 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
       const unmatched = nonExcludedTransactions.filter((tx) => tx.matchStatus === "unmatched");
       if (unmatched.length > 0) return fail("unmatched_transactions", "Cannot complete reconciliation while unmatched transactions remain.");
 
-      const clearedTotals = calculateClearedTotals(account, nonExcludedTransactions);
+      const clearedTransactions = nonExcludedTransactions.filter(
+        (tx) => tx.cleared && tx.clearedReconciliationId === reconciliation.id
+      );
+      const clearedTotals = calculateClearedTotals(account, clearedTransactions);
       if (clearedTotals.clearedBalanceCents !== reconciliation.statementBalanceCents) {
         return fail("balance_mismatch", "Cleared balance must match statement balance.");
       }
 
       const completedAt = now(ctx);
       await deps.store.updateTransactions(
-        nonExcludedTransactions.map((tx) => ({
+        clearedTransactions.map((tx) => ({
           ...tx,
+          cleared: true,
+          clearedAt: tx.clearedAt ?? completedAt,
+          clearedById: tx.clearedById ?? ctx.actorId,
+          clearedReconciliationId: reconciliation.id,
           reconciled: true,
           reconciledAt: completedAt,
           reconciliationId: reconciliation.id
@@ -877,7 +1014,7 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
         ...reconciliation,
         ...clearedTotals,
         differenceCents: 0,
-        transactionsCleared: nonExcludedTransactions.length,
+        transactionsCleared: clearedTransactions.length,
         transactionsUnmatched: 0,
         status: "completed",
         completedAt,
@@ -927,6 +1064,7 @@ export function createBankReconciliationMemoryService() {
         amountCents: row.amountCents,
         transactionHash: row.transactionHash,
         matchStatus: "unmatched",
+        cleared: false,
         reconciled: false,
         createdAt: now(ctx)
       };
@@ -979,7 +1117,89 @@ export function createBankReconciliationMemoryService() {
     };
     matches.set(match.id, match);
     transactions.set(updated.id, updated);
+    recalculateMemoryInProgressReconciliationsForTransaction(ctx, updated, createdAt);
     return ok({ transaction: updated, match });
+  }
+
+  function recalculateMemoryInProgressReconciliationsForTransaction(ctx: TenantContext, transaction: BankTransaction, updatedAt: string) {
+    const account = accounts.get(transaction.bankAccountId);
+    if (!account || account.tenantId !== ctx.tenantId) return;
+    for (const reconciliation of reconciliations.values()) {
+      if (
+        reconciliation.tenantId !== ctx.tenantId ||
+        reconciliation.bankAccountId !== transaction.bankAccountId ||
+        reconciliation.status !== "in_progress" ||
+        transaction.transactionDate > reconciliation.statementDate
+      ) {
+        continue;
+      }
+      const scopedTransactions = [...transactions.values()].filter(
+        (tx) =>
+          tx.tenantId === ctx.tenantId &&
+          tx.bankAccountId === reconciliation.bankAccountId &&
+          tx.transactionDate <= reconciliation.statementDate &&
+          tx.matchStatus !== "excluded"
+      );
+      reconciliations.set(
+        reconciliation.id,
+        recalculateReconciliationFromCleared(reconciliation, account, scopedTransactions, updatedAt)
+      );
+    }
+  }
+
+  function setMemoryReconciliationTransactionClearedState(
+    ctx: TenantContext,
+    input: ReconciliationTransactionStateInput,
+    cleared: boolean
+  ): ModuleResult<ReconciliationTransactionStateResult> {
+    const reconciliation = reconciliations.get(input.reconciliationId);
+    if (!reconciliation || reconciliation.tenantId !== ctx.tenantId) return fail("reconciliation_not_found", "Reconciliation not found.");
+    if (reconciliation.status !== "in_progress") {
+      return fail("reconciliation_not_in_progress", "Only in-progress reconciliations can clear or unclear transactions.");
+    }
+    const account = accounts.get(reconciliation.bankAccountId);
+    if (!account || account.tenantId !== ctx.tenantId) return fail("bank_account_not_found", "Bank account not found.");
+    const transaction = transactions.get(input.transactionId);
+    if (!transaction || transaction.tenantId !== ctx.tenantId) return fail("transaction_not_found", "Bank transaction not found.");
+    if (transaction.bankAccountId !== reconciliation.bankAccountId) {
+      return fail("transaction_outside_reconciliation", "Transaction does not belong to this reconciliation account.");
+    }
+    if (transaction.transactionDate > reconciliation.statementDate) {
+      return fail("transaction_outside_reconciliation", "Transaction is after the reconciliation statement date.");
+    }
+    if (transaction.reconciled) return fail("transaction_reconciled", "Reconciled transactions cannot be cleared or uncleared.");
+    if (transaction.matchStatus === "excluded") return fail("transaction_excluded", "Excluded transactions cannot be cleared.");
+    if (cleared && transaction.cleared && transaction.clearedReconciliationId && transaction.clearedReconciliationId !== reconciliation.id) {
+      return fail("transaction_already_cleared", "Transaction is already cleared in another reconciliation.");
+    }
+    if (!cleared && (!transaction.cleared || transaction.clearedReconciliationId !== reconciliation.id)) {
+      return fail("transaction_not_cleared", "Transaction is not cleared in this reconciliation.");
+    }
+
+    const changedAt = now(ctx);
+    const updated: BankTransaction = cleared
+      ? {
+          ...transaction,
+          cleared: true,
+          clearedAt: transaction.cleared && transaction.clearedReconciliationId === reconciliation.id ? transaction.clearedAt : changedAt,
+          clearedById: transaction.cleared && transaction.clearedReconciliationId === reconciliation.id ? transaction.clearedById : ctx.actorId,
+          clearedReconciliationId: reconciliation.id
+        }
+      : {
+          ...transaction,
+          cleared: false,
+          clearedAt: undefined,
+          clearedById: undefined,
+          clearedReconciliationId: undefined
+        };
+    transactions.set(updated.id, updated);
+    const scopedTransactions = [...transactions.values()].filter(
+      (tx) => tx.tenantId === ctx.tenantId && tx.bankAccountId === reconciliation.bankAccountId && tx.transactionDate <= reconciliation.statementDate
+    );
+    const nonExcludedTransactions = scopedTransactions.filter((tx) => tx.matchStatus !== "excluded");
+    const recalculated = recalculateReconciliationFromCleared(reconciliation, account, nonExcludedTransactions, changedAt);
+    reconciliations.set(recalculated.id, recalculated);
+    return ok({ transaction: updated, reconciliation: recalculated });
   }
 
   return {
@@ -1156,6 +1376,7 @@ export function createBankReconciliationMemoryService() {
         ledgerReferenceId: ledgerReferenceFromMatch(remainingMatches[0])
       };
       transactions.set(updated.id, updated);
+      recalculateMemoryInProgressReconciliationsForTransaction(ctx, updated, now(ctx));
       return ok({ transaction: updated, removedMatchCount: removable.length });
     },
 
@@ -1171,9 +1392,14 @@ export function createBankReconciliationMemoryService() {
       const updated: BankTransaction = {
         ...transaction,
         matchStatus: "excluded",
-        ledgerReferenceId: undefined
+        ledgerReferenceId: undefined,
+        cleared: false,
+        clearedAt: undefined,
+        clearedById: undefined,
+        clearedReconciliationId: undefined
       };
       transactions.set(updated.id, updated);
+      recalculateMemoryInProgressReconciliationsForTransaction(ctx, updated, now(ctx));
       return ok({ transaction: updated, removedMatchCount: removable.length });
     },
 
@@ -1192,6 +1418,7 @@ export function createBankReconciliationMemoryService() {
         ledgerReferenceId: undefined
       };
       transactions.set(updated.id, updated);
+      recalculateMemoryInProgressReconciliationsForTransaction(ctx, updated, now(ctx));
       return ok({ transaction: updated, removedMatchCount: 0 });
     },
 
@@ -1220,9 +1447,26 @@ export function createBankReconciliationMemoryService() {
       );
     },
 
+    clearReconciliationTransaction(
+      ctx: TenantContext,
+      input: ReconciliationTransactionStateInput
+    ): ModuleResult<ReconciliationTransactionStateResult> {
+      return setMemoryReconciliationTransactionClearedState(ctx, input, true);
+    },
+
+    unclearReconciliationTransaction(
+      ctx: TenantContext,
+      input: ReconciliationTransactionStateInput
+    ): ModuleResult<ReconciliationTransactionStateResult> {
+      return setMemoryReconciliationTransactionClearedState(ctx, input, false);
+    },
+
     completeReconciliation(ctx: TenantContext, reconciliationId: string): ModuleResult<ReconciliationSession> {
       const reconciliation = reconciliations.get(reconciliationId);
       if (!reconciliation || reconciliation.tenantId !== ctx.tenantId) return fail("reconciliation_not_found", "Reconciliation not found.");
+      if (reconciliation.status !== "in_progress") {
+        return fail("reconciliation_not_in_progress", "Only in-progress reconciliations can be completed.");
+      }
       const account = accounts.get(reconciliation.bankAccountId)!;
       const scopedTransactions = [...transactions.values()].filter(
         (tx) => tx.tenantId === ctx.tenantId && tx.bankAccountId === reconciliation.bankAccountId && tx.transactionDate <= reconciliation.statementDate
@@ -1230,12 +1474,36 @@ export function createBankReconciliationMemoryService() {
       const nonExcludedTransactions = scopedTransactions.filter((tx) => tx.matchStatus !== "excluded");
       const unmatched = nonExcludedTransactions.filter((tx) => tx.matchStatus === "unmatched");
       if (unmatched.length > 0) return fail("unmatched_transactions", "Cannot complete reconciliation while unmatched transactions remain.");
-      const clearedBalance = nonExcludedTransactions.reduce((sum, tx) => sum + tx.amountCents, account.openingBalanceCents);
-      if (clearedBalance !== reconciliation.statementBalanceCents) {
+      const clearedTransactions = nonExcludedTransactions.filter(
+        (tx) => tx.cleared && tx.clearedReconciliationId === reconciliation.id
+      );
+      const clearedTotals = calculateClearedTotals(account, clearedTransactions);
+      if (clearedTotals.clearedBalanceCents !== reconciliation.statementBalanceCents) {
         return fail("balance_mismatch", "Cleared balance must match statement balance.");
       }
-      for (const tx of nonExcludedTransactions) transactions.set(tx.id, { ...tx, reconciled: true });
-      const completed: ReconciliationSession = { ...reconciliation, status: "completed", completedAt: now(ctx) };
+      const completedAt = now(ctx);
+      for (const tx of clearedTransactions) {
+        transactions.set(tx.id, {
+          ...tx,
+          cleared: true,
+          clearedAt: tx.clearedAt ?? completedAt,
+          clearedById: tx.clearedById ?? ctx.actorId,
+          clearedReconciliationId: reconciliation.id,
+          reconciled: true,
+          reconciledAt: completedAt,
+          reconciliationId: reconciliation.id
+        });
+      }
+      const completed: ReconciliationSession = {
+        ...reconciliation,
+        ...clearedTotals,
+        differenceCents: 0,
+        transactionsCleared: clearedTransactions.length,
+        transactionsUnmatched: 0,
+        status: "completed",
+        completedAt,
+        updatedAt: completedAt
+      };
       reconciliations.set(completed.id, completed);
       return ok(completed);
     }

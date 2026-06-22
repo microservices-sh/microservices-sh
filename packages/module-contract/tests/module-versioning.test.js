@@ -418,11 +418,15 @@ describe("module version selectors", () => {
         { method: "unmatchTransaction", scope: "bank-reconciliation.write", public: false },
         { method: "excludeTransaction", scope: "bank-reconciliation.write", public: false },
         { method: "restoreExcludedTransaction", scope: "bank-reconciliation.write", public: false },
+        { method: "clearReconciliationTransaction", scope: "bank-reconciliation.write", public: false },
+        { method: "unclearReconciliationTransaction", scope: "bank-reconciliation.write", public: false },
       ]),
       eventsEmitted: expect.arrayContaining([
         "bank-reconciliation.transaction_unmatched",
         "bank-reconciliation.transaction_excluded",
         "bank-reconciliation.transaction_restored",
+        "bank-reconciliation.transaction_cleared",
+        "bank-reconciliation.transaction_uncleared",
       ]),
     });
 

@@ -32,6 +32,7 @@ describe("bank-reconciliation", () => {
 
     const tx = imported.data!.imported[0];
     expect(service.matchTransaction(ctx, tx.id, "journal_line_1").ok).toBe(true);
+    expect(service.clearReconciliationTransaction(ctx, { reconciliationId: reconciliation.data!.id, transactionId: tx.id }).ok).toBe(true);
 
     const completed = service.completeReconciliation(ctx, reconciliation.data!.id);
     expect(completed.ok).toBe(true);
@@ -65,6 +66,15 @@ describe("bank-reconciliation", () => {
 
     const tx = imported.data!.imported[0];
     expect((await service.matchTransaction(ctx, tx.id, "journal_line_1")).ok).toBe(true);
+    const cleared = await service.clearReconciliationTransaction(
+      { ...ctx, actorId: "user_1" },
+      { reconciliationId: reconciliation.data!.id, transactionId: tx.id }
+    );
+    expect(cleared.ok).toBe(true);
+    expect(cleared.data).toMatchObject({
+      transaction: { id: tx.id, cleared: true, clearedById: "user_1", clearedReconciliationId: reconciliation.data!.id },
+      reconciliation: { transactionsCleared: 1, clearedBalanceCents: 1500, differenceCents: 0 }
+    });
 
     const completed = await service.completeReconciliation(ctx, reconciliation.data!.id);
     expect(completed.ok).toBe(true);
@@ -191,6 +201,7 @@ describe("bank-reconciliation", () => {
     await service.excludeTransaction(ctx, { transactionId: fee.id, reason: "Not in this statement balance" });
 
     const reconciliation = await service.startReconciliation(ctx, account.data!.id, "2026-06-21", 1_500);
+    await service.clearReconciliationTransaction(ctx, { reconciliationId: reconciliation.data!.id, transactionId: deposit.id });
     const completed = await service.completeReconciliation(ctx, reconciliation.data!.id);
 
     expect(completed.ok).toBe(true);
@@ -208,6 +219,112 @@ describe("bank-reconciliation", () => {
       ok: false,
       error: { code: "transaction_reconciled" }
     });
+  });
+
+  it("clears and unclears transactions without finalizing them", async () => {
+    const service = createBankReconciliationService({
+      store: createMemoryBankReconciliationStore(),
+      createId: createSequentialBankReconciliationIdFactory()
+    });
+    const account = await service.createBankAccount(ctx, { name: "Operating", openingBalanceCents: 1_000 });
+    const imported = await service.importStatementTransactions(ctx, account.data!.id, [
+      { transactionDate: "2026-06-20", description: "Deposit", amountCents: 500, transactionHash: "hash-clear-1" },
+      { transactionDate: "2026-06-20", description: "Excluded fee", amountCents: -25, transactionHash: "hash-clear-2" }
+    ]);
+    const [deposit, fee] = imported.data!.imported;
+    expect(deposit.cleared).toBe(false);
+    const reconciliation = await service.startReconciliation(ctx, account.data!.id, "2026-06-21", 1_500);
+
+    const cleared = await service.clearReconciliationTransaction(
+      { ...ctx, actorId: "user_1" },
+      { reconciliationId: reconciliation.data!.id, transactionId: deposit.id }
+    );
+    expect(cleared.ok).toBe(true);
+    expect(cleared.data).toMatchObject({
+      transaction: {
+        id: deposit.id,
+        cleared: true,
+        clearedAt: ctx.now,
+        clearedById: "user_1",
+        clearedReconciliationId: reconciliation.data!.id,
+        reconciled: false
+      },
+      reconciliation: {
+        transactionsCleared: 1,
+        clearedDepositsCents: 500,
+        clearedWithdrawalsCents: 0,
+        clearedBalanceCents: 1_500,
+        differenceCents: 0
+      }
+    });
+    const persisted = await service.listStatementTransactions(ctx, account.data!.id);
+    expect(persisted.data!.find((tx) => tx.id === deposit.id)).toMatchObject({
+      cleared: true,
+      clearedReconciliationId: reconciliation.data!.id,
+      reconciled: false
+    });
+
+    const uncleared = await service.unclearReconciliationTransaction(ctx, {
+      reconciliationId: reconciliation.data!.id,
+      transactionId: deposit.id
+    });
+    expect(uncleared.ok).toBe(true);
+    expect(uncleared.data).toMatchObject({
+      transaction: { id: deposit.id, cleared: false, reconciled: false },
+      reconciliation: { transactionsCleared: 0, clearedBalanceCents: 1_000, differenceCents: 500 }
+    });
+    expect(uncleared.data!.transaction.clearedAt).toBeUndefined();
+    expect(uncleared.data!.transaction.clearedById).toBeUndefined();
+
+    await service.excludeTransaction(ctx, { transactionId: fee.id, reason: "Outside reconciliation" });
+    await expect(
+      service.clearReconciliationTransaction(ctx, { reconciliationId: reconciliation.data!.id, transactionId: fee.id })
+    ).resolves.toMatchObject({ ok: false, error: { code: "transaction_excluded" } });
+  });
+
+  it("completes reconciliation using only cleared matched transactions", async () => {
+    const service = createBankReconciliationService({
+      store: createMemoryBankReconciliationStore(),
+      createId: createSequentialBankReconciliationIdFactory()
+    });
+    const account = await service.createBankAccount(ctx, { name: "Operating", openingBalanceCents: 1_000 });
+    const imported = await service.importStatementTransactions(ctx, account.data!.id, [
+      { transactionDate: "2026-06-20", description: "Deposit", amountCents: 500, transactionHash: "hash-final-clear-1" },
+      { transactionDate: "2026-06-20", description: "Matched but uncleared", amountCents: -25, transactionHash: "hash-final-clear-2" }
+    ]);
+    const [deposit, unclearedFee] = imported.data!.imported;
+    await service.matchTransaction(ctx, deposit.id, "journal_line_deposit");
+    await service.matchTransaction(ctx, unclearedFee.id, "journal_line_fee");
+    const reconciliation = await service.startReconciliation(ctx, account.data!.id, "2026-06-21", 1_500);
+
+    const blocked = await service.completeReconciliation(ctx, reconciliation.data!.id);
+    expect(blocked.ok).toBe(false);
+    expect(blocked.error?.code).toBe("balance_mismatch");
+
+    await service.clearReconciliationTransaction(ctx, { reconciliationId: reconciliation.data!.id, transactionId: deposit.id });
+    const completed = await service.completeReconciliation(ctx, reconciliation.data!.id);
+    expect(completed.ok).toBe(true);
+    expect(completed.data).toMatchObject({
+      status: "completed",
+      clearedDepositsCents: 500,
+      clearedWithdrawalsCents: 0,
+      clearedBalanceCents: 1_500,
+      transactionsCleared: 1
+    });
+
+    const transactions = await service.listStatementTransactions(ctx, account.data!.id);
+    expect(transactions.data!.find((tx) => tx.id === deposit.id)).toMatchObject({
+      cleared: true,
+      reconciled: true,
+      reconciliationId: reconciliation.data!.id
+    });
+    expect(transactions.data!.find((tx) => tx.id === unclearedFee.id)).toMatchObject({
+      cleared: false,
+      reconciled: false
+    });
+    await expect(
+      service.unclearReconciliationTransaction(ctx, { reconciliationId: reconciliation.data!.id, transactionId: deposit.id })
+    ).resolves.toMatchObject({ ok: false, error: { code: "reconciliation_not_in_progress" } });
   });
 
   it("imports mapped CSV statements and records import session history", async () => {

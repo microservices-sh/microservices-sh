@@ -36,6 +36,7 @@
                   <th>Description</th>
                   <th>Import</th>
                   <th>Match</th>
+                  <th>Clear state</th>
                   <th>Amount</th>
                 </tr>
               </thead>
@@ -63,6 +64,16 @@
                           <small>Reconciled {tx.reconciledAtShort}</small>
                         {:else}
                           <small>Open for reconciliation</small>
+                        {/if}
+                      </div>
+                    </td>
+                    <td>
+                      <div class="status-cell">
+                        <Badge tone={tx.clearTone}>{tx.clearStatus}</Badge>
+                        {#if tx.cleared && !tx.reconciled}
+                          <small>Cleared {tx.clearedAtShort}</small>
+                        {:else if !tx.reconciled}
+                          <small>Pending operator review</small>
                         {/if}
                       </div>
                     </td>
@@ -122,6 +133,7 @@
         <dl class="detail-list">
           <div><dt>Transactions</dt><dd>{data.summary.transactionCount}</dd></div>
           <div><dt>Matched</dt><dd>{data.summary.matchedCount}</dd></div>
+          <div><dt>Cleared</dt><dd>{data.summary.clearedCount}</dd></div>
           <div><dt>Unmatched</dt><dd>{data.summary.unmatchedCount}</dd></div>
           <div><dt>Deposits</dt><dd>{data.summary.deposits}</dd></div>
           <div><dt>Withdrawals</dt><dd>{data.summary.withdrawals}</dd></div>

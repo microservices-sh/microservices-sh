@@ -20,6 +20,11 @@ export default function check({ assertFileIncludes }) {
     "Bank Reconciliation enforces transaction hash idempotency."
   );
   assertFileIncludes(
+    "migrations/0002_transaction_cleared_state.sql",
+    "cleared_reconciliation_id",
+    "Bank Reconciliation migration owns provisional transaction clearing state."
+  );
+  assertFileIncludes(
     "src/service/index.ts",
     "unmatched_transactions",
     "Bank Reconciliation blocks completion while unmatched transactions remain."
@@ -38,6 +43,21 @@ export default function check({ assertFileIncludes }) {
     "src/service/index.ts",
     "previewStatementImportCsv",
     "Bank Reconciliation implements advertised CSV import preview."
+  );
+  assertFileIncludes(
+    "src/service/index.ts",
+    "clearReconciliationTransaction",
+    "Bank Reconciliation implements advertised provisional transaction clearing."
+  );
+  assertFileIncludes(
+    "src/service/index.ts",
+    "unclearReconciliationTransaction",
+    "Bank Reconciliation implements advertised provisional transaction unclearing."
+  );
+  assertFileIncludes(
+    "src/service/index.ts",
+    "clearedReconciliationId === reconciliation.id",
+    "Bank Reconciliation finalizes only transactions cleared for the active session."
   );
   assertFileIncludes(
     "src/service/index.ts",

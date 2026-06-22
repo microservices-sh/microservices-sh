@@ -7,10 +7,13 @@
 
   const unmatched = $derived(data.transactions.filter((tx) => tx.matchStatus === "unmatched").length);
   const excluded = $derived(data.transactions.filter((tx) => tx.matchStatus === "excluded").length);
+  const cleared = $derived(data.transactions.filter((tx) => tx.cleared && !tx.reconciled).length);
+  const uncleared = $derived(data.transactions.filter((tx) => !tx.cleared && !tx.reconciled && tx.matchStatus !== "excluded").length);
   const matchableTransactions = $derived(data.transactions.filter((tx) => tx.matchStatus === "unmatched" && !tx.reconciled));
   const statementDelta = $derived(data.transactions.reduce((total, tx) => total + tx.amountCents, 0));
   const latestImport = $derived(data.statementImports.at(-1));
   const inProgressReconciliations = $derived(data.reconciliations.filter((session) => session.status === "in_progress"));
+  const activeReconciliation = $derived(inProgressReconciliations[0] ?? null);
   const displayedReconciliation = $derived(form?.reconciliation ?? data.reconciliation);
   const csvPreview = $derived(form?.csvPreview);
   const suggestionsByTransaction = $derived(
@@ -25,6 +28,7 @@
       hint: latestImport ? `${latestImport.importedRows} rows / ${latestImport.duplicateRows} duplicates` : "history"
     },
     { label: "Unmatched", value: unmatched, tone: unmatched > 0 ? "warn" : "good", hint: money(statementDelta) },
+    { label: "Cleared", value: cleared, tone: cleared > 0 ? "info" : "neutral", hint: `${uncleared} open` },
     { label: "Excluded transactions", value: excluded, tone: excluded > 0 ? "neutral" : "good", hint: "ignored in close" }
   ]);
 
@@ -66,6 +70,10 @@
     <Alert tone="warn">Statement transaction excluded from reconciliation.</Alert>
   {:else if form?.transactionRestored}
     <Alert tone="success">Statement transaction restored for matching.</Alert>
+  {:else if form?.transactionCleared}
+    <Alert tone="success">Statement transaction cleared for reconciliation.</Alert>
+  {:else if form?.transactionUncleared}
+    <Alert tone="success">Statement transaction returned to uncleared state.</Alert>
   {:else if form?.reconciliationStarted}
     <Alert tone="success">Reconciliation started for {form.reconciliation.statementDate}.</Alert>
   {:else if form?.reconciliationCompleted}
@@ -107,8 +115,24 @@
               </div>
               <div class="transaction-actions">
                 <Badge tone={transactionTone(tx.matchStatus)}>{tx.matchStatus}</Badge>
+                <Badge tone={tx.reconciled || tx.cleared ? "good" : "neutral"}>{tx.reconciled ? "reconciled" : tx.cleared ? "cleared" : "uncleared"}</Badge>
                 <Badge tone={tx.amountCents >= 0 ? "good" : "warn"}>{money(tx.amountCents)}</Badge>
                 {#if data.canManage && !tx.reconciled}
+                  {#if activeReconciliation && tx.matchStatus !== "excluded"}
+                    {#if tx.cleared}
+                      <form method="POST" action="?/unclearReconciliationTransaction" use:enhance>
+                        <input type="hidden" name="reconciliationId" value={activeReconciliation.id} />
+                        <input type="hidden" name="transactionId" value={tx.id} />
+                        <Button type="submit" variant="ghost" size="sm">Unclear</Button>
+                      </form>
+                    {:else}
+                      <form method="POST" action="?/clearReconciliationTransaction" use:enhance>
+                        <input type="hidden" name="reconciliationId" value={activeReconciliation.id} />
+                        <input type="hidden" name="transactionId" value={tx.id} />
+                        <Button type="submit" variant="ghost" size="sm">Clear</Button>
+                      </form>
+                    {/if}
+                  {/if}
                   {#if tx.matchStatus !== "unmatched" && tx.matchStatus !== "excluded"}
                     <form method="POST" action="?/unmatchTransaction" use:enhance>
                       <input type="hidden" name="transactionId" value={tx.id} />

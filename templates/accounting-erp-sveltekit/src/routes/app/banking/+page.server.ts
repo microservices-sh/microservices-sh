@@ -469,6 +469,94 @@ export const actions: Actions = {
     return { transactionRestored: true };
   },
 
+  clearReconciliationTransaction: async ({ request, locals, cookies, platform }) => {
+    requireModule("bank-reconciliation", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const values = {
+      reconciliationId: text(form.get("reconciliationId")),
+      transactionId: text(form.get("transactionId"))
+    };
+    if (!values.reconciliationId || !values.transactionId) {
+      return fail(400, { error: "Choose an in-progress reconciliation and transaction to clear.", values });
+    }
+
+    const cleared = await locals.bankReconciliationService.clearReconciliationTransaction(
+      { tenantId: org.id, actorId: locals.user.id },
+      values
+    );
+    if (!cleared.ok || !cleared.data) {
+      return fail(400, { error: cleared.error?.message ?? "Could not clear transaction.", values });
+    }
+
+    await recordEvent(
+      {
+        eventName: "bank-reconciliation.transaction_cleared",
+        actorId: locals.user.id,
+        entityType: "bank_transaction",
+        entityId: cleared.data.transaction.id,
+        source: "app/banking",
+        payload: {
+          reconciliationId: cleared.data.reconciliation.id,
+          amountCents: cleared.data.transaction.amountCents,
+          clearedBalanceCents: cleared.data.reconciliation.clearedBalanceCents ?? null,
+          differenceCents: cleared.data.reconciliation.differenceCents ?? null
+        }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { transactionCleared: true, reconciliation: cleared.data.reconciliation };
+  },
+
+  unclearReconciliationTransaction: async ({ request, locals, cookies, platform }) => {
+    requireModule("bank-reconciliation", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const values = {
+      reconciliationId: text(form.get("reconciliationId")),
+      transactionId: text(form.get("transactionId"))
+    };
+    if (!values.reconciliationId || !values.transactionId) {
+      return fail(400, { error: "Choose an in-progress reconciliation and transaction to unclear.", values });
+    }
+
+    const uncleared = await locals.bankReconciliationService.unclearReconciliationTransaction(
+      { tenantId: org.id, actorId: locals.user.id },
+      values
+    );
+    if (!uncleared.ok || !uncleared.data) {
+      return fail(400, { error: uncleared.error?.message ?? "Could not unclear transaction.", values });
+    }
+
+    await recordEvent(
+      {
+        eventName: "bank-reconciliation.transaction_uncleared",
+        actorId: locals.user.id,
+        entityType: "bank_transaction",
+        entityId: uncleared.data.transaction.id,
+        source: "app/banking",
+        payload: {
+          reconciliationId: uncleared.data.reconciliation.id,
+          amountCents: uncleared.data.transaction.amountCents,
+          clearedBalanceCents: uncleared.data.reconciliation.clearedBalanceCents ?? null,
+          differenceCents: uncleared.data.reconciliation.differenceCents ?? null
+        }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { transactionUncleared: true, reconciliation: uncleared.data.reconciliation };
+  },
+
   startReconciliation: async ({ request, locals, cookies, platform }) => {
     requireModule("bank-reconciliation", platform);
     if (!locals.user) return fail(403, { error: "Not signed in to a company." });

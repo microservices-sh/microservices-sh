@@ -2048,7 +2048,7 @@
       "class": "core",
       "mount": "/banking",
       "docPath": "docs/modules/bank-reconciliation.md",
-      "summary": "Tenant-scoped bank accounts, statement import mapping detection/presets, CSV preview/dedup review, matching corrections, exclusions, and reconciliation completion with integer-cent balances.",
+      "summary": "Tenant-scoped bank accounts, statement import mapping detection/presets, CSV preview/dedup review, matching corrections, exclusions, provisional clear/unclear state, and reconciliation completion with integer-cent balances.",
       "requires": [],
       "permissions": [
         "bank-reconciliation.read",
@@ -2129,6 +2129,16 @@
           "public": false
         },
         {
+          "method": "clearReconciliationTransaction",
+          "scope": "bank-reconciliation.write",
+          "public": false
+        },
+        {
+          "method": "unclearReconciliationTransaction",
+          "scope": "bank-reconciliation.write",
+          "public": false
+        },
+        {
           "method": "completeReconciliation",
           "scope": "bank-reconciliation.write",
           "public": false
@@ -2154,6 +2164,8 @@
         "bank-reconciliation.transaction_unmatched",
         "bank-reconciliation.transaction_excluded",
         "bank-reconciliation.transaction_restored",
+        "bank-reconciliation.transaction_cleared",
+        "bank-reconciliation.transaction_uncleared",
         "bank-reconciliation.reconciliation_started",
         "bank-reconciliation.reconciliation_completed",
         "accounting-core.journal_entry_posted",

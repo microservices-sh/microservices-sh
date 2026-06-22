@@ -23,7 +23,7 @@ function belongsToReconciliation(transaction: BankTransaction, reconciliation: R
   if (transaction.tenantId !== activeOrgId) return false;
   if (reconciliation.status === "completed") return transaction.reconciliationId === reconciliation.id && transaction.reconciled === true;
   if (reconciliation.status !== "in_progress") return false;
-  return transaction.transactionDate <= reconciliation.statementDate && !transaction.reconciled;
+  return transaction.transactionDate <= reconciliation.statementDate && !transaction.reconciled && transaction.matchStatus !== "excluded";
 }
 
 export const load: PageServerLoad = async ({ params, locals, cookies, parent, platform }) => {
@@ -68,6 +68,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
     .filter((transaction) => transaction.amountCents < 0)
     .reduce((total, transaction) => total + Math.abs(transaction.amountCents), 0);
   const unmatchedCount = transactions.filter((transaction) => transaction.matchStatus === "unmatched").length;
+  const clearedCount = transactions.filter((transaction) => transaction.cleared || transaction.reconciled).length;
   const matchedCount = transactions.length - unmatchedCount;
 
   return {
@@ -100,6 +101,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
       transactionCount: transactions.length,
       matchedCount,
       unmatchedCount,
+      clearedCount,
       deposits: money(depositsCents, currency),
       withdrawals: money(withdrawalsCents, currency),
       net: money(depositsCents - withdrawalsCents, currency)
@@ -111,7 +113,10 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
         amount: money(transaction.amountCents, currency),
         amountTone: amountTone(transaction.amountCents),
         matchTone: matchTone(transaction.matchStatus),
+        clearTone: transaction.cleared || transaction.reconciled ? "good" : "neutral",
+        clearStatus: transaction.reconciled ? "reconciled" : transaction.cleared ? "cleared" : "uncleared",
         importTitle: statementImport?.fileName ?? statementImport?.source.toUpperCase() ?? null,
+        clearedAtShort: shortDate(transaction.clearedAt),
         reconciledAtShort: shortDate(transaction.reconciledAt)
       };
     }),

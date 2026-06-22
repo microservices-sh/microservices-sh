@@ -39,6 +39,12 @@
       "items": {
         "enum": ["importable", "duplicate", "skipped"]
       }
+    },
+    "transactionClearingStates": {
+      "type": "array",
+      "items": {
+        "enum": ["cleared", "uncleared", "reconciled"]
+      }
     }
   }
 }

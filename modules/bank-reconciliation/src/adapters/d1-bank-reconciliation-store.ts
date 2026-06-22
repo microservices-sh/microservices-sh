@@ -45,6 +45,10 @@ const TX_SELECT = `
   tx.amount_cents,
   tx.transaction_hash,
   tx.match_status,
+  tx.cleared,
+  tx.cleared_at,
+  tx.cleared_by_id,
+  tx.cleared_reconciliation_id,
   tx.reconciled,
   tx.reconciled_at,
   tx.reconciliation_id,
@@ -174,6 +178,10 @@ function toBankTransaction(row: Record<string, unknown>): BankTransaction {
     transactionHash: String(row.transaction_hash),
     matchStatus: String(row.match_status) as BankTransactionMatchStatus,
     ledgerReferenceId: optionalString(row.ledger_reference_id),
+    cleared: Number(row.cleared ?? 0) === 1,
+    clearedAt: optionalString(row.cleared_at),
+    clearedById: optionalString(row.cleared_by_id),
+    clearedReconciliationId: optionalString(row.cleared_reconciliation_id),
     reconciled: Number(row.reconciled ?? 0) === 1,
     reconciledAt: optionalString(row.reconciled_at),
     reconciliationId: optionalString(row.reconciliation_id),
@@ -387,12 +395,16 @@ export function createD1BankReconciliationStore(db: D1Database): BankReconciliat
               amount_cents,
               transaction_hash,
               match_status,
+              cleared,
+              cleared_at,
+              cleared_by_id,
+              cleared_reconciliation_id,
               reconciled,
               reconciled_at,
               reconciliation_id,
               created_at,
               updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
           .bind(
             transaction.id,
@@ -404,6 +416,10 @@ export function createD1BankReconciliationStore(db: D1Database): BankReconciliat
             transaction.amountCents,
             transaction.transactionHash,
             transaction.matchStatus,
+            transaction.cleared ? 1 : 0,
+            transaction.clearedAt ?? null,
+            transaction.clearedById ?? null,
+            transaction.clearedReconciliationId ?? null,
             transaction.reconciled ? 1 : 0,
             transaction.reconciledAt ?? null,
             transaction.reconciliationId ?? null,
@@ -469,12 +485,16 @@ export function createD1BankReconciliationStore(db: D1Database): BankReconciliat
       await db
         .prepare(
           `UPDATE bank_reconciliation_transactions
-           SET match_status = ?, ledger_reference_id = ?, reconciled = ?, reconciled_at = ?, reconciliation_id = ?, updated_at = ?
+           SET match_status = ?, ledger_reference_id = ?, cleared = ?, cleared_at = ?, cleared_by_id = ?, cleared_reconciliation_id = ?, reconciled = ?, reconciled_at = ?, reconciliation_id = ?, updated_at = ?
            WHERE tenant_id = ? AND id = ?`
         )
         .bind(
           transaction.matchStatus,
           transaction.ledgerReferenceId ?? null,
+          transaction.cleared ? 1 : 0,
+          transaction.clearedAt ?? null,
+          transaction.clearedById ?? null,
+          transaction.clearedReconciliationId ?? null,
           transaction.reconciled ? 1 : 0,
           transaction.reconciledAt ?? null,
           transaction.reconciliationId ?? null,
@@ -492,12 +512,16 @@ export function createD1BankReconciliationStore(db: D1Database): BankReconciliat
         await db
           .prepare(
             `UPDATE bank_reconciliation_transactions
-             SET match_status = ?, ledger_reference_id = ?, reconciled = ?, reconciled_at = ?, reconciliation_id = ?, updated_at = ?
+             SET match_status = ?, ledger_reference_id = ?, cleared = ?, cleared_at = ?, cleared_by_id = ?, cleared_reconciliation_id = ?, reconciled = ?, reconciled_at = ?, reconciliation_id = ?, updated_at = ?
              WHERE tenant_id = ? AND id = ?`
           )
           .bind(
             transaction.matchStatus,
             transaction.ledgerReferenceId ?? null,
+            transaction.cleared ? 1 : 0,
+            transaction.clearedAt ?? null,
+            transaction.clearedById ?? null,
+            transaction.clearedReconciliationId ?? null,
             transaction.reconciled ? 1 : 0,
             transaction.reconciledAt ?? null,
             transaction.reconciliationId ?? null,

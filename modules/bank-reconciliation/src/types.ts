@@ -35,6 +35,10 @@ export interface BankTransaction {
   transactionHash: string;
   matchStatus: BankTransactionMatchStatus;
   ledgerReferenceId?: string;
+  cleared?: boolean;
+  clearedAt?: string;
+  clearedById?: string;
+  clearedReconciliationId?: string;
   reconciled: boolean;
   reconciledAt?: string;
   reconciliationId?: string;
@@ -94,6 +98,16 @@ export interface RestoreExcludedTransactionInput {
 export interface BankTransactionCorrectionResult {
   transaction: BankTransaction;
   removedMatchCount?: number;
+}
+
+export interface ReconciliationTransactionStateInput {
+  reconciliationId: string;
+  transactionId: string;
+}
+
+export interface ReconciliationTransactionStateResult {
+  transaction: BankTransaction;
+  reconciliation: ReconciliationSession;
 }
 
 export interface SuggestMatchesInput {

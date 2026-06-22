@@ -5,6 +5,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const accountingFiscalPeriodMetadataMigration = readText("migrations/0030_accounting_fiscal_period_metadata.sql");
   const accountingSettingsMigration = readText("migrations/0031_accounting_settings.sql");
   const accountingDepositSettingsMigration = readText("migrations/0032_accounting_deposit_settings.sql");
+  const bankClearedStateMigration = readText("migrations/0033_bank_reconciliation_cleared_state.sql");
   const billDetailServer = readText("src/routes/app/payables/[id]/+page.server.ts");
   const billDetailPage = readText("src/routes/app/payables/[id]/+page.svelte");
   const vendorDetailServer = readText("src/routes/app/payables/vendors/[id]/+page.server.ts");
@@ -758,13 +759,19 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/banking/+page.server.ts",
-    ["createBankAccount", "listStatementImportFieldMappingPresets", "previewStatementImportCsv", "previewCsv", "importStatementCsv", "autoDetectFieldMapping", "fieldMappingPresetId", "mappingPresetId", "suggestMatches", "createMatch", "matchTransaction", "unmatchTransaction", "excludeTransaction", "restoreExcludedTransaction", "startReconciliation", "listReconciliations", "completeReconciliation", "recordEvent"],
-    "Banking route exposes preview, operator actions, correction actions, and persisted reconciliation sessions through bank-reconciliation service methods."
+    ["createBankAccount", "listStatementImportFieldMappingPresets", "previewStatementImportCsv", "previewCsv", "importStatementCsv", "autoDetectFieldMapping", "fieldMappingPresetId", "mappingPresetId", "suggestMatches", "createMatch", "matchTransaction", "unmatchTransaction", "excludeTransaction", "restoreExcludedTransaction", "clearReconciliationTransaction", "unclearReconciliationTransaction", "bank-reconciliation.transaction_cleared", "bank-reconciliation.transaction_uncleared", "startReconciliation", "listReconciliations", "completeReconciliation", "recordEvent"],
+    "Banking route exposes preview, operator actions, correction/clearing actions, and persisted reconciliation sessions through bank-reconciliation service methods."
   );
   assertFileIncludesAll(
     "src/routes/app/banking/+page.svelte",
-    ["name=\"mappingPresetId\"", "Auto-detect columns", "data.mappingPresets", "?/previewCsv", "Preview import", "Import statement", "csvPreview", "duplicateRows", "?/unmatchTransaction", "?/excludeTransaction", "?/restoreExcludedTransaction", "transactionTone", "Excluded transactions"],
-    "Banking page exposes CSV auto-detection, mapping presets, preview/dedup review, and transaction unmatch/exclude/restore actions over the bank-reconciliation module."
+    ["name=\"mappingPresetId\"", "Auto-detect columns", "data.mappingPresets", "?/previewCsv", "Preview import", "Import statement", "csvPreview", "duplicateRows", "?/unmatchTransaction", "?/excludeTransaction", "?/restoreExcludedTransaction", "?/clearReconciliationTransaction", "?/unclearReconciliationTransaction", "activeReconciliation", "Cleared", "transactionTone", "Excluded transactions"],
+    "Banking page exposes CSV auto-detection, mapping presets, preview/dedup review, transaction correction actions, and clear/unclear actions over the bank-reconciliation module."
+  );
+  assert(
+    bankClearedStateMigration.includes("cleared_reconciliation_id") &&
+      bankClearedStateMigration.includes("idx_bank_reconciliation_transactions_cleared"),
+    "Accounting template includes the bank reconciliation provisional cleared-state migration.",
+    "policy:accounting-bank-cleared-state-migration"
   );
   assert(
     !/previewCsv:[\s\S]*?recordEvent[\s\S]*?importCsv:/.test(bankingServer) &&
@@ -857,7 +864,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       "transaction.reconciliationId === reconciliation.id",
       "transaction.reconciled === true",
       "reconciliation.status !== \"in_progress\"",
-      "transaction.transactionDate <= reconciliation.statementDate"
+      "transaction.transactionDate <= reconciliation.statementDate",
+      "transaction.matchStatus !== \"excluded\""
     ],
     "Banking reconciliation detail proves account scope, uses read-only bank-reconciliation lists, and filters transactions by tenant/account plus session status."
   );
@@ -876,6 +884,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       !bankingReconciliationDetailServer.includes("unmatchTransaction") &&
       !bankingReconciliationDetailServer.includes("excludeTransaction") &&
       !bankingReconciliationDetailServer.includes("restoreExcludedTransaction") &&
+      !bankingReconciliationDetailServer.includes("clearReconciliationTransaction") &&
+      !bankingReconciliationDetailServer.includes("unclearReconciliationTransaction") &&
       !bankingReconciliationDetailServer.includes("startReconciliation") &&
       !bankingReconciliationDetailServer.includes("completeReconciliation") &&
       !bankingReconciliationDetailServer.includes("recordEvent") &&
@@ -897,8 +907,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/banking/reconciliations/[id]/+page.svelte",
-    ["Statement transactions", "Related imports", "Balance proof", "Open banking actions"],
-    "Banking reconciliation detail page exposes transaction review, import context, and balance proof."
+    ["Statement transactions", "Clear state", "Related imports", "Balance proof", "Open banking actions"],
+    "Banking reconciliation detail page exposes transaction review, provisional clear state, import context, and balance proof."
   );
   assertFileIncludesAll(
     "microservices.lock.json",
@@ -1092,7 +1102,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "microservices.lock.json",
-    ["\"id\": \"bank-reconciliation\"", "\"method\": \"listStatementImportFieldMappingPresets\"", "\"method\": \"detectStatementImportFieldMapping\"", "\"method\": \"previewStatementImportCsv\"", "\"method\": \"importStatementCsv\"", "beforeMatchCreate", "beforeReconciliationStart", "afterReconciliationChanged"],
+    ["\"id\": \"bank-reconciliation\"", "\"method\": \"listStatementImportFieldMappingPresets\"", "\"method\": \"detectStatementImportFieldMapping\"", "\"method\": \"previewStatementImportCsv\"", "\"method\": \"importStatementCsv\"", "\"method\": \"clearReconciliationTransaction\"", "\"method\": \"unclearReconciliationTransaction\"", "bank-reconciliation.transaction_cleared", "bank-reconciliation.transaction_uncleared", "beforeMatchCreate", "beforeReconciliationStart", "afterReconciliationChanged"],
     "Accounting template lock keeps bank-reconciliation hook names aligned with the module contract."
   );
   assertFileIncludesAll(

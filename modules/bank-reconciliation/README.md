@@ -2,7 +2,7 @@
 
 Status: `draft`
 
-Tenant-scoped bank accounts, statement import mapping detection/presets, CSV preview/dedup review, transaction matching corrections, exclusions, and reconciliation completion with integer-cent balances.
+Tenant-scoped bank accounts, statement import mapping detection/presets, CSV preview/dedup review, transaction matching corrections, exclusions, provisional clear/unclear state, and reconciliation completion with integer-cent balances.
 
 ## Public Surface
 
@@ -31,9 +31,10 @@ const service = createBankReconciliationService({
 - Suggests matches from supplied ledger/payment candidates or an optional `MatchCandidateProvider`.
 - Creates manual, auto, or rule matches without importing accounting-core or payment code.
 - Removes transaction matches, excludes transactions from reconciliation, and restores excluded transactions before reconciliation.
+- Clears and unclears statement transactions inside an in-progress reconciliation without finalizing them.
 - Starts reconciliation sessions from the account's last reconciled balance.
 - Lists persisted reconciliation sessions by tenant or bank account.
-- Completes reconciliation only when all in-period non-excluded transactions are matched and the computed cleared balance equals the statement ending balance.
+- Completes reconciliation only when all in-period non-excluded transactions are matched and the current-session cleared balance equals the statement ending balance.
 
 ## Ownership Boundary
 

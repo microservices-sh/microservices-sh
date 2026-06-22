@@ -3,7 +3,7 @@
   "info": {
     "title": "Bank Reconciliation Module",
     "version": "0.1.0",
-    "description": "Tenant-scoped bank accounts, statement imports, matching, and reconciliation completion."
+    "description": "Tenant-scoped bank accounts, statement imports, matching, provisional clear/unclear state, and reconciliation completion."
   },
   "paths": {
     "/bank-accounts": {
@@ -186,6 +186,34 @@
       "post": {
         "summary": "Restore an excluded statement transaction to unmatched",
         "operationId": "restoreExcludedTransaction"
+      }
+    },
+    "/transactions/clear": {
+      "post": {
+        "summary": "Clear a statement transaction for an in-progress reconciliation without finalizing it",
+        "operationId": "clearReconciliationTransaction",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ReconciliationTransactionStateRequest" }
+            }
+          }
+        }
+      }
+    },
+    "/transactions/unclear": {
+      "post": {
+        "summary": "Return a statement transaction to uncleared state for an in-progress reconciliation",
+        "operationId": "unclearReconciliationTransaction",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ReconciliationTransactionStateRequest" }
+            }
+          }
+        }
       }
     },
     "/reconciliations": {
@@ -395,6 +423,15 @@
         "required": ["match"],
         "properties": {
           "match": { "$ref": "#/components/schemas/BankTransactionMatch" }
+        }
+      },
+      "ReconciliationTransactionStateRequest": {
+        "type": "object",
+        "required": ["tenantId", "reconciliationId", "transactionId"],
+        "properties": {
+          "tenantId": { "type": "string" },
+          "reconciliationId": { "type": "string" },
+          "transactionId": { "type": "string" }
         }
       }
     }

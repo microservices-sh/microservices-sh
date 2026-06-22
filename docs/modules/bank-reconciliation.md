@@ -5,7 +5,7 @@ Module ID: `bank-reconciliation`
 Mount: `/banking`
 
 ## Summary
-Tenant-scoped bank accounts, statement import mapping presets, CSV preview/dedup review, bank transactions, ledger matching corrections, exclusions, and reconciliation sessions with completion guards.
+Tenant-scoped bank accounts, statement import mapping presets, CSV preview/dedup review, bank transactions, ledger matching corrections, exclusions, provisional clear/unclear state, and reconciliation sessions with completion guards.
 
 ## Dependencies
 - accounting-core
@@ -24,9 +24,10 @@ Tenant-scoped bank accounts, statement import mapping presets, CSV preview/dedup
 ## Hooks
 - beforeBankAccountCreate
 - beforeStatementImport
-- beforeTransactionMatch
+- beforeMatchCreate
+- beforeReconciliationStart
 - beforeReconciliationComplete
-- afterBankReconciliationChanged
+- afterReconciliationChanged
 
 ## Events
 - bank-reconciliation.bank_account_created
@@ -35,6 +36,8 @@ Tenant-scoped bank accounts, statement import mapping presets, CSV preview/dedup
 - bank-reconciliation.transaction_unmatched
 - bank-reconciliation.transaction_excluded
 - bank-reconciliation.transaction_restored
+- bank-reconciliation.transaction_cleared
+- bank-reconciliation.transaction_uncleared
 - bank-reconciliation.reconciliation_started
 - bank-reconciliation.reconciliation_completed
 
@@ -47,10 +50,11 @@ Tenant-scoped bank accounts, statement import mapping presets, CSV preview/dedup
 - A transaction cannot be reconciled while unmatched.
 - Reconciled transactions cannot be unmatched, excluded, or restored.
 - Excluded transactions are ignored by reconciliation unmatched checks and cleared-balance totals.
-- Reconciliation completion requires the non-excluded cleared balance to match the statement balance.
+- Clear/unclear is provisional and only allowed while the reconciliation session is in progress.
+- Reconciliation completion requires the current-session cleared balance to match the statement balance.
 - Ledger integration happens through ports or events, not direct accounting-core internals.
 
 ## Approval Gate
 Risk: medium
 
-Statement import, manual matching, reconciliation completion, migrations, and production deploys require explicit approval. CSV preview is read-only and does not require approval.
+Statement import, manual matching, transaction clear/unclear, reconciliation completion, migrations, and production deploys require explicit approval. CSV preview is read-only and does not require approval.

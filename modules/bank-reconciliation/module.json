@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "status": "draft",
   "class": "core",
-  "summary": "Tenant-scoped bank accounts, statement import mapping detection/presets, CSV preview/dedup review, matching corrections, exclusions, and reconciliation completion with integer-cent balances.",
+  "summary": "Tenant-scoped bank accounts, statement import mapping detection/presets, CSV preview/dedup review, matching corrections, exclusions, provisional clear/unclear state, and reconciliation completion with integer-cent balances.",
   "runtime": {
     "language": "typescript",
     "platform": "cloudflare-workers",
@@ -53,6 +53,8 @@
         { "method": "excludeTransaction", "scope": "bank-reconciliation.write", "public": false },
         { "method": "restoreExcludedTransaction", "scope": "bank-reconciliation.write", "public": false },
         { "method": "startReconciliation", "scope": "bank-reconciliation.write", "public": false },
+        { "method": "clearReconciliationTransaction", "scope": "bank-reconciliation.write", "public": false },
+        { "method": "unclearReconciliationTransaction", "scope": "bank-reconciliation.write", "public": false },
         { "method": "completeReconciliation", "scope": "bank-reconciliation.write", "public": false }
       ],
       "calls": []
@@ -65,6 +67,8 @@
         "bank-reconciliation.transaction_unmatched",
         "bank-reconciliation.transaction_excluded",
         "bank-reconciliation.transaction_restored",
+        "bank-reconciliation.transaction_cleared",
+        "bank-reconciliation.transaction_uncleared",
         "bank-reconciliation.reconciliation_started",
         "bank-reconciliation.reconciliation_completed"
       ],
@@ -142,6 +146,8 @@
         "bank-reconciliation.excludeTransaction",
         "bank-reconciliation.restoreExcludedTransaction",
         "bank-reconciliation.startReconciliation",
+        "bank-reconciliation.clearReconciliationTransaction",
+        "bank-reconciliation.unclearReconciliationTransaction",
         "bank-reconciliation.completeReconciliation"
       ],
       "skillPaths": ["skills/bank-reconciliation-operator/SKILL.md"],
@@ -154,6 +160,8 @@
         "bank-reconciliation.excludeTransaction",
         "bank-reconciliation.restoreExcludedTransaction",
         "bank-reconciliation.startReconciliation",
+        "bank-reconciliation.clearReconciliationTransaction",
+        "bank-reconciliation.unclearReconciliationTransaction",
         "bank-reconciliation.completeReconciliation"
       ]
     }

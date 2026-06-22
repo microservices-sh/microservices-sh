@@ -2,6 +2,22 @@
 
 ## Session: 2026-06-22
 
+### Phase 129 banking reconciliation clear and unclear
+
+- **Status:** complete.
+- Added module-owned provisional clear/unclear state to bank transactions with `cleared`, `cleared_at`, `cleared_by_id`, and `cleared_reconciliation_id` migrations for module and accounting template D1 schemas.
+- Added `clearReconciliationTransaction` and `unclearReconciliationTransaction` to memory/store-backed services, D1 persistence, schemas, exports, OpenAPI, module metadata, events, docs, static catalog, and accounting template lock.
+- Reconciliation completion now finalizes only transactions cleared for the active session; matched but uncleared rows remain open, and completed sessions reject later unclearing.
+- `/app/banking` now exposes clear/unclear actions, audit events, row badges, and cleared/open metrics; reconciliation detail remains read-only and shows clear state while excluding excluded rows from active-session scope.
+- Create-app bundled templates were refreshed through the build path.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Bank module tests/build/spec | Clear/unclear behavior, D1 adapter types, and module contract stay green | `pnpm --filter @microservices-sh/bank-reconciliation test` passed, 14/14; `pnpm --filter @microservices-sh/bank-reconciliation build` passed; `pnpm --filter @microservices-sh/bank-reconciliation check:spec` passed | Pass |
+| Accounting template | Banking route actions and migration policy compile and pass template guards | `pnpm --dir templates/accounting-erp-sveltekit check:spec` passed; `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Contract/workspace/create-app | Static catalog, workspace specs, and generated bundle closure stay green | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js` passed, 21/21; `pnpm spec:check:all` passed, 64 targets; `pnpm --dir packages/create-microservices-app build` passed; `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
+| Migrations/format | Fresh migration stacks include cleared-state columns and diff has no whitespace errors | Module and accounting-template SQLite replays showed `cleared`, `cleared_at`, `cleared_by_id`, `cleared_reconciliation_id`; JSON parse passed; `git diff --check` passed | Pass |
+
 ### Phase 116 Inventory reconciliation documents
 
 - **Status:** complete.
