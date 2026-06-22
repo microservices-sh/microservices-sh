@@ -6,7 +6,7 @@
   let { data, form } = $props();
 
   const lowStock = $derived(
-    data.balances.filter((item) => item.balance.available <= item.reorderPoint).length
+    data.lowStockAlerts.length
   );
   const available = $derived(
     data.balances.reduce((total, item) => total + item.balance.available, 0)
@@ -24,6 +24,10 @@
     if (type === "reservation") return "warn";
     if (type === "deduction") return "bad";
     return "neutral";
+  }
+
+  function documentTone(status) {
+    return status === "completed" ? "good" : "warn";
   }
 
   function signed(value) {
@@ -100,6 +104,23 @@
         <p class="empty">Create a stock-tracked product before receiving inventory.</p>
       {/if}
     </Card>
+    <Card title="Low-stock alerts">
+      {#if data.lowStockAlerts.length > 0}
+        <ul class="list">
+          {#each data.lowStockAlerts as alert (alert.productId)}
+            <li class="list-item row-item">
+              <div>
+                <strong>{alert.sku || alert.productId}</strong>
+                <p>{alert.name || "Stock-tracked product"} · available {alert.available} · reorder {alert.reorderPoint}</p>
+              </div>
+              <Badge tone="warn">short {alert.shortage}</Badge>
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <p class="empty">No low-stock alerts from the inventory read model.</p>
+      {/if}
+    </Card>
   </div>
 
   <div class="content-grid mt-6">
@@ -139,6 +160,23 @@
         </ul>
       {:else}
         <p class="empty">No physical counts or manual adjustments yet.</p>
+      {/if}
+    </Card>
+    <Card title="Count documents">
+      {#if data.reconciliationDocuments.length > 0}
+        <ul class="list">
+          {#each data.reconciliationDocuments as document (document.id)}
+            <li class="list-item row-item">
+              <div>
+                <strong>{document.reference || document.id}</strong>
+                <p>{document.locationId} · {relativeTime(document.completedAt || document.createdAt)}{document.reason ? ` · ${document.reason}` : ""}</p>
+              </div>
+              <Badge tone={documentTone(document.status)}>{document.status}</Badge>
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <p class="empty">No reconciliation documents yet.</p>
       {/if}
     </Card>
   </div>

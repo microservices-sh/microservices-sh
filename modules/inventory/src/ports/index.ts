@@ -1,5 +1,9 @@
 import type {
   InventoryEvent,
+  InventoryReconciliationDocument,
+  InventoryReconciliationDocumentFilter,
+  InventoryReconciliationDocumentWithLines,
+  InventoryReconciliationLine,
   InventoryProductRef,
   StockBalance,
   StockMovement,
@@ -23,5 +27,21 @@ export interface InventoryStore {
   ): Promise<StockMovement | null>;
   listMovements(filter: StockMovementFilter): Promise<StockMovement[]>;
   getBalance(tenantId: string, productId: string, locationId: string): Promise<StockBalance>;
+  insertReconciliationDocument(
+    document: InventoryReconciliationDocument,
+    lines: InventoryReconciliationLine[]
+  ): Promise<void>;
+  getReconciliationDocument(
+    tenantId: string,
+    documentId: string
+  ): Promise<InventoryReconciliationDocumentWithLines | null>;
+  listReconciliationDocuments(filter: InventoryReconciliationDocumentFilter): Promise<InventoryReconciliationDocument[]>;
+  markReconciliationDocumentCompleted(
+    tenantId: string,
+    documentId: string,
+    completedAt: string,
+    completedById: string | null,
+    lines: Array<{ lineId: string; status: "matched" | "adjusted"; movementId: string | null }>
+  ): Promise<void>;
   writeEvent(event: InventoryEvent): Promise<void>;
 }

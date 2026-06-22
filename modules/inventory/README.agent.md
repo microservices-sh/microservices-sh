@@ -16,3 +16,4 @@ Important boundaries:
 - Do not call external providers from inventory use cases.
 - Treat movement rows as the source of truth; do not add cached stock-balance state without a separate design review.
 - Use source references for idempotent reserve, release, deduction, and reconciliation operations.
+- Reconciliation documents are headers/lines plus line-scoped adjustment movements; do not bypass `completeReconciliationDocument` to mutate document status.

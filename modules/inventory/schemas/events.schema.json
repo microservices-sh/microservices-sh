@@ -7,6 +7,8 @@
     "inventory.stock_reserved",
     "inventory.stock_released",
     "inventory.stock_deducted",
-    "inventory.stock_reconciled"
+    "inventory.stock_reconciled",
+    "inventory.reconciliation_document_created",
+    "inventory.reconciliation_document_completed"
   ]
 }

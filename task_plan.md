@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 115
+Phase 116
 
 ## Phases
 
@@ -908,6 +908,15 @@ Phase 115
 - [x] Remove the stale inherited `billingStore` request-local assignment from `accounting-erp-sveltekit`.
 - [x] Add an accounting template spec guard matching the commerce template policy so the removed billing-store surface does not return.
 - [x] Verify accounting template spec/build, full workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 116: Inventory Reconciliation Documents
+- [x] Add inventory reconciliation document and line persistence with memory/D1 store parity.
+- [x] Add create/list/complete reconciliation document use cases and line-scoped idempotent adjustment movements.
+- [x] Add a low-stock alert read model derived from product reorder points and current balances.
+- [x] Wire commerce inventory route proof to create/complete count documents and show recent count documents plus low-stock alerts.
+- [x] Update module docs, metadata, migrations, template lock/spec, and root module-contract catalog coverage.
+- [x] Verify inventory build/tests/spec, module-contract tests, commerce template spec/build, migration smoke, template bundle closure, full workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

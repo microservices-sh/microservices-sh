@@ -2,7 +2,15 @@ import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { listProducts } from "@microservices-sh/product-catalog";
-import { listStockMovements, reconcileStock as reconcileInventoryStock, stockIn } from "@microservices-sh/inventory";
+import {
+  completeReconciliationDocument,
+  createReconciliationDocument,
+  listLowStockAlerts,
+  listReconciliationDocuments,
+  listStockMovements,
+  reconcileStock as reconcileInventoryStock,
+  stockIn
+} from "@microservices-sh/inventory";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 
@@ -40,12 +48,14 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
   if (!activeOrgId || !locals.user) throw redirect(303, "/app");
 
   const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "org.read", locals.rbacStore);
-  const [productsResult, movementsResult] = await Promise.all([
+  const [productsResult, movementsResult, documentsResult] = await Promise.all([
     listProducts({ tenantId: activeOrgId, includeInactive: true, limit: 250 }, { productCatalogStore: locals.productCatalogStore }),
-    listStockMovements({ tenantId: activeOrgId, limit: 100 }, { inventoryStore: locals.inventoryStore })
+    listStockMovements({ tenantId: activeOrgId, limit: 100 }, { inventoryStore: locals.inventoryStore }),
+    listReconciliationDocuments({ tenantId: activeOrgId, limit: 8 }, { inventoryStore: locals.inventoryStore })
   ]);
   const products = productsResult.ok ? productsResult.data.products : [];
   const movements = movementsResult.ok ? movementsResult.data.movements : [];
+  const reconciliationDocuments = documentsResult.ok ? documentsResult.data.documents : [];
   const balances = await Promise.all(
     products
       .filter((product) => product.trackStock)
@@ -57,6 +67,20 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
         balance: await locals.inventoryStore.getBalance(activeOrgId, product.id, "default")
       }))
   );
+  const alertsResult = await listLowStockAlerts(
+    {
+      tenantId: activeOrgId,
+      products: products.map((product) => ({
+        id: product.id,
+        sku: product.sku,
+        name: product.name,
+        trackStock: product.trackStock,
+        reorderPoint: product.reorderPoint
+      })),
+      limit: 12
+    },
+    { inventoryStore: locals.inventoryStore }
+  );
 
   return {
     canManage: permissions.includes("*") || permissions.includes("member.manage"),
@@ -67,7 +91,9 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
       trackStock: product.trackStock
     })),
     balances,
-    movements
+    movements,
+    reconciliationDocuments,
+    lowStockAlerts: alertsResult.ok ? alertsResult.data.alerts : []
   };
 };
 
@@ -205,16 +231,24 @@ export const actions: Actions = {
       return fail(400, { error: "Choose a product and enter a zero-or-higher counted quantity.", values });
     }
 
-    const result = await reconcileInventoryStock(
+    const created = await createReconciliationDocument(
       {
         tenantId: org.id,
-        productId: values.productId,
         locationId: values.locationId,
-        countedQuantity,
-        sourceType: "cycle-count",
-        sourceId: values.reference || `count:${Date.now()}:${values.productId}`,
-        reason: values.reason || "Physical count reconciliation"
+        reference: values.reference || `count:${Date.now()}:${values.productId}`,
+        reason: values.reason || "Physical count reconciliation",
+        lines: [{ productId: values.productId, countedQuantity }]
       },
+      {
+        inventoryStore: locals.inventoryStore,
+        productReader: productReader(locals.productCatalogStore),
+        actor: { id: locals.user.id, email: locals.user.email, permissions }
+      }
+    );
+    if (!created.ok) return fail(created.status, { error: created.error.message, values });
+
+    const result = await completeReconciliationDocument(
+      { tenantId: org.id, documentId: created.data.document.id },
       {
         inventoryStore: locals.inventoryStore,
         productReader: productReader(locals.productCatalogStore),
@@ -227,8 +261,8 @@ export const actions: Actions = {
       {
         eventName: "inventory.stock_reconciled",
         actorId: locals.user.id,
-        entityType: "stock_movement",
-        entityId: result.data.movement.id,
+        entityType: "reconciliation_document",
+        entityId: result.data.document.id,
         source: "app/inventory",
         payload: {
           productId: values.productId,
@@ -240,6 +274,6 @@ export const actions: Actions = {
       { auditStore: locals.auditStore }
     );
 
-    return { reconciled: true };
+    return { reconciled: true, documentId: result.data.document.id };
   }
 };

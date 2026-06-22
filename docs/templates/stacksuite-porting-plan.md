@@ -48,7 +48,7 @@ Two read-only explorer passes on 2026-06-21 identified the remaining adoption ga
 - AR now stores invoice snapshots/payments/aging, customer statements, manual invoice issue/payment/void sync, Stripe settlement sync, customer-payment settlement posting, and recurring auto-issued invoice sync. Remaining backlog is richer deposit-account configuration, unapplied balance reporting, and reusable statement/export contracts.
 - Banking now exposes imports, import detail review, match suggestions, match creation, reconciliation start, reconciliation completion, and reconciliation detail review in the accounting template workflow. Remaining backlog is CSV field mapping, duplicate handling, confirm/remove/exclude match lifecycle, clear/unclear operations, richer summaries/history, and provider/OCR hooks.
 - BAO invoice documents include commerce-specific projections: sales-order link, product-backed lines, contact/address snapshots, shipping status, shipping fee, discount, terms, payment method, PDF key, Stripe payment-link fields, and external IDs. Keep invoice core lean and put document snapshots in a template projection or an invoice-document extension.
-- BAO fulfillment links invoices, shipment batches, and stock movement. The commerce template now covers reservation/release, combo-component reservation, invoice-originated shipment deduction, shipment batches, shipment detail, packing slips, and pick lists. Remaining backlog is richer shipment status transitions and inventory reconciliation documents.
+- BAO fulfillment links invoices, shipment batches, and stock movement. The commerce template now covers reservation/release, combo-component reservation, invoice-originated shipment deduction, shipment batches, shipment detail, packing slips, pick lists, inventory reconciliation documents, and low-stock alert read models. Remaining backlog is richer shipment status transitions.
 - BAO WooCommerce behavior remains provider-specific. The current template has HMAC verification, manual page sync, signed order webhooks, order import, and audit events; future provider depth should stay below `commerce-sync` adapters and template bridges.
 - BAO MCP/reporting tools are useful, but write-capable tools still need scoped tokens, audit logging, and strict provider/tenant wrappers before public exposure.
 - The focused-template metadata mismatch around `gateway` has been closed by declaring gateway in manifests, locks, enabled-module lists, checks, and migrations while leaving API-key UI as future work.
@@ -157,7 +157,7 @@ Use the source commerce schema to extend the existing modules:
 - reorder point and reorder quantity.
 - stock movement ledger with reason/source metadata.
 - receive, adjust, and reconcile use cases plus focused route proof.
-- persistent inventory reconciliation documents with counted quantities, differences, status, and completion flows.
+- persistent inventory reconciliation documents with counted quantities, differences, status, and completion flows. Implemented in `modules/inventory` and surfaced in `commerce-ops-sveltekit` as a route proof.
 - inventory alert read models.
 
 ### Sales Order And Shipment
@@ -335,7 +335,7 @@ Still pending:
 
 - invoice-document extension contracts beyond the current invoice, quote, and recurring draft handoffs.
 - posting bridges consuming persisted accounting defaults and full statement contracts.
-- persistent inventory reconciliation documents and alert read models.
+- persistent inventory reconciliation documents and alert read models are now implemented in the inventory module and commerce template route proof.
 
 ### Phase 2: Focused Template Routes
 
@@ -349,7 +349,7 @@ Done for the first accounting/commerce operator surface:
 Remaining routes should be added only after the backing module API exists:
 
 - posting bridges consuming persisted accounting defaults and full statement routes.
-- commerce sales-order create/send, richer shipment status transitions, MCP settings, persistent inventory count documents, and inventory alerts.
+- commerce sales-order create/send, richer shipment status transitions, and MCP settings.
 
 ### Phase 3: External Operations
 

@@ -14,6 +14,8 @@ export const inventoryConfigSchema = z.object({
 });
 
 export const stockMovementTypeSchema = z.enum(["stock_in", "reservation", "release", "deduction", "adjustment"]);
+export const reconciliationDocumentStatusSchema = z.enum(["draft", "completed"]);
+export const reconciliationLineStatusSchema = z.enum(["pending", "matched", "adjusted"]);
 
 export const optionalSourceRefSchema = z
   .object({
@@ -101,6 +103,46 @@ export const stockMovementFilterSchema = z
     }
   });
 
+export const reconciliationDocumentLineInputSchema = z.object({
+  productId: z.string().min(1),
+  locationId: z.string().min(1).optional(),
+  countedQuantity: stockQuantitySchema
+});
+
+export const createReconciliationDocumentInputSchema = z.object({
+  tenantId: z.string().min(1),
+  locationId: z.string().min(1).default("default"),
+  reference: z.string().min(1).max(240).nullable().optional(),
+  reason: z.string().min(1).max(500).nullable().optional(),
+  lines: z.array(reconciliationDocumentLineInputSchema).min(1).max(200)
+});
+
+export const completeReconciliationDocumentInputSchema = z.object({
+  tenantId: z.string().min(1),
+  documentId: z.string().min(1)
+});
+
+export const reconciliationDocumentFilterSchema = z.object({
+  tenantId: z.string().min(1),
+  status: reconciliationDocumentStatusSchema.optional(),
+  limit: z.number().int().min(1).max(500).optional()
+});
+
+export const lowStockProductInputSchema = z.object({
+  id: z.string().min(1),
+  sku: z.string().min(1).nullable().optional(),
+  name: z.string().min(1).nullable().optional(),
+  trackStock: z.boolean().optional(),
+  reorderPoint: z.number().int().min(0).nullable().optional()
+});
+
+export const lowStockAlertInputSchema = z.object({
+  tenantId: z.string().min(1),
+  locationId: z.string().min(1).default("default"),
+  products: z.array(lowStockProductInputSchema).default([]),
+  limit: z.number().int().min(1).max(500).optional()
+});
+
 export const stockMovementRecordSchema = z.object({
   id: z.string().min(1),
   tenantId: z.string().min(1),
@@ -118,3 +160,7 @@ export type ReserveStockInput = z.infer<typeof reserveStockInputSchema>;
 export type ReleaseReservationInput = z.infer<typeof releaseReservationInputSchema>;
 export type DeductStockInput = z.infer<typeof deductStockInputSchema>;
 export type ReconcileStockInput = z.infer<typeof reconcileStockInputSchema>;
+export type CreateReconciliationDocumentInput = z.infer<typeof createReconciliationDocumentInputSchema>;
+export type CompleteReconciliationDocumentInput = z.infer<typeof completeReconciliationDocumentInputSchema>;
+export type ReconciliationDocumentFilterInput = z.infer<typeof reconciliationDocumentFilterSchema>;
+export type LowStockAlertInput = z.infer<typeof lowStockAlertInputSchema>;

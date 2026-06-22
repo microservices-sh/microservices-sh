@@ -2,6 +2,22 @@
 
 ## Session: 2026-06-22
 
+### Phase 116 Inventory reconciliation documents
+
+- **Status:** complete.
+- Added inventory reconciliation document headers/lines with memory and D1 store support.
+- Added `createReconciliationDocument`, `listReconciliationDocuments`, `completeReconciliationDocument`, and `listLowStockAlerts`.
+- Completion creates idempotent adjustment movements with `sourceType: "reconciliation-document-line"` and skips matched lines.
+- Commerce inventory now creates/completes count documents from the physical count form, lists recent count documents, and displays module-derived low-stock alerts.
+- Updated inventory docs, schemas, module metadata, migrations, template migration/lock/spec, and module-contract catalog coverage.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Inventory build/test/spec | New module APIs compile, pass behavior tests, and meet module spec | `pnpm --filter @microservices-sh/inventory build` passed; `pnpm --filter @microservices-sh/inventory test` passed, 7/7; `pnpm --filter @microservices-sh/inventory check:spec` passed | Pass |
+| Contract/template tests | Root catalog and commerce route proof recognize the new surface | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js` passed, 19/19; `pnpm --dir templates/commerce-ops-sveltekit check:spec` passed | Pass |
+| Commerce build/migrations | Template still builds and SQL applies in memory | `pnpm --dir templates/commerce-ops-sveltekit build` passed; SQLite migration smoke passed | Pass |
+| Workspace checks | Bundle closure, full specs, and whitespace remain green | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33; `pnpm spec:check:all` passed, 64 targets; `git diff --check` passed | Pass |
+
 ### Phase 115 Accounting template hook hardening
 
 - **Status:** complete.

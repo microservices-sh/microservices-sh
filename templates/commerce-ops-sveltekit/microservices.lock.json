@@ -473,6 +473,26 @@
             "method": "reconcileStock",
             "scope": "inventory.write",
             "public": false
+          },
+          {
+            "method": "createReconciliationDocument",
+            "scope": "inventory.write",
+            "public": false
+          },
+          {
+            "method": "listReconciliationDocuments",
+            "scope": "inventory.read",
+            "public": false
+          },
+          {
+            "method": "completeReconciliationDocument",
+            "scope": "inventory.write",
+            "public": false
+          },
+          {
+            "method": "listLowStockAlerts",
+            "scope": "inventory.read",
+            "public": false
           }
         ],
         "hooks": [
@@ -488,7 +508,9 @@
           "inventory.stock_reserved",
           "inventory.stock_released",
           "inventory.stock_deducted",
-          "inventory.stock_reconciled"
+          "inventory.stock_reconciled",
+          "inventory.reconciliation_document_created",
+          "inventory.reconciliation_document_completed"
         ],
         "requires": [
           "product-catalog"

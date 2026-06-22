@@ -4,6 +4,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const salesOrderMigration = readText("migrations/0021_sales_order.sql");
   const shipmentMigration = readText("migrations/0022_shipment.sql");
   const commerceSyncMigration = readText("migrations/0027_commerce_sync.sql");
+  const inventoryReconciliationMigration = readText("migrations/0028_inventory_reconciliation_documents.sql");
   const mcpGenerator = readText("scripts/generate-mcp.mjs");
   const mcpWiring = readText("src/lib/server/mcp-wiring.ts");
   const agentCenter = readText("src/routes/app/agent/+page.server.ts");
@@ -345,13 +346,27 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/inventory/+page.server.ts",
-    ["reconcileInventoryStock", "adjustStock", "reconcileStock", "operator-adjustment", "cycle-count", "inventory.stock_reconciled"],
-    "Inventory route exposes receive, manual adjustment, and physical count reconciliation through the inventory module."
+    [
+      "reconcileInventoryStock",
+      "createReconciliationDocument",
+      "completeReconciliationDocument",
+      "listLowStockAlerts",
+      "listReconciliationDocuments",
+      "operator-adjustment",
+      "inventory.stock_reconciled"
+    ],
+    "Inventory route exposes receive, manual adjustment, reconciliation documents, and low-stock read models through the inventory module."
   );
   assertFileIncludesAll(
     "src/routes/app/inventory/+page.svelte",
-    ["Adjust stock", "Reconcile count", "Recent counts & adjustments", "?/adjustStock", "?/reconcileStock"],
-    "Inventory page exposes StackSuite receive/adjust/reconcile route proof for operators."
+    ["Adjust stock", "Reconcile count", "Recent counts & adjustments", "Count documents", "Low-stock alerts", "?/adjustStock", "?/reconcileStock"],
+    "Inventory page exposes StackSuite receive/adjust/reconcile document route proof for operators."
+  );
+  assert(
+    inventoryReconciliationMigration.includes("CREATE TABLE IF NOT EXISTS inventory_reconciliation_documents") &&
+      inventoryReconciliationMigration.includes("CREATE TABLE IF NOT EXISTS inventory_reconciliation_lines"),
+    "Commerce template includes inventory reconciliation document migrations.",
+    "policy:commerce-inventory-reconciliation-documents"
   );
   assertFileIncludesAll(
     "src/lib/server/demo.ts",

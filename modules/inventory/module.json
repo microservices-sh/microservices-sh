@@ -22,6 +22,8 @@
       "binding": "DB",
       "tables": [
         "inventory_stock_movements",
+        "inventory_reconciliation_documents",
+        "inventory_reconciliation_lines",
         "inventory_events"
       ]
     }
@@ -77,6 +79,26 @@
           "method": "reconcileStock",
           "scope": "inventory.write",
           "public": false
+        },
+        {
+          "method": "createReconciliationDocument",
+          "scope": "inventory.write",
+          "public": false
+        },
+        {
+          "method": "listReconciliationDocuments",
+          "scope": "inventory.read",
+          "public": false
+        },
+        {
+          "method": "completeReconciliationDocument",
+          "scope": "inventory.write",
+          "public": false
+        },
+        {
+          "method": "listLowStockAlerts",
+          "scope": "inventory.read",
+          "public": false
         }
       ],
       "calls": [
@@ -89,7 +111,9 @@
         "inventory.stock_reserved",
         "inventory.stock_released",
         "inventory.stock_deducted",
-        "inventory.stock_reconciled"
+        "inventory.stock_reconciled",
+        "inventory.reconciliation_document_created",
+        "inventory.reconciliation_document_completed"
       ],
       "consumes": []
     },
@@ -156,14 +180,20 @@
         "inventory.reserveStock",
         "inventory.releaseReservation",
         "inventory.deductStock",
-        "inventory.reconcileStock"
+        "inventory.reconcileStock",
+        "inventory.createReconciliationDocument",
+        "inventory.listReconciliationDocuments",
+        "inventory.completeReconciliationDocument",
+        "inventory.listLowStockAlerts"
       ],
       "approvalRequiredFor": [
         "inventory.stockIn",
         "inventory.reserveStock",
         "inventory.releaseReservation",
         "inventory.deductStock",
-        "inventory.reconcileStock"
+        "inventory.reconcileStock",
+        "inventory.createReconciliationDocument",
+        "inventory.completeReconciliationDocument"
       ]
     }
   },

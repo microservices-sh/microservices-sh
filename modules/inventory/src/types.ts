@@ -51,16 +51,80 @@ export interface StockMovementFilter {
   limit?: number;
 }
 
+export type InventoryReconciliationDocumentStatus = "draft" | "completed";
+export type InventoryReconciliationLineStatus = "pending" | "matched" | "adjusted";
+
+export interface InventoryReconciliationDocument {
+  id: string;
+  tenantId: string;
+  locationId: string;
+  reference: string | null;
+  reason: string | null;
+  status: InventoryReconciliationDocumentStatus;
+  createdById: string | null;
+  completedById: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface InventoryReconciliationLine {
+  id: string;
+  documentId: string;
+  tenantId: string;
+  productId: string;
+  locationId: string;
+  expectedQuantity: number;
+  countedQuantity: number;
+  differenceQuantity: number;
+  status: InventoryReconciliationLineStatus;
+  movementId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InventoryReconciliationDocumentWithLines extends InventoryReconciliationDocument {
+  lines: InventoryReconciliationLine[];
+}
+
+export interface InventoryReconciliationDocumentFilter {
+  tenantId: string;
+  status?: InventoryReconciliationDocumentStatus;
+  limit?: number;
+}
+
+export interface InventoryLowStockProductInput {
+  id: string;
+  sku?: string | null;
+  name?: string | null;
+  trackStock?: boolean;
+  reorderPoint?: number | null;
+}
+
+export interface InventoryLowStockAlert {
+  tenantId: string;
+  productId: string;
+  sku: string | null;
+  name: string | null;
+  locationId: string;
+  onHand: number;
+  reserved: number;
+  available: number;
+  reorderPoint: number;
+  shortage: number;
+}
+
 export type InventoryEventName =
   | "inventory.stock_received"
   | "inventory.stock_reserved"
   | "inventory.stock_released"
   | "inventory.stock_deducted"
-  | "inventory.stock_reconciled";
+  | "inventory.stock_reconciled"
+  | "inventory.reconciliation_document_created"
+  | "inventory.reconciliation_document_completed";
 
 export interface InventoryEvent {
   eventName: InventoryEventName;
-  entityType: "stock_movement";
+  entityType: "stock_movement" | "reconciliation_document";
   entityId: string;
   tenantId: string;
   payload: Record<string, unknown>;

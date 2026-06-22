@@ -2,10 +2,10 @@
 
 Module ID: inventory
 Status: draft
-Purpose: Tenant-scoped inventory ledger with stock movements, reservations, deductions, reconciliation, and derived balances.
+Purpose: Tenant-scoped inventory ledger with stock movements, reservations, deductions, reconciliation documents, low-stock alerts, and derived balances.
 Entrypoint: src/index.ts
 Check: pnpm check:spec
 Build: pnpm build
-Owned tables: inventory_stock_movements, inventory_events
-Primary use cases: stockIn, reserveStock, releaseReservation, deductStock, reconcileStock, getStockBalance, listStockMovements
-Invariants: balances are derived from movement rows; quantities are safe integer numbers; source references dedupe movements per tenant/product/location/type; reservations and direct deductions reject insufficient available stock; releases and reserved deductions reject insufficient reserved stock; product IDs are accepted as foreign identities owned by product-catalog.
+Owned tables: inventory_stock_movements, inventory_reconciliation_documents, inventory_reconciliation_lines, inventory_events
+Primary use cases: stockIn, reserveStock, releaseReservation, deductStock, reconcileStock, createReconciliationDocument, listReconciliationDocuments, completeReconciliationDocument, listLowStockAlerts, getStockBalance, listStockMovements
+Invariants: balances are derived from movement rows; quantities are safe integer numbers; source references dedupe movements per tenant/product/location/type; reconciliation document completion creates line-scoped adjustment movements and skips matched lines; reservations and direct deductions reject insufficient available stock; releases and reserved deductions reject insufficient reserved stock; product IDs are accepted as foreign identities owned by product-catalog.

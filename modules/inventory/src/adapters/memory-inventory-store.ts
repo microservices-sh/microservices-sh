@@ -1,5 +1,14 @@
 import type { InventoryStore } from "../ports";
-import type { InventoryEvent, StockBalance, StockMovement, StockMovementFilter } from "../types";
+import type {
+  InventoryEvent,
+  InventoryReconciliationDocument,
+  InventoryReconciliationDocumentFilter,
+  InventoryReconciliationDocumentWithLines,
+  InventoryReconciliationLine,
+  StockBalance,
+  StockMovement,
+  StockMovementFilter
+} from "../types";
 
 function cloneMovement(movement: StockMovement): StockMovement {
   return { ...movement };
@@ -7,6 +16,21 @@ function cloneMovement(movement: StockMovement): StockMovement {
 
 function cloneEvent(event: InventoryEvent): InventoryEvent {
   return { ...event, payload: { ...event.payload } };
+}
+
+function cloneDocument(document: InventoryReconciliationDocument): InventoryReconciliationDocument {
+  return { ...document };
+}
+
+function cloneLine(line: InventoryReconciliationLine): InventoryReconciliationLine {
+  return { ...line };
+}
+
+function cloneDocumentWithLines(
+  document: InventoryReconciliationDocument,
+  lines: InventoryReconciliationLine[]
+): InventoryReconciliationDocumentWithLines {
+  return { ...cloneDocument(document), lines: lines.map(cloneLine) };
 }
 
 function sourceKey(movement: StockMovement): string | null {
@@ -36,9 +60,18 @@ function emptyBalance(tenantId: string, productId: string, locationId: string): 
   return { tenantId, productId, locationId, onHand: 0, reserved: 0, available: 0 };
 }
 
+function matchesDocumentFilter(
+  document: InventoryReconciliationDocument,
+  filter: InventoryReconciliationDocumentFilter
+): boolean {
+  return document.tenantId === filter.tenantId && (!filter.status || document.status === filter.status);
+}
+
 export function createMemoryInventoryStore(): InventoryStore {
   const movements = new Map<string, StockMovement>();
   const sourceRefs = new Map<string, string>();
+  const documents = new Map<string, InventoryReconciliationDocument>();
+  const documentLines = new Map<string, InventoryReconciliationLine[]>();
   const events: InventoryEvent[] = [];
 
   return {
@@ -82,6 +115,49 @@ export function createMemoryInventoryStore(): InventoryStore {
       }
       balance.available = balance.onHand - balance.reserved;
       return balance;
+    },
+
+    async insertReconciliationDocument(document, lines) {
+      if (documents.has(document.id)) {
+        throw new Error("UNIQUE constraint failed: inventory_reconciliation_documents.id");
+      }
+      documents.set(document.id, cloneDocument(document));
+      documentLines.set(document.id, lines.map(cloneLine));
+    },
+
+    async getReconciliationDocument(tenantId, documentId) {
+      const document = documents.get(documentId);
+      if (!document || document.tenantId !== tenantId) return null;
+      return cloneDocumentWithLines(document, documentLines.get(documentId) ?? []);
+    },
+
+    async listReconciliationDocuments(filter) {
+      return [...documents.values()]
+        .filter((document) => matchesDocumentFilter(document, filter))
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))
+        .slice(0, filter.limit ?? 100)
+        .map(cloneDocument);
+    },
+
+    async markReconciliationDocumentCompleted(tenantId, documentId, completedAt, completedById, completedLines) {
+      const document = documents.get(documentId);
+      if (!document || document.tenantId !== tenantId) return;
+      const completedByLine = new Map(completedLines.map((line) => [line.lineId, line]));
+      documents.set(documentId, {
+        ...document,
+        status: "completed",
+        completedAt,
+        completedById
+      });
+      documentLines.set(
+        documentId,
+        (documentLines.get(documentId) ?? []).map((line) => {
+          const completed = completedByLine.get(line.id);
+          return completed
+            ? { ...line, status: completed.status, movementId: completed.movementId, updatedAt: completedAt }
+            : cloneLine(line);
+        })
+      );
     },
 
     async writeEvent(event) {

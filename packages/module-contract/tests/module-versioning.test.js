@@ -191,6 +191,25 @@ describe("module version selectors", () => {
     });
   });
 
+  it("exposes inventory reconciliation document and alert APIs in the catalog", () => {
+    const module = inspectModule("inventory@0.1.0");
+    expect(module.rpc.map((entry) => entry.method)).toEqual(expect.arrayContaining([
+      "createReconciliationDocument",
+      "listReconciliationDocuments",
+      "completeReconciliationDocument",
+      "listLowStockAlerts",
+    ]));
+    expect(module.eventsEmitted).toEqual(expect.arrayContaining([
+      "inventory.reconciliation_document_created",
+      "inventory.reconciliation_document_completed",
+    ]));
+    expect(module.surfaces.agentic.tools).toEqual(expect.arrayContaining([
+      "inventory.createReconciliationDocument",
+      "inventory.completeReconciliationDocument",
+      "inventory.listLowStockAlerts",
+    ]));
+  });
+
   it("exposes admin, visitor, and agentic surfaces for booking", () => {
     expect(inspectModule("booking@0.1.0").surfaces).toMatchObject({
       admin: {
