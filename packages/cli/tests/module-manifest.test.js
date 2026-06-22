@@ -120,6 +120,17 @@ describe("CLI manifest mutation (add/remove --apply)", () => {
     expectFailure(result, "MODULE_ABSENT");
   });
 
+  it("remove --plan previews without mutating the manifest", async () => {
+    expectOk(runCli(["add", "payment", "--apply", "--json"], root));
+    const result = runCli(["remove", "payment", "--plan", "--json"], root);
+    const payload = expectOk(result);
+    expect(payload.data.plan).toBe(true);
+    expect(payload.data.removed).toBe("payment");
+
+    const config = await readConfig(root);
+    expect(config.modules).toContain("payment@0.1.0");
+  });
+
   it("remove requires --apply before mutating the manifest", async () => {
     expectOk(runCli(["add", "payment", "--apply", "--json"], root));
     const result = runCli(["remove", "payment", "--json"], root);

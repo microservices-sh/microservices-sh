@@ -556,6 +556,15 @@ async function applyRemoveModule(moduleId, flags) {
     );
   }
 
+  // --plan is read-only: report what `remove` would do without writing.
+  if (flags.plan) {
+    return {
+      ok: true,
+      requestId: `local_${Date.now().toString(36)}`,
+      data: { removed: baseId, plan: true, modules: nextModules },
+    };
+  }
+
   manifest.config = { ...manifest.config, modules: nextModules };
   await writeManifest(manifest, composed.data);
 
@@ -683,7 +692,7 @@ Usage:
   microservices docs [module-id] [--json]
   microservices add <module-id[@version]> --plan [--version <version>] [--mode embedded|service] [--json]
   microservices add <module-id[@version]> --apply [--version <version>] [--json]   # write module into microservices.config.json + lock
-  microservices remove <module-id> --apply [--json]                                # remove module from microservices.config.json + lock
+  microservices remove <module-id> --apply [--plan] [--json]                       # remove module from microservices.config.json + lock (--plan previews)
   microservices secrets status [--json]
   microservices updates [--json]
   microservices upgrade <module-id[@version]> --plan [--to <version>] [--json]
@@ -4636,10 +4645,10 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
   }
 
   if (resource === "remove") {
-    if (!flags.apply) {
+    if (!flags.apply && !flags.plan) {
       response = failResponse(
         "APPLY_REQUIRED",
-        "Module remove requires --apply.",
+        "Module remove requires --apply (or --plan to preview).",
         "Run microservices remove <module-id> --apply [--json].",
         { moduleId: action }
       );
@@ -4650,7 +4659,7 @@ ${result.nextSteps.map((step) => `- ${step}`).join("\n")}
     return emitApplyResponse(
       response,
       flags,
-      (data) => `Removed ${data.removed}\nModules: ${data.modules.join(", ")}\n`
+      (data) => `${data.plan ? "Would remove" : "Removed"} ${data.removed}\nModules: ${data.modules.join(", ")}\n`
     );
   }
 

@@ -222,6 +222,7 @@ function parseArgs(argv) {
     json: false,
     dryRun: false,
     plan: false,
+    apply: false,
     confirm: null,
     url: null,
     hostname: null,
@@ -284,6 +285,10 @@ function parseArgs(argv) {
       flags.plan = true;
     } else if (value === "--plan") {
       flags.plan = true;
+    } else if (value === "--apply") {
+      // Accepted for parity with the global CLI's `add/remove --apply`.
+      // The shim applies by default, so this is an explicit no-op gate.
+      flags.apply = true;
     } else if (value === "--confirm") {
       const parsed = flagValue(index, value);
       flags.confirm = parsed.value;

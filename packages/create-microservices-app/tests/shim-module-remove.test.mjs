@@ -113,6 +113,23 @@ test("remove fails when the module is not installed", async () => {
   }
 });
 
+test("remove accepts the CLI-portable --apply form", async () => {
+  const { root, app } = await createApp();
+  try {
+    await vendorModule(app, "payment");
+    await writeLock(app, [{ id: "payment", version: "0.1.0", path: "modules/payment" }]);
+
+    const result = runShim(app, ["remove", "payment", "--apply", "--json"]);
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const payload = parseJson(result);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.data.removed, "payment");
+    assert.equal(existsSync(join(app, "modules", "payment")), false);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("remove is blocked when another installed module still requires it", async () => {
   const { root, app } = await createApp();
   try {
