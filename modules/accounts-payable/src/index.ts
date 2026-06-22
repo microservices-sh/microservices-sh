@@ -57,6 +57,7 @@ export type {
   AccountingBillPaymentPostRequest,
   AccountingBillPaymentVoidRequest,
   AccountingBillPostRequest,
+  AccountingBillVoidRequest,
   AccountingPostResult,
   AccountingVoidResult,
   AccountsPayableEvent,

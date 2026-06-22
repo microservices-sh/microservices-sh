@@ -526,7 +526,7 @@ describe("accounts-payable: bills", () => {
     if (aging.ok) expect(aging.data.report.totals.totalCents).toBe(0);
   });
 
-  it("rejects bill voids after payment or accounting posting", async () => {
+  it("rejects bill voids after payment and requires reversal for posted bills", async () => {
     const store = createMemoryAccountsPayableStore();
     const paidBill = await seedPayableBill(store);
     const payment = await recordBillPayment(
@@ -567,14 +567,55 @@ describe("accounts-payable: bills", () => {
     );
     expect(posted.ok).toBe(true);
 
-    const postedVoid = await voidBill(
+    const missingReversal = await voidBill(
       { tenantId: "tenant-1", billId: postedBill.id, reason: "Needs reversal" },
       { accountsPayableStore: store }
     );
-    expect(postedVoid).toMatchObject({
+    expect(missingReversal).toMatchObject({
       ok: false,
       status: 409,
-      error: { code: "accounts-payable.BILL_POSTED_TO_ACCOUNTING" }
+      error: { code: "accounts-payable.BILL_REQUIRES_ACCOUNTING_REVERSAL" }
+    });
+
+    const reversalRequests: Array<{ journalEntryId: string | null; reason: string | null | undefined }> = [];
+    const postedVoid = await voidBill(
+      {
+        tenantId: "tenant-1",
+        billId: postedBill.id,
+        reason: "Duplicate posted bill",
+        voidedById: "actor-void",
+        reversalDate: "2026-01-04"
+      },
+      {
+        accountsPayableStore: store,
+        accountingPoster: {
+          postAccountsPayableBill: async () => ({ journalEntryId: "unused" }),
+          postAccountsPayablePayment: async () => ({ journalEntryId: "unused" }),
+          voidAccountsPayableBill: async (request) => {
+            reversalRequests.push({ journalEntryId: request.bill.journalEntryId, reason: request.reason });
+            return { reversalEntryId: "je-posted-void-reversal" };
+          }
+        },
+        now: fixedNow(T0 + 4),
+        actor: { id: "actor-void" }
+      }
+    );
+    expect(postedVoid.ok).toBe(true);
+    if (!postedVoid.ok) throw new Error(postedVoid.error.message);
+    expect(reversalRequests).toEqual([{ journalEntryId: "je-posted-void-test", reason: "Duplicate posted bill" }]);
+    expect(postedVoid.data).toMatchObject({
+      reversalEntryId: "je-posted-void-reversal",
+      bill: {
+        status: "void",
+        accountingStatus: "posted",
+        journalEntryId: "je-posted-void-test",
+        amountDueCents: 0
+      }
+    });
+    if (!postedVoid.data.event) throw new Error("Expected bill_voided event");
+    expect(postedVoid.data.event.payload).toMatchObject({
+      originalJournalEntryId: "je-posted-void-test",
+      reversalEntryId: "je-posted-void-reversal"
     });
   });
 });

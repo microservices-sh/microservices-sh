@@ -849,8 +849,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/lib/server/accounts-payable-accounting.ts",
-    ["voidJournalEntry", "void:${originalEntryId}", "findPostedEntryBySourceRef", "reversalPeriodId", "reversalDate"],
-    "AP accounting poster voids payment journals through accounting-core reversal semantics and checks reversal source refs for retry safety."
+    ["voidAccountsPayableBill", "voidAccountsPayablePayment", "voidJournalEntry", "void:${originalEntryId}", "findPostedEntryBySourceRef", "reversalPeriodId", "reversalDate"],
+    "AP accounting poster voids bill and payment journals through accounting-core reversal semantics and checks reversal source refs for retry safety."
   );
   assertFileIncludesAll(
     "src/routes/app/payables/payments/[id]/+page.server.ts",
@@ -896,23 +896,27 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       "getBill",
       "listBillPayments",
       "voidBill",
+      "createAccountsPayableAccountingPoster",
+      "reversalDate",
       "paymentHistory",
       "listVendors",
       "listAccounts",
       "requireModule(\"accounts-payable\"",
+      "requireModule(\"accounting-core\"",
       "requireOrgPermission",
       "\"org.read\"",
       "\"member.manage\"",
-      "accounts-payable.bill_voided"
+      "accounts-payable.bill_voided",
+      "reversalEntryId"
     ],
-    "Bill detail route loads one tenant-scoped bill, payment history, and guarded unpaid bill void action through accounts-payable."
+    "Bill detail route exposes guarded unpaid bill void and posted bill reversal through accounts-payable and accounting-core."
   );
   assert(
     !billDetailServer.includes("markBillPayable(") &&
       !billDetailServer.includes("recordBillPayment(") &&
       !billDetailServer.includes("postBillToAccounting("),
-    "Bill detail route only exposes unpaid unposted void; posting and payment side effects remain on the Payables operator page.",
-    "policy:accounting-ap-bill-detail-no-post-pay"
+    "Bill detail route only exposes guarded bill void/reversal; posting and payment side effects remain on the Payables operator page.",
+    "policy:accounting-ap-bill-detail-void-reversal-only"
   );
   assertFileIncludesAll(
     "src/routes/app/payables/[id]/+page.svelte",
@@ -926,18 +930,19 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       "Totals",
       "Open payables actions",
       "Void bill",
+      "Reversal date",
       "?/voidBill",
-      "Only unpaid, unposted bills"
+      "Posted bills are reversed"
     ],
-    "Bill detail page exposes vendor, line-item, payment history, totals, lifecycle context, and guarded unpaid void."
+    "Bill detail page exposes vendor, line-item, payment history, totals, lifecycle context, guarded bill void, and posted-bill reversal controls."
   );
   assert(
     !billDetailPage.includes("?/markPayable") &&
       !billDetailPage.includes("?/recordPayment") &&
       !billDetailPage.includes("?/postBillToAccounting") &&
       !billDetailPage.includes("use:enhance"),
-    "Bill detail page only exposes a guarded void form; post/payment actions remain on the Payables operator page.",
-    "policy:accounting-ap-bill-detail-void-only"
+    "Bill detail page only exposes guarded bill void and posted-bill reversal controls; post/payment actions remain on the Payables operator page.",
+    "policy:accounting-ap-bill-detail-void-reversal-only"
   );
   assertFileIncludesAll(
     "src/routes/app/payables/recurring/[id]/+page.server.ts",

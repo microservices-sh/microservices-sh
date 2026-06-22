@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 111
+Phase 112
 
 ## Phases
 
@@ -877,6 +877,15 @@ Phase 111
 - [x] Add payment-void hooks, event metadata, docs, OpenAPI, catalog entries, and template locks.
 - [x] Add a guarded payment-detail action/form backed by accounting-core `voidJournalEntry` reversal semantics.
 - [x] Verify AP tests/spec/build and accounting template spec/build before workspace checks.
+- **Status:** complete
+
+### Phase 112: AP Posted Bill Reversal
+- [x] Extend `voidBill` so unpaid posted bills can be voided through an accounting-core reversal hook.
+- [x] Keep bill payment guards in place; operators must void/reverse payments before reversing a posted bill.
+- [x] Preserve original bill accounting references while emitting `originalJournalEntryId` and `reversalEntryId`.
+- [x] Extend the accounting template AP poster with retry-safe bill journal reversal via `voidJournalEntry`.
+- [x] Add posted bill reversal fields to the bill detail void form and audit payload.
+- [x] Verify AP tests/build and accounting template build before workspace checks.
 - **Status:** complete
 
 ## Key Questions

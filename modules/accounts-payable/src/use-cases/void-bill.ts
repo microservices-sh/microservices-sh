@@ -24,21 +24,34 @@ export async function voidBill(input: unknown, deps: AccountsPayableDeps) {
       deps
     );
   }
-  if (bill.accountingStatus === "posted" || bill.journalEntryId) {
-    return err(
-      409,
-      "accounts-payable.BILL_POSTED_TO_ACCOUNTING",
-      "Posted bills need an accounting reversal before they can be voided.",
-      deps
-    );
-  }
-
   const filtered = await hooks(deps).beforeBillVoid(bill);
   if (filtered === null) {
     return err(409, "accounts-payable.BILL_VOID_ABORTED", "Bill void was aborted by hook.", deps);
   }
 
   const now = isoNow(deps.now);
+  let reversalEntryId: string | null = null;
+  if (filtered.accountingStatus === "posted" || filtered.journalEntryId) {
+    if (!filtered.journalEntryId || !deps.accountingPoster?.voidAccountsPayableBill) {
+      return err(
+        409,
+        "accounts-payable.BILL_REQUIRES_ACCOUNTING_REVERSAL",
+        "Posted bills require an accounting reversal before AP status is voided.",
+        deps
+      );
+    }
+    const reversed = await deps.accountingPoster.voidAccountsPayableBill({
+      tenantId: filtered.tenantId,
+      bill: filtered,
+      reason: normalizeOptional(parsed.data.reason),
+      voidedById: normalizeOptional(parsed.data.voidedById) ?? deps.actor?.id ?? null,
+      reversalDate: parsed.data.reversalDate ?? null,
+      reversalPeriodId: normalizeOptional(parsed.data.reversalPeriodId),
+      correlationId: deps.correlationId ?? null
+    });
+    reversalEntryId = reversed.reversalEntryId ?? null;
+  }
+
   const voided = {
     ...filtered,
     status: "void" as const,
@@ -57,6 +70,8 @@ export async function voidBill(input: unknown, deps: AccountsPayableDeps) {
     payload: {
       vendorId: voided.vendorId,
       totalCents: voided.totalCents,
+      originalJournalEntryId: voided.journalEntryId,
+      reversalEntryId,
       reason: voided.voidReason,
       voidedById: normalizeOptional(parsed.data.voidedById) ?? deps.actor?.id ?? null
     }
@@ -64,5 +79,5 @@ export async function voidBill(input: unknown, deps: AccountsPayableDeps) {
   await deps.accountsPayableStore.writeEvent(event);
   await hooks(deps).afterBillVoided(voided);
 
-  return ok(200, { bill: voided, event, idempotent: false }, deps);
+  return ok(200, { bill: voided, event, reversalEntryId, idempotent: false }, deps);
 }

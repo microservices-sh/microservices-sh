@@ -2,6 +2,7 @@ import type {
   AccountingBillPaymentPostRequest,
   AccountingBillPaymentVoidRequest,
   AccountingBillPostRequest,
+  AccountingBillVoidRequest,
   AccountingPostResult,
   AccountingVoidResult,
   AccountsPayableEvent,
@@ -62,6 +63,7 @@ export interface AccountsPayableStore {
 
 export interface AccountingPoster {
   postAccountsPayableBill(request: AccountingBillPostRequest): Promise<AccountingPostResult>;
+  voidAccountsPayableBill?(request: AccountingBillVoidRequest): Promise<AccountingVoidResult>;
   postAccountsPayablePayment(request: AccountingBillPaymentPostRequest): Promise<AccountingPostResult>;
   voidAccountsPayablePayment?(request: AccountingBillPaymentVoidRequest): Promise<AccountingVoidResult>;
 }

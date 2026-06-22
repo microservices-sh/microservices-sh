@@ -4,6 +4,7 @@ import { recordEvent } from "@microservices-sh/audit-log";
 import { getBill, listBillPayments, listVendors, voidBill } from "@microservices-sh/accounts-payable";
 import { listAccounts } from "@microservices-sh/accounting-core";
 import { money, relativeTime } from "$lib/format";
+import { createAccountsPayableAccountingPoster } from "$lib/server/accounts-payable-accounting";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 import type { Tone } from "$lib/ui/types";
@@ -72,6 +73,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies, parent, pl
       vendorName: vendor?.name ?? bill.vendorId,
       statusTone: statusTone(bill.status),
       accountingTone: accountingTone(bill.accountingStatus),
+      defaultReversalDate: new Date().toISOString().slice(0, 10),
       billDateShort: shortDate(bill.billDate),
       dueDateShort: shortDate(bill.dueDate),
       paidAtShort: shortDate(bill.paidAt),
@@ -104,12 +106,23 @@ export const actions: Actions = {
     const { permissions } = await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
 
     const form = await request.formData();
-    const values = { reason: text(form.get("reason")) };
+    const values = {
+      reason: text(form.get("reason")),
+      reversalDate: text(form.get("reversalDate"))
+    };
+    const actor = { id: locals.user.id, email: locals.user.email, permissions };
     const result = await voidBill(
-      { tenantId: org.id, billId: params.id, reason: values.reason || null, voidedById: locals.user.id },
+      {
+        tenantId: org.id,
+        billId: params.id,
+        reason: values.reason || null,
+        reversalDate: values.reversalDate || null,
+        voidedById: locals.user.id
+      },
       {
         accountsPayableStore: locals.accountsPayableStore,
-        actor: { id: locals.user.id, email: locals.user.email, permissions }
+        accountingPoster: createAccountsPayableAccountingPoster({ accountingCoreStore: locals.accountingCoreStore, actor }),
+        actor
       }
     );
     if (!result.ok) return fail(result.status, { error: result.error.message, values });
@@ -121,7 +134,7 @@ export const actions: Actions = {
         entityType: "bill",
         entityId: result.data.bill.id,
         source: "app/payables/bill",
-        payload: { reason: result.data.bill.voidReason }
+        payload: { reason: result.data.bill.voidReason, reversalEntryId: result.data.reversalEntryId }
       },
       { auditStore: locals.auditStore }
     );

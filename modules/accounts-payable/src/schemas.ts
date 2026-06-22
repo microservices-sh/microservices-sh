@@ -96,7 +96,9 @@ export const postBillToAccountingInputSchema = billIdentitySchema.extend({
 
 export const voidBillInputSchema = billIdentitySchema.extend({
   reason: z.string().max(2000).nullable().optional(),
-  voidedById: z.string().nullable().optional()
+  voidedById: z.string().nullable().optional(),
+  reversalDate: z.string().date().nullable().optional(),
+  reversalPeriodId: z.string().nullable().optional()
 });
 
 export const listBillsInputSchema = z.object({

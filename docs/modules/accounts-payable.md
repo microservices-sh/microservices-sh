@@ -54,7 +54,7 @@ Tenant-scoped vendor, bill, bill-line, payment application, recurring bill, 1099
 - Vendor bill numbers are unique per tenant and vendor when present.
 - Bill line totals must equal bill totals before approval.
 - Bill approval and accounting posting are separate; `postBillToAccounting` only posts approved unpaid bills.
-- `voidBill` only voids unpaid bills that have not been posted to accounting.
+- `voidBill` only voids unpaid bills; posted bills require accounting reversal.
 - `voidBillPayment` restores applied bill balances and requires accounting reversal for journaled payments.
 - Accounting-backed payments require target bills to already be posted.
 - Payment applications cannot exceed the open bill balance.

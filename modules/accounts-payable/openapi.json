@@ -62,7 +62,7 @@
     },
     "/bills/{id}/void": {
       "post": {
-        "summary": "Void an unpaid, unposted bill",
+        "summary": "Void an unpaid bill and reverse accounting when posted",
         "responses": { "200": { "description": "Bill voided" }, "409": { "description": "Bill has payments or needs accounting reversal" } }
       }
     },

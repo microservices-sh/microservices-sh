@@ -72,7 +72,7 @@ export default function check({ assertFileIncludes }) {
   assertFileIncludes(
     "src/index.ts",
     "export { voidBill }",
-    "Accounts Payable exports an unpaid unposted bill void use case."
+    "Accounts Payable exports a bill void and accounting reversal use case."
   );
   assertFileIncludes(
     "src/index.ts",
@@ -86,8 +86,13 @@ export default function check({ assertFileIncludes }) {
   );
   assertFileIncludes(
     "src/use-cases/void-bill.ts",
-    "BILL_POSTED_TO_ACCOUNTING",
-    "Bill void rejects posted bills until an accounting reversal workflow exists."
+    "BILL_REQUIRES_ACCOUNTING_REVERSAL",
+    "Posted bill voids require an accounting reversal hook before AP status is voided."
+  );
+  assertFileIncludes(
+    "src/use-cases/void-bill.ts",
+    "voidAccountsPayableBill",
+    "Bill void delegates posted bill reversal through the accounting poster boundary."
   );
   assertFileIncludes(
     "src/use-cases/void-bill.ts",

@@ -304,6 +304,16 @@ export interface AccountingBillPostRequest {
   correlationId?: string | null;
 }
 
+export interface AccountingBillVoidRequest {
+  tenantId: string;
+  bill: BillWithLineItems;
+  reason?: string | null;
+  voidedById?: string | null;
+  reversalDate?: string | null;
+  reversalPeriodId?: string | null;
+  correlationId?: string | null;
+}
+
 export interface AccountingBillPaymentPostRequest {
   tenantId: string;
   payment: BillPaymentWithApplications;

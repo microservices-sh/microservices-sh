@@ -10,7 +10,12 @@
       bill.status === "payable" ||
       bill.status === "partial"
   );
-  const canVoid = $derived(bill.status !== "void" && bill.accountingStatus !== "posted" && bill.amountPaidCents === 0);
+  const canVoid = $derived(
+    bill.status !== "void" &&
+      bill.amountPaidCents === 0 &&
+      (bill.accountingStatus !== "posted" || Boolean(bill.journalEntryId))
+  );
+  const needsAccountingReversal = $derived(bill.accountingStatus === "posted");
 </script>
 
 <svelte:head>
@@ -144,11 +149,15 @@
             {#if bill.voidReason}<p class="status-note">{bill.voidReason}</p>{/if}
           {:else if canVoid}
             <form method="POST" action="?/voidBill">
+              {#if needsAccountingReversal}
+                <label for="reversal-date">Reversal date</label>
+                <input id="reversal-date" name="reversalDate" type="date" value={form?.values?.reversalDate ?? bill.defaultReversalDate} />
+              {/if}
               <label for="void-reason">Void reason</label>
               <textarea id="void-reason" name="reason" rows="3" maxlength="2000" placeholder="Duplicate bill or entered in error">{form?.values?.reason ?? ""}</textarea>
               <Button type="submit" variant="ghost">Void bill</Button>
             </form>
-            <p class="status-note">Only unpaid, unposted bills can be voided here. Posted bills need an accounting reversal workflow.</p>
+            <p class="status-note">Only unpaid bills can be voided here. Posted bills are reversed through accounting before AP status is voided.</p>
           {:else if canUseActions}
             <p class="status-note">Use the Payables ledger for posting and payment actions so AP side effects stay in one operator workflow.</p>
             <Button href="/app/payables" variant="ghost">Open payables actions</Button>
@@ -237,10 +246,13 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
+  input,
   textarea {
     width: 100%;
-    min-height: 92px;
     margin-block-end: 10px;
+  }
+  textarea {
+    min-height: 92px;
   }
   @media (max-width: 900px) {
     .grid {

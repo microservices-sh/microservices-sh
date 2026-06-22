@@ -9,6 +9,7 @@ import type {
   AccountingBillPaymentPostRequest,
   AccountingBillPaymentVoidRequest,
   AccountingBillPostRequest,
+  AccountingBillVoidRequest,
   AccountingPostResult,
   AccountingVoidResult,
   AccountingPoster
@@ -100,6 +101,31 @@ export function createAccountsPayableAccountingPoster(input: {
       const entryId = unwrapJournal(entry);
       return unwrapPosted(
         await postJournalEntry({ tenantId: request.tenantId, entryId, postedById: actor?.id ?? null }, { accountingCoreStore, actor })
+      );
+    },
+
+    async voidAccountsPayableBill(request: AccountingBillVoidRequest): Promise<AccountingVoidResult> {
+      const originalEntryId = request.bill.journalEntryId;
+      if (!originalEntryId) fail("Only accounting-posted bills can be voided through accounting reversal.");
+
+      const reversalSourceRef = `void:${originalEntryId}`;
+      const existingReversal = await existingPostedEntry(accountingCoreStore, request.tenantId, reversalSourceRef);
+      if (existingReversal) return { reversalEntryId: existingReversal.journalEntryId ?? null };
+
+      const reversalDate = dateOnly(request.reversalDate ?? new Date().toISOString());
+      const reversalPeriodId = request.reversalPeriodId ?? (await openPeriodId(accountingCoreStore, request.tenantId, reversalDate));
+      return unwrapVoided(
+        await voidJournalEntry(
+          {
+            tenantId: request.tenantId,
+            entryId: originalEntryId,
+            reason: request.reason ?? `Void AP bill ${request.bill.billNumber}`,
+            voidedById: request.voidedById ?? actor?.id ?? null,
+            reversalDate,
+            reversalPeriodId
+          },
+          { accountingCoreStore, actor }
+        )
       );
     },
 

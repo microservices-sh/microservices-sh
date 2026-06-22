@@ -1507,6 +1507,22 @@
 | Create package | Bundled template closure and generated-app smoke still pass | `pnpm --filter create-microservices-app build` and `smoke:built` passed | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 112 AP posted bill reversal
+
+- **Status:** complete.
+- Goal: finish the donor-backed AP void path by allowing unpaid posted bills to be voided only through local accounting-core reversal semantics.
+- Extended `voidBill` with `reversalDate`/`reversalPeriodId` inputs and an optional `AccountingPoster.voidAccountsPayableBill` boundary.
+- Kept the existing payment guard: bills with paid balances or payment applications still reject with `BILL_HAS_PAYMENTS`.
+- Posted bill void now refuses to mutate AP state without an accounting reversal hook, then preserves original `journalEntryId`/`accountingStatus` and emits `originalJournalEntryId` plus `reversalEntryId`.
+- Extended the accounting template AP poster with retry-safe `voidJournalEntry` wrapping for bill journals.
+- Updated the bill detail route and lifecycle panel so posted unpaid bills show a reversal date before voiding.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounts-payable tests/build | Posted bill reversal and existing AP behavior remain green | `pnpm --filter @microservices-sh/accounts-payable test` passed, 25/25; `pnpm --filter @microservices-sh/accounts-payable build` passed | Pass |
+| Accounting template build | Bill detail posted reversal action compiles | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Catalog/create/workspace checks | Catalog metadata, create-package bundling/tests, accounting-core tests, workspace specs, and whitespace stay green | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js packages/sdk-internal/tests/module-versioning.test.js` passed, 29/29; `pnpm --filter @microservices-sh/accounting-core test` passed, 19/19; `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19; `pnpm spec:check:all` passed, 64 targets | Pass |
+
 ### Phase 111 AP payment void and reversal
 
 - **Status:** complete.
@@ -1531,7 +1547,7 @@
 
 - **Status:** complete.
 - Goal: port the lower-risk donor bill-void behavior while avoiding posted-bill and payment reversal semantics until accounting-core-safe reversal workflows are explicit.
-- Added `voidBill` to `modules/accounts-payable` for unpaid, unposted bills, with idempotent replay for already-void bills.
+- Added `voidBill` to `modules/accounts-payable` for unpaid, unposted bills, with idempotent replay for already-void bills. Phase 112 extends the same API to posted unpaid bill reversal.
 - Added `beforeBillVoid`/`afterBillVoided` hooks and emitted `accounts-payable.bill_voided`.
 - Added AP tests for successful void, aging exclusion, idempotent replay, rejection after a payment application, and rejection after accounting posting.
 - Added a guarded `/app/payables/[id]` action/form that only exposes void for unpaid unposted bills; payment and posting side effects remain on the Payables operator route.
