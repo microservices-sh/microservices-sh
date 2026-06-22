@@ -4818,6 +4818,10 @@ Files: ${plan.filesLikelyTouched.join(", ") || "none"}
     const manifest = await manifestInput(action, flags);
     if (!manifest.ok) return flags.json ? writeJson(manifest.response) : printHuman(manifest.response, () => "");
     response = generateProject(manifest.input);
+    if (!response.ok) {
+      process.exitCode = 1;
+      return flags.json ? writeJson(response) : printHuman(response, () => "");
+    }
     const generated = assertOk(response);
     const written = await writeGeneratedFiles(flags.out, generated.files);
     const output = {

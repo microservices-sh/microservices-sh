@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { composeApp, inspectModule, listModules, moduleReleaseTag, moduleSourceRef, parseModuleRef, resolveModuleIds } from "../src/index.js";
+import {
+  composeApp,
+  inspectModule,
+  inspectTemplate,
+  listModules,
+  listTemplates,
+  moduleReleaseTag,
+  moduleSourceRef,
+  parseModuleRef,
+  resolveModuleIds,
+} from "../src/index.js";
 
 const BILLING_SUBSCRIPTION_PERMISSIONS = [
   "billing.read",
@@ -82,6 +92,19 @@ const LOCKED_TEMPLATE_CATALOG_IDS = [
   "webhook-delivery",
 ];
 
+const BUNDLED_REPO_TEMPLATE_IDS = [
+  "booking-sveltekit",
+  "company-landing-astro",
+  "wordpress-emdash-blog-astro",
+  "saas-starter-sveltekit",
+  "saas-growth-sveltekit",
+  "client-portal-sveltekit",
+  "dot-ai-os",
+  "erp-shell-sveltekit",
+  "commerce-ops-sveltekit",
+  "accounting-erp-sveltekit",
+];
+
 describe("module version selectors", () => {
   it("parses inline module versions", () => {
     expect(parseModuleRef("auth@0.1.0")).toEqual({
@@ -119,6 +142,24 @@ describe("module version selectors", () => {
       "code-memory",
     ]);
     expect(composition.lock.modules.map((module) => module.id)).toEqual(composition.modules.map((module) => module.id));
+  });
+
+  it("exposes bundled repo-style templates in the contract catalog", () => {
+    const templateIds = listTemplates().map((template) => template.id);
+    expect(templateIds).toEqual(expect.arrayContaining(BUNDLED_REPO_TEMPLATE_IDS));
+
+    const commerce = inspectTemplate("commerce-ops-sveltekit");
+    expect(commerce.targetRuntime).toMatchObject({ framework: "sveltekit", platform: "cloudflare-workers" });
+    expect(commerce.defaultModules).toEqual(expect.arrayContaining(["commerce-sync", "sales-order", "shipment"]));
+
+    const accounting = composeApp({ templateId: "accounting-erp-sveltekit" });
+    expect(accounting.modules.map((module) => module.id)).toEqual(expect.arrayContaining([
+      "accounting-core",
+      "accounts-payable",
+      "accounts-receivable",
+      "bank-reconciliation",
+    ]));
+    expect(accounting.lock.template.id).toBe("accounting-erp-sveltekit");
   });
 
   it("models subscription billing as a provider-backed customer app module", () => {

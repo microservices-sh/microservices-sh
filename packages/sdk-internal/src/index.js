@@ -2630,6 +2630,18 @@ export function generateServiceProject(input = {}) {
 export function generateProject(input = {}) {
   return capture(() => {
     const composition = composeContractApp(input);
+    const template = inspectContractTemplate(composition.template.id);
+    if (template.targetRuntime.framework !== "hono") {
+      const error = new Error(`Template ${template.id} is a repo-style ${template.targetRuntime.framework} template.`);
+      error.code = "REPO_TEMPLATE_GENERATE_UNSUPPORTED";
+      error.remediation = `Run npm create microservices-app@latest <app-name> -- --template ${template.id}.`;
+      error.details = {
+        templateId: template.id,
+        framework: template.targetRuntime.framework,
+        platform: template.targetRuntime.platform,
+      };
+      throw error;
+    }
     return {
       composition,
       files: buildProjectFiles(composition),

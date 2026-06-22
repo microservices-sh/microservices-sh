@@ -1,4 +1,5 @@
 export type ModuleStatus = "available" | "planned" | "draft";
+export type TemplateStatus = ModuleStatus | "ready" | "experimental" | "private-pilot";
 
 export interface ModuleHook {
   name: string;
@@ -116,15 +117,15 @@ export interface TemplateContract {
   id: string;
   name: string;
   version: string;
-  status: ModuleStatus;
+  status: TemplateStatus;
   summary: string;
   targetCustomer: string;
   defaultModules: string[];
   optionalModules: string[];
   targetRuntime: {
     language: "typescript";
-    framework: "hono";
-    platform: "cloudflare-workers";
+    framework: "hono" | "sveltekit" | "astro";
+    platform: "cloudflare-workers" | "static";
     storage: string[];
   };
   defaultConfig: Record<string, unknown>;

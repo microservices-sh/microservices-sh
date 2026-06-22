@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 113
+Phase 114
 
 ## Phases
 
@@ -894,6 +894,14 @@ Phase 113
 - [x] Compose from the manifest so generated output can read local module intent without repeating `--modules`.
 - [x] Add CLI tests for add, duplicate/default rejection, removal, dependent-module blocking, and manifest-backed generation.
 - [x] Update docs to show `--apply` as the explicit manifest mutation path.
+- **Status:** complete
+
+### Phase 114: Root CLI Template Catalog Sync
+- [x] Expose bundled repo-style templates through `@microservices-sh/module-contract` so root CLI `templates list/inspect`, `compose`, `validate`, and `check` see the same template ids as create-app.
+- [x] Add `saas-growth-sveltekit` to the create-app template registry so the bundled template appears in filtered listings.
+- [x] Keep root procedural `generate` honest by returning `REPO_TEMPLATE_GENERATE_UNSUPPORTED` for SvelteKit/Astro repo templates with a `create-microservices-app --template <id>` remediation.
+- [x] Add module-contract, CLI, and create-app registry tests for template catalog coherence.
+- [x] Verify module-contract/sdk/CLI builds, targeted tests, create-app build/tests, workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

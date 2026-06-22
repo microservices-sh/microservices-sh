@@ -97,6 +97,38 @@ describe("CLI module versioning", () => {
     });
   });
 
+  it("lists and composes bundled repo-style templates from the root catalog", () => {
+    const listed = runCli(["templates", "list", "--json"], process.cwd());
+    expect(listed.status).toBe(0);
+    const listPayload = parseStdout(listed);
+    expect(listPayload.ok).toBe(true);
+    expect(listPayload.data.map((template) => template.id)).toEqual(expect.arrayContaining([
+      "booking-sveltekit",
+      "commerce-ops-sveltekit",
+      "accounting-erp-sveltekit",
+    ]));
+
+    const composed = runCli(["compose", "commerce-ops-sveltekit", "--json"], process.cwd());
+    expect(composed.status).toBe(0);
+    const composePayload = parseStdout(composed);
+    expect(composePayload.ok).toBe(true);
+    expect(composePayload.data.template.id).toBe("commerce-ops-sveltekit");
+    expect(composePayload.data.modules.map((module) => module.id)).toEqual(expect.arrayContaining([
+      "commerce-sync",
+      "sales-order",
+      "shipment",
+    ]));
+  });
+
+  it("refuses root procedural generation for repo-style templates", () => {
+    const result = runCli(["generate", "commerce-ops-sveltekit", "--out", "app", "--json"], process.cwd());
+    expect(result.status).not.toBe(0);
+    const payload = parseStdout(result);
+    expect(payload.ok).toBe(false);
+    expect(payload.error.code).toBe("REPO_TEMPLATE_GENERATE_UNSUPPORTED");
+    expect(payload.error.remediation).toContain("--template commerce-ops-sveltekit");
+  });
+
   it("rejects conflicting inline and flag versions", () => {
     const result = runCli(["add", "auth@0.1.0", "--version", "9.9.9", "--plan", "--json"], process.cwd());
     const payload = parseStdout(result);

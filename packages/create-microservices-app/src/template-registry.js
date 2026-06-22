@@ -43,6 +43,16 @@ export const REPO_TEMPLATES = {
     weight: "heavy",
     summary: "Multi-tenant B2B SaaS starter on Cloudflare SvelteKit - org sign-up, team RBAC, subscriptions, admin, audit log.",
   },
+  "saas-growth-sveltekit": {
+    id: "saas-growth-sveltekit",
+    name: "SaaS Growth SvelteKit",
+    status: "ready",
+    visibility: "public",
+    distribution: "bundled",
+    category: "saas",
+    weight: "heavy",
+    summary: "Multi-tenant SaaS starter with billing, AI image generation, ad-account monitoring, and marketing research.",
+  },
   "client-portal-sveltekit": {
     id: "client-portal-sveltekit",
     name: "Client Portal SvelteKit",

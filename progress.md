@@ -2,6 +2,23 @@
 
 ## Session: 2026-06-22
 
+### Phase 114 Root CLI template catalog sync
+
+- **Status:** complete.
+- Goal: make the root CLI catalog coherent with the repo-style templates that `create-microservices-app` already bundles, without pretending root `generate` can copy SvelteKit/Astro apps yet.
+- Added bundled template contracts for booking, SaaS, portal, ERP, commerce, accounting, Astro landing/blog, and private-pilot DOT AI OS templates.
+- `microservices templates list/inspect`, `compose`, `validate`, and `check` can now resolve repo-style template ids such as `commerce-ops-sveltekit` and `accounting-erp-sveltekit`.
+- Root procedural `generate` now refuses repo-style templates with `REPO_TEMPLATE_GENERATE_UNSUPPORTED` and points callers to `npm create microservices-app@latest <app-name> -- --template <id>`.
+- Added `saas-growth-sveltekit` to the create-app registry so it is visible in public template listings.
+- Next StackSuite slice recommended by subagent review: inventory reconciliation documents and low-stock alert read models, then a commerce route proof.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Contract/catalog tests | Repo templates compose through module-contract | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js` passed, 18/18 | Pass |
+| CLI tests | Root CLI lists/composes repo templates and refuses procedural generation | `pnpm --filter @microservices-sh/cli test` passed, 39/39 | Pass |
+| Create-app checks | Registry exposes SaaS growth and bundled templates still build | `pnpm --filter create-microservices-app test` passed, 23/23; `pnpm --filter create-microservices-app build` passed | Pass |
+| Workspace checks | Specs and whitespace remain green | `pnpm spec:check:all` passed, 64 targets; `git diff --check` passed | Pass |
+
 ### Phase 113 CLI module manifest apply
 
 - **Status:** complete.

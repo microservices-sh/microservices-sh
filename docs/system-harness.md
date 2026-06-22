@@ -54,7 +54,7 @@ pnpm microservices deploy run --plan
 
 Use `--plan` first for review. `add/remove --apply` is the explicit mutation path that writes `microservices.config.json` and refreshes `microservices.lock.json`.
 
-The root workspace CLI in this repository is for internal SDK and control-plane development. Public demos should use `create-microservices-app` plus the generated project CLI until the root CLI catalog is synced with the create-package template registry.
+The root workspace CLI can inspect, compose, validate, and check the shared template catalog. Repo-style SvelteKit/Astro scaffolding still belongs to `create-microservices-app --template <id>`; root `generate` is reserved for the procedural Hono template until it reuses the create-app copy path.
 
 ## Deployment Language
 Use conservative deployment language until the hosted path is verified end to end.

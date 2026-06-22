@@ -46,7 +46,7 @@ test("template filters support category and free-text discovery", () => {
   const portalIds = filterTemplateList(templates, { search: "portal" }).map((template) => template.id);
   const frameworkIds = filterTemplateList(templates, { category: "framework" }).map((template) => template.id);
 
-  assert.deepEqual(saasIds, ["saas-starter-sveltekit"]);
+  assert.deepEqual(saasIds, ["saas-starter-sveltekit", "saas-growth-sveltekit"]);
   assert.ok(portalIds.includes("client-portal-sveltekit"));
   assert.ok(frameworkIds.includes("nextjs"));
 });
