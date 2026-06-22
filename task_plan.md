@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 116
+Phase 117
 
 ## Phases
 
@@ -917,6 +917,14 @@ Phase 116
 - [x] Wire commerce inventory route proof to create/complete count documents and show recent count documents plus low-stock alerts.
 - [x] Update module docs, metadata, migrations, template lock/spec, and root module-contract catalog coverage.
 - [x] Verify inventory build/tests/spec, module-contract tests, commerce template spec/build, migration smoke, template bundle closure, full workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 117: Project Shim Install Clone Reuse
+- [x] Refactor generated SvelteKit project shims so `microservices install` reuses one current-snapshot clone while vendoring transitive module dependencies.
+- [x] Keep `microservices add` behavior unchanged and share the lockfile write path between add/install.
+- [x] Add a regression test proving install clones once for a transitive module graph.
+- [x] Sync the canonical shim into the create-app shim and generated SvelteKit template shims.
+- [x] Verify shim sync/install/version/remove tests, create-app bundle closure, full workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

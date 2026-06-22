@@ -2426,3 +2426,19 @@ Note: an initial `create-microservices-app` test run overlapped with `create-mic
 | Create app package | Packaged accounting template rebuilds and create-app tests remain green | `pnpm --filter create-microservices-app build` and sequential `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 117 project shim install clone reuse
+
+- **Status:** complete.
+- Goal: make generated project `microservices install` practical for transitive module graphs by avoiding one source clone per module.
+- Refactored the canonical SvelteKit shim so install uses one shared current-snapshot clone for unpinned modules, while version-pinned fallback still uses the existing per-module add path.
+- Extracted shared vendoring/lockfile recording into `vendorFromSource` so `add` and `install` stay consistent.
+- Added a regression test proving a payment -> customer -> gateway install vendors all three modules from one clone.
+- Synced the canonical shim into the create-app shim and generated SvelteKit template shims.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Shim node tests | Sync, install, version, and remove behavior remain green | `pnpm exec node --test packages/create-microservices-app/tests/shim-sync.test.mjs packages/create-microservices-app/tests/shim-install.test.mjs packages/create-microservices-app/tests/shim-module-versioning.test.mjs packages/create-microservices-app/tests/shim-module-remove.test.mjs` passed, 21/21 | Pass |
+| Create app bundle closure | Bundled repo templates still close over required modules/packages | `pnpm exec vitest run packages/create-microservices-app/tests` passed, 33/33 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
