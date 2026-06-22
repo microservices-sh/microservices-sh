@@ -5,7 +5,7 @@ Module ID: `accounts-payable`
 Mount: `/payables`
 
 ## Summary
-Tenant-scoped vendor, bill, bill-line, payment application, and payable aging workflows with integer-cent balances and accounting handoff events.
+Tenant-scoped vendor, bill, bill-line, payment application, recurring bill, 1099 readiness, and payable aging workflows with integer-cent balances and accounting handoff events.
 
 ## Dependencies
 - accounting-core
@@ -15,6 +15,7 @@ Tenant-scoped vendor, bill, bill-line, payment application, and payable aging wo
 - accounts-payable.read
 - accounts-payable.write
 - accounts-payable.admin
+- accounts-payable.pay
 - accounts-payable.extend
 - accounts-payable.observe
 
@@ -24,21 +25,30 @@ Tenant-scoped vendor, bill, bill-line, payment application, and payable aging wo
 ## Hooks
 - beforeVendorCreate
 - beforeBillCreate
-- beforeBillApprove
-- beforeBillPaymentRecord
-- afterPayableChanged
+- beforeBillMarkPayable
+- afterBillPayable
+- afterBillPaymentRecorded
+- afterVendorCreated
 
 ## Events
 - accounts-payable.vendor_created
+- accounts-payable.vendor_updated
+- accounts-payable.vendor_status_updated
 - accounts-payable.bill_created
-- accounts-payable.bill_approved
+- accounts-payable.bill_marked_payable
+- accounts-payable.bill_posted
 - accounts-payable.bill_payment_recorded
-- accounts-payable.aging_generated
+- accounts-payable.bill_paid
+- accounts-payable.recurring_bill_template_created
+- accounts-payable.recurring_bill_template_status_updated
+- accounts-payable.recurring_bill_generated
 
 ## Invariants
 - Money is stored as integer cents.
 - Vendor bill numbers are unique per tenant and vendor when present.
 - Bill line totals must equal bill totals before approval.
+- Bill approval and accounting posting are separate; `postBillToAccounting` only posts approved unpaid bills.
+- Accounting-backed payments require target bills to already be posted.
 - Payment applications cannot exceed the open bill balance.
 - Payment idempotency keys are unique per tenant.
 - Accounting posting happens through ports or events, not direct template code.

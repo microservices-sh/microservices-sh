@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 108
+Phase 109
 
 ## Phases
 
@@ -851,6 +851,15 @@ Phase 108
 - [x] Show vendor, payment account, method/reference, journal, applications, and lifecycle context without void/reversal actions.
 - [x] Add accounting template policy checks for the read-only payment detail boundary.
 - [x] Verify AP tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 109: AP Approval And Posting Split
+- [x] Add a module-level `postBillToAccounting` use case for approved unpaid bills.
+- [x] Keep accounting-backed AP payments blocked until the bill is posted.
+- [x] Make the accounting template AP poster reuse posted source-ref journals on retries.
+- [x] Split the focused Payables operator flow into approve, post, and pay states.
+- [x] Sync AP module docs, events, catalog metadata, and template locks with the new post boundary.
+- [x] Verify AP tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, catalog tests, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

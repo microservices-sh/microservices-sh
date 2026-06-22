@@ -1507,6 +1507,27 @@
 | Create package | Bundled template closure and generated-app smoke still pass | `pnpm --filter create-microservices-app build` and `smoke:built` passed | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 109 AP approval and posting split
+
+- **Status:** complete.
+- Goal: split donor-backed bill approval from accounting posting before adding AP void/reversal workflows.
+- Added `postBillToAccounting` to `modules/accounts-payable` for approved, unpaid, unposted bills.
+- Added AP tests for approval-only transition, posting an approved bill, idempotent already-posted replay, and rejection of accounting-backed payments for unposted bills.
+- Made the accounting template AP poster reuse existing posted source-ref journal entries for bill and payment retries.
+- Updated `/app/payables` so bill rows move through Approve, Post, then Pay states; the multi-bill payment workbench only lists bills already posted to accounting.
+- Synced AP docs, event schemas, module-contract metadata, docs catalog, and template locks with `accounts-payable.bill_posted` and the new tool boundary.
+- Subagent review confirmed the next lower-risk donor-backed AP slice is bill void for unpaid bills; payment void/reversal still needs a separate accounting reversal contract.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounts-payable tests | Approval/post split and payment precondition behavior remain green | `pnpm --filter @microservices-sh/accounts-payable test` passed, 21/21 | Pass |
+| Accounts-payable spec/build | Module contract and TypeScript build include the post split | `pnpm --filter @microservices-sh/accounts-payable check:spec` and `pnpm --filter @microservices-sh/accounts-payable build` passed | Pass |
+| Accounting template spec/build | Payables approve/post/pay UI, action split, and retry-safe AP poster compile | `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Catalog tests | Module-contract and SDK catalogs include the updated AP tool/event surface | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js packages/sdk-internal/tests/module-versioning.test.js` passed, 29/29 | Pass |
+| Create app package | Bundled accounting and ERP template metadata regenerate cleanly | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 108 AP payment detail route
 
 - **Status:** complete.

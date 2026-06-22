@@ -342,6 +342,21 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Payables route supports AP payment workbench submissions with multiple bill applications, method, reference, and memo."
   );
   assertFileIncludesAll(
+    "src/routes/app/payables/+page.server.ts",
+    ["postToAccounting: false", "postBillToAccounting:", "accounts-payable.bill_posted"],
+    "Payables route keeps bill approval separate from accounting posting."
+  );
+  assertFileIncludesAll(
+    "src/lib/server/accounts-payable-accounting.ts",
+    [
+      "existingPostedEntry",
+      "findPostedEntryBySourceRef",
+      "accounts-payable:bill:${request.bill.id}",
+      "accounts-payable:payment:${request.payment.id}"
+    ],
+    "AP accounting poster reuses posted source-ref journals on retry instead of double-posting."
+  );
+  assertFileIncludesAll(
     "src/routes/app/payables/+page.svelte",
     ["data.defaultApAccountId", "(bill.apAccountId ?? data.defaultApAccountId)", "form?.values?.apAccountId ?? data.defaultApAccountId"],
     "Payables AP account selectors default to persisted accounting settings when the bill has no AP account."
@@ -350,6 +365,17 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "src/routes/app/payables/+page.svelte",
     ["Record payment", "applicationBillId", "applicationAmount-${bill.id}", "paidBillCount", "payment-workbench"],
     "Payables UI exposes a multi-bill AP payment workbench while preserving row-level payment actions."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/payables/+page.svelte",
+    [
+      "Approve",
+      "?/postBillToAccounting",
+      "bill.accountingStatus === \"posted\"",
+      "Bill approved for posting",
+      "Bill posted to the ledger"
+    ],
+    "Payables page presents approve, post, and pay as separate operator states."
   );
   assertFileIncludesAll(
     "src/routes/app/payables/+page.server.ts",

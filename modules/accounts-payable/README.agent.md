@@ -1,6 +1,8 @@
 # Accounts Payable Agent Notes
 
-Use approval for money mutations: creating bills, marking bills payable, and recording bill payments. Vendor master mutations through `updateVendor` and `updateVendorStatus` also require operator approval. Always include `tenantId` and use idempotency keys for externally delivered payments.
+Use approval for money mutations: creating bills, marking bills payable, posting approved bills to accounting, and recording bill payments. Vendor master mutations through `updateVendor` and `updateVendorStatus` also require operator approval. Always include `tenantId` and use idempotency keys for externally delivered payments.
+
+Bill approval and accounting posting are separate. Use `markBillPayable` for approval/payable transition, then `postBillToAccounting` when a journal entry should be created. Payments posted through an accounting poster require the target bills to already have `accountingStatus: "posted"`.
 
 Use `getVendor` for tenant-scoped vendor profile and 1099 metadata before building vendor-specific reports. Use `get1099VendorReport` for calendar-year 1099 readiness totals; it reports active 1099 vendors, payment totals, and missing-tax-ID warnings, but it does not file forms or validate TINs. Use `listBillPayments` for read-only AP payment history by tenant, vendor, bill, or status. Use `getBillPayment` when an operator needs the full payment record with applications before investigating journal references or a future void/reversal workflow.
 

@@ -65,6 +65,21 @@ export default function check({ assertFileIncludes }) {
     "Accounts Payable exports bill payment read use cases."
   );
   assertFileIncludes(
+    "src/index.ts",
+    "export { postBillToAccounting }",
+    "Accounts Payable exports a separate accounting post use case for approved bills."
+  );
+  assertFileIncludes(
+    "src/use-cases/post-bill-to-accounting.ts",
+    "BILL_NOT_APPROVED",
+    "Bill posting is split from approval and rejects unapproved bills."
+  );
+  assertFileIncludes(
+    "src/use-cases/record-bill-payment.ts",
+    "BILL_NOT_POSTED",
+    "Accounting-backed bill payments require the bill to be posted before settlement."
+  );
+  assertFileIncludes(
     "src/ports/index.ts",
     "listPayments(filter: BillPaymentFilter)",
     "Accounts Payable store exposes tenant-scoped bill payment listing."

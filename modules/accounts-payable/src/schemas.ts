@@ -89,6 +89,11 @@ export const markBillPayableInputSchema = billIdentitySchema.extend({
   postToAccounting: z.boolean().default(true)
 });
 
+export const postBillToAccountingInputSchema = billIdentitySchema.extend({
+  apAccountId: z.string().nullable().optional(),
+  postedById: z.string().nullable().optional()
+});
+
 export const listBillsInputSchema = z.object({
   tenantId: z.string().min(1),
   vendorId: z.string().optional(),
@@ -200,6 +205,7 @@ export type VendorIdentityInput = z.infer<typeof vendorIdentitySchema>;
 export type BillLineItemInput = z.infer<typeof billLineItemInputSchema>;
 export type CreateBillInput = z.infer<typeof createBillInputSchema>;
 export type MarkBillPayableInput = z.infer<typeof markBillPayableInputSchema>;
+export type PostBillToAccountingInput = z.infer<typeof postBillToAccountingInputSchema>;
 export type ListBillsInput = z.infer<typeof listBillsInputSchema>;
 export type RecordBillPaymentInput = z.infer<typeof recordBillPaymentInputSchema>;
 export type BillPaymentIdentityInput = z.infer<typeof billPaymentIdentitySchema>;

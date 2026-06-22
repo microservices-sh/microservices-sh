@@ -40,6 +40,15 @@ function unwrapPosted(result: Awaited<ReturnType<typeof postJournalEntry>>): Acc
   return { journalEntryId: result.data.entry.id };
 }
 
+async function existingPostedEntry(
+  accountingCoreStore: AccountingCoreStore,
+  tenantId: string,
+  sourceRef: string
+): Promise<AccountingPostResult | null> {
+  const existing = await accountingCoreStore.findPostedEntryBySourceRef(tenantId, sourceRef);
+  return existing ? { journalEntryId: existing.id } : null;
+}
+
 export function createAccountsPayableAccountingPoster(input: {
   accountingCoreStore: AccountingCoreStore;
   actor?: Actor | null;
@@ -48,6 +57,10 @@ export function createAccountsPayableAccountingPoster(input: {
 
   return {
     async postAccountsPayableBill(request: AccountingBillPostRequest): Promise<AccountingPostResult> {
+      const sourceRef = `accounts-payable:bill:${request.bill.id}`;
+      const existing = await existingPostedEntry(accountingCoreStore, request.tenantId, sourceRef);
+      if (existing) return existing;
+
       const entryDate = dateOnly(request.bill.billDate);
       const periodId = await openPeriodId(accountingCoreStore, request.tenantId, entryDate);
       const apAccountId = ensureAccount(request.apAccountId, "an Accounts Payable liability account");
@@ -57,7 +70,7 @@ export function createAccountsPayableAccountingPoster(input: {
           periodId,
           entryDate,
           description: `Bill ${request.bill.billNumber}`,
-          sourceRef: `accounts-payable:bill:${request.bill.id}`,
+          sourceRef,
           sourceType: "accounts-payable.bill",
           lines: [
             ...request.bill.lineItems.map((line) => ({
@@ -83,6 +96,10 @@ export function createAccountsPayableAccountingPoster(input: {
     },
 
     async postAccountsPayablePayment(request: AccountingBillPaymentPostRequest): Promise<AccountingPostResult> {
+      const sourceRef = `accounts-payable:payment:${request.payment.id}`;
+      const existing = await existingPostedEntry(accountingCoreStore, request.tenantId, sourceRef);
+      if (existing) return existing;
+
       const entryDate = dateOnly(request.payment.paymentDate);
       const periodId = await openPeriodId(accountingCoreStore, request.tenantId, entryDate);
       const paymentAccountId = ensureAccount(request.payment.paymentAccountId, "the payment asset account");
@@ -107,7 +124,7 @@ export function createAccountsPayableAccountingPoster(input: {
           periodId,
           entryDate,
           description: `Bill payment ${request.payment.paymentNumber}`,
-          sourceRef: `accounts-payable:payment:${request.payment.id}`,
+          sourceRef,
           sourceType: "accounts-payable.payment",
           lines: [
             ...debitLines,

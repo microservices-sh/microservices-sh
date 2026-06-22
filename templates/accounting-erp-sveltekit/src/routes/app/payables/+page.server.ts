@@ -12,6 +12,7 @@ import {
   listRecurringBillTemplates,
   listVendors,
   markBillPayable,
+  postBillToAccounting,
   recordBillPayment,
   updateRecurringBillTemplateStatus,
   type AccountsPayableStore,
@@ -531,7 +532,65 @@ export const actions: Actions = {
           billId: values.billId,
           approvedById: locals.user.id,
           apAccountId,
-          postToAccounting: true
+          postToAccounting: false
+        },
+        {
+          accountsPayableStore: locals.accountsPayableStore,
+          actor: { id: locals.user.id, email: locals.user.email, permissions }
+        }
+      );
+      if (!result.ok) return fail(result.status, { error: result.error.message, values });
+
+      await recordEvent(
+        {
+          eventName: "accounts-payable.bill_marked_payable",
+          actorId: locals.user.id,
+          entityType: "bill",
+          entityId: result.data.bill.id,
+          source: "app/payables",
+          payload: { accountingStatus: result.data.bill.accountingStatus }
+        },
+        { auditStore: locals.auditStore }
+      );
+
+      return { billMarkedPayable: true };
+    } catch (error) {
+      return fail(409, { error: error instanceof Error ? error.message : "Could not approve bill.", values });
+    }
+  },
+
+  postBillToAccounting: async ({ request, locals, cookies, platform }) => {
+    requireModule("accounts-payable", platform);
+    requireModule("accounting-core", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    const { permissions } = await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const values = {
+      billId: text(form.get("billId")),
+      apAccountId: text(form.get("apAccountId"))
+    };
+    if (!values.billId) return fail(400, { error: "Choose a bill.", values });
+    const apDefault = await defaultApAccount(locals.accountingCoreStore, org.id);
+    const apAccountId = values.apAccountId || apDefault.accountId;
+    if (!apAccountId) {
+      return fail(400, {
+        error: apDefault.settingsConfigured
+          ? "Choose Accounts Payable in Accounting settings before posting to accounting."
+          : "Choose an AP account.",
+        values
+      });
+    }
+
+    try {
+      const result = await postBillToAccounting(
+        {
+          tenantId: org.id,
+          billId: values.billId,
+          apAccountId,
+          postedById: locals.user.id
         },
         {
           accountsPayableStore: locals.accountsPayableStore,
@@ -546,7 +605,7 @@ export const actions: Actions = {
 
       await recordEvent(
         {
-          eventName: "accounts-payable.bill_marked_payable",
+          eventName: "accounts-payable.bill_posted",
           actorId: locals.user.id,
           entityType: "bill",
           entityId: result.data.bill.id,
@@ -556,7 +615,7 @@ export const actions: Actions = {
         { auditStore: locals.auditStore }
       );
 
-      return { billMarkedPayable: true };
+      return { billPosted: true };
     } catch (error) {
       return fail(409, { error: error instanceof Error ? error.message : "Could not post bill to accounting.", values });
     }

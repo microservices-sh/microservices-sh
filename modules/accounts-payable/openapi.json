@@ -50,8 +50,14 @@
     },
     "/bills/{id}/payable": {
       "post": {
-        "summary": "Approve/post or mark bill payable",
+        "summary": "Approve or mark bill payable without requiring accounting posting",
         "responses": { "200": { "description": "Bill marked payable" }, "409": { "description": "Invalid status" } }
+      }
+    },
+    "/bills/{id}/post": {
+      "post": {
+        "summary": "Post an approved bill to accounting",
+        "responses": { "200": { "description": "Bill posted to accounting" }, "409": { "description": "Bill not approved or already paid" } }
       }
     },
     "/bill-payments": {

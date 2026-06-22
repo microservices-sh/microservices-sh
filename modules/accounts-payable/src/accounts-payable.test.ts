@@ -16,6 +16,7 @@ import {
   listRecurringBillTemplates,
   listVendors,
   markBillPayable,
+  postBillToAccounting,
   recordBillPayment,
   updateVendor,
   updateVendorStatus,
@@ -430,9 +431,96 @@ describe("accounts-payable: bills", () => {
       error: { code: "accounts-payable.INVALID_STATUS_TRANSITION" }
     });
   });
+
+  it("approves a bill without posting, then posts the approved bill to accounting", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const vendor = await seedVendor(store);
+    const created = await createBill(
+      {
+        tenantId: "tenant-1",
+        vendorId: vendor.id,
+        billDate: "2026-01-01T00:00:00.000Z",
+        dueDate: "2026-01-31T00:00:00.000Z",
+        requiresApproval: true,
+        lineItems: [{ description: "Paper", quantity: 1, unitAmountCents: 5_000, taxCents: 0 }]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0) }
+    );
+    if (!created.ok) throw new Error(created.error.message);
+
+    const approved = await markBillPayable(
+      { tenantId: "tenant-1", billId: created.data.bill.id, approvedById: "approver-1", postToAccounting: false },
+      { accountsPayableStore: store, now: fixedNow(T0 + 1) }
+    );
+    expect(approved.ok).toBe(true);
+    if (!approved.ok) throw new Error(approved.error.message);
+    expect(approved.data.bill).toMatchObject({
+      status: "payable",
+      accountingStatus: "unposted",
+      journalEntryId: null,
+      approvedById: "approver-1"
+    });
+
+    const posted = await postBillToAccounting(
+      { tenantId: "tenant-1", billId: approved.data.bill.id, apAccountId: "acct-ap" },
+      {
+        accountsPayableStore: store,
+        accountingPoster: {
+          postAccountsPayableBill: async () => ({ journalEntryId: "je-ap-1" }),
+          postAccountsPayablePayment: async () => ({ journalEntryId: "je-payment-unused" })
+        },
+        now: fixedNow(T0 + 2)
+      }
+    );
+    expect(posted.ok).toBe(true);
+    if (!posted.ok) throw new Error(posted.error.message);
+    expect(posted.data.bill).toMatchObject({
+      status: "payable",
+      accountingStatus: "posted",
+      journalEntryId: "je-ap-1",
+      apAccountId: "acct-ap",
+      postedAt: "2026-01-01T00:00:00.002Z"
+    });
+
+    const replay = await postBillToAccounting(
+      { tenantId: "tenant-1", billId: approved.data.bill.id },
+      { accountsPayableStore: store }
+    );
+    expect(replay.ok).toBe(true);
+    if (replay.ok) expect(replay.data.idempotent).toBe(true);
+  });
 });
 
 describe("accounts-payable: payments", () => {
+  it("rejects accounting-backed payments for bills that have not been posted to accounting", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const bill = await seedPayableBill(store);
+
+    const result = await recordBillPayment(
+      {
+        tenantId: "tenant-1",
+        vendorId: bill.vendorId,
+        paymentDate: "2026-01-02T00:00:00.000Z",
+        amountCents: 4_000,
+        applications: [{ billId: bill.id, amountCents: 4_000 }]
+      },
+      {
+        accountsPayableStore: store,
+        accountingPoster: {
+          postAccountsPayableBill: async () => ({ journalEntryId: "je-ap-unused" }),
+          postAccountsPayablePayment: async () => ({ journalEntryId: "je-payment-unused" })
+        },
+        now: fixedNow(T0 + 2)
+      }
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 409,
+      error: { code: "accounts-payable.BILL_NOT_POSTED" }
+    });
+  });
+
   it("applies a payment once per idempotency key", async () => {
     const store = createMemoryAccountsPayableStore();
     const bill = await seedPayableBill(store);

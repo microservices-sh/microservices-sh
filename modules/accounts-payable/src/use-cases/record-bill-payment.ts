@@ -64,6 +64,14 @@ export async function recordBillPayment(input: unknown, deps: AccountsPayableDep
     if (bill.status !== "payable" && bill.status !== "partial") {
       return err(409, "accounts-payable.BILL_NOT_PAYABLE", "Only payable or partial bills can receive payments.", deps);
     }
+    if (deps.accountingPoster && bill.accountingStatus !== "posted") {
+      return err(
+        409,
+        "accounts-payable.BILL_NOT_POSTED",
+        "Post the bill to accounting before recording an accounting-backed payment.",
+        deps
+      );
+    }
     if (application.amountCents > bill.amountDueCents) {
       return err(
         409,

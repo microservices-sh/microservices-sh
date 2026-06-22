@@ -7,7 +7,12 @@
 
   const openBills = $derived(data.bills.filter((bill) => bill.amountDueCents > 0 && bill.status !== "void"));
   const payableBills = $derived(
-    data.bills.filter((bill) => bill.amountDueCents > 0 && (bill.status === "payable" || bill.status === "partial"))
+    data.bills.filter(
+      (bill) =>
+        bill.amountDueCents > 0 &&
+        bill.accountingStatus === "posted" &&
+        (bill.status === "payable" || bill.status === "partial")
+    )
   );
   const openAmount = $derived(openBills.reduce((total, bill) => total + bill.amountDueCents, 0));
   const overdueAmount = $derived((data.aging?.days1To30Cents ?? 0) + (data.aging?.days31To60Cents ?? 0) + (data.aging?.days61To90Cents ?? 0) + (data.aging?.days90PlusCents ?? 0));
@@ -67,7 +72,9 @@
   {:else if form?.recurringBillsGenerated}
     <Alert tone="success">{form.generatedBillCount} recurring bill{form.generatedBillCount === 1 ? "" : "s"} generated.</Alert>
   {:else if form?.billMarkedPayable}
-    <Alert tone="success">Bill marked payable and posted to the ledger.</Alert>
+    <Alert tone="success">Bill approved for posting.</Alert>
+  {:else if form?.billPosted}
+    <Alert tone="success">Bill posted to the ledger.</Alert>
   {:else if form?.billPaymentRecorded}
     <Alert tone="success">Bill payment recorded and posted to the ledger{form.paidBillCount ? ` for ${form.paidBillCount} bills` : ""}.</Alert>
   {:else if form?.error}
@@ -119,9 +126,20 @@
                               <option value={account.id} selected={(bill.apAccountId ?? data.defaultApAccountId) === account.id}>{account.code} · {account.name}</option>
                             {/each}
                           </select>
+                          <Button type="submit" variant="ghost">Approve</Button>
+                        </form>
+                      {:else if bill.status === "payable" && bill.accountingStatus !== "posted"}
+                        <form class="inline-form" method="POST" action="?/postBillToAccounting" use:enhance>
+                          <input type="hidden" name="billId" value={bill.id} />
+                          <select name="apAccountId" aria-label="AP account" required>
+                            <option value="">AP account</option>
+                            {#each liabilityAccounts as account (account.id)}
+                              <option value={account.id} selected={(bill.apAccountId ?? data.defaultApAccountId) === account.id}>{account.code} · {account.name}</option>
+                            {/each}
+                          </select>
                           <Button type="submit" variant="ghost">Post</Button>
                         </form>
-                      {:else if bill.status === "payable" || bill.status === "partial"}
+                      {:else if (bill.status === "payable" || bill.status === "partial") && bill.accountingStatus === "posted"}
                         <form class="inline-form" method="POST" action="?/recordPayment" use:enhance>
                           <input type="hidden" name="billId" value={bill.id} />
                           <input type="hidden" name="paymentDate" value={data.today} />
