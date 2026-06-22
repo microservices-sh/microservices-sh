@@ -2464,3 +2464,23 @@ Note: an initial `create-microservices-app` test run overlapped with `create-mic
 | Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
 | Create app closure | Bundled repo templates still close over required modules/packages | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
+### Phase 119 accounting financial statements
+
+- **Status:** complete.
+- Goal: close the StackSuite full financial statement gap with reusable accounting-core read contracts and a focused accounting template route proof.
+- Added `getIncomeStatement`, `getBalanceSheet`, and `getCashFlowStatement` over posted journal data, with date-bounded trial-balance posting filters and cash-flow classification for reconcilable/deposit accounts.
+- Wired `/app/reports` in `accounting-erp-sveltekit` to show income statement, balance sheet, cash flow, statement lines, AR/AP aging, customer statements, and general ledger drilldowns.
+- Updated accounting-core docs, OpenAPI, package metadata, module manifest, public docs catalog, central module-contract catalog, accounting template lock/spec, and StackSuite porting docs.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounting-core build | New statement use cases and exported types compile | `pnpm --filter @microservices-sh/accounting-core build` passed | Pass |
+| Accounting-core tests | Statement math, cash flow, and date-bounded posting coverage remain green | `pnpm --filter @microservices-sh/accounting-core test` passed, 21/21 | Pass |
+| Accounting-core spec | Module exports, OpenAPI, manifest, and metadata guards pass | `pnpm --filter @microservices-sh/accounting-core check:spec` passed | Pass |
+| Accounting template spec | Reports route, statement UI, and accounting-core lock RPC guards pass | `pnpm --dir templates/accounting-erp-sveltekit check:spec` passed | Pass |
+| Accounting template build | SvelteKit/Cloudflare build compiles after reports page updates | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Module contract | Catalog exposes accounting-core financial statement RPC/tools | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js` passed, 21/21 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Create app closure | Bundled repo templates still close over required modules/packages | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |

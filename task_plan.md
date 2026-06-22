@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 118
+Phase 119
 
 ## Phases
 
@@ -934,6 +934,14 @@ Phase 118
 - [x] Wire commerce shipment list/detail pages to start processing and show module-owned status history.
 - [x] Update shipment docs, metadata, events, MCP wiring, commerce lock/spec, and module-contract catalog coverage.
 - [x] Verify shipment build/tests/spec, commerce template spec/build, module-contract tests, migration smoke, workspace specs, create-app template closure, and whitespace checks.
+- **Status:** complete
+
+### Phase 119: Accounting Financial Statements
+- [x] Add accounting-core income statement, balance sheet, and cash-flow statement use cases over posted journal data.
+- [x] Extend trial-balance posting filters with date-bounded activity support for statement reads.
+- [x] Wire the accounting reports page to render financial statements alongside aging, customer statement, and general-ledger reports.
+- [x] Update accounting-core docs, OpenAPI, module metadata, module-contract catalog, accounting template lock, and StackSuite porting docs.
+- [x] Verify accounting-core build/tests/spec, accounting template spec/build, module-contract tests, workspace specs, create-app template closure, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

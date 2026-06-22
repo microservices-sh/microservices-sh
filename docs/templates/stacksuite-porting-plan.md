@@ -43,7 +43,7 @@ Keep the templates source-visible and module-backed. Template-side adapters may 
 
 Two read-only explorer passes on 2026-06-21 identified the remaining adoption gaps:
 
-- Accounting depth has moved past the original thin slice. Ledger posting, fiscal period close/reopen/lock rules, fiscal period type/close-actor metadata, fiscal close compare-and-set hardening, GAAP/IFRS setup seed selection, base-currency chart setup, default AR/AP/income account persistence, post/void/reversal workflows, trial balance, general ledger, AR/AP posting adapters, invoice/customer-payment settlement, Stripe settlement, and recurring-invoice job posting are implemented in the template/module split. Remaining accounting backlog is consuming persisted defaults in posting bridges, richer account metadata, and full financial statements.
+- Accounting depth has moved past the original thin slice. Ledger posting, fiscal period close/reopen/lock rules, fiscal period type/close-actor metadata, fiscal close compare-and-set hardening, GAAP/IFRS setup seed selection, base-currency chart setup, default AR/AP/income/deposit account persistence, post/void/reversal workflows, trial balance, general ledger, income statement, balance sheet, cash flow, AR/AP posting adapters, invoice/customer-payment settlement, Stripe settlement, and recurring-invoice job posting are implemented in the template/module split. Remaining accounting backlog is richer setup orchestration, additional chart presets, retained-earnings defaults, and richer account metadata.
 - AP has vendors, bills, payments, aging, bill posting, payment settlement, and recurring bill storage primitives. Remaining backlog is recurring bill generation through jobs-workflows, pause/resume/cancel lifecycle, approval routing, and richer payment-account handling.
 - AR now stores invoice snapshots/payments/aging, customer statements, manual invoice issue/payment/void sync, Stripe settlement sync, customer-payment settlement posting, and recurring auto-issued invoice sync. Remaining backlog is richer deposit-account configuration, unapplied balance reporting, and reusable statement/export contracts.
 - Banking now exposes imports, import detail review, match suggestions, match creation, reconciliation start, reconciliation completion, and reconciliation detail review in the accounting template workflow. Remaining backlog is CSV field mapping, duplicate handling, confirm/remove/exclude match lifecycle, clear/unclear operations, richer summaries/history, and provider/OCR hooks.
@@ -123,7 +123,7 @@ Port setup and reporting depth into `modules/accounting-core`:
 - setup wizard use cases for retained earnings accounts and full setup orchestration after persisted fiscal year and default AR/AP/income settings.
 - fiscal-period close/reopen rules.
 - journal numbering, posting, voiding, and reversal contracts.
-- income statement, balance sheet, and cash flow contracts after report row definitions; trial balance and general ledger are implemented.
+- income statement, balance sheet, and cash flow contracts are implemented alongside trial balance and general ledger; remaining reporting depth is additional statement exports, retained-earnings setup defaults, and richer account hierarchy metadata.
 
 ### Bank Reconciliation
 
@@ -334,7 +334,7 @@ Mostly done for the first StackSuite parity milestone:
 Still pending:
 
 - invoice-document extension contracts beyond the current invoice, quote, and recurring draft handoffs.
-- posting bridges consuming persisted accounting defaults and full statement contracts.
+- additional statement export contracts and retained-earnings setup defaults.
 - persistent inventory reconciliation documents and alert read models are now implemented in the inventory module and commerce template route proof.
 - shipment status transition history and draft-to-processing workflow are implemented in the shipment module and commerce template route proof.
 
@@ -349,7 +349,7 @@ Done for the first accounting/commerce operator surface:
 
 Remaining routes should be added only after the backing module API exists:
 
-- posting bridges consuming persisted accounting defaults and full statement routes.
+- additional statement export routes and retained-earnings setup defaults.
 - commerce sales-order create/send, post-shipment delivery semantics, and MCP settings.
 
 ### Phase 3: External Operations

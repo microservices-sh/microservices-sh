@@ -62,6 +62,8 @@ function trialBalanceEntryVisible(entry: JournalEntry, filter: TrialBalanceFilte
     entry.tenantId === filter.tenantId &&
     (entry.status === "posted" || entry.status === "void") &&
     (!filter.periodId || entry.periodId === filter.periodId) &&
+    (!filter.startDate || entry.entryDate >= filter.startDate) &&
+    (!filter.endDate || entry.entryDate <= filter.endDate) &&
     (!filter.asOfDate || entry.entryDate <= filter.asOfDate)
   );
 }

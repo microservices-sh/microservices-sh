@@ -223,6 +223,20 @@ describe("module version selectors", () => {
     ]));
   });
 
+  it("exposes accounting-core financial statement APIs in the catalog", () => {
+    const module = inspectModule("accounting-core@0.1.0");
+    expect(module.rpc.map((entry) => entry.method)).toEqual(expect.arrayContaining([
+      "getIncomeStatement",
+      "getBalanceSheet",
+      "getCashFlowStatement",
+    ]));
+    expect(module.surfaces.agentic.tools).toEqual(expect.arrayContaining([
+      "accounting-core.getIncomeStatement",
+      "accounting-core.getBalanceSheet",
+      "accounting-core.getCashFlowStatement",
+    ]));
+  });
+
   it("exposes admin, visitor, and agentic surfaces for booking", () => {
     expect(inspectModule("booking@0.1.0").surfaces).toMatchObject({
       admin: {

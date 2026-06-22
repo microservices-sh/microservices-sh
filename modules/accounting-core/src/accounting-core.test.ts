@@ -9,8 +9,11 @@ import {
   createMemoryAccountingCoreStore,
   getAccount,
   getAccountingSetupStatus,
+  getBalanceSheet,
+  getCashFlowStatement,
   getFiscalPeriod,
   getGeneralLedger,
+  getIncomeStatement,
   getTrialBalance,
   listFiscalPeriods,
   lockFiscalPeriod,
@@ -123,7 +126,7 @@ async function setupLedger(status: "open" | "closed" | "locked" = "open") {
   const deps = { accountingCoreStore: store, now: fixedNow() };
 
   const cash = await createAccount(
-    { tenantId: TENANT_ID, code: "1000", name: "Cash", type: "asset" },
+    { tenantId: TENANT_ID, code: "1000", name: "Cash", type: "asset", isReconcilable: true },
     deps
   );
   const revenue = await createAccount(
@@ -808,6 +811,90 @@ describe("accounting-core: trial balance and voiding", () => {
         expect.objectContaining({ accountCode: "1000", debitCents: 12_345, creditCents: 0 }),
         expect.objectContaining({ accountCode: "4000", debitCents: 0, creditCents: 12_345 })
       ]);
+    }
+  });
+
+  it("calculates income statement, balance sheet, and cash flow from posted journals", async () => {
+    const setup = await setupLedger();
+    const expense = await createAccount(
+      { tenantId: TENANT_ID, code: "5000", name: "Hosting Expense", type: "expense", subtype: "operating_expense" },
+      setup.deps
+    );
+    if (!expense.ok) throw new Error(expense.error.message);
+
+    const sale = await createBalancedEntry(setup, 10_000, "invoice:statement", "2026-01-10");
+    const expenseEntry = await createJournalEntry(
+      {
+        tenantId: TENANT_ID,
+        periodId: setup.period.id,
+        entryDate: "2026-01-20",
+        description: "Hosting bill payment",
+        sourceRef: "accounts-payable:payment:statement",
+        sourceType: "accounts-payable.payment",
+        lines: [
+          { accountId: expense.data.account.id, debitCents: 2_500 },
+          { accountId: setup.cash.id, creditCents: 2_500 }
+        ]
+      },
+      setup.deps
+    );
+    if (!expenseEntry.ok) throw new Error(expenseEntry.error.message);
+    expect((await postJournalEntry({ tenantId: TENANT_ID, entryId: sale.id }, setup.deps)).ok).toBe(true);
+    expect((await postJournalEntry({ tenantId: TENANT_ID, entryId: expenseEntry.data.entry.id }, setup.deps)).ok).toBe(true);
+
+    const income = await getIncomeStatement(
+      { tenantId: TENANT_ID, startDate: "2026-01-01", endDate: "2026-01-31" },
+      setup.deps
+    );
+    expect(income.ok).toBe(true);
+    if (income.ok) {
+      expect(income.data.incomeStatement.totalRevenueCents).toBe(10_000);
+      expect(income.data.incomeStatement.totalExpenseCents).toBe(2_500);
+      expect(income.data.incomeStatement.netIncomeCents).toBe(7_500);
+      expect(income.data.incomeStatement.sections.find((section) => section.key === "operating_expense")?.lines).toEqual([
+        expect.objectContaining({ accountCode: "5000", amountCents: 2_500 })
+      ]);
+    }
+
+    const balance = await getBalanceSheet({ tenantId: TENANT_ID, asOfDate: "2026-01-31" }, setup.deps);
+    expect(balance.ok).toBe(true);
+    if (balance.ok) {
+      expect(balance.data.balanceSheet.totalAssetsCents).toBe(7_500);
+      expect(balance.data.balanceSheet.totalEquityCents).toBe(7_500);
+      expect(balance.data.balanceSheet.balanced).toBe(true);
+      expect(balance.data.balanceSheet.sections.find((section) => section.key === "equity")?.lines).toEqual([
+        expect.objectContaining({ accountCode: "3999", accountName: "Current earnings", amountCents: 7_500 })
+      ]);
+    }
+
+    const cashFlow = await getCashFlowStatement(
+      { tenantId: TENANT_ID, startDate: "2026-01-01", endDate: "2026-01-31" },
+      setup.deps
+    );
+    expect(cashFlow.ok).toBe(true);
+    if (cashFlow.ok) {
+      expect(cashFlow.data.cashFlowStatement.beginningCashCents).toBe(0);
+      expect(cashFlow.data.cashFlowStatement.netCashChangeCents).toBe(7_500);
+      expect(cashFlow.data.cashFlowStatement.endingCashCents).toBe(7_500);
+      expect(cashFlow.data.cashFlowStatement.sections.find((section) => section.key === "operating")?.totalCents).toBe(7_500);
+    }
+  });
+
+  it("supports date-bounded trial balance activity", async () => {
+    const setup = await setupLedger();
+    const first = await createBalancedEntry(setup, 10_000, "invoice:first", "2026-01-10");
+    const second = await createBalancedEntry(setup, 2_500, "invoice:second", "2026-02-10");
+    expect((await postJournalEntry({ tenantId: TENANT_ID, entryId: first.id }, setup.deps)).ok).toBe(true);
+    expect((await postJournalEntry({ tenantId: TENANT_ID, entryId: second.id }, setup.deps)).ok).toBe(true);
+
+    const trialBalance = await getTrialBalance(
+      { tenantId: TENANT_ID, startDate: "2026-02-01", endDate: "2026-02-28" },
+      setup.deps
+    );
+    expect(trialBalance.ok).toBe(true);
+    if (trialBalance.ok) {
+      expect(trialBalance.data.trialBalance.totalDebitCents).toBe(2_500);
+      expect(trialBalance.data.trialBalance.totalCreditCents).toBe(2_500);
     }
   });
 

@@ -363,7 +363,68 @@
           "accounting-core.extend",
           "accounting-core.observe"
         ],
-        "rpc": [],
+        "rpc": [
+          {
+            "method": "listAccounts",
+            "scope": "accounting-core.read",
+            "public": false
+          },
+          {
+            "method": "getAccount",
+            "scope": "accounting-core.read",
+            "public": false
+          },
+          {
+            "method": "createAccount",
+            "scope": "accounting-core.write",
+            "public": false
+          },
+          {
+            "method": "createFiscalPeriod",
+            "scope": "accounting-core.write",
+            "public": false
+          },
+          {
+            "method": "createJournalEntry",
+            "scope": "accounting-core.write",
+            "public": false
+          },
+          {
+            "method": "postJournalEntry",
+            "scope": "accounting-core.write",
+            "public": false
+          },
+          {
+            "method": "voidJournalEntry",
+            "scope": "accounting-core.write",
+            "public": false
+          },
+          {
+            "method": "getTrialBalance",
+            "scope": "accounting-core.read",
+            "public": false
+          },
+          {
+            "method": "getGeneralLedger",
+            "scope": "accounting-core.read",
+            "public": false
+          },
+          {
+            "method": "getIncomeStatement",
+            "scope": "accounting-core.read",
+            "public": false
+          },
+          {
+            "method": "getBalanceSheet",
+            "scope": "accounting-core.read",
+            "public": false
+          },
+          {
+            "method": "getCashFlowStatement",
+            "scope": "accounting-core.read",
+            "public": false
+          }
+        ],
         "hooks": [
           "beforeAccountCreate",
           "beforeFiscalPeriodCreate",

@@ -49,6 +49,9 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
       "accountingSettingsSchema",
       "closeFiscalPeriod",
       "getGeneralLedger",
+      "getIncomeStatement",
+      "getBalanceSheet",
+      "getCashFlowStatement",
       "getFiscalPeriod",
       "listFiscalPeriods",
       "lockFiscalPeriod",
@@ -56,6 +59,9 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
       "updateAccountingSettings",
       "./use-cases/close-fiscal-period",
       "./use-cases/get-general-ledger",
+      "./use-cases/get-income-statement",
+      "./use-cases/get-balance-sheet",
+      "./use-cases/get-cash-flow-statement",
       "./use-cases/get-fiscal-period",
       "./use-cases/list-fiscal-periods",
       "./use-cases/lock-fiscal-period",
@@ -104,9 +110,15 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
       "accounting-core.listFiscalPeriods",
       "accounting-core.closeFiscalPeriod",
       "accounting-core.lockFiscalPeriod",
-      "accounting-core.reopenFiscalPeriod"
+      "accounting-core.reopenFiscalPeriod",
+      "accounting-core.getIncomeStatement",
+      "accounting-core.getBalanceSheet",
+      "accounting-core.getCashFlowStatement",
+      "method: \"getIncomeStatement\"",
+      "method: \"getBalanceSheet\"",
+      "method: \"getCashFlowStatement\""
     ],
-    "Accounting Core manifest exposes settings, fiscal-period read, and lifecycle tools to agentic surfaces."
+    "Accounting Core manifest exposes settings, fiscal-period read, lifecycle, and financial statement tools to agentic surfaces."
   );
   assertFileIncludesAll(
     "module.json",
@@ -117,9 +129,12 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
       "accounting-core.listFiscalPeriods",
       "accounting-core.closeFiscalPeriod",
       "accounting-core.lockFiscalPeriod",
-      "accounting-core.reopenFiscalPeriod"
+      "accounting-core.reopenFiscalPeriod",
+      "\"method\": \"getIncomeStatement\"",
+      "\"method\": \"getBalanceSheet\"",
+      "\"method\": \"getCashFlowStatement\""
     ],
-    "Accounting Core module metadata exposes settings, fiscal-period read, and lifecycle tools."
+    "Accounting Core module metadata exposes settings, fiscal-period read, lifecycle, and financial statement tools."
   );
   assertFileIncludesAll(
     "openapi.json",
@@ -128,6 +143,12 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
       "\"gaap\", \"ifrs\"",
       "\"/general-ledger\"",
       "\"operationId\": \"getGeneralLedger\"",
+      "\"/income-statement\"",
+      "\"operationId\": \"getIncomeStatement\"",
+      "\"/balance-sheet\"",
+      "\"operationId\": \"getBalanceSheet\"",
+      "\"/cash-flow-statement\"",
+      "\"operationId\": \"getCashFlowStatement\"",
       "\"/settings\"",
       "\"operationId\": \"updateAccountingSettings\"",
       "\"AccountingSettings\"",
@@ -166,6 +187,21 @@ export default function check({ assertFileIncludes, assertFileIncludesAll }) {
       "accounting-core.INVALID_GENERAL_LEDGER_INPUT"
     ],
     "Accounting Core general ledger use case validates account/date filters and returns opening/running balances."
+  );
+  assertFileIncludesAll(
+    "src/use-cases/get-income-statement.ts",
+    ["incomeStatementSchema", "listTrialBalancePostings", "netIncomeCents", "operating_revenue", "operating_expense"],
+    "Accounting Core income statement use case aggregates date-bounded revenue and expense activity."
+  );
+  assertFileIncludesAll(
+    "src/use-cases/get-balance-sheet.ts",
+    ["balanceSheetSchema", "Current earnings", "totalAssetsCents", "totalLiabilitiesCents", "totalEquityCents"],
+    "Accounting Core balance sheet use case includes synthetic current earnings for unclosed net income."
+  );
+  assertFileIncludesAll(
+    "src/use-cases/get-cash-flow-statement.ts",
+    ["cashFlowStatementSchema", "isReconcilable", "defaultDepositAccountId", "stripeDepositAccountId", "unclassified"],
+    "Accounting Core cash-flow statement use case derives cash movement from reconcilable/deposit accounts and exposes unclassified activity."
   );
   assertFileIncludesAll(
     "src/ports/index.ts",

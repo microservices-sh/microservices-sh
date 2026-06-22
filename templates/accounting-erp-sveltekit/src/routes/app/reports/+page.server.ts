@@ -1,6 +1,12 @@
 import type { PageServerLoad } from "./$types";
 import { redirect } from "@sveltejs/kit";
-import { getGeneralLedger, listAccounts } from "@microservices-sh/accounting-core";
+import {
+  getBalanceSheet,
+  getCashFlowStatement,
+  getGeneralLedger,
+  getIncomeStatement,
+  listAccounts
+} from "@microservices-sh/accounting-core";
 import { getAgingReport, listVendors } from "@microservices-sh/accounts-payable";
 import { listCustomers } from "@microservices-sh/customer";
 import { requireOrgPermission } from "$lib/server/org-context";
@@ -16,6 +22,10 @@ function optionalDay(value: string | null): string | null {
 
 function reportIso(day: string): string {
   return `${day}T00:00:00.000Z`;
+}
+
+function yearStart(day: string): string {
+  return `${day.slice(0, 4)}-01-01`;
 }
 
 function overdueTotal(input: {
@@ -43,18 +53,28 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform, 
 
   const asOfDay = reportDay(url.searchParams.get("asOf"));
   const startDate = optionalDay(url.searchParams.get("startDate"));
+  const statementStartDate = startDate ?? yearStart(asOfDay);
   const asOfIso = reportIso(asOfDay);
   const customerId = url.searchParams.get("customerId")?.trim() || null;
   const accountId = url.searchParams.get("accountId")?.trim() || null;
   const ctx = { tenantId: activeOrgId, actorId: locals.user.id, now: asOfIso };
 
-  const [apAging, arAging, openReceivables, customers, vendors, accounts] = await Promise.all([
+  const [apAging, arAging, openReceivables, customers, vendors, accounts, incomeStatement, balanceSheet, cashFlowStatement] = await Promise.all([
     getAgingReport({ tenantId: activeOrgId, asOfDate: asOfIso }, { accountsPayableStore: locals.accountsPayableStore }),
     locals.accountsReceivableService.getReceivableAging(ctx, asOfIso),
     locals.accountsReceivableService.listOpenReceivables(ctx),
     listCustomers({ customerRepository: locals.customerRepository }),
     listVendors({ tenantId: activeOrgId, includeInactive: true, limit: 500 }, { accountsPayableStore: locals.accountsPayableStore }),
-    listAccounts({ tenantId: activeOrgId, includeInactive: true, limit: 500 }, { accountingCoreStore: locals.accountingCoreStore })
+    listAccounts({ tenantId: activeOrgId, includeInactive: true, limit: 500 }, { accountingCoreStore: locals.accountingCoreStore }),
+    getIncomeStatement(
+      { tenantId: activeOrgId, startDate: statementStartDate, endDate: asOfDay },
+      { accountingCoreStore: locals.accountingCoreStore }
+    ),
+    getBalanceSheet({ tenantId: activeOrgId, asOfDate: asOfDay }, { accountingCoreStore: locals.accountingCoreStore }),
+    getCashFlowStatement(
+      { tenantId: activeOrgId, startDate: statementStartDate, endDate: asOfDay },
+      { accountingCoreStore: locals.accountingCoreStore }
+    )
   ]);
 
   const customerNameById = new Map((customers.ok ? customers.data.customers : []).map((customer) => [customer.id, customer.name]));
@@ -78,6 +98,7 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform, 
   return {
     asOfDay,
     startDate,
+    statementStartDate,
     selectedCustomerId: customerId,
     selectedAccountId: accountId,
     customers: customers.ok
@@ -115,6 +136,9 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform, 
           customerName: customerNameById.get(statement.data.customerId) ?? statement.data.customerId
         }
       : null,
-    generalLedger: generalLedger?.ok ? generalLedger.data.generalLedger : null
+    generalLedger: generalLedger?.ok ? generalLedger.data.generalLedger : null,
+    incomeStatement: incomeStatement.ok ? incomeStatement.data.incomeStatement : null,
+    balanceSheet: balanceSheet.ok ? balanceSheet.data.balanceSheet : null,
+    cashFlowStatement: cashFlowStatement.ok ? cashFlowStatement.data.cashFlowStatement : null
   };
 };

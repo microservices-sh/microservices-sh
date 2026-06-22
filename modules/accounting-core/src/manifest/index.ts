@@ -6,7 +6,7 @@ export const manifest = {
   status: "draft",
   class: "core",
   summary:
-    "Tenant-scoped double-entry accounting foundation with setup settings, chart of accounts, fiscal periods, balanced posting, voiding, and trial balance.",
+    "Tenant-scoped double-entry accounting foundation with setup settings, chart of accounts, fiscal periods, balanced posting, voiding, trial balance, general ledger, and financial statements.",
   entrypoint: "src/index.ts",
   permissions: [
     "accounting-core.read",
@@ -33,7 +33,68 @@ export const manifest = {
     requires: [],
     optional: ["auth", "audit-log"],
     rpc: {
-      exposes: [],
+      exposes: [
+        {
+          method: "listAccounts",
+          scope: "accounting-core.read",
+          public: false
+        },
+        {
+          method: "getAccount",
+          scope: "accounting-core.read",
+          public: false
+        },
+        {
+          method: "createAccount",
+          scope: "accounting-core.write",
+          public: false
+        },
+        {
+          method: "createFiscalPeriod",
+          scope: "accounting-core.write",
+          public: false
+        },
+        {
+          method: "createJournalEntry",
+          scope: "accounting-core.write",
+          public: false
+        },
+        {
+          method: "postJournalEntry",
+          scope: "accounting-core.write",
+          public: false
+        },
+        {
+          method: "voidJournalEntry",
+          scope: "accounting-core.write",
+          public: false
+        },
+        {
+          method: "getTrialBalance",
+          scope: "accounting-core.read",
+          public: false
+        },
+        {
+          method: "getGeneralLedger",
+          scope: "accounting-core.read",
+          public: false
+        },
+        {
+          method: "getIncomeStatement",
+          scope: "accounting-core.read",
+          public: false
+        },
+        {
+          method: "getBalanceSheet",
+          scope: "accounting-core.read",
+          public: false
+        },
+        {
+          method: "getCashFlowStatement",
+          scope: "accounting-core.read",
+          public: false
+        }
+      ],
       calls: []
     },
     events: {
@@ -106,7 +167,10 @@ export const manifest = {
         "accounting-core.postJournalEntry",
         "accounting-core.voidJournalEntry",
         "accounting-core.getTrialBalance",
-        "accounting-core.getGeneralLedger"
+        "accounting-core.getGeneralLedger",
+        "accounting-core.getIncomeStatement",
+        "accounting-core.getBalanceSheet",
+        "accounting-core.getCashFlowStatement"
       ],
       approvalRequiredFor: [
         "accounting-core.createAccount",

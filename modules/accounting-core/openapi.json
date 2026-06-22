@@ -3,7 +3,7 @@
   "info": {
     "title": "Accounting Core Module",
     "version": "0.1.0",
-    "description": "Boundary shapes for tenant-scoped accounting setup settings, chart of accounts, fiscal periods, balanced journal posting, voiding, and trial balance reporting."
+    "description": "Boundary shapes for tenant-scoped accounting setup settings, chart of accounts, fiscal periods, balanced journal posting, voiding, trial balance, general ledger, and financial statement reporting."
   },
   "paths": {
     "/setup/status": {
@@ -197,6 +197,35 @@
           "404": { "description": "Account or fiscal period not found" }
         }
       }
+    },
+    "/income-statement": {
+      "get": {
+        "summary": "Get date-range revenue, expense, and net income sections from posted journal activity",
+        "operationId": "getIncomeStatement",
+        "responses": {
+          "200": { "description": "Income statement" },
+          "400": { "description": "Invalid statement date range" }
+        }
+      }
+    },
+    "/balance-sheet": {
+      "get": {
+        "summary": "Get as-of asset, liability, and equity sections with current earnings",
+        "operationId": "getBalanceSheet",
+        "responses": {
+          "200": { "description": "Balance sheet" }
+        }
+      }
+    },
+    "/cash-flow-statement": {
+      "get": {
+        "summary": "Get date-range cash activity grouped into operating, investing, financing, and unclassified sections",
+        "operationId": "getCashFlowStatement",
+        "responses": {
+          "200": { "description": "Cash flow statement" },
+          "400": { "description": "Invalid statement date range" }
+        }
+      }
     }
   },
   "components": {
@@ -230,6 +259,18 @@
           "debitCents": { "$ref": "#/components/schemas/MoneyCents" },
           "creditCents": { "$ref": "#/components/schemas/MoneyCents" },
           "runningBalanceCents": { "$ref": "#/components/schemas/MoneyCents" }
+        }
+      },
+      "FinancialStatementSection": {
+        "type": "object",
+        "properties": {
+          "key": { "type": "string" },
+          "label": { "type": "string" },
+          "totalCents": { "$ref": "#/components/schemas/MoneyCents" },
+          "lines": {
+            "type": "array",
+            "items": { "type": "object" }
+          }
         }
       },
       "AccountingSettings": {

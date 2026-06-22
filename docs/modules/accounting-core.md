@@ -5,7 +5,7 @@ Module ID: `accounting-core`
 Mount: `/accounting`
 
 ## Summary
-Tenant-scoped double-entry accounting foundation with setup settings, chart of accounts, fiscal periods, balanced posting, voiding, and trial balance.
+Tenant-scoped double-entry accounting foundation with setup settings, chart of accounts, fiscal periods, balanced posting, voiding, trial balance, general ledger, and financial statements.
 
 ## Dependencies
 - none required
@@ -50,6 +50,9 @@ Tenant-scoped double-entry accounting foundation with setup settings, chart of a
 - Posted entries are not edited; voiding creates reversal behavior.
 - Trial balance debit and credit totals must balance.
 - General ledger reports are tenant/account scoped and compute account-normal opening, running, and closing balances from posted and void journal lines.
+- Income statements aggregate date-bounded posted revenue and expense activity.
+- Balance sheets aggregate as-of assets, liabilities, and equity with a synthetic current earnings line for unclosed revenue-expense balances.
+- Cash-flow statements use reconcilable asset accounts plus configured deposit accounts as cash accounts and expose unclassified cash activity explicitly.
 
 ## Approval Gate
 Risk: medium

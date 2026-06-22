@@ -80,7 +80,7 @@ Future MCP/CLI tools should expose the same content through:
 | [`sales-order`](./sales-order.md) | Draft | Sales orders, line items, status transitions, reservation handoff, and invoice draft handoff. |
 | [`shipment`](./shipment.md) | Draft | Shipment batches, fulfillment workflow, status history, idempotent completion, and shipment events. |
 | [`commerce-sync`](./commerce-sync.md) | Draft | Commerce connections, mappings, sync runs, webhook receipts, and normalized payload envelopes. |
-| [`accounting-core`](./accounting-core.md) | Draft | Double-entry accounting foundation, chart of accounts, fiscal periods, posting, voiding, and trial balance. |
+| [`accounting-core`](./accounting-core.md) | Draft | Double-entry accounting foundation, chart of accounts, fiscal periods, posting, voiding, and financial statements. |
 | [`accounts-payable`](./accounts-payable.md) | Draft | Vendors, bills, payable lifecycle, recurring bill templates, payment application, and aging. |
 | [`accounts-receivable`](./accounts-receivable.md) | Draft | Customer payment application, open receivables, aging, and statement workflows. |
 | [`bank-reconciliation`](./bank-reconciliation.md) | Draft | Bank accounts, imported transactions, statement lines, matching, and reconciliation state. |

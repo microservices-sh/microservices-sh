@@ -10,6 +10,8 @@ export {
   accountSubtypeSchema,
   accountTypeSchema,
   accountUpdateSchema,
+  balanceSheetSchema,
+  cashFlowStatementSchema,
   chartOfAccountsStandardSchema,
   fiscalPeriodFilterSchema,
   fiscalPeriodIdentitySchema,
@@ -19,6 +21,7 @@ export {
   fiscalPeriodTransitionSchema,
   fiscalPeriodTypeSchema,
   generalLedgerSchema,
+  incomeStatementSchema,
   journalEntryInputSchema,
   journalEntryStatusSchema,
   journalEntryUpdateSchema,
@@ -57,7 +60,10 @@ export { createJournalEntry } from "./use-cases/create-journal-entry";
 export { updateJournalEntry } from "./use-cases/update-journal-entry";
 export { postJournalEntry } from "./use-cases/post-journal-entry";
 export { voidJournalEntry } from "./use-cases/void-journal-entry";
+export { getBalanceSheet } from "./use-cases/get-balance-sheet";
+export { getCashFlowStatement } from "./use-cases/get-cash-flow-statement";
 export { getGeneralLedger } from "./use-cases/get-general-ledger";
+export { getIncomeStatement } from "./use-cases/get-income-statement";
 export { getTrialBalance } from "./use-cases/get-trial-balance";
 export type { AccountingCoreStore } from "./ports";
 export type {
@@ -70,15 +76,23 @@ export type {
   AccountSubtype,
   AccountType,
   Actor,
+  BalanceSheet,
+  BalanceSheetFilter,
+  CashFlowStatement,
+  CashFlowStatementFilter,
   ChartOfAccountsStandard,
   FiscalPeriod,
   FiscalPeriodFilter,
   FiscalPeriodStatus,
   FiscalPeriodType,
+  FinancialStatementLine,
+  FinancialStatementSection,
   GeneralLedgerEntry,
   GeneralLedgerFilter,
   GeneralLedgerPosting,
   GeneralLedgerReport,
+  IncomeStatement,
+  IncomeStatementFilter,
   JournalEntry,
   JournalEntryStatus,
   JournalEntryWithLines,

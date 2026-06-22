@@ -13,7 +13,7 @@ SvelteKit template for StackSuite-style accounting operations.
 
 ## Focus Modules
 
-- `accounting-core`: chart of accounts, fiscal periods, journals, trial balance.
+- `accounting-core`: chart of accounts, fiscal periods, journals, trial balance, general ledger, and financial statements.
 - `accounts-payable`: vendors, bills, bill payments, recurring bills.
 - `accounts-receivable`: customer payments, applications, aging, statements.
 - `bank-reconciliation`: bank accounts, statement imports, matching, closeout.

@@ -136,9 +136,24 @@ export const voidJournalEntrySchema = z.object({
 export const trialBalanceSchema = z.object({
   tenantId: z.string().min(1),
   periodId: z.string().min(1).optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   asOfDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   includeZero: z.boolean().optional()
 });
+
+export const incomeStatementSchema = z.object({
+  tenantId: z.string().min(1),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+});
+
+export const balanceSheetSchema = z.object({
+  tenantId: z.string().min(1),
+  asOfDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+});
+
+export const cashFlowStatementSchema = incomeStatementSchema;
 
 export const generalLedgerSchema = z.object({
   tenantId: z.string().min(1),

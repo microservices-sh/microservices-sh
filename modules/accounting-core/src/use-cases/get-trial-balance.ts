@@ -31,6 +31,9 @@ export async function getTrialBalance(input: unknown, deps: AccountingDeps) {
   if (!parsed.success) {
     return err(400, "accounting-core.INVALID_TRIAL_BALANCE_INPUT", "Trial balance input is invalid.", parsed.error.issues);
   }
+  if (parsed.data.startDate && parsed.data.endDate && parsed.data.startDate > parsed.data.endDate) {
+    return err(400, "accounting-core.INVALID_TRIAL_BALANCE_RANGE", "Trial balance start date must be on or before end date.");
+  }
 
   if (parsed.data.periodId) {
     const period = await deps.accountingCoreStore.getFiscalPeriod(parsed.data.tenantId, parsed.data.periodId);

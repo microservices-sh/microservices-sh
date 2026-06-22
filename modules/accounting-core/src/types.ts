@@ -117,6 +117,8 @@ export interface FiscalPeriodFilter {
 export interface TrialBalanceFilter {
   tenantId: string;
   periodId?: string;
+  startDate?: string;
+  endDate?: string;
   asOfDate?: string;
   includeZero?: boolean;
 }
@@ -172,6 +174,70 @@ export interface TrialBalance {
   totalDebitCents: number;
   totalCreditCents: number;
   balanced: boolean;
+}
+
+export interface FinancialStatementLine {
+  accountId: string | null;
+  accountCode: string;
+  accountName: string;
+  accountType: AccountType | "synthetic";
+  accountSubtype: AccountSubtype | null;
+  amountCents: number;
+}
+
+export interface FinancialStatementSection {
+  key: string;
+  label: string;
+  lines: FinancialStatementLine[];
+  totalCents: number;
+}
+
+export interface IncomeStatementFilter {
+  tenantId: string;
+  startDate: string;
+  endDate: string;
+}
+
+export interface IncomeStatement {
+  tenantId: string;
+  startDate: string;
+  endDate: string;
+  sections: FinancialStatementSection[];
+  totalRevenueCents: number;
+  totalExpenseCents: number;
+  netIncomeCents: number;
+}
+
+export interface BalanceSheetFilter {
+  tenantId: string;
+  asOfDate: string;
+}
+
+export interface BalanceSheet {
+  tenantId: string;
+  asOfDate: string;
+  sections: FinancialStatementSection[];
+  totalAssetsCents: number;
+  totalLiabilitiesCents: number;
+  totalEquityCents: number;
+  balanced: boolean;
+}
+
+export interface CashFlowStatementFilter {
+  tenantId: string;
+  startDate: string;
+  endDate: string;
+}
+
+export interface CashFlowStatement {
+  tenantId: string;
+  startDate: string;
+  endDate: string;
+  cashAccountIds: string[];
+  beginningCashCents: number;
+  endingCashCents: number;
+  sections: FinancialStatementSection[];
+  netCashChangeCents: number;
 }
 
 export interface GeneralLedgerFilter {

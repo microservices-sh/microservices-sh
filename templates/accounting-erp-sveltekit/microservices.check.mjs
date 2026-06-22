@@ -21,6 +21,8 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const ledgerFiscalPeriodDetailServer = readText("src/routes/app/ledger/fiscal-periods/[id]/+page.server.ts");
   const ledgerFiscalPeriodDetailPage = readText("src/routes/app/ledger/fiscal-periods/[id]/+page.svelte");
   const hooksServer = readText("src/hooks.server.ts");
+  const templateLock = JSON.parse(readText("microservices.lock.json"));
+  const accountingCoreLock = templateLock.modules.find((entry) => entry.id === "accounting-core");
 
   assertFileIncludesAll(
     "docs/api-boundary.md",
@@ -406,16 +408,42 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       "listOpenReceivables",
       "generateCustomerStatement",
       "getGeneralLedger",
+      "getIncomeStatement",
+      "getBalanceSheet",
+      "getCashFlowStatement",
       "listAccounts",
       "requireModule(\"accounting-core\"",
       "requireModule(\"accounts-receivable\""
     ],
-    "Accounting reports route composes AP aging, AR aging, open receivables, customer statements, and general ledger from module APIs."
+    "Accounting reports route composes financial statements, AP aging, AR aging, open receivables, customer statements, and general ledger from module APIs."
   );
   assertFileIncludesAll(
     "src/routes/app/reports/+page.svelte",
-    ["Aged receivables", "Aged payables", "Customer statement", "Statement invoices", "General ledger", "runningBalanceCents"],
-    "Accounting reports page renders aging reports, customer statement output, and account-level general ledger output."
+    [
+      "Income statement",
+      "Balance sheet",
+      "Cash flow",
+      "Statement lines",
+      "Aged receivables",
+      "Aged payables",
+      "Customer statement",
+      "Statement invoices",
+      "General ledger",
+      "runningBalanceCents"
+    ],
+    "Accounting reports page renders financial statements, aging reports, customer statement output, and account-level general ledger output."
+  );
+  assertFileIncludesAll(
+    "microservices.lock.json",
+    ["\"method\": \"getIncomeStatement\"", "\"method\": \"getBalanceSheet\"", "\"method\": \"getCashFlowStatement\""],
+    "Accounting template lock exposes accounting-core financial statement RPC methods."
+  );
+  assert(
+    ["getIncomeStatement", "getBalanceSheet", "getCashFlowStatement"].every((method) =>
+      accountingCoreLock?.contract?.rpc?.some((entry) => entry.method === method)
+    ),
+    "Accounting template lock exposes financial statement RPC methods on the accounting-core module contract.",
+    "policy:accounting-core-lock-statement-rpc"
   );
   assertFileIncludes(
     "src/routes/app/receivables/+page.svelte",

@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "status": "draft",
   "class": "core",
-  "summary": "Tenant-scoped double-entry accounting foundation with setup settings, chart of accounts, fiscal periods, balanced posting, voiding, and trial balance.",
+  "summary": "Tenant-scoped double-entry accounting foundation with setup settings, chart of accounts, fiscal periods, balanced posting, voiding, trial balance, general ledger, and financial statements.",
   "runtime": {
     "language": "typescript",
     "platform": "cloudflare-workers",
@@ -44,7 +44,68 @@
       "audit-log"
     ],
     "rpc": {
-      "exposes": [],
+      "exposes": [
+        {
+          "method": "listAccounts",
+          "scope": "accounting-core.read",
+          "public": false
+        },
+        {
+          "method": "getAccount",
+          "scope": "accounting-core.read",
+          "public": false
+        },
+        {
+          "method": "createAccount",
+          "scope": "accounting-core.write",
+          "public": false
+        },
+        {
+          "method": "createFiscalPeriod",
+          "scope": "accounting-core.write",
+          "public": false
+        },
+        {
+          "method": "createJournalEntry",
+          "scope": "accounting-core.write",
+          "public": false
+        },
+        {
+          "method": "postJournalEntry",
+          "scope": "accounting-core.write",
+          "public": false
+        },
+        {
+          "method": "voidJournalEntry",
+          "scope": "accounting-core.write",
+          "public": false
+        },
+        {
+          "method": "getTrialBalance",
+          "scope": "accounting-core.read",
+          "public": false
+        },
+        {
+          "method": "getGeneralLedger",
+          "scope": "accounting-core.read",
+          "public": false
+        },
+        {
+          "method": "getIncomeStatement",
+          "scope": "accounting-core.read",
+          "public": false
+        },
+        {
+          "method": "getBalanceSheet",
+          "scope": "accounting-core.read",
+          "public": false
+        },
+        {
+          "method": "getCashFlowStatement",
+          "scope": "accounting-core.read",
+          "public": false
+        }
+      ],
       "calls": []
     },
     "events": {
@@ -137,7 +198,10 @@
         "accounting-core.postJournalEntry",
         "accounting-core.voidJournalEntry",
         "accounting-core.getTrialBalance",
-        "accounting-core.getGeneralLedger"
+        "accounting-core.getGeneralLedger",
+        "accounting-core.getIncomeStatement",
+        "accounting-core.getBalanceSheet",
+        "accounting-core.getCashFlowStatement"
       ],
       "skillPaths": [
         "skills/accounting-core-operator/SKILL.md"

@@ -560,6 +560,14 @@ export function createD1AccountingCoreStore(db: D1Database): AccountingCoreStore
         clauses.push("e.period_id = ?");
         binds.push(filter.periodId);
       }
+      if (filter.startDate) {
+        clauses.push("e.entry_date >= ?");
+        binds.push(filter.startDate);
+      }
+      if (filter.endDate) {
+        clauses.push("e.entry_date <= ?");
+        binds.push(filter.endDate);
+      }
       if (filter.asOfDate) {
         clauses.push("e.entry_date <= ?");
         binds.push(filter.asOfDate);
