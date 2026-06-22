@@ -301,6 +301,111 @@ export const actions: Actions = {
     return { transactionMatched: true };
   },
 
+  unmatchTransaction: async ({ request, locals, cookies, platform }) => {
+    requireModule("bank-reconciliation", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const transactionId = text(form.get("transactionId"));
+    const matchId = text(form.get("matchId")) || null;
+    if (!transactionId) return fail(400, { error: "Choose a transaction to unmatch." });
+
+    const unmatched = await locals.bankReconciliationService.unmatchTransaction(
+      { tenantId: org.id, actorId: locals.user.id },
+      { transactionId, matchId }
+    );
+    if (!unmatched.ok || !unmatched.data) return fail(400, { error: unmatched.error?.message ?? "Could not unmatch transaction." });
+
+    await recordEvent(
+      {
+        eventName: "bank-reconciliation.transaction_unmatched",
+        actorId: locals.user.id,
+        entityType: "bank_transaction",
+        entityId: unmatched.data.transaction.id,
+        source: "app/banking",
+        payload: {
+          removedMatchCount: unmatched.data.removedMatchCount ?? 0,
+          matchStatus: unmatched.data.transaction.matchStatus
+        }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { transactionUnmatched: true, removedMatchCount: unmatched.data.removedMatchCount ?? 0 };
+  },
+
+  excludeTransaction: async ({ request, locals, cookies, platform }) => {
+    requireModule("bank-reconciliation", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const transactionId = text(form.get("transactionId"));
+    const reason = text(form.get("reason")) || "Excluded from banking ledger.";
+    if (!transactionId) return fail(400, { error: "Choose a transaction to exclude." });
+
+    const excluded = await locals.bankReconciliationService.excludeTransaction(
+      { tenantId: org.id, actorId: locals.user.id },
+      { transactionId, reason }
+    );
+    if (!excluded.ok || !excluded.data) return fail(400, { error: excluded.error?.message ?? "Could not exclude transaction." });
+
+    await recordEvent(
+      {
+        eventName: "bank-reconciliation.transaction_excluded",
+        actorId: locals.user.id,
+        entityType: "bank_transaction",
+        entityId: excluded.data.transaction.id,
+        source: "app/banking",
+        payload: {
+          reason,
+          removedMatchCount: excluded.data.removedMatchCount ?? 0,
+          amountCents: excluded.data.transaction.amountCents
+        }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { transactionExcluded: true };
+  },
+
+  restoreExcludedTransaction: async ({ request, locals, cookies, platform }) => {
+    requireModule("bank-reconciliation", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const transactionId = text(form.get("transactionId"));
+    if (!transactionId) return fail(400, { error: "Choose an excluded transaction to restore." });
+
+    const restored = await locals.bankReconciliationService.restoreExcludedTransaction(
+      { tenantId: org.id, actorId: locals.user.id },
+      { transactionId }
+    );
+    if (!restored.ok || !restored.data) return fail(400, { error: restored.error?.message ?? "Could not restore transaction." });
+
+    await recordEvent(
+      {
+        eventName: "bank-reconciliation.transaction_restored",
+        actorId: locals.user.id,
+        entityType: "bank_transaction",
+        entityId: restored.data.transaction.id,
+        source: "app/banking",
+        payload: { matchStatus: restored.data.transaction.matchStatus }
+      },
+      { auditStore: locals.auditStore }
+    );
+
+    return { transactionRestored: true };
+  },
+
   startReconciliation: async ({ request, locals, cookies, platform }) => {
     requireModule("bank-reconciliation", platform);
     if (!locals.user) return fail(403, { error: "Not signed in to a company." });

@@ -1669,6 +1669,25 @@
 | Create-app closure | Bundled StackSuite template closure includes the updated bulk transition surface | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 125 banking transaction correction lifecycle
+
+- **Status:** complete.
+- Goal: close the banking remove/exclude correction gap with module-owned service methods and a focused accounting route proof.
+- Added `unmatchTransaction`, `excludeTransaction`, and `restoreExcludedTransaction` to `@microservices-sh/bank-reconciliation`, backed by memory/D1 match deletion and D1 ledger-reference persistence fixes.
+- Changed reconciliation completion to ignore excluded transactions for unmatched checks, cleared totals, and reconciled-row updates.
+- Wired `/app/banking` row controls and manager-gated actions for unmatch, exclude, and restore while keeping import/reconciliation detail routes read-only.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Bank-reconciliation tests | Unmatch, exclude, restore, and excluded-completion behavior remain covered | `pnpm --filter @microservices-sh/bank-reconciliation test` passed, 6/6 | Pass |
+| Bank-reconciliation build/spec | New service types, store methods, metadata, and docs compile and meet module spec | `pnpm --filter @microservices-sh/bank-reconciliation build` and `pnpm --filter @microservices-sh/bank-reconciliation check:spec` passed | Pass |
+| Accounting template spec/build | Banking row actions and policy guards remain valid and SvelteKit builds | `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Module contract | Static catalog exposes the new bank-reconciliation RPC/events | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js` passed, 21/21 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Create-app build | Bundled repo templates refresh from source after banking updates | `pnpm --dir packages/create-microservices-app build` passed | Pass |
+| Create-app closure | Bundled StackSuite template closure includes the updated banking surface | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 122 StackSuite residual route gate audit
 
 - **Status:** complete.

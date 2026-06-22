@@ -34,17 +34,21 @@ export type {
   BankStatementImportStatus,
   BankTransactionMatch,
   BankTransaction,
+  BankTransactionCorrectionResult,
   BankTransactionMatchStatus,
   CreateMatchInput,
   CreateMatchResult,
+  ExcludeTransactionInput,
   MatchCandidate,
   MatchSuggestion,
   ModuleResult,
   ReconciliationSession,
   ReconciliationStatus,
+  RestoreExcludedTransactionInput,
   SuggestMatchesInput,
   StatementImportResult,
-  TenantContext
+  TenantContext,
+  UnmatchTransactionInput
 } from "./types";
 
 export const bankReconciliationModule = {

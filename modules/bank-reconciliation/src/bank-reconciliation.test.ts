@@ -138,6 +138,75 @@ describe("bank-reconciliation", () => {
     ]);
   });
 
+  it("unmatches and excludes transactions without changing reconciled rows", async () => {
+    const store = createMemoryBankReconciliationStore();
+    const service = createBankReconciliationService({
+      store,
+      createId: createSequentialBankReconciliationIdFactory()
+    });
+    const account = await service.createBankAccount(ctx, { name: "Operating" });
+    const imported = await service.importStatementTransactions(ctx, account.data!.id, [
+      { transactionDate: "2026-06-20", description: "Stripe payout", amountCents: 500, transactionHash: "hash-correct-1" },
+      { transactionDate: "2026-06-20", description: "Bank fee", amountCents: -25, transactionHash: "hash-correct-2" }
+    ]);
+    const [payout, fee] = imported.data!.imported;
+
+    const matched = await service.matchTransaction(ctx, payout.id, "journal_line_1");
+    expect(matched.ok).toBe(true);
+    await expect(store.listMatchesForTransaction(ctx.tenantId, payout.id)).resolves.toHaveLength(1);
+
+    const unmatched = await service.unmatchTransaction(ctx, { transactionId: payout.id });
+    expect(unmatched.ok).toBe(true);
+    expect(unmatched.data).toMatchObject({ removedMatchCount: 1, transaction: { matchStatus: "unmatched" } });
+    expect(unmatched.data!.transaction.ledgerReferenceId).toBeUndefined();
+    await expect(store.listMatchesForTransaction(ctx.tenantId, payout.id)).resolves.toHaveLength(0);
+
+    await service.matchTransaction(ctx, fee.id, "fee_line_1");
+    const excluded = await service.excludeTransaction(ctx, { transactionId: fee.id, reason: "Bank fee below threshold" });
+    expect(excluded.ok).toBe(true);
+    expect(excluded.data).toMatchObject({ removedMatchCount: 1, transaction: { matchStatus: "excluded" } });
+    await expect(store.listMatchesForTransaction(ctx.tenantId, fee.id)).resolves.toHaveLength(0);
+
+    const restored = await service.restoreExcludedTransaction(ctx, { transactionId: fee.id });
+    expect(restored.ok).toBe(true);
+    expect(restored.data).toMatchObject({ transaction: { matchStatus: "unmatched" } });
+  });
+
+  it("ignores excluded transactions when completing reconciliation", async () => {
+    const store = createMemoryBankReconciliationStore();
+    const service = createBankReconciliationService({
+      store,
+      createId: createSequentialBankReconciliationIdFactory()
+    });
+    const account = await service.createBankAccount(ctx, { name: "Operating", openingBalanceCents: 1_000 });
+    const imported = await service.importStatementTransactions(ctx, account.data!.id, [
+      { transactionDate: "2026-06-20", description: "Deposit", amountCents: 500, transactionHash: "hash-exclude-1" },
+      { transactionDate: "2026-06-20", description: "Ignored fee", amountCents: -25, transactionHash: "hash-exclude-2" }
+    ]);
+    const [deposit, fee] = imported.data!.imported;
+    await service.matchTransaction(ctx, deposit.id, "journal_line_1");
+    await service.excludeTransaction(ctx, { transactionId: fee.id, reason: "Not in this statement balance" });
+
+    const reconciliation = await service.startReconciliation(ctx, account.data!.id, "2026-06-21", 1_500);
+    const completed = await service.completeReconciliation(ctx, reconciliation.data!.id);
+
+    expect(completed.ok).toBe(true);
+    expect(completed.data).toMatchObject({
+      status: "completed",
+      clearedDepositsCents: 500,
+      clearedWithdrawalsCents: 0,
+      clearedBalanceCents: 1_500,
+      transactionsCleared: 1
+    });
+    const transactions = await service.listStatementTransactions(ctx, account.data!.id);
+    expect(transactions.data!.find((tx) => tx.id === deposit.id)).toMatchObject({ reconciled: true });
+    expect(transactions.data!.find((tx) => tx.id === fee.id)).toMatchObject({ matchStatus: "excluded", reconciled: false });
+    expect(await service.unmatchTransaction(ctx, { transactionId: deposit.id })).toMatchObject({
+      ok: false,
+      error: { code: "transaction_reconciled" }
+    });
+  });
+
   it("imports mapped CSV statements and records import session history", async () => {
     const service = createBankReconciliationService({
       store: createMemoryBankReconciliationStore(),

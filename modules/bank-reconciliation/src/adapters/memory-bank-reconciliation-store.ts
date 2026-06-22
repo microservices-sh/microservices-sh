@@ -135,6 +135,17 @@ export function createMemoryBankReconciliationStore(): BankReconciliationStore {
         .map(copyMatch);
     },
 
+    async deleteMatchesForTransaction(tenantId, transactionId, matchId) {
+      const removable = [...matches.values()].filter(
+        (match) =>
+          match.tenantId === tenantId &&
+          match.bankTransactionId === transactionId &&
+          (!matchId || match.id === matchId)
+      );
+      for (const match of removable) matches.delete(match.id);
+      return removable.length;
+    },
+
     async insertReconciliation(session) {
       reconciliations.set(session.id, copyReconciliation(session));
     },

@@ -89,6 +89,24 @@
         }
       }
     },
+    "/matches/unmatch": {
+      "post": {
+        "summary": "Remove one or all matches from a statement transaction",
+        "operationId": "unmatchTransaction"
+      }
+    },
+    "/transactions/exclude": {
+      "post": {
+        "summary": "Exclude a statement transaction from reconciliation",
+        "operationId": "excludeTransaction"
+      }
+    },
+    "/transactions/restore-excluded": {
+      "post": {
+        "summary": "Restore an excluded statement transaction to unmatched",
+        "operationId": "restoreExcludedTransaction"
+      }
+    },
     "/reconciliations": {
       "get": {
         "summary": "List reconciliation sessions",

@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 124
+Phase 125
 
 ## Phases
 
@@ -979,6 +979,13 @@ Phase 124
 - [x] Wire `commerce-ops-sveltekit` sales-order ledger checkboxes and bulk action through the module API and existing inventory release/reservation bridges.
 - [x] Expose the bulk transition RPC through module metadata, static catalog, commerce lockfile, and MCP wiring.
 - [x] Update StackSuite docs so only bulk invoice remains gated.
+- **Status:** complete
+
+### Phase 125: Banking Transaction Correction Lifecycle
+- [x] Add module-owned `unmatchTransaction`, `excludeTransaction`, and `restoreExcludedTransaction` service methods with memory/D1 store support.
+- [x] Make reconciliation completion ignore excluded transactions for unmatched checks and cleared-balance totals.
+- [x] Wire `/app/banking` actions and row controls to the correction service methods while keeping detail routes read-only.
+- [x] Update module metadata, docs, static catalog, and accounting template policy checks.
 - **Status:** complete
 
 ## Key Questions

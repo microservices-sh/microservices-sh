@@ -6,6 +6,7 @@ export {
   bankReconciliationConfigSchema,
   completeReconciliationSchema,
   createMatchSchema,
+  excludeTransactionSchema,
   importStatementCsvSchema,
   importStatementTransactionsSchema,
   matchCandidateSchema,
@@ -14,6 +15,7 @@ export {
   matchTypeSchema,
   reconciliationFilterSchema,
   reconciliationStatusSchema,
+  restoreExcludedTransactionSchema,
   statementImportFieldMappingSchema,
   startReconciliationSchema,
   statementImportSourceSchema,
@@ -21,5 +23,6 @@ export {
   statementTransactionFilterSchema,
   statementTransactionInputSchema,
   statementTransactionTypeSchema,
+  unmatchTransactionSchema,
   suggestMatchesSchema
 } from "../schemas";

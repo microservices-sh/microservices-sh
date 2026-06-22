@@ -757,8 +757,13 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/banking/+page.server.ts",
-    ["createBankAccount", "importStatementCsv", "suggestMatches", "createMatch", "matchTransaction", "startReconciliation", "listReconciliations", "completeReconciliation", "recordEvent"],
-    "Banking route exposes operator actions and persisted reconciliation sessions through bank-reconciliation service methods."
+    ["createBankAccount", "importStatementCsv", "suggestMatches", "createMatch", "matchTransaction", "unmatchTransaction", "excludeTransaction", "restoreExcludedTransaction", "startReconciliation", "listReconciliations", "completeReconciliation", "recordEvent"],
+    "Banking route exposes operator actions, correction actions, and persisted reconciliation sessions through bank-reconciliation service methods."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/banking/+page.svelte",
+    ["?/unmatchTransaction", "?/excludeTransaction", "?/restoreExcludedTransaction", "transactionTone", "Excluded transactions"],
+    "Banking page exposes transaction unmatch, exclude, and restore actions over the bank-reconciliation module."
   );
   assertFileIncludes(
     "src/routes/app/banking/+page.svelte",
@@ -797,6 +802,9 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       !bankingImportDetailServer.includes("suggestMatches") &&
       !bankingImportDetailServer.includes("createMatch") &&
       !bankingImportDetailServer.includes("matchTransaction") &&
+      !bankingImportDetailServer.includes("unmatchTransaction") &&
+      !bankingImportDetailServer.includes("excludeTransaction") &&
+      !bankingImportDetailServer.includes("restoreExcludedTransaction") &&
       !bankingImportDetailServer.includes("startReconciliation") &&
       !bankingImportDetailServer.includes("completeReconciliation") &&
       !bankingImportDetailServer.includes("recordEvent") &&
@@ -855,6 +863,9 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
       !bankingReconciliationDetailServer.includes("suggestMatches") &&
       !bankingReconciliationDetailServer.includes("createMatch") &&
       !bankingReconciliationDetailServer.includes("matchTransaction") &&
+      !bankingReconciliationDetailServer.includes("unmatchTransaction") &&
+      !bankingReconciliationDetailServer.includes("excludeTransaction") &&
+      !bankingReconciliationDetailServer.includes("restoreExcludedTransaction") &&
       !bankingReconciliationDetailServer.includes("startReconciliation") &&
       !bankingReconciliationDetailServer.includes("completeReconciliation") &&
       !bankingReconciliationDetailServer.includes("recordEvent") &&

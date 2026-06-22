@@ -6,6 +6,7 @@
   let { data, form } = $props();
 
   const unmatched = $derived(data.transactions.filter((tx) => tx.matchStatus === "unmatched").length);
+  const excluded = $derived(data.transactions.filter((tx) => tx.matchStatus === "excluded").length);
   const matchableTransactions = $derived(data.transactions.filter((tx) => tx.matchStatus === "unmatched" && !tx.reconciled));
   const statementDelta = $derived(data.transactions.reduce((total, tx) => total + tx.amountCents, 0));
   const latestImport = $derived(data.statementImports.at(-1));
@@ -22,8 +23,15 @@
       tone: "info",
       hint: latestImport ? `${latestImport.importedRows} rows / ${latestImport.duplicateRows} duplicates` : "history"
     },
-    { label: "Unmatched", value: unmatched, tone: unmatched > 0 ? "warn" : "good", hint: money(statementDelta) }
+    { label: "Unmatched", value: unmatched, tone: unmatched > 0 ? "warn" : "good", hint: money(statementDelta) },
+    { label: "Excluded transactions", value: excluded, tone: excluded > 0 ? "neutral" : "good", hint: "ignored in close" }
   ]);
+
+  function transactionTone(status) {
+    if (status === "unmatched") return "warn";
+    if (status === "excluded") return "neutral";
+    return "good";
+  }
 </script>
 
 <svelte:head>
@@ -43,6 +51,12 @@
     <Alert tone="success">Imported {form.importedCount} rows. Skipped {form.skippedDuplicateCount} duplicates.</Alert>
   {:else if form?.transactionMatched}
     <Alert tone="success">Statement transaction matched.</Alert>
+  {:else if form?.transactionUnmatched}
+    <Alert tone="success">Statement transaction unmatched. Removed {form.removedMatchCount} match records.</Alert>
+  {:else if form?.transactionExcluded}
+    <Alert tone="warn">Statement transaction excluded from reconciliation.</Alert>
+  {:else if form?.transactionRestored}
+    <Alert tone="success">Statement transaction restored for matching.</Alert>
   {:else if form?.reconciliationStarted}
     <Alert tone="success">Reconciliation started for {form.reconciliation.statementDate}.</Alert>
   {:else if form?.reconciliationCompleted}
@@ -82,7 +96,30 @@
                   </div>
                 {/if}
               </div>
-              <Badge tone={tx.matchStatus === "unmatched" ? "warn" : "good"}>{money(tx.amountCents)}</Badge>
+              <div class="transaction-actions">
+                <Badge tone={transactionTone(tx.matchStatus)}>{tx.matchStatus}</Badge>
+                <Badge tone={tx.amountCents >= 0 ? "good" : "warn"}>{money(tx.amountCents)}</Badge>
+                {#if data.canManage && !tx.reconciled}
+                  {#if tx.matchStatus !== "unmatched" && tx.matchStatus !== "excluded"}
+                    <form method="POST" action="?/unmatchTransaction" use:enhance>
+                      <input type="hidden" name="transactionId" value={tx.id} />
+                      <Button type="submit" variant="ghost" size="sm">Unmatch</Button>
+                    </form>
+                  {/if}
+                  {#if tx.matchStatus !== "excluded"}
+                    <form method="POST" action="?/excludeTransaction" use:enhance>
+                      <input type="hidden" name="transactionId" value={tx.id} />
+                      <input type="hidden" name="reason" value="Excluded from banking ledger." />
+                      <Button type="submit" variant="ghost" size="sm">Exclude</Button>
+                    </form>
+                  {:else}
+                    <form method="POST" action="?/restoreExcludedTransaction" use:enhance>
+                      <input type="hidden" name="transactionId" value={tx.id} />
+                      <Button type="submit" variant="ghost" size="sm">Restore</Button>
+                    </form>
+                  {/if}
+                {/if}
+              </div>
             </li>
           {/each}
         </ul>
@@ -317,6 +354,17 @@
     border: 1px solid var(--color-line);
     border-radius: 6px;
     padding: 8px;
+  }
+  .transaction-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    min-inline-size: 180px;
+  }
+  .transaction-actions form {
+    margin: 0;
   }
   .candidate-list span {
     font-family: var(--font-mono);

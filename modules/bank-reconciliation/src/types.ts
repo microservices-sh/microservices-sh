@@ -77,6 +77,25 @@ export interface CreateMatchResult {
   match: BankTransactionMatch;
 }
 
+export interface UnmatchTransactionInput {
+  transactionId: string;
+  matchId?: string | null;
+}
+
+export interface ExcludeTransactionInput {
+  transactionId: string;
+  reason?: string | null;
+}
+
+export interface RestoreExcludedTransactionInput {
+  transactionId: string;
+}
+
+export interface BankTransactionCorrectionResult {
+  transaction: BankTransaction;
+  removedMatchCount?: number;
+}
+
 export interface SuggestMatchesInput {
   transactionId: string;
   candidates?: MatchCandidate[];

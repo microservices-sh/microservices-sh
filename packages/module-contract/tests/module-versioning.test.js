@@ -407,6 +407,22 @@ describe("module version selectors", () => {
       "accounts-receivable",
     ]);
 
+    expect(inspectModule("bank-reconciliation@0.1.0")).toMatchObject({
+      id: "bank-reconciliation",
+      status: "draft",
+      runtime: { mount: "/banking" },
+      rpc: expect.arrayContaining([
+        { method: "unmatchTransaction", scope: "bank-reconciliation.write", public: false },
+        { method: "excludeTransaction", scope: "bank-reconciliation.write", public: false },
+        { method: "restoreExcludedTransaction", scope: "bank-reconciliation.write", public: false },
+      ]),
+      eventsEmitted: expect.arrayContaining([
+        "bank-reconciliation.transaction_unmatched",
+        "bank-reconciliation.transaction_excluded",
+        "bank-reconciliation.transaction_restored",
+      ]),
+    });
+
     expect(inspectModule("estimate-quote@0.1.0")).toMatchObject({
       id: "estimate-quote",
       status: "draft",

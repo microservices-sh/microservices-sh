@@ -14,3 +14,5 @@ Safe first actions:
 Do not add route adapters, shared template wiring, external bank-provider calls, or edits outside `modules/bank-reconciliation/**` from this module.
 
 Money is represented as signed integer cents. Statement deposits are positive and withdrawals are negative.
+
+Use `unmatchTransaction`, `excludeTransaction`, and `restoreExcludedTransaction` for correction workflows. Do not delete match rows or update `matchStatus` directly from routes or agents.

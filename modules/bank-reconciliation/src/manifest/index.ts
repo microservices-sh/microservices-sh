@@ -6,7 +6,7 @@ export const manifest = {
   status: "draft",
   class: "core",
   summary:
-    "Tenant-scoped bank accounts, statement imports, matching, and reconciliation completion with integer-cent balances.",
+    "Tenant-scoped bank accounts, statement imports, matching corrections, exclusions, and reconciliation completion with integer-cent balances.",
   entrypoint: "src/index.ts",
   resources: [
     {
@@ -26,6 +26,9 @@ export const manifest = {
     "bank-reconciliation.bank_account_created",
     "bank-reconciliation.statement_imported",
     "bank-reconciliation.match_created",
+    "bank-reconciliation.transaction_unmatched",
+    "bank-reconciliation.transaction_excluded",
+    "bank-reconciliation.transaction_restored",
     "bank-reconciliation.reconciliation_started",
     "bank-reconciliation.reconciliation_completed"
   ]

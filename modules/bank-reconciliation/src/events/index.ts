@@ -3,6 +3,9 @@ export const bankReconciliationEvents = {
     "bank-reconciliation.bank_account_created",
     "bank-reconciliation.statement_imported",
     "bank-reconciliation.match_created",
+    "bank-reconciliation.transaction_unmatched",
+    "bank-reconciliation.transaction_excluded",
+    "bank-reconciliation.transaction_restored",
     "bank-reconciliation.reconciliation_started",
     "bank-reconciliation.reconciliation_completed"
   ],

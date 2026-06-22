@@ -151,6 +151,26 @@ export const createMatchSchema = z.object({
   reconciliationId: z.string().min(1).nullable().optional()
 });
 
+export const unmatchTransactionSchema = z.object({
+  tenantId: z.string().min(1),
+  orgId: z.string().nullable().optional(),
+  transactionId: z.string().min(1),
+  matchId: z.string().min(1).nullable().optional()
+});
+
+export const excludeTransactionSchema = z.object({
+  tenantId: z.string().min(1),
+  orgId: z.string().nullable().optional(),
+  transactionId: z.string().min(1),
+  reason: nullableText
+});
+
+export const restoreExcludedTransactionSchema = z.object({
+  tenantId: z.string().min(1),
+  orgId: z.string().nullable().optional(),
+  transactionId: z.string().min(1)
+});
+
 export const startReconciliationSchema = z.object({
   tenantId: z.string().min(1),
   orgId: z.string().nullable().optional(),

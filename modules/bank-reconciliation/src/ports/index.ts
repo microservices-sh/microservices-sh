@@ -22,6 +22,7 @@ export interface BankReconciliationStore {
   updateTransactions(transactions: BankTransaction[]): Promise<void>;
   upsertMatch(match: BankTransactionMatch): Promise<void>;
   listMatchesForTransaction(tenantId: string, transactionId: string): Promise<BankTransactionMatch[]>;
+  deleteMatchesForTransaction(tenantId: string, transactionId: string, matchId?: string | null): Promise<number>;
 
   insertReconciliation(session: ReconciliationSession): Promise<void>;
   getReconciliation(tenantId: string, reconciliationId: string): Promise<ReconciliationSession | null>;

@@ -5,7 +5,7 @@ Module ID: `bank-reconciliation`
 Mount: `/banking`
 
 ## Summary
-Tenant-scoped bank accounts, statement imports, bank transactions, ledger matching, and reconciliation sessions with completion guards.
+Tenant-scoped bank accounts, statement imports, bank transactions, ledger matching corrections, exclusions, and reconciliation sessions with completion guards.
 
 ## Dependencies
 - accounting-core
@@ -32,6 +32,9 @@ Tenant-scoped bank accounts, statement imports, bank transactions, ledger matchi
 - bank-reconciliation.bank_account_created
 - bank-reconciliation.statement_imported
 - bank-reconciliation.match_created
+- bank-reconciliation.transaction_unmatched
+- bank-reconciliation.transaction_excluded
+- bank-reconciliation.transaction_restored
 - bank-reconciliation.reconciliation_started
 - bank-reconciliation.reconciliation_completed
 
@@ -39,7 +42,9 @@ Tenant-scoped bank accounts, statement imports, bank transactions, ledger matchi
 - Money is stored as integer cents.
 - Imported transaction hashes are unique per tenant and bank account.
 - A transaction cannot be reconciled while unmatched.
-- Reconciliation completion requires the cleared balance to match the statement balance.
+- Reconciled transactions cannot be unmatched, excluded, or restored.
+- Excluded transactions are ignored by reconciliation unmatched checks and cleared-balance totals.
+- Reconciliation completion requires the non-excluded cleared balance to match the statement balance.
 - Ledger integration happens through ports or events, not direct accounting-core internals.
 
 ## Approval Gate

@@ -466,11 +466,12 @@ export function createD1BankReconciliationStore(db: D1Database): BankReconciliat
       await db
         .prepare(
           `UPDATE bank_reconciliation_transactions
-           SET match_status = ?, reconciled = ?, reconciled_at = ?, reconciliation_id = ?, updated_at = ?
+           SET match_status = ?, ledger_reference_id = ?, reconciled = ?, reconciled_at = ?, reconciliation_id = ?, updated_at = ?
            WHERE tenant_id = ? AND id = ?`
         )
         .bind(
           transaction.matchStatus,
+          transaction.ledgerReferenceId ?? null,
           transaction.reconciled ? 1 : 0,
           transaction.reconciledAt ?? null,
           transaction.reconciliationId ?? null,
@@ -488,11 +489,12 @@ export function createD1BankReconciliationStore(db: D1Database): BankReconciliat
         await db
           .prepare(
             `UPDATE bank_reconciliation_transactions
-             SET match_status = ?, reconciled = ?, reconciled_at = ?, reconciliation_id = ?, updated_at = ?
+             SET match_status = ?, ledger_reference_id = ?, reconciled = ?, reconciled_at = ?, reconciliation_id = ?, updated_at = ?
              WHERE tenant_id = ? AND id = ?`
           )
           .bind(
             transaction.matchStatus,
+            transaction.ledgerReferenceId ?? null,
             transaction.reconciled ? 1 : 0,
             transaction.reconciledAt ?? null,
             transaction.reconciliationId ?? null,
@@ -556,6 +558,24 @@ export function createD1BankReconciliationStore(db: D1Database): BankReconciliat
         .bind(tenantId, transactionId)
         .all<Record<string, unknown>>();
       return (result.results ?? []).map(toMatch);
+    },
+
+    async deleteMatchesForTransaction(tenantId, transactionId, matchId) {
+      const statement = matchId
+        ? db
+            .prepare(
+              `DELETE FROM bank_reconciliation_matches
+               WHERE tenant_id = ? AND bank_transaction_id = ? AND id = ?`
+            )
+            .bind(tenantId, transactionId, matchId)
+        : db
+            .prepare(
+              `DELETE FROM bank_reconciliation_matches
+               WHERE tenant_id = ? AND bank_transaction_id = ?`
+            )
+            .bind(tenantId, transactionId);
+      const result = await statement.run();
+      return result.meta.changes ?? 0;
     },
 
     async insertReconciliation(session) {
