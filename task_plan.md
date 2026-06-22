@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 114
+Phase 115
 
 ## Phases
 
@@ -902,6 +902,12 @@ Phase 114
 - [x] Keep root procedural `generate` honest by returning `REPO_TEMPLATE_GENERATE_UNSUPPORTED` for SvelteKit/Astro repo templates with a `create-microservices-app --template <id>` remediation.
 - [x] Add module-contract, CLI, and create-app registry tests for template catalog coherence.
 - [x] Verify module-contract/sdk/CLI builds, targeted tests, create-app build/tests, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 115: Accounting Template Hook Hardening
+- [x] Remove the stale inherited `billingStore` request-local assignment from `accounting-erp-sveltekit`.
+- [x] Add an accounting template spec guard matching the commerce template policy so the removed billing-store surface does not return.
+- [x] Verify accounting template spec/build, full workspace specs, and whitespace checks.
 - **Status:** complete
 
 ## Key Questions

@@ -20,6 +20,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const ledgerAccountDetailPage = readText("src/routes/app/ledger/accounts/[id]/+page.svelte");
   const ledgerFiscalPeriodDetailServer = readText("src/routes/app/ledger/fiscal-periods/[id]/+page.server.ts");
   const ledgerFiscalPeriodDetailPage = readText("src/routes/app/ledger/fiscal-periods/[id]/+page.svelte");
+  const hooksServer = readText("src/hooks.server.ts");
 
   assertFileIncludesAll(
     "docs/api-boundary.md",
@@ -75,6 +76,11 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "src/hooks.server.ts",
     "event.locals.estimateQuoteStore = stores.estimateQuoteStore",
     "Request locals expose the estimate-quote store to route adapters."
+  );
+  assert(
+    !hooksServer.includes("billingStore"),
+    "Accounting request hook does not wire the removed billing store surface.",
+    "policy:accounting-hook-no-billing-store"
   );
   assertFileIncludesAll(
     "migrations/0028_estimate_quote.sql",

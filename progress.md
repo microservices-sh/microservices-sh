@@ -2,6 +2,18 @@
 
 ## Session: 2026-06-22
 
+### Phase 115 Accounting template hook hardening
+
+- **Status:** complete.
+- Removed the stale `event.locals.billingStore = stores.billingStore` assignment from the accounting template hook; `ServerStores` does not expose that surface.
+- Added an accounting template spec guard so `billingStore` cannot be reintroduced in `src/hooks.server.ts`.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounting spec | Removed local is guarded by template spec | `pnpm --dir templates/accounting-erp-sveltekit check:spec` passed | Pass |
+| Accounting build | SvelteKit template still builds after hook cleanup | `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Workspace checks | Full specs and whitespace remain green | `pnpm spec:check:all` passed, 64 targets; `git diff --check` passed | Pass |
+
 ### Phase 114 Root CLI template catalog sync
 
 - **Status:** complete.
