@@ -2,7 +2,12 @@ import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 import { recordEvent } from "@microservices-sh/audit-log";
 import { getBankReconciliationModuleStatus } from "@microservices-sh/bank-reconciliation";
-import type { BankStatementImportMappingPresetId, BankTransaction, MatchCandidate } from "@microservices-sh/bank-reconciliation";
+import type {
+  BankStatementImportFieldMapping,
+  BankStatementImportMappingPresetId,
+  BankTransaction,
+  MatchCandidate
+} from "@microservices-sh/bank-reconciliation";
 import { loadCompanyContext, requireOrgPermission } from "$lib/server/org-context";
 import { requireModule } from "$lib/server/modules";
 
@@ -27,6 +32,39 @@ function integer(value: string): number | null {
 
 function targetType(value: string): MatchCandidate["targetType"] | null {
   return ["ledger_entry", "ledger_line", "payment", "external_ref"].includes(value) ? (value as MatchCandidate["targetType"]) : null;
+}
+
+function csvStatementValues(form: FormData) {
+  return {
+    bankAccountId: text(form.get("bankAccountId")),
+    fileName: text(form.get("fileName")) || "statement.csv",
+    mappingPresetId: text(form.get("mappingPresetId")),
+    dateField: text(form.get("dateField")) || "Date",
+    descriptionField: text(form.get("descriptionField")) || "Description",
+    amountField: text(form.get("amountField")),
+    debitField: text(form.get("debitField")),
+    creditField: text(form.get("creditField")),
+    csvContent: text(form.get("csvContent"))
+  };
+}
+
+function csvStatementMapping(values: ReturnType<typeof csvStatementValues>) {
+  const useAutoDetect = !values.mappingPresetId || values.mappingPresetId === "auto";
+  const usePreset = values.mappingPresetId && values.mappingPresetId !== "auto" && values.mappingPresetId !== "custom";
+  const fieldMapping: BankStatementImportFieldMapping | undefined = useAutoDetect || usePreset
+    ? undefined
+    : values.amountField.length > 0
+      ? { date: values.dateField, description: values.descriptionField, amount: values.amountField }
+      : { date: values.dateField, description: values.descriptionField, debit: values.debitField, credit: values.creditField };
+  return { useAutoDetect, usePreset, fieldMapping };
+}
+
+function hasValidCsvStatementInput(values: ReturnType<typeof csvStatementValues>, mapping: ReturnType<typeof csvStatementMapping>) {
+  return Boolean(
+    values.bankAccountId &&
+      values.csvContent &&
+      (mapping.useAutoDetect || mapping.usePreset || values.amountField || (values.debitField && values.creditField))
+  );
 }
 
 function localCandidates(transaction: BankTransaction): MatchCandidate[] {
@@ -178,6 +216,37 @@ export const actions: Actions = {
     return { accountCreated: true };
   },
 
+  previewCsv: async ({ request, locals, cookies, platform }) => {
+    requireModule("bank-reconciliation", platform);
+    if (!locals.user) return fail(403, { error: "Not signed in to a company." });
+    const { org } = await loadCompanyContext(cookies, locals.user.id, locals.rbacStore);
+    if (!org) return fail(403, { error: "Not signed in to a company." });
+    await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
+
+    const form = await request.formData();
+    const values = csvStatementValues(form);
+    const mapping = csvStatementMapping(values);
+    if (!hasValidCsvStatementInput(values, mapping)) {
+      return fail(400, { error: "Choose an account, paste CSV rows, and select auto-detect, a preset, or custom amount/debit/credit fields.", values });
+    }
+
+    const preview = await locals.bankReconciliationService.previewStatementImportCsv(
+      { tenantId: org.id, actorId: locals.user.id },
+      values.bankAccountId,
+      {
+        fileName: values.fileName,
+        autoDetectFieldMapping: mapping.useAutoDetect,
+        fieldMappingPresetId: mapping.usePreset ? (values.mappingPresetId as BankStatementImportMappingPresetId) : undefined,
+        fieldMapping: mapping.fieldMapping,
+        csvContent: values.csvContent,
+        previewLimit: 25
+      }
+    );
+    if (!preview.ok || !preview.data) return fail(400, { error: preview.error?.message ?? "Could not preview statement CSV.", values });
+
+    return { csvPreview: preview.data, values };
+  },
+
   importCsv: async ({ request, locals, cookies, platform }) => {
     requireModule("bank-reconciliation", platform);
     if (!locals.user) return fail(403, { error: "Not signed in to a company." });
@@ -186,25 +255,9 @@ export const actions: Actions = {
     await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
 
     const form = await request.formData();
-    const values = {
-      bankAccountId: text(form.get("bankAccountId")),
-      fileName: text(form.get("fileName")) || "statement.csv",
-      mappingPresetId: text(form.get("mappingPresetId")),
-      dateField: text(form.get("dateField")) || "Date",
-      descriptionField: text(form.get("descriptionField")) || "Description",
-      amountField: text(form.get("amountField")),
-      debitField: text(form.get("debitField")),
-      creditField: text(form.get("creditField")),
-      csvContent: text(form.get("csvContent"))
-    };
-    const useAutoDetect = !values.mappingPresetId || values.mappingPresetId === "auto";
-    const usePreset = values.mappingPresetId && values.mappingPresetId !== "auto" && values.mappingPresetId !== "custom";
-    const fieldMapping = useAutoDetect || usePreset
-      ? undefined
-      : values.amountField.length > 0
-        ? { date: values.dateField, description: values.descriptionField, amount: values.amountField }
-        : { date: values.dateField, description: values.descriptionField, debit: values.debitField, credit: values.creditField };
-    if (!values.bankAccountId || !values.csvContent || (!useAutoDetect && !usePreset && !values.amountField && (!values.debitField || !values.creditField))) {
+    const values = csvStatementValues(form);
+    const mapping = csvStatementMapping(values);
+    if (!hasValidCsvStatementInput(values, mapping)) {
       return fail(400, { error: "Choose an account, paste CSV rows, and select auto-detect, a preset, or custom amount/debit/credit fields.", values });
     }
 
@@ -214,9 +267,9 @@ export const actions: Actions = {
       {
         fileName: values.fileName,
         importedById: locals.user.id,
-        autoDetectFieldMapping: useAutoDetect,
-        fieldMappingPresetId: usePreset ? (values.mappingPresetId as BankStatementImportMappingPresetId) : undefined,
-        fieldMapping,
+        autoDetectFieldMapping: mapping.useAutoDetect,
+        fieldMappingPresetId: mapping.usePreset ? (values.mappingPresetId as BankStatementImportMappingPresetId) : undefined,
+        fieldMapping: mapping.fieldMapping,
         csvContent: values.csvContent
       }
     );
@@ -231,8 +284,8 @@ export const actions: Actions = {
         source: "app/banking",
         payload: {
           bankAccountId: values.bankAccountId,
-          autoDetectFieldMapping: useAutoDetect,
-          mappingPresetId: usePreset ? values.mappingPresetId : null,
+          autoDetectFieldMapping: mapping.useAutoDetect,
+          mappingPresetId: mapping.usePreset ? values.mappingPresetId : null,
           importedCount: imported.data.importedCount,
           skippedDuplicateCount: imported.data.skippedDuplicateCount
         }

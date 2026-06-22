@@ -1002,6 +1002,13 @@ Phase 125
 - [x] Update docs, policy checks, and validation coverage while leaving row preview and duplicate review for later phases.
 - **Status:** complete
 
+### Phase 128: Banking CSV Preview And Duplicate Review
+- [x] Add module-owned dry-run CSV preview that reuses import mapping precedence and reports importable, duplicate, and skipped rows without persistence.
+- [x] Detect duplicates against existing bank transactions and duplicate rows within the pasted CSV.
+- [x] Wire `/app/banking` to preview rows before the separate import action.
+- [x] Update module/template docs, static contracts, lock snapshots, policy checks, and validation coverage.
+- **Status:** complete
+
 ## Key Questions
 1. Is the current plan good enough to start an MVP?
    - Yes, if the MVP stays narrow: one vertical template, managed Cloudflare default, agent-first interface, minimal admin UI, and paid validation gates.

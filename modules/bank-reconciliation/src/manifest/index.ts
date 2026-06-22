@@ -6,7 +6,7 @@ export const manifest = {
   status: "draft",
   class: "core",
   summary:
-    "Tenant-scoped bank accounts, statement import mapping detection/presets, matching corrections, exclusions, and reconciliation completion with integer-cent balances.",
+    "Tenant-scoped bank accounts, statement import mapping detection/presets, CSV preview/dedup review, matching corrections, exclusions, and reconciliation completion with integer-cent balances.",
   entrypoint: "src/index.ts",
   resources: [
     {

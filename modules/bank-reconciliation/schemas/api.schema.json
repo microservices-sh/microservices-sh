@@ -33,6 +33,12 @@
       "items": {
         "enum": ["auto_detect", "preset", "custom"]
       }
+    },
+    "statementImportPreviewRowStatuses": {
+      "type": "array",
+      "items": {
+        "enum": ["importable", "duplicate", "skipped"]
+      }
     }
   }
 }

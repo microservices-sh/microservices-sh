@@ -4,6 +4,8 @@ import type {
   BankStatementImportFieldMapping,
   BankStatementImportMappingPreset,
   BankStatementImportMappingPresetId,
+  BankStatementImportPreview,
+  BankStatementImportPreviewRow,
   BankStatementImportSource,
   BankTransaction,
   BankTransactionMatch,
@@ -48,6 +50,10 @@ export interface ImportStatementCsvInput {
   importedById?: string;
 }
 
+export interface PreviewStatementImportCsvInput extends ImportStatementCsvInput {
+  previewLimit?: number | null;
+}
+
 export type BankReconciliationIdPrefix = "bank" | "bimp" | "btx" | "bmatch" | "recon";
 export type BankReconciliationIdFactory = (prefix: BankReconciliationIdPrefix) => string;
 
@@ -71,6 +77,11 @@ export interface BankReconciliationService {
     bankAccountId: string,
     input: ImportStatementCsvInput
   ): Promise<ModuleResult<StatementImportResult>>;
+  previewStatementImportCsv(
+    ctx: TenantContext,
+    bankAccountId: string,
+    input: PreviewStatementImportCsvInput
+  ): Promise<ModuleResult<BankStatementImportPreview>>;
   listStatementImports(ctx: TenantContext, bankAccountId?: string): Promise<ModuleResult<BankStatementImport[]>>;
   listStatementTransactions(ctx: TenantContext, bankAccountId: string): Promise<ModuleResult<BankTransaction[]>>;
   suggestMatches(ctx: TenantContext, input: SuggestMatchesInput): Promise<ModuleResult<MatchSuggestion[]>>;
@@ -164,6 +175,15 @@ function calculateClearedTotals(account: BankAccount, transactions: BankTransact
 
 interface ParsedCsvImportRows {
   rows: StatementTransactionInput[];
+  skippedRows: number;
+  totalRows: number;
+  startDate?: string;
+  endDate?: string;
+}
+
+interface ParsedCsvRows {
+  previewRows: BankStatementImportPreviewRow[];
+  importableRows: StatementTransactionInput[];
   skippedRows: number;
   totalRows: number;
   startDate?: string;
@@ -394,7 +414,11 @@ export function resolveStatementImportFieldMapping(input: ImportStatementCsvInpu
   return ok({ ...cloneFieldMapping(preset.fieldMapping), presetId: preset.id });
 }
 
-function mapCsvRows(csvContent: string, mapping: BankStatementImportFieldMapping): ModuleResult<ParsedCsvImportRows> {
+function skippedPreviewRow(rowNumber: number, errorCode: string, errorMessage: string): BankStatementImportPreviewRow {
+  return { rowNumber, status: "skipped", errorCode, errorMessage };
+}
+
+function evaluateCsvRows(csvContent: string, mapping: BankStatementImportFieldMapping): ModuleResult<ParsedCsvRows> {
   if (!mapping.amount && (!mapping.debit || !mapping.credit)) {
     return fail("field_mapping_amount_required", "CSV mapping must include amount or both debit and credit fields.");
   }
@@ -410,12 +434,14 @@ function mapCsvRows(csvContent: string, mapping: BankStatementImportFieldMapping
   const missingHeader = requiredHeaders.find((header) => !headerSet.has(normalizeHeader(header)));
   if (missingHeader) return fail("field_mapping_missing_header", `CSV header is missing mapped field: ${missingHeader}.`);
 
-  const rows: StatementTransactionInput[] = [];
+  const previewRows: BankStatementImportPreviewRow[] = [];
+  const importableRows: StatementTransactionInput[] = [];
   let skippedRows = 0;
   let startDate: string | undefined;
   let endDate: string | undefined;
 
-  for (const csvRow of csvRows.slice(1)) {
+  for (const [index, csvRow] of csvRows.slice(1).entries()) {
+    const rowNumber = index + 2;
     const valuesByHeader = new Map<string, string>();
     headers.forEach((header, index) => valuesByHeader.set(normalizeHeader(header), csvRow[index]?.trim() ?? ""));
 
@@ -430,22 +456,112 @@ function mapCsvRows(csvContent: string, mapping: BankStatementImportFieldMapping
       amountCents = creditCents == null || debitCents == null ? null : creditCents - debitCents;
     }
 
-    if (!transactionDate || !description || amountCents == null || amountCents === 0) {
+    if (!transactionDate) {
       skippedRows += 1;
+      previewRows.push(skippedPreviewRow(rowNumber, "transaction_date_invalid", "Transaction date is missing or invalid."));
+      continue;
+    }
+    if (!description) {
+      skippedRows += 1;
+      previewRows.push(skippedPreviewRow(rowNumber, "description_missing", "Description is required."));
+      continue;
+    }
+    if (amountCents == null) {
+      skippedRows += 1;
+      previewRows.push(skippedPreviewRow(rowNumber, "amount_invalid", "Amount, debit, or credit value is invalid."));
+      continue;
+    }
+    if (amountCents === 0) {
+      skippedRows += 1;
+      previewRows.push(skippedPreviewRow(rowNumber, "amount_missing_or_zero", "Amount must be non-zero."));
       continue;
     }
 
     startDate = startDate && startDate < transactionDate ? startDate : transactionDate;
     endDate = endDate && endDate > transactionDate ? endDate : transactionDate;
-    rows.push({
+    const row = {
       transactionDate,
       description,
       amountCents,
       transactionHash: stableHash(`${transactionDate}|${description.toLowerCase()}|${amountCents}`)
-    });
+    };
+    importableRows.push(row);
+    previewRows.push({ rowNumber, status: "importable", ...row });
   }
 
-  return ok({ rows, skippedRows, totalRows: csvRows.length - 1, startDate, endDate });
+  return ok({ previewRows, importableRows, skippedRows, totalRows: csvRows.length - 1, startDate, endDate });
+}
+
+function mapCsvRows(csvContent: string, mapping: BankStatementImportFieldMapping): ModuleResult<ParsedCsvImportRows> {
+  const evaluated = evaluateCsvRows(csvContent, mapping);
+  if (!evaluated.ok || !evaluated.data) {
+    return fail(evaluated.error?.code ?? "csv_import_failed", evaluated.error?.message ?? "CSV import failed.");
+  }
+  return ok({
+    rows: evaluated.data.importableRows,
+    skippedRows: evaluated.data.skippedRows,
+    totalRows: evaluated.data.totalRows,
+    startDate: evaluated.data.startDate,
+    endDate: evaluated.data.endDate
+  });
+}
+
+async function buildStatementCsvPreview(
+  input: PreviewStatementImportCsvInput,
+  findDuplicateTransaction: (transactionHash: string) => Promise<BankTransaction | null>
+): Promise<ModuleResult<BankStatementImportPreview>> {
+  const fieldMapping = resolveStatementImportFieldMapping(input);
+  if (!fieldMapping.ok || !fieldMapping.data) {
+    return fail(fieldMapping.error?.code ?? "field_mapping_invalid", fieldMapping.error?.message ?? "CSV field mapping is invalid.");
+  }
+
+  const parsed = evaluateCsvRows(input.csvContent, fieldMapping.data);
+  if (!parsed.ok || !parsed.data) {
+    return fail(parsed.error?.code ?? "csv_preview_failed", parsed.error?.message ?? "CSV preview failed.");
+  }
+
+  const previewLimit = clamp(input.previewLimit ?? 25, 1, 100);
+  const rows: BankStatementImportPreviewRow[] = [];
+  const seenHashes = new Map<string, number>();
+  let importableRows = 0;
+  let duplicateRows = 0;
+  let skippedRows = 0;
+
+  for (const previewRow of parsed.data.previewRows) {
+    let row = previewRow;
+    if (previewRow.status === "skipped") {
+      skippedRows += 1;
+    } else if (previewRow.transactionHash) {
+      const duplicateRowNumber = seenHashes.get(previewRow.transactionHash);
+      const existingTransaction = await findDuplicateTransaction(previewRow.transactionHash);
+      if (duplicateRowNumber != null || existingTransaction) {
+        duplicateRows += 1;
+        row = {
+          ...previewRow,
+          status: "duplicate",
+          duplicateTransactionId: existingTransaction?.id,
+          errorCode: "duplicate_transaction",
+          errorMessage: duplicateRowNumber != null ? `Duplicate of row ${duplicateRowNumber}.` : "Already imported."
+        };
+      } else {
+        seenHashes.set(previewRow.transactionHash, previewRow.rowNumber);
+        importableRows += 1;
+      }
+    }
+
+    if (rows.length < previewLimit) rows.push(row);
+  }
+
+  return ok({
+    totalRows: parsed.data.totalRows,
+    importableRows,
+    duplicateRows,
+    skippedRows,
+    truncated: parsed.data.previewRows.length > previewLimit,
+    previewLimit,
+    fieldMapping: fieldMapping.data,
+    rows
+  });
 }
 
 export function createBankReconciliationService(deps: BankReconciliationServiceDeps): BankReconciliationService {
@@ -552,6 +668,14 @@ export function createBankReconciliationService(deps: BankReconciliationServiceD
       if (!account) return fail("bank_account_not_found", "Bank account not found.");
 
       return ok(await insertStatementRows(ctx, bankAccountId, rows));
+    },
+
+    async previewStatementImportCsv(ctx, bankAccountId, input) {
+      const account = await deps.store.getBankAccount(ctx.tenantId, bankAccountId);
+      if (!account) return fail("bank_account_not_found", "Bank account not found.");
+      return buildStatementCsvPreview(input, async (transactionHash) =>
+        deps.store.getTransactionByHash(ctx.tenantId, bankAccountId, transactionHash)
+      );
     },
 
     async importStatementCsv(ctx, bankAccountId, input) {
@@ -891,6 +1015,25 @@ export function createBankReconciliationMemoryService() {
 
     importStatementTransactions(ctx: TenantContext, bankAccountId: string, rows: StatementTransactionInput[]): ModuleResult<StatementImportResult> {
       return importMemoryStatementRows(ctx, bankAccountId, rows);
+    },
+
+    async previewStatementImportCsv(
+      ctx: TenantContext,
+      bankAccountId: string,
+      input: PreviewStatementImportCsvInput
+    ): Promise<ModuleResult<BankStatementImportPreview>> {
+      const account = accounts.get(bankAccountId);
+      if (!account || account.tenantId !== ctx.tenantId) return fail("bank_account_not_found", "Bank account not found.");
+      return buildStatementCsvPreview(input, async (transactionHash) => {
+        return (
+          [...transactions.values()].find(
+            (transaction) =>
+              transaction.tenantId === ctx.tenantId &&
+              transaction.bankAccountId === bankAccountId &&
+              transaction.transactionHash === transactionHash
+          ) ?? null
+        );
+      });
     },
 
     importStatementCsv(ctx: TenantContext, bankAccountId: string, input: ImportStatementCsvInput): ModuleResult<StatementImportResult> {

@@ -414,6 +414,7 @@ describe("module version selectors", () => {
       rpc: expect.arrayContaining([
         { method: "listStatementImportFieldMappingPresets", scope: "bank-reconciliation.read", public: false },
         { method: "detectStatementImportFieldMapping", scope: "bank-reconciliation.read", public: false },
+        { method: "previewStatementImportCsv", scope: "bank-reconciliation.read", public: false },
         { method: "unmatchTransaction", scope: "bank-reconciliation.write", public: false },
         { method: "excludeTransaction", scope: "bank-reconciliation.write", public: false },
         { method: "restoreExcludedTransaction", scope: "bank-reconciliation.write", public: false },

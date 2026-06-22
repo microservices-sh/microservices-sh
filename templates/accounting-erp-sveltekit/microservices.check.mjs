@@ -12,6 +12,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   const paymentDetailServer = readText("src/routes/app/payables/payments/[id]/+page.server.ts");
   const paymentDetailPage = readText("src/routes/app/payables/payments/[id]/+page.svelte");
   const recurringBillDetailServer = readText("src/routes/app/payables/recurring/[id]/+page.server.ts");
+  const bankingServer = readText("src/routes/app/banking/+page.server.ts");
   const bankingImportDetailServer = readText("src/routes/app/banking/imports/[id]/+page.server.ts");
   const bankingImportDetailPage = readText("src/routes/app/banking/imports/[id]/+page.svelte");
   const bankingReconciliationDetailServer = readText("src/routes/app/banking/reconciliations/[id]/+page.server.ts");
@@ -757,13 +758,19 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "src/routes/app/banking/+page.server.ts",
-    ["createBankAccount", "listStatementImportFieldMappingPresets", "importStatementCsv", "autoDetectFieldMapping", "fieldMappingPresetId", "mappingPresetId", "suggestMatches", "createMatch", "matchTransaction", "unmatchTransaction", "excludeTransaction", "restoreExcludedTransaction", "startReconciliation", "listReconciliations", "completeReconciliation", "recordEvent"],
-    "Banking route exposes operator actions, correction actions, and persisted reconciliation sessions through bank-reconciliation service methods."
+    ["createBankAccount", "listStatementImportFieldMappingPresets", "previewStatementImportCsv", "previewCsv", "importStatementCsv", "autoDetectFieldMapping", "fieldMappingPresetId", "mappingPresetId", "suggestMatches", "createMatch", "matchTransaction", "unmatchTransaction", "excludeTransaction", "restoreExcludedTransaction", "startReconciliation", "listReconciliations", "completeReconciliation", "recordEvent"],
+    "Banking route exposes preview, operator actions, correction actions, and persisted reconciliation sessions through bank-reconciliation service methods."
   );
   assertFileIncludesAll(
     "src/routes/app/banking/+page.svelte",
-    ["name=\"mappingPresetId\"", "Auto-detect columns", "data.mappingPresets", "?/unmatchTransaction", "?/excludeTransaction", "?/restoreExcludedTransaction", "transactionTone", "Excluded transactions"],
-    "Banking page exposes CSV auto-detection, mapping presets, and transaction unmatch/exclude/restore actions over the bank-reconciliation module."
+    ["name=\"mappingPresetId\"", "Auto-detect columns", "data.mappingPresets", "?/previewCsv", "Preview import", "Import statement", "csvPreview", "duplicateRows", "?/unmatchTransaction", "?/excludeTransaction", "?/restoreExcludedTransaction", "transactionTone", "Excluded transactions"],
+    "Banking page exposes CSV auto-detection, mapping presets, preview/dedup review, and transaction unmatch/exclude/restore actions over the bank-reconciliation module."
+  );
+  assert(
+    !/previewCsv:[\s\S]*?recordEvent[\s\S]*?importCsv:/.test(bankingServer) &&
+      !/previewCsv:[\s\S]*?bank-reconciliation\.statement_imported[\s\S]*?importCsv:/.test(bankingServer),
+    "Banking CSV preview is read-only and does not record the statement imported event.",
+    "policy:accounting-banking-preview-no-import-event"
   );
   assertFileIncludes(
     "src/routes/app/banking/+page.svelte",
@@ -1085,7 +1092,7 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
   );
   assertFileIncludesAll(
     "microservices.lock.json",
-    ["\"method\": \"listStatementImportFieldMappingPresets\"", "\"method\": \"detectStatementImportFieldMapping\"", "\"method\": \"importStatementCsv\"", "beforeMatchCreate", "beforeReconciliationStart", "afterReconciliationChanged"],
+    ["\"id\": \"bank-reconciliation\"", "\"method\": \"listStatementImportFieldMappingPresets\"", "\"method\": \"detectStatementImportFieldMapping\"", "\"method\": \"previewStatementImportCsv\"", "\"method\": \"importStatementCsv\"", "beforeMatchCreate", "beforeReconciliationStart", "afterReconciliationChanged"],
     "Accounting template lock keeps bank-reconciliation hook names aligned with the module contract."
   );
   assertFileIncludesAll(

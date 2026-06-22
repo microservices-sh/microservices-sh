@@ -1707,6 +1707,27 @@
 | Create-app build | Bundled repo templates refresh from source after auto-detection updates | `pnpm --dir packages/create-microservices-app build` passed | Pass |
 | Create-app closure | Bundled StackSuite template closure includes the updated detection surface | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
 
+### Phase 128 banking CSV preview and duplicate review
+
+- **Status:** complete.
+- Goal: close the donor-style row preview gap with a module-owned, read-only CSV import preview before persistence.
+- Added `previewStatementImportCsv` to `@microservices-sh/bank-reconciliation`, reusing custom, preset, and auto-detected mapping precedence.
+- Preview rows now report `importable`, `duplicate`, or `skipped` status with row numbers, parsed transaction fields, hashes, duplicate transaction ids, and skip reasons.
+- Duplicate review checks both already-imported bank transactions and duplicate rows within the pasted CSV.
+- Wired `/app/banking` to use a separate `?/previewCsv` action and preview table before the existing approval-gated import action.
+- Fixed accounting template lock drift so gateway and org-team-rbac no longer carry banking RPCs; the bank-reconciliation lock entry now owns the full banking RPC list.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Bank-reconciliation tests | Preview auto-detection, skipped rows, existing duplicates, in-file duplicates, and no persistence are covered | `pnpm --filter @microservices-sh/bank-reconciliation test` passed, 12/12 | Pass |
+| Bank-reconciliation build/spec | New preview types, schemas, service methods, OpenAPI, and metadata compile and meet module spec | `pnpm --filter @microservices-sh/bank-reconciliation build` and `pnpm --filter @microservices-sh/bank-reconciliation check:spec` passed | Pass |
+| Accounting template spec/build | Preview action/UI, no-preview-audit guard, and corrected lock snapshot pass policy checks and compile | `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Module contract | Static catalog exposes `previewStatementImportCsv` as a read RPC | `pnpm exec vitest run packages/module-contract/tests/module-versioning.test.js` passed, 21/21 | Pass |
+| JSON parse | Updated OpenAPI, docs catalog, and accounting lock remain valid JSON | `node -e` JSON parse check passed | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Create-app build | Bundled repo templates refresh from source after preview updates | `pnpm --dir packages/create-microservices-app build` passed | Pass |
+| Create-app closure | Bundled StackSuite template closure includes the updated preview surface | `pnpm exec vitest run packages/create-microservices-app/tests/template-bundle-closure.test.js` passed, 33/33 | Pass |
+
 ### Phase 125 banking transaction correction lifecycle
 
 - **Status:** complete.

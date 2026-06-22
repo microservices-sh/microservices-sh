@@ -12,6 +12,7 @@
   const latestImport = $derived(data.statementImports.at(-1));
   const inProgressReconciliations = $derived(data.reconciliations.filter((session) => session.status === "in_progress"));
   const displayedReconciliation = $derived(form?.reconciliation ?? data.reconciliation);
+  const csvPreview = $derived(form?.csvPreview);
   const suggestionsByTransaction = $derived(
     new Map(data.matchSuggestions.map((group) => [group.transactionId, group.suggestions]))
   );
@@ -32,6 +33,12 @@
     if (status === "excluded") return "neutral";
     return "good";
   }
+
+  function previewTone(status) {
+    if (status === "duplicate") return "warn";
+    if (status === "skipped") return "neutral";
+    return "good";
+  }
 </script>
 
 <svelte:head>
@@ -47,6 +54,8 @@
 
   {#if form?.accountCreated}
     <Alert tone="success">Bank account created.</Alert>
+  {:else if form?.csvPreview}
+    <Alert tone="info">Preview found {form.csvPreview.importableRows} importable rows, {form.csvPreview.duplicateRows} duplicates, and {form.csvPreview.skippedRows} skipped rows.</Alert>
   {:else if form?.csvImported}
     <Alert tone="success">Imported {form.importedCount} rows. Skipped {form.skippedDuplicateCount} duplicates.</Alert>
   {:else if form?.transactionMatched}
@@ -242,7 +251,38 @@
           <Field label="CSV content" id="import-csv-content">
             <textarea id="import-csv-content" name="csvContent" rows="5">{form?.values?.csvContent ?? "Date,Description,Amount\n2026-06-20,Stripe payout,840.00\n2026-06-21,Cloud hosting,-125.50"}</textarea>
           </Field>
-          <Button type="submit" variant="primary" disabled={data.accounts.length === 0}>Import statement</Button>
+          {#if csvPreview}
+            <div class="csv-preview">
+              <div class="preview-summary">
+                <span><strong>{csvPreview.importableRows}</strong> importable</span>
+                <span><strong>{csvPreview.duplicateRows}</strong> duplicates</span>
+                <span><strong>{csvPreview.skippedRows}</strong> skipped</span>
+              </div>
+              <div class="preview-mapping">
+                Mapping: {csvPreview.fieldMapping.autoDetected ? "auto-detected" : csvPreview.fieldMapping.presetId ?? "custom"} · {csvPreview.totalRows} rows
+              </div>
+              {#if csvPreview.rows.length > 0}
+                <div class="preview-table">
+                  {#each csvPreview.rows as row (row.rowNumber)}
+                    <div>
+                      <span>#{row.rowNumber}</span>
+                      <Badge tone={previewTone(row.status)}>{row.status}</Badge>
+                      <span>{row.transactionDate ?? "-"}</span>
+                      <span>{row.description ?? row.errorMessage ?? "-"}</span>
+                      <span>{row.amountCents == null ? "-" : money(row.amountCents)}</span>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+              {#if csvPreview.truncated}
+                <p class="empty">Showing the first {csvPreview.previewLimit} preview rows.</p>
+              {/if}
+            </div>
+          {/if}
+          <div class="button-row">
+            <Button type="submit" formaction="?/previewCsv" variant="ghost" disabled={data.accounts.length === 0}>Preview import</Button>
+            <Button type="submit" formaction="?/importCsv" variant="primary" disabled={data.accounts.length === 0}>Import statement</Button>
+          </div>
         </form>
       </Card>
 
@@ -383,6 +423,53 @@
     color: var(--color-ink-faint);
     font-size: 0.76rem;
   }
+  .button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .csv-preview {
+    display: grid;
+    gap: 10px;
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    padding: 12px;
+  }
+  .preview-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .preview-summary span {
+    color: var(--color-ink-faint);
+    font-size: 0.82rem;
+  }
+  .preview-summary strong {
+    color: var(--color-ink);
+    font-family: var(--font-mono);
+  }
+  .preview-mapping {
+    color: var(--color-ink-faint);
+    font-size: 0.78rem;
+  }
+  .preview-table {
+    display: grid;
+    gap: 6px;
+  }
+  .preview-table div {
+    display: grid;
+    grid-template-columns: 44px 92px minmax(92px, 0.8fr) minmax(140px, 1fr) minmax(82px, auto);
+    align-items: center;
+    gap: 8px;
+    border-block-start: 1px solid var(--color-line);
+    padding-block-start: 6px;
+    font-size: 0.8rem;
+  }
+  .preview-table span:first-child,
+  .preview-table span:nth-child(3),
+  .preview-table span:last-child {
+    font-family: var(--font-mono);
+  }
   .operator-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -412,6 +499,8 @@
     .grid,
     .operator-grid,
     .candidate-list form,
+    .preview-summary,
+    .preview-table div,
     .form-row,
     .mapping-row {
       grid-template-columns: 1fr;

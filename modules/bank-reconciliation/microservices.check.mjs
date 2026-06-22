@@ -35,6 +35,21 @@ export default function check({ assertFileIncludes }) {
     "Bank Reconciliation implements advertised explicit match creation."
   );
   assertFileIncludes(
+    "src/service/index.ts",
+    "previewStatementImportCsv",
+    "Bank Reconciliation implements advertised CSV import preview."
+  );
+  assertFileIncludes(
+    "src/service/index.ts",
+    "buildStatementCsvPreview",
+    "Bank Reconciliation keeps preview construction separate from persisted import writes."
+  );
+  assertFileIncludes(
+    "src/types.ts",
+    "BankStatementImportPreview",
+    "Bank Reconciliation exposes a typed statement import preview result."
+  );
+  assertFileIncludes(
     "src/hooks.ts",
     "beforeMatchCreate",
     "Bank Reconciliation hook names align with the module contract."

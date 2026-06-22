@@ -266,6 +266,82 @@ describe("bank-reconciliation", () => {
     expect(imports.data?.map((statementImport) => statementImport.fileName)).toEqual(["operating.csv", "operating-repeat.csv"]);
   });
 
+  it("previews auto-detected CSV statements without persisting imports or transactions", async () => {
+    const service = createBankReconciliationService({
+      store: createMemoryBankReconciliationStore(),
+      createId: createSequentialBankReconciliationIdFactory()
+    });
+    const account = await service.createBankAccount(ctx, { name: "Operating" });
+    const csvContent = [
+      "Trans Date,Narrative,Value",
+      "06/20/2026,Stripe payout,840.00",
+      "bad-date,Cloud hosting,(125.50)",
+      "06/22/2026,,9.99",
+      "06/23/2026,Interest,1.25"
+    ].join("\n");
+
+    const preview = await service.previewStatementImportCsv(ctx, account.data!.id, {
+      autoDetectFieldMapping: true,
+      csvContent,
+      previewLimit: 10
+    });
+
+    expect(preview.ok).toBe(true);
+    expect(preview.data).toMatchObject({
+      totalRows: 4,
+      importableRows: 2,
+      duplicateRows: 0,
+      skippedRows: 2,
+      truncated: false,
+      fieldMapping: { autoDetected: true, date: "Trans Date", description: "Narrative", amount: "Value" }
+    });
+    expect(preview.data!.rows.map((row) => row.status)).toEqual(["importable", "skipped", "skipped", "importable"]);
+    expect(preview.data!.rows[1]).toMatchObject({ rowNumber: 3, errorCode: "transaction_date_invalid" });
+    expect(preview.data!.rows[2]).toMatchObject({ rowNumber: 4, errorCode: "description_missing" });
+    await expect(service.listStatementImports(ctx, account.data!.id)).resolves.toMatchObject({ data: [] });
+    await expect(service.listStatementTransactions(ctx, account.data!.id)).resolves.toMatchObject({ data: [] });
+  });
+
+  it("previews existing and in-file CSV duplicates before import", async () => {
+    const service = createBankReconciliationService({
+      store: createMemoryBankReconciliationStore(),
+      createId: createSequentialBankReconciliationIdFactory()
+    });
+    const account = await service.createBankAccount(ctx, { name: "Operating" });
+    const imported = await service.importStatementCsv(ctx, account.data!.id, {
+      fileName: "existing.csv",
+      fieldMappingPresetId: "standard_amount",
+      csvContent: ["Date,Description,Amount", "2026-06-20,Stripe payout,840.00"].join("\n")
+    });
+    expect(imported.ok).toBe(true);
+
+    const preview = await service.previewStatementImportCsv(ctx, account.data!.id, {
+      fieldMappingPresetId: "standard_amount",
+      csvContent: [
+        "Date,Description,Amount",
+        "2026-06-20,Stripe payout,840.00",
+        "2026-06-21,Cloud hosting,-125.50",
+        "2026-06-21,Cloud hosting,-125.50"
+      ].join("\n")
+    });
+
+    expect(preview.ok).toBe(true);
+    expect(preview.data).toMatchObject({ totalRows: 3, importableRows: 1, duplicateRows: 2, skippedRows: 0 });
+    expect(preview.data!.rows.map((row) => row.status)).toEqual(["duplicate", "importable", "duplicate"]);
+    expect(preview.data!.rows[0]).toMatchObject({
+      rowNumber: 2,
+      duplicateTransactionId: "btx_000001",
+      errorCode: "duplicate_transaction"
+    });
+    expect(preview.data!.rows[2]).toMatchObject({
+      rowNumber: 4,
+      errorCode: "duplicate_transaction",
+      errorMessage: "Duplicate of row 3."
+    });
+    await expect(service.listStatementImports(ctx, account.data!.id)).resolves.toMatchObject({ data: [{ id: "bimp_000001" }] });
+    await expect(service.listStatementTransactions(ctx, account.data!.id)).resolves.toMatchObject({ data: [{ id: "btx_000001" }] });
+  });
+
   it("imports CSV statements through a field mapping preset", async () => {
     const service = createBankReconciliationService({
       store: createMemoryBankReconciliationStore(),

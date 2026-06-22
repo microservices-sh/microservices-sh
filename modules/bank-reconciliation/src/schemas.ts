@@ -109,6 +109,22 @@ export const importStatementCsvSchema = z.object({
   message: "CSV import requires auto-detection, a field mapping, or a mapping preset."
 });
 
+export const previewStatementImportCsvSchema = z.object({
+  tenantId: z.string().min(1),
+  orgId: z.string().nullable().optional(),
+  bankAccountId: z.string().min(1),
+  source: statementImportSourceSchema.default("csv"),
+  fileName: nullableText,
+  importedById: nullableText,
+  fieldMapping: statementImportFieldMappingSchema.optional(),
+  fieldMappingPresetId: statementImportFieldMappingPresetIdSchema.nullable().optional(),
+  autoDetectFieldMapping: z.boolean().nullable().optional(),
+  csvContent: z.string().min(1),
+  previewLimit: z.number().int().min(1).max(100).nullable().optional()
+}).refine((input) => Boolean(input.fieldMapping || input.fieldMappingPresetId || input.autoDetectFieldMapping), {
+  message: "CSV preview requires auto-detection, a field mapping, or a mapping preset."
+});
+
 export const statementTransactionFilterSchema = z.object({
   tenantId: z.string().min(1),
   orgId: z.string().nullable().optional(),

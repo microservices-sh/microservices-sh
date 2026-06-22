@@ -39,78 +39,7 @@
         "permissions": [
           "gateway.admin"
         ],
-        "rpc": [
-          {
-            "method": "createBankAccount",
-            "scope": "bank-reconciliation.write",
-            "public": false
-          },
-          {
-            "method": "listBankAccounts",
-            "scope": "bank-reconciliation.read",
-            "public": false
-          },
-          {
-            "method": "listStatementImportFieldMappingPresets",
-            "scope": "bank-reconciliation.read",
-            "public": false
-          },
-          {
-            "method": "detectStatementImportFieldMapping",
-            "scope": "bank-reconciliation.read",
-            "public": false
-          },
-          {
-            "method": "listStatementImports",
-            "scope": "bank-reconciliation.read",
-            "public": false
-          },
-          {
-            "method": "importStatementCsv",
-            "scope": "bank-reconciliation.write",
-            "public": false
-          },
-          {
-            "method": "importStatementTransactions",
-            "scope": "bank-reconciliation.write",
-            "public": false
-          },
-          {
-            "method": "suggestMatches",
-            "scope": "bank-reconciliation.read",
-            "public": false
-          },
-          {
-            "method": "createMatch",
-            "scope": "bank-reconciliation.write",
-            "public": false
-          },
-          {
-            "method": "unmatchTransaction",
-            "scope": "bank-reconciliation.write",
-            "public": false
-          },
-          {
-            "method": "excludeTransaction",
-            "scope": "bank-reconciliation.write",
-            "public": false
-          },
-          {
-            "method": "restoreExcludedTransaction",
-            "scope": "bank-reconciliation.write",
-            "public": false
-          },
-          {
-            "method": "startReconciliation",
-            "scope": "bank-reconciliation.write",
-            "public": false
-          },
-          {
-            "method": "completeReconciliation",
-            "scope": "bank-reconciliation.write",
-            "public": false
-          }
-        ],
+        "rpc": [],
         "hooks": [
           "beforeIssueToken",
           "afterTokenIssued"
@@ -633,7 +562,83 @@
           "bank-reconciliation.extend",
           "bank-reconciliation.observe"
         ],
-        "rpc": [],
+        "rpc": [
+          {
+            "method": "createBankAccount",
+            "scope": "bank-reconciliation.write",
+            "public": false
+          },
+          {
+            "method": "listBankAccounts",
+            "scope": "bank-reconciliation.read",
+            "public": false
+          },
+          {
+            "method": "listStatementImportFieldMappingPresets",
+            "scope": "bank-reconciliation.read",
+            "public": false
+          },
+          {
+            "method": "detectStatementImportFieldMapping",
+            "scope": "bank-reconciliation.read",
+            "public": false
+          },
+          {
+            "method": "previewStatementImportCsv",
+            "scope": "bank-reconciliation.read",
+            "public": false
+          },
+          {
+            "method": "listStatementImports",
+            "scope": "bank-reconciliation.read",
+            "public": false
+          },
+          {
+            "method": "importStatementCsv",
+            "scope": "bank-reconciliation.write",
+            "public": false
+          },
+          {
+            "method": "importStatementTransactions",
+            "scope": "bank-reconciliation.write",
+            "public": false
+          },
+          {
+            "method": "suggestMatches",
+            "scope": "bank-reconciliation.read",
+            "public": false
+          },
+          {
+            "method": "createMatch",
+            "scope": "bank-reconciliation.write",
+            "public": false
+          },
+          {
+            "method": "unmatchTransaction",
+            "scope": "bank-reconciliation.write",
+            "public": false
+          },
+          {
+            "method": "excludeTransaction",
+            "scope": "bank-reconciliation.write",
+            "public": false
+          },
+          {
+            "method": "restoreExcludedTransaction",
+            "scope": "bank-reconciliation.write",
+            "public": false
+          },
+          {
+            "method": "startReconciliation",
+            "scope": "bank-reconciliation.write",
+            "public": false
+          },
+          {
+            "method": "completeReconciliation",
+            "scope": "bank-reconciliation.write",
+            "public": false
+          }
+        ],
         "hooks": [
           "beforeBankAccountCreate",
           "beforeStatementImport",

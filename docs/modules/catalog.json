@@ -2048,7 +2048,7 @@
       "class": "core",
       "mount": "/banking",
       "docPath": "docs/modules/bank-reconciliation.md",
-      "summary": "Tenant-scoped bank accounts, statement import mapping detection/presets, matching corrections, exclusions, and reconciliation completion with integer-cent balances.",
+      "summary": "Tenant-scoped bank accounts, statement import mapping detection/presets, CSV preview/dedup review, matching corrections, exclusions, and reconciliation completion with integer-cent balances.",
       "requires": [],
       "permissions": [
         "bank-reconciliation.read",
@@ -2075,6 +2075,11 @@
         },
         {
           "method": "detectStatementImportFieldMapping",
+          "scope": "bank-reconciliation.read",
+          "public": false
+        },
+        {
+          "method": "previewStatementImportCsv",
           "scope": "bank-reconciliation.read",
           "public": false
         },

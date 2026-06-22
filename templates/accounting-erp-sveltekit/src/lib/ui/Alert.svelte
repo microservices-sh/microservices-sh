@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 
 	interface Props {
-		tone?: 'error' | 'success' | 'warn';
+		tone?: 'error' | 'success' | 'warn' | 'info';
 		children: Snippet;
 	}
 	let { tone = 'error', children }: Props = $props();
@@ -22,9 +22,13 @@
 		<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 			<path d="M20 6 9 17l-5-5" />
 		</svg>
-	{:else}
+	{:else if tone === 'warn'}
 		<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 			<circle cx="12" cy="12" r="9" /><path d="M12 8v5" /><path d="M12 16h.01" />
+		</svg>
+	{:else}
+		<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+			<circle cx="12" cy="12" r="9" /><path d="M12 12h.01" /><path d="M11 16h2v-4h-2" />
 		</svg>
 	{/if}
 	<span>{@render children()}</span>
@@ -58,5 +62,10 @@
 		border: 1px solid rgba(181, 117, 4, 0.26);
 		background: var(--color-amber-soft);
 		color: var(--color-amber);
+	}
+	.alert--info {
+		border: 1px solid rgba(11, 115, 168, 0.24);
+		background: var(--color-cyan-soft);
+		color: #0b73a8;
 	}
 </style>

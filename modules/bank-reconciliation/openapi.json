@@ -83,6 +83,30 @@
         }
       }
     },
+    "/statement-imports/preview": {
+      "post": {
+        "summary": "Preview a mapped CSV statement without persisting imports or transactions",
+        "operationId": "previewStatementImportCsv",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PreviewStatementImportCsvRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "CSV statement import preview",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BankStatementImportPreview" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/statement-transactions/import": {
       "post": {
         "summary": "Import prepared statement transactions",
@@ -241,6 +265,49 @@
           { "required": ["fieldMappingPresetId"] },
           { "required": ["autoDetectFieldMapping"] }
         ]
+      },
+      "PreviewStatementImportCsvRequest": {
+        "allOf": [
+          { "$ref": "#/components/schemas/ImportStatementCsvRequest" },
+          {
+            "type": "object",
+            "properties": {
+              "previewLimit": { "type": ["integer", "null"], "minimum": 1, "maximum": 100, "default": 25 }
+            }
+          }
+        ]
+      },
+      "BankStatementImportPreviewRow": {
+        "type": "object",
+        "required": ["rowNumber", "status"],
+        "properties": {
+          "rowNumber": { "type": "integer", "minimum": 2 },
+          "status": { "type": "string", "enum": ["importable", "duplicate", "skipped"] },
+          "transactionDate": { "type": "string", "format": "date" },
+          "description": { "type": "string" },
+          "amountCents": { "$ref": "#/components/schemas/MoneyCents" },
+          "transactionHash": { "type": "string" },
+          "duplicateTransactionId": { "type": "string" },
+          "errorCode": { "type": "string" },
+          "errorMessage": { "type": "string" }
+        }
+      },
+      "BankStatementImportPreview": {
+        "type": "object",
+        "required": ["totalRows", "importableRows", "duplicateRows", "skippedRows", "truncated", "previewLimit", "fieldMapping", "rows"],
+        "properties": {
+          "totalRows": { "type": "integer", "minimum": 0 },
+          "importableRows": { "type": "integer", "minimum": 0 },
+          "duplicateRows": { "type": "integer", "minimum": 0 },
+          "skippedRows": { "type": "integer", "minimum": 0 },
+          "truncated": { "type": "boolean" },
+          "previewLimit": { "type": "integer", "minimum": 1, "maximum": 100 },
+          "fieldMapping": { "$ref": "#/components/schemas/StatementImportFieldMapping" },
+          "rows": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/BankStatementImportPreviewRow" }
+          }
+        }
       },
       "MatchCandidate": {
         "type": "object",

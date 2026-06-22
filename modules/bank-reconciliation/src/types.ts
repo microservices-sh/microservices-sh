@@ -131,6 +131,31 @@ export interface StatementImportResult {
   statementImport?: BankStatementImport;
 }
 
+export type BankStatementImportPreviewRowStatus = "importable" | "duplicate" | "skipped";
+
+export interface BankStatementImportPreviewRow {
+  rowNumber: number;
+  status: BankStatementImportPreviewRowStatus;
+  transactionDate?: string;
+  description?: string;
+  amountCents?: number;
+  transactionHash?: string;
+  duplicateTransactionId?: string;
+  errorCode?: string;
+  errorMessage?: string;
+}
+
+export interface BankStatementImportPreview {
+  totalRows: number;
+  importableRows: number;
+  duplicateRows: number;
+  skippedRows: number;
+  truncated: boolean;
+  previewLimit: number;
+  fieldMapping: BankStatementImportFieldMapping;
+  rows: BankStatementImportPreviewRow[];
+}
+
 export type BankStatementImportSource = "csv" | "ofx" | "qfx" | "qif" | "api";
 export type BankStatementImportStatus = "pending" | "processing" | "completed" | "failed";
 export type BankStatementImportMappingPresetId = "standard_amount" | "details_debit_credit" | "posted_amount";

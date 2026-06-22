@@ -5,7 +5,7 @@ Module ID: `bank-reconciliation`
 Mount: `/banking`
 
 ## Summary
-Tenant-scoped bank accounts, statement import mapping presets, bank transactions, ledger matching corrections, exclusions, and reconciliation sessions with completion guards.
+Tenant-scoped bank accounts, statement import mapping presets, CSV preview/dedup review, bank transactions, ledger matching corrections, exclusions, and reconciliation sessions with completion guards.
 
 ## Dependencies
 - accounting-core
@@ -41,6 +41,7 @@ Tenant-scoped bank accounts, statement import mapping presets, bank transactions
 ## Invariants
 - Money is stored as integer cents.
 - CSV imports use auto-detected headers, a module-owned field mapping preset, or an explicit custom field mapping.
+- CSV previews use the same mapping rules as imports, return importable/duplicate/skipped row statuses, and do not write import history or statement transactions.
 - Auto-detected and preset-based imports store the resolved field names plus detection/preset metadata in statement import history.
 - Imported transaction hashes are unique per tenant and bank account.
 - A transaction cannot be reconciled while unmatched.
@@ -52,4 +53,4 @@ Tenant-scoped bank accounts, statement import mapping presets, bank transactions
 ## Approval Gate
 Risk: medium
 
-Statement import, manual matching, reconciliation completion, migrations, and production deploys require explicit approval.
+Statement import, manual matching, reconciliation completion, migrations, and production deploys require explicit approval. CSV preview is read-only and does not require approval.

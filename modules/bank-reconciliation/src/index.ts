@@ -23,6 +23,7 @@ export type {
   BankReconciliationServiceDeps,
   CreateBankAccountInput,
   ImportStatementCsvInput,
+  PreviewStatementImportCsvInput,
   StatementTransactionInput
 } from "./service";
 export type {
@@ -35,6 +36,9 @@ export type {
   BankStatementImportFieldMapping,
   BankStatementImportMappingPreset,
   BankStatementImportMappingPresetId,
+  BankStatementImportPreview,
+  BankStatementImportPreviewRow,
+  BankStatementImportPreviewRowStatus,
   BankStatementImportSource,
   BankStatementImportStatus,
   BankTransactionMatch,
