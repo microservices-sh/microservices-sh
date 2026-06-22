@@ -155,7 +155,35 @@ export interface BillPaymentFilter {
   vendorId?: string;
   billId?: string;
   status?: BillPaymentStatus;
+  paymentDateFrom?: string;
+  paymentDateBefore?: string;
   limit?: number;
+}
+
+export interface Vendor1099ReportVendor {
+  vendorId: string;
+  name: string;
+  email: string | null;
+  currency: string;
+  taxIdOnFile: boolean;
+  totalPaidCents: number;
+  paymentCount: number;
+  readyForReview: boolean;
+  warnings: string[];
+}
+
+export interface Vendor1099Report {
+  tenantId: string;
+  year: number;
+  startDate: string;
+  endDate: string;
+  vendors: Vendor1099ReportVendor[];
+  totals: {
+    vendorCount: number;
+    readyCount: number;
+    missingTaxIdCount: number;
+    totalPaidCents: number;
+  };
 }
 
 export interface RecurringBillTemplate {
@@ -251,6 +279,8 @@ export interface AgingReport {
 export interface AccountsPayableEvent {
   eventName:
     | "accounts-payable.vendor_created"
+    | "accounts-payable.vendor_updated"
+    | "accounts-payable.vendor_status_updated"
     | "accounts-payable.bill_created"
     | "accounts-payable.bill_marked_payable"
     | "accounts-payable.bill_payment_recorded"

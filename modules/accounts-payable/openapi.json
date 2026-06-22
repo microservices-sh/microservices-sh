@@ -20,6 +20,22 @@
       "get": {
         "summary": "Get vendor",
         "responses": { "200": { "description": "Vendor detail" }, "404": { "description": "Vendor not found" } }
+      },
+      "patch": {
+        "summary": "Update vendor master data",
+        "responses": { "200": { "description": "Vendor updated" }, "409": { "description": "External reference conflict" } }
+      }
+    },
+    "/vendors/{id}/status": {
+      "post": {
+        "summary": "Activate or deactivate vendor",
+        "responses": { "200": { "description": "Vendor status updated" }, "404": { "description": "Vendor not found" } }
+      }
+    },
+    "/vendors/1099-report": {
+      "get": {
+        "summary": "Get 1099 readiness report for active 1099 vendors by calendar year",
+        "responses": { "200": { "description": "1099 readiness report" } }
       }
     },
     "/bills": {

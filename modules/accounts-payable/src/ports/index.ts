@@ -21,6 +21,7 @@ import type {
 
 export interface AccountsPayableStore {
   insertVendor(vendor: Vendor): Promise<void>;
+  updateVendor(vendor: Vendor): Promise<void>;
   getVendor(tenantId: string, vendorId: string): Promise<Vendor | null>;
   findVendorByExternalRef(tenantId: string, externalSource: string, externalId: string): Promise<Vendor | null>;
   listVendors(filter: VendorFilter): Promise<Vendor[]>;

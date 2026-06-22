@@ -106,6 +106,10 @@ export function createMemoryAccountsPayableStore(): AccountsPayableStore {
       vendors.set(vendor.id, cloneVendor(vendor));
     },
 
+    async updateVendor(vendor) {
+      if (vendors.has(vendor.id)) vendors.set(vendor.id, cloneVendor(vendor));
+    },
+
     async getVendor(tenantId, vendorId) {
       const vendor = vendors.get(vendorId);
       return vendor && vendor.tenantId === tenantId ? cloneVendor(vendor) : null;
@@ -202,6 +206,8 @@ export function createMemoryAccountsPayableStore(): AccountsPayableStore {
     async listPayments(filter) {
       return [...payments.values()]
         .filter((payment) => matchesPaymentFilter(payment, applicationsByPayment.get(payment.id) ?? [], filter))
+        .filter((payment) => !filter.paymentDateFrom || payment.paymentDate >= filter.paymentDateFrom)
+        .filter((payment) => !filter.paymentDateBefore || payment.paymentDate < filter.paymentDateBefore)
         .sort((a, b) => b.paymentDate.localeCompare(a.paymentDate))
         .slice(0, filter.limit ?? 100)
         .map((payment) => withApplications(payment, applicationsByPayment.get(payment.id) ?? []));

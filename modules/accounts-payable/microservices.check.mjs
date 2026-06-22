@@ -35,9 +35,29 @@ export default function check({ assertFileIncludes }) {
     "Vendor detail read use case is backed by the tenant-scoped store lookup."
   );
   assertFileIncludes(
+    "src/use-cases/update-vendor.ts",
+    "accountsPayableStore.updateVendor",
+    "Vendor master update use case persists through the store boundary."
+  );
+  assertFileIncludes(
+    "src/use-cases/update-vendor-status.ts",
+    "accountsPayableStore.updateVendor",
+    "Vendor active-state updates persist through the store boundary."
+  );
+  assertFileIncludes(
+    "src/use-cases/get-1099-vendor-report.ts",
+    "paymentDateBefore",
+    "1099 vendor report uses date-bounded posted payments."
+  );
+  assertFileIncludes(
     "src/index.ts",
     "export { getVendor }",
     "Accounts Payable exports vendor detail read use case."
+  );
+  assertFileIncludes(
+    "src/index.ts",
+    "export { get1099VendorReport }",
+    "Accounts Payable exports formal 1099 readiness report use case."
   );
   assertFileIncludes(
     "src/index.ts",

@@ -14,6 +14,8 @@ export {
 } from "./hooks";
 export { createVendor } from "./use-cases/create-vendor";
 export { getVendor } from "./use-cases/get-vendor";
+export { updateVendor } from "./use-cases/update-vendor";
+export { updateVendorStatus } from "./use-cases/update-vendor-status";
 export { listVendors } from "./use-cases/list-vendors";
 export { createBill } from "./use-cases/create-bill";
 export { getBill } from "./use-cases/get-bill";
@@ -23,6 +25,7 @@ export { recordBillPayment } from "./use-cases/record-bill-payment";
 export { getBillPayment } from "./use-cases/get-bill-payment";
 export { listBillPayments } from "./use-cases/list-bill-payments";
 export { getAgingReport } from "./use-cases/get-aging-report";
+export { get1099VendorReport } from "./use-cases/get-1099-vendor-report";
 export { createRecurringBillTemplate } from "./use-cases/create-recurring-bill-template";
 export { getRecurringBillTemplate } from "./use-cases/get-recurring-bill-template";
 export { listRecurringBillTemplates } from "./use-cases/list-recurring-bill-templates";
@@ -66,6 +69,8 @@ export type {
   BillStatus,
   BillTotals,
   BillWithLineItems,
+  Vendor1099Report,
+  Vendor1099ReportVendor,
   RecurringBillFrequency,
   RecurringBillTemplateFilter,
   RecurringBillLineItem,

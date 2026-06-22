@@ -6,6 +6,7 @@ import {
   createVendor,
   generateDueRecurringBills,
   getAgingReport,
+  get1099VendorReport,
   getBill,
   getBillPayment,
   getRecurringBillTemplate,
@@ -16,8 +17,11 @@ import {
   listVendors,
   markBillPayable,
   recordBillPayment,
+  updateVendor,
+  updateVendorStatus,
   updateRecurringBillTemplateStatus
 } from "./index";
+import type { BillPayment } from "./index";
 
 const T0 = Date.parse("2026-01-01T00:00:00.000Z");
 const fixedNow = (ms: number) => () => ms;
@@ -65,6 +69,39 @@ async function seedPayableBill(
   return payable.data.bill;
 }
 
+async function seedVendorPayment(
+  store: ReturnType<typeof createMemoryAccountsPayableStore>,
+  vendorId: string,
+  paymentDate: string,
+  amountCents: number,
+  status: "posted" | "void" = "posted"
+) {
+  const payment: BillPayment = {
+    id: `pay_${paymentDate.replace(/\D/g, "")}_${status}_${amountCents}`,
+    tenantId: "tenant-1",
+    paymentNumber: `PAY-${amountCents}`,
+    vendorId,
+    paymentDate,
+    amountCents,
+    unappliedAmountCents: 0,
+    currency: "USD",
+    paymentAccountId: "acct-cash",
+    paymentMethod: "ach",
+    referenceNumber: null,
+    memo: null,
+    status,
+    idempotencyKey: null,
+    journalEntryId: null,
+    postedAt: status === "posted" ? paymentDate : null,
+    voidedAt: status === "void" ? paymentDate : null,
+    voidReason: status === "void" ? "Test void" : null,
+    createdById: null,
+    createdAt: paymentDate,
+    updatedAt: paymentDate
+  };
+  await store.insertPaymentWithApplications({ payment, applications: [], updatedBills: [] });
+}
+
 describe("accounts-payable: vendors", () => {
   it("creates and lists vendors within a tenant", async () => {
     const store = createMemoryAccountsPayableStore();
@@ -106,6 +143,114 @@ describe("accounts-payable: vendors", () => {
     const foreign = await getVendor({ tenantId: "tenant-2", vendorId: vendor.id }, { accountsPayableStore: store });
     expect(foreign.ok).toBe(false);
     if (!foreign.ok) expect(foreign.status).toBe(404);
+  });
+
+  it("updates vendor master fields, guards external reference conflicts, and toggles active state", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const vendor = await seedVendor(store, "tenant-1", { externalSource: "donor", externalId: "ven-1" });
+    await seedVendor(store, "tenant-1", { name: "Conflict Vendor", externalSource: "donor", externalId: "ven-2" });
+
+    const updated = await updateVendor(
+      {
+        tenantId: "tenant-1",
+        vendorId: vendor.id,
+        name: "Updated Supplies",
+        phone: "+1 555 0101",
+        addressLine1: "1 Market St",
+        city: "San Francisco",
+        state: "CA",
+        postalCode: "94105",
+        country: "US",
+        taxId: "12-3456789",
+        is1099Vendor: true,
+        defaultPaymentTermsDays: 45,
+        currency: "usd",
+        notes: "W-9 on file"
+      },
+      { accountsPayableStore: store, now: fixedNow(T0 + 1) }
+    );
+    expect(updated.ok).toBe(true);
+    if (!updated.ok) throw new Error(updated.error.message);
+    expect(updated.data.vendor).toMatchObject({
+      name: "Updated Supplies",
+      phone: "+1 555 0101",
+      city: "San Francisco",
+      taxId: "12-3456789",
+      is1099Vendor: true,
+      defaultPaymentTermsDays: 45,
+      currency: "USD",
+      notes: "W-9 on file"
+    });
+
+    const conflict = await updateVendor(
+      { tenantId: "tenant-1", vendorId: vendor.id, externalSource: "donor", externalId: "ven-2" },
+      { accountsPayableStore: store }
+    );
+    expect(conflict).toMatchObject({ ok: false, status: 409, error: { code: "accounts-payable.EXTERNAL_VENDOR_CONFLICT" } });
+
+    const deactivated = await updateVendorStatus(
+      { tenantId: "tenant-1", vendorId: vendor.id, active: false },
+      { accountsPayableStore: store, now: fixedNow(T0 + 2) }
+    );
+    expect(deactivated.ok).toBe(true);
+    if (!deactivated.ok) throw new Error(deactivated.error.message);
+    expect(deactivated.data.vendor.active).toBe(false);
+
+    const listed = await listVendors({ tenantId: "tenant-1" }, { accountsPayableStore: store });
+    expect(listed.ok).toBe(true);
+    if (!listed.ok) throw new Error(listed.error.message);
+    expect(listed.data.vendors.some((item) => item.id === vendor.id)).toBe(false);
+  });
+
+  it("reports active 1099 vendor payments by UTC year and excludes void payments", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const readyVendor = await seedVendor(store, "tenant-1", {
+      name: "Ready Contractor",
+      taxId: "12-3456789",
+      is1099Vendor: true
+    });
+    const missingTaxVendor = await seedVendor(store, "tenant-1", { name: "Missing Tax", is1099Vendor: true });
+    const inactiveVendor = await seedVendor(store, "tenant-1", {
+      name: "Inactive Contractor",
+      taxId: "98-7654321",
+      is1099Vendor: true
+    });
+    await updateVendorStatus({ tenantId: "tenant-1", vendorId: inactiveVendor.id, active: false }, { accountsPayableStore: store });
+    await seedVendor(store, "tenant-1", { name: "Not Reportable", taxId: "11-1111111", is1099Vendor: false });
+
+    await seedVendorPayment(store, readyVendor.id, "2025-12-31T23:59:59.000Z", 900_00);
+    await seedVendorPayment(store, readyVendor.id, "2026-01-01T00:00:00.000Z", 1_000_00);
+    await seedVendorPayment(store, readyVendor.id, "2026-06-01T00:00:00.000Z", 250_00, "void");
+    await seedVendorPayment(store, readyVendor.id, "2027-01-01T00:00:00.000Z", 800_00);
+    await seedVendorPayment(store, missingTaxVendor.id, "2026-02-01T00:00:00.000Z", 400_00);
+    await seedVendorPayment(store, inactiveVendor.id, "2026-03-01T00:00:00.000Z", 700_00);
+
+    const report = await get1099VendorReport(
+      { tenantId: "tenant-1", year: 2026 },
+      { accountsPayableStore: store }
+    );
+    expect(report.ok).toBe(true);
+    if (!report.ok) throw new Error(report.error.message);
+    expect(report.data.report.totals).toMatchObject({
+      vendorCount: 2,
+      readyCount: 1,
+      missingTaxIdCount: 1,
+      totalPaidCents: 1_400_00
+    });
+    expect(report.data.report.vendors.map((vendor) => vendor.vendorId).sort()).toEqual(
+      [readyVendor.id, missingTaxVendor.id].sort()
+    );
+    expect(report.data.report.vendors.find((vendor) => vendor.vendorId === readyVendor.id)).toMatchObject({
+      totalPaidCents: 1_000_00,
+      paymentCount: 1,
+      readyForReview: true
+    });
+    expect(report.data.report.vendors.find((vendor) => vendor.vendorId === missingTaxVendor.id)).toMatchObject({
+      totalPaidCents: 400_00,
+      paymentCount: 1,
+      readyForReview: false,
+      warnings: ["Missing vendor tax ID"]
+    });
   });
 });
 

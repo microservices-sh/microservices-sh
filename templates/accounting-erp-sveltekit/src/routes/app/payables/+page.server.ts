@@ -6,6 +6,7 @@ import {
   createRecurringBillTemplate,
   createVendor,
   generateDueRecurringBills,
+  get1099VendorReport,
   getAgingReport,
   listBills,
   listRecurringBillTemplates,
@@ -35,6 +36,11 @@ function cents(value: string): number | null {
 function positiveInteger(value: string): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : null;
+}
+
+function nonNegativeInteger(value: string): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : null;
 }
 
 function dateToIso(value: string): string | null {
@@ -112,13 +118,15 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
   if (!activeOrgId || !locals.user) throw redirect(303, "/app");
 
   const { permissions } = await requireOrgPermission(cookies, locals.user.id, activeOrgId, "org.read", locals.rbacStore);
-  const [vendorsResult, billsResult, agingResult, accountsResult, recurringTemplatesResult, setupStatus] = await Promise.all([
+  const reportYear = new Date().getUTCFullYear();
+  const [vendorsResult, billsResult, agingResult, accountsResult, recurringTemplatesResult, setupStatus, report1099Result] = await Promise.all([
     listVendors({ tenantId: activeOrgId, includeInactive: true, limit: 250 }, { accountsPayableStore: locals.accountsPayableStore }),
     listBills({ tenantId: activeOrgId, limit: 100 }, { accountsPayableStore: locals.accountsPayableStore }),
     getAgingReport({ tenantId: activeOrgId }, { accountsPayableStore: locals.accountsPayableStore }),
     listAccounts({ tenantId: activeOrgId, includeInactive: false, limit: 500 }, { accountingCoreStore: locals.accountingCoreStore }),
     listRecurringBillTemplates({ tenantId: activeOrgId, limit: 100 }, { accountsPayableStore: locals.accountsPayableStore }),
-    getAccountingSetupStatus({ tenantId: activeOrgId }, { accountingCoreStore: locals.accountingCoreStore })
+    getAccountingSetupStatus({ tenantId: activeOrgId }, { accountingCoreStore: locals.accountingCoreStore }),
+    get1099VendorReport({ tenantId: activeOrgId, year: reportYear }, { accountsPayableStore: locals.accountsPayableStore })
   ]);
 
   return {
@@ -129,6 +137,7 @@ export const load: PageServerLoad = async ({ locals, cookies, parent, platform }
     accounts: accountsResult.ok ? accountsResult.data.accounts : [],
     defaultApAccountId: setupStatus.ok ? setupStatus.data.status.settings?.defaultApAccountId ?? null : null,
     recurringBillTemplates: recurringTemplatesResult.ok ? recurringTemplatesResult.data.templates : [],
+    report1099: report1099Result.ok ? report1099Result.data.report : null,
     today: today()
   };
 };
@@ -146,10 +155,22 @@ export const actions: Actions = {
     const values = {
       name: text(form.get("name")),
       email: text(form.get("email")),
+      phone: text(form.get("phone")),
+      addressLine1: text(form.get("addressLine1")),
+      city: text(form.get("city")),
+      state: text(form.get("state")),
+      postalCode: text(form.get("postalCode")),
+      country: text(form.get("country")),
+      taxId: text(form.get("taxId")),
+      is1099Vendor: text(form.get("is1099Vendor")) === "true",
       currency: text(form.get("currency")).toUpperCase() || "USD",
-      defaultExpenseAccountId: text(form.get("defaultExpenseAccountId"))
+      defaultExpenseAccountId: text(form.get("defaultExpenseAccountId")),
+      defaultPaymentTermsDays: text(form.get("defaultPaymentTermsDays")),
+      notes: text(form.get("notes"))
     };
     if (!values.name) return fail(400, { error: "Enter a vendor name.", values });
+    const defaultPaymentTermsDays = values.defaultPaymentTermsDays ? nonNegativeInteger(values.defaultPaymentTermsDays) : 30;
+    if (defaultPaymentTermsDays == null) return fail(400, { error: "Enter valid payment terms.", values });
     const defaultExpenseAccountId = await checkedExpenseAccountId(
       locals.accountingCoreStore,
       org.id,
@@ -164,10 +185,18 @@ export const actions: Actions = {
         tenantId: org.id,
         name: values.name,
         email: values.email || null,
+        phone: values.phone || null,
+        addressLine1: values.addressLine1 || null,
+        city: values.city || null,
+        state: values.state || null,
+        postalCode: values.postalCode || null,
+        country: values.country || null,
+        taxId: values.taxId || null,
         currency: values.currency,
-        is1099Vendor: false,
+        is1099Vendor: values.is1099Vendor,
         defaultExpenseAccountId,
-        defaultPaymentTermsDays: 30
+        defaultPaymentTermsDays,
+        notes: values.notes || null
       },
       {
         accountsPayableStore: locals.accountsPayableStore,

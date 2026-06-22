@@ -1507,6 +1507,25 @@
 | Create package | Bundled template closure and generated-app smoke still pass | `pnpm --filter create-microservices-app build` and `smoke:built` passed | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 107 AP vendor master completion and formal 1099 report
+
+- **Status:** complete.
+- Goal: port the donor-backed vendor master update/deactivate/reactivate behavior and replace template-only 1099 readiness with a module-owned report API.
+- Added `updateVendor`, `updateVendorStatus`, and `get1099VendorReport({ tenantId, year })` to `modules/accounts-payable`.
+- Added memory/D1 vendor update persistence and payment date filters so the 1099 report can total posted payments inside UTC calendar-year bounds.
+- Added AP tests for vendor master updates, external-reference conflict protection, active-state exclusion from normal lists/reporting, UTC year boundaries, and void-payment exclusion from 1099 totals.
+- Expanded accounting vendor create/edit forms for phone, address, tax ID, 1099 flag, terms, default expense account, notes, and active/deactivated state.
+- Added a current-year 1099 readiness card to the Payables operator page; it reports readiness and missing-tax-ID warnings only, not filing or TIN validation.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounts-payable tests | Vendor master updates and formal 1099 report behavior remain tenant-scoped and date-bounded | `pnpm --filter @microservices-sh/accounts-payable test` passed, 19/19 | Pass |
+| Accounts-payable spec/build | Module contract and TypeScript build remain green | `pnpm --filter @microservices-sh/accounts-payable check:spec` and `pnpm --filter @microservices-sh/accounts-payable build` passed | Pass |
+| Accounting template spec/build | Vendor master/report policies and SvelteKit build compile | `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Bundled accounting template regenerates and create-app tests remain green | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 106 AP vendor detail and 1099 readiness
 
 - **Status:** complete.

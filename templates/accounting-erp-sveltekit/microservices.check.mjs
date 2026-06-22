@@ -762,46 +762,61 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "src/routes/app/payables/+page.svelte",
     [
       "Payables vendors",
+      "1099 readiness",
+      "data.report1099",
       "/app/payables/vendors/${vendor.id}",
       "/app/payables/vendors/${bill.vendorId}",
       "/app/payables/vendors/${template.vendorId}"
     ],
-    "Payables page exposes AP vendor directory and links bill/recurring rows to read-only vendor detail."
+    "Payables page exposes AP vendor directory, 1099 readiness, and links bill/recurring rows to vendor detail."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/payables/+page.server.ts",
+    ["get1099VendorReport", "report1099", "is1099Vendor", "defaultPaymentTermsDays", "taxId", "phone"],
+    "Payables route loads formal 1099 readiness and captures complete vendor master fields on create."
   );
   assertFileIncludesAll(
     "src/routes/app/payables/vendors/[id]/+page.server.ts",
     [
       "getVendor",
+      "updateVendor",
+      "updateVendorStatus",
       "listBills",
       "listBillPayments",
       "listRecurringBillTemplates",
       "getAgingReport",
       "taxSummary",
+      "accounts-payable.vendor_updated",
+      "accounts-payable.vendor_status_updated",
       "requireModule(\"accounts-payable\"",
       "requireOrgPermission",
-      "\"org.read\""
+      "\"org.read\"",
+      "\"member.manage\""
     ],
-    "Vendor detail route composes tenant-scoped AP reads for profile, bills, payments, recurring schedules, aging, and 1099 readiness."
+    "Vendor detail route composes tenant-scoped AP reads and approval-gated vendor master/status mutations."
   );
   assert(
-    !vendorDetailServer.includes("createVendor(") &&
-      !vendorDetailServer.includes("recordBillPayment(") &&
-      !vendorDetailServer.includes("export const actions"),
-    "Vendor detail route stays read-only; vendor/payment mutations remain on the Payables operator page.",
-    "policy:accounting-ap-vendor-detail-read-only"
+    !vendorDetailServer.includes("recordBillPayment(") &&
+      !vendorDetailServer.includes("markBillPayable(") &&
+      !vendorDetailServer.includes("createBill("),
+    "Vendor detail route does not perform bill posting or payment side effects.",
+    "policy:accounting-ap-vendor-detail-no-money-side-effects"
   );
   assertFileIncludesAll(
     "src/routes/app/payables/vendors/[id]/+page.svelte",
-    ["AP vendor", "Vendor profile", "1099 readiness", "Payment history", "Recurring bills", "Payables"],
-    "Vendor detail page exposes AP profile, 1099 readiness, payment, and recurring context."
-  );
-  assert(
-    !vendorDetailPage.includes("<form") &&
-      !vendorDetailPage.includes("method=\"POST\"") &&
-      !vendorDetailPage.includes("use:enhance") &&
-      !vendorDetailPage.includes("?/"),
-    "Vendor detail page does not render write-capable forms or SvelteKit action targets.",
-    "policy:accounting-ap-vendor-detail-ui-read-only"
+    [
+      "AP vendor",
+      "Vendor profile",
+      "1099 readiness",
+      "Payment history",
+      "Recurring bills",
+      "Vendor master",
+      "?/updateVendor",
+      "?/updateVendorStatus",
+      "Deactivate vendor",
+      "Reactivate vendor"
+    ],
+    "Vendor detail page exposes AP profile, 1099 readiness, payment history, recurring context, and vendor master controls."
   );
   assertFileIncludesAll(
     "src/routes/app/payables/[id]/+page.server.ts",

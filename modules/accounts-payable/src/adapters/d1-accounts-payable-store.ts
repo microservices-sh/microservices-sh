@@ -309,6 +309,40 @@ export function createD1AccountsPayableStore(db: D1Database): AccountsPayableSto
         .run();
     },
 
+    async updateVendor(vendor) {
+      await db
+        .prepare(
+          `UPDATE accounts_payable_vendors
+           SET name = ?, email = ?, phone = ?, address_line_1 = ?, city = ?, state = ?, postal_code = ?, country = ?,
+               tax_id = ?, is_1099_vendor = ?, default_expense_account_id = ?, default_payment_terms_days = ?,
+               currency = ?, external_id = ?, external_source = ?, notes = ?, active = ?, updated_at = ?
+           WHERE tenant_id = ? AND id = ?`
+        )
+        .bind(
+          vendor.name,
+          vendor.email,
+          vendor.phone,
+          vendor.addressLine1,
+          vendor.city,
+          vendor.state,
+          vendor.postalCode,
+          vendor.country,
+          vendor.taxId,
+          vendor.is1099Vendor ? 1 : 0,
+          vendor.defaultExpenseAccountId,
+          vendor.defaultPaymentTermsDays,
+          vendor.currency,
+          vendor.externalId,
+          vendor.externalSource,
+          vendor.notes,
+          vendor.active ? 1 : 0,
+          vendor.updatedAt,
+          vendor.tenantId,
+          vendor.id
+        )
+        .run();
+    },
+
     async getVendor(tenantId, vendorId) {
       const row = await db
         .prepare(`SELECT ${VENDOR_COLS} FROM accounts_payable_vendors WHERE tenant_id = ? AND id = ?`)
@@ -535,6 +569,14 @@ export function createD1AccountsPayableStore(db: D1Database): AccountsPayableSto
       if (filter.status) {
         clauses.push("p.status = ?");
         binds.push(filter.status);
+      }
+      if (filter.paymentDateFrom) {
+        clauses.push("p.payment_date >= ?");
+        binds.push(filter.paymentDateFrom);
+      }
+      if (filter.paymentDateBefore) {
+        clauses.push("p.payment_date < ?");
+        binds.push(filter.paymentDateBefore);
       }
       if (filter.billId) {
         join =

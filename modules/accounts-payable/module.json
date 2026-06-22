@@ -94,6 +94,9 @@
         "accounts-payable.listVendors",
         "accounts-payable.createVendor",
         "accounts-payable.getVendor",
+        "accounts-payable.updateVendor",
+        "accounts-payable.updateVendorStatus",
+        "accounts-payable.get1099VendorReport",
         "accounts-payable.createBill",
         "accounts-payable.markBillPayable",
         "accounts-payable.recordBillPayment",
@@ -108,6 +111,8 @@
       "skillPaths": ["skills/accounts-payable-operator/SKILL.md"],
       "approvalRequiredFor": [
         "accounts-payable.createBill",
+        "accounts-payable.updateVendor",
+        "accounts-payable.updateVendorStatus",
         "accounts-payable.markBillPayable",
         "accounts-payable.recordBillPayment",
         "accounts-payable.createRecurringBillTemplate",

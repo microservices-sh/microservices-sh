@@ -1,7 +1,8 @@
 <script>
-  import { Badge, Button, Card, PageHeader } from "$lib/ui";
+  import { enhance } from "$app/forms";
+  import { Alert, Badge, Button, Card, Field, PageHeader } from "$lib/ui";
 
-  let { data } = $props();
+  let { data, form } = $props();
   const vendor = $derived(data.vendor);
 </script>
 
@@ -20,6 +21,14 @@
       {#if vendor.is1099Vendor}<Badge tone="warn">1099</Badge>{/if}
     {/snippet}
   </PageHeader>
+
+  {#if form?.vendorUpdated}
+    <Alert tone="success">Vendor updated.</Alert>
+  {:else if form?.vendorStatusUpdated}
+    <Alert tone="success">Vendor status updated.</Alert>
+  {:else if form?.error}
+    <Alert tone="error">{form.error}</Alert>
+  {/if}
 
   <div class="grid">
     <div class="grid__main">
@@ -148,6 +157,48 @@
           <p class="empty">{vendor.notes}</p>
         </Card>
       {/if}
+
+      {#if data.canManage}
+        <Card title="Vendor master">
+          <form method="POST" action="?/updateVendor" use:enhance>
+            <Field label="Name" id="vendor-edit-name"><input id="vendor-edit-name" name="name" required value={form?.values?.name ?? vendor.name} /></Field>
+            <Field label="Email" id="vendor-edit-email"><input id="vendor-edit-email" name="email" type="email" value={form?.values?.email ?? vendor.email ?? ""} /></Field>
+            <Field label="Phone" id="vendor-edit-phone"><input id="vendor-edit-phone" name="phone" value={form?.values?.phone ?? vendor.phone ?? ""} /></Field>
+            <div class="form-row">
+              <Field label="Currency" id="vendor-edit-currency"><input id="vendor-edit-currency" name="currency" maxlength="3" value={form?.values?.currency ?? vendor.currency} /></Field>
+              <Field label="Terms days" id="vendor-edit-terms"><input id="vendor-edit-terms" name="defaultPaymentTermsDays" type="number" min="0" max="365" value={form?.values?.defaultPaymentTermsDays ?? vendor.defaultPaymentTermsDays} /></Field>
+            </div>
+            <Field label="Address" id="vendor-edit-address"><input id="vendor-edit-address" name="addressLine1" value={form?.values?.addressLine1 ?? vendor.addressLine1 ?? ""} /></Field>
+            <div class="form-row">
+              <Field label="City" id="vendor-edit-city"><input id="vendor-edit-city" name="city" value={form?.values?.city ?? vendor.city ?? ""} /></Field>
+              <Field label="State" id="vendor-edit-state"><input id="vendor-edit-state" name="state" value={form?.values?.state ?? vendor.state ?? ""} /></Field>
+            </div>
+            <div class="form-row">
+              <Field label="Postal" id="vendor-edit-postal"><input id="vendor-edit-postal" name="postalCode" value={form?.values?.postalCode ?? vendor.postalCode ?? ""} /></Field>
+              <Field label="Country" id="vendor-edit-country"><input id="vendor-edit-country" name="country" value={form?.values?.country ?? vendor.country ?? ""} /></Field>
+            </div>
+            <div class="form-row">
+              <Field label="Tax ID" id="vendor-edit-tax-id"><input id="vendor-edit-tax-id" name="taxId" value={form?.values?.taxId ?? vendor.taxId ?? ""} /></Field>
+              <label class="check-row"><input type="checkbox" name="is1099Vendor" value="true" checked={form?.values?.is1099Vendor ?? vendor.is1099Vendor} /> 1099 vendor</label>
+            </div>
+            <Field label="Default expense" id="vendor-edit-expense-account">
+              <select id="vendor-edit-expense-account" name="defaultExpenseAccountId">
+                <option value="">None</option>
+                {#each data.expenseAccounts as account (account.id)}
+                  <option value={account.id} selected={(form?.values?.defaultExpenseAccountId ?? vendor.defaultExpenseAccountId ?? "") === account.id}>{account.code} · {account.name}</option>
+                {/each}
+              </select>
+            </Field>
+            <Field label="Notes" id="vendor-edit-notes"><textarea id="vendor-edit-notes" name="notes" rows="3">{form?.values?.notes ?? vendor.notes ?? ""}</textarea></Field>
+            <Button type="submit" variant="primary">Update vendor</Button>
+          </form>
+
+          <form class="status-form" method="POST" action="?/updateVendorStatus" use:enhance>
+            <input type="hidden" name="active" value={vendor.active ? "false" : "true"} />
+            <Button type="submit" variant="ghost">{vendor.active ? "Deactivate vendor" : "Reactivate vendor"}</Button>
+          </form>
+        </Card>
+      {/if}
     </div>
   </div>
 </main>
@@ -209,6 +260,22 @@
     color: inherit;
     padding-block: 10px;
     text-decoration: none;
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .check-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    min-height: 42px;
+    color: var(--color-ink);
+    font-size: 0.9rem;
+  }
+  .status-form {
+    margin-block-start: 14px;
   }
   .empty {
     margin: 0;

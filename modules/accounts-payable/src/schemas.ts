@@ -22,6 +22,20 @@ export const createVendorInputSchema = z.object({
   notes: z.string().max(2000).nullable().optional()
 });
 
+export const updateVendorInputSchema = createVendorInputSchema
+  .omit({ tenantId: true })
+  .partial()
+  .extend({
+    tenantId: z.string().min(1),
+    vendorId: z.string().min(1)
+  });
+
+export const updateVendorStatusInputSchema = z.object({
+  tenantId: z.string().min(1),
+  vendorId: z.string().min(1),
+  active: z.boolean()
+});
+
 export const listVendorsInputSchema = z.object({
   tenantId: z.string().min(1),
   search: z.string().min(1).optional(),
@@ -114,7 +128,14 @@ export const listBillPaymentsInputSchema = z.object({
   vendorId: z.string().optional(),
   billId: z.string().optional(),
   status: z.enum(["posted", "void"]).optional(),
+  paymentDateFrom: z.string().datetime().optional(),
+  paymentDateBefore: z.string().datetime().optional(),
   limit: z.number().int().min(1).max(500).default(100)
+});
+
+export const vendor1099ReportInputSchema = z.object({
+  tenantId: z.string().min(1),
+  year: z.number().int().min(1970).max(9999)
 });
 
 export const agingReportInputSchema = z.object({
@@ -172,6 +193,8 @@ export const generateDueRecurringBillsInputSchema = z.object({
 });
 
 export type CreateVendorInput = z.infer<typeof createVendorInputSchema>;
+export type UpdateVendorInput = z.infer<typeof updateVendorInputSchema>;
+export type UpdateVendorStatusInput = z.infer<typeof updateVendorStatusInputSchema>;
 export type ListVendorsInput = z.infer<typeof listVendorsInputSchema>;
 export type VendorIdentityInput = z.infer<typeof vendorIdentitySchema>;
 export type BillLineItemInput = z.infer<typeof billLineItemInputSchema>;
@@ -181,6 +204,7 @@ export type ListBillsInput = z.infer<typeof listBillsInputSchema>;
 export type RecordBillPaymentInput = z.infer<typeof recordBillPaymentInputSchema>;
 export type BillPaymentIdentityInput = z.infer<typeof billPaymentIdentitySchema>;
 export type ListBillPaymentsInput = z.infer<typeof listBillPaymentsInputSchema>;
+export type Vendor1099ReportInput = z.infer<typeof vendor1099ReportInputSchema>;
 export type AgingReportInput = z.infer<typeof agingReportInputSchema>;
 export type CreateRecurringBillTemplateInput = z.infer<typeof createRecurringBillTemplateInputSchema>;
 export type ListRecurringBillTemplatesInput = z.infer<typeof listRecurringBillTemplatesInputSchema>;

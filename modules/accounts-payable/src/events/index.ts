@@ -1,6 +1,8 @@
 export const events = {
   emitted: [
     "accounts-payable.vendor_created",
+    "accounts-payable.vendor_updated",
+    "accounts-payable.vendor_status_updated",
     "accounts-payable.bill_created",
     "accounts-payable.bill_marked_payable",
     "accounts-payable.bill_payment_recorded",

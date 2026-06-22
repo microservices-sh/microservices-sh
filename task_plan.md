@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 106
+Phase 107
 
 ## Phases
 
@@ -838,12 +838,12 @@ Phase 106
 - **Status:** complete
 
 ### Phase 107: AP Vendor Master Completion And Formal 1099 Report
-- [ ] Add `updateVendor`, vendor active-state mutation, and a formal `get1099VendorReport({ tenantId, year })` module use case.
-- [ ] Add memory/D1 store support and AP tests for tenant isolation, inactive handling, year boundaries, and void-payment exclusion.
-- [ ] Expand the accounting template vendor forms to capture phone, address, tax ID, 1099 flag, default terms, notes, and active state.
-- [ ] Add an accounting template 1099 report/readiness surface without implying IRS filing or TIN validation.
-- [ ] Verify AP tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
-- **Status:** pending
+- [x] Add `updateVendor`, vendor active-state mutation, and a formal `get1099VendorReport({ tenantId, year })` module use case.
+- [x] Add memory/D1 store support and AP tests for tenant isolation, inactive handling, year boundaries, and void-payment exclusion.
+- [x] Expand the accounting template vendor forms to capture phone, address, tax ID, 1099 flag, default terms, notes, and active state.
+- [x] Add an accounting template 1099 report/readiness surface without implying IRS filing or TIN validation.
+- [x] Verify AP tests/spec/build, accounting template spec/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
 
 ## Key Questions
 1. Is the current plan good enough to start an MVP?

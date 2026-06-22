@@ -220,6 +220,48 @@
     </Card>
     <Card>
       <div class="card-headline">
+        <h2>1099 readiness</h2>
+        <Badge tone={(data.report1099?.totals.missingTaxIdCount ?? 0) > 0 ? "warn" : "good"}>{data.report1099?.year ?? ""}</Badge>
+      </div>
+
+      {#if data.report1099}
+        <dl class="summary-list">
+          <div><dt>Reportable vendors</dt><dd>{data.report1099.totals.vendorCount}</dd></div>
+          <div><dt>Ready for review</dt><dd>{data.report1099.totals.readyCount}</dd></div>
+          <div><dt>Missing tax ID</dt><dd>{data.report1099.totals.missingTaxIdCount}</dd></div>
+          <div><dt>Paid this year</dt><dd>{money(data.report1099.totals.totalPaidCents)}</dd></div>
+        </dl>
+        {#if data.report1099.vendors.length > 0}
+          <div class="table-scroll compact-table">
+            <table>
+              <caption>1099 vendor readiness</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Vendor</th>
+                  <th scope="col">Paid</th>
+                  <th scope="col">Tax ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each data.report1099.vendors as vendor (vendor.vendorId)}
+                  <tr>
+                    <td><a href={`/app/payables/vendors/${vendor.vendorId}`}>{vendor.name}</a></td>
+                    <td>{money(vendor.totalPaidCents, vendor.currency)}</td>
+                    <td><Badge tone={vendor.taxIdOnFile ? "good" : "warn"}>{vendor.taxIdOnFile ? "On file" : "Missing"}</Badge></td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        {:else}
+          <p class="empty">No active vendors are marked for 1099 review.</p>
+        {/if}
+      {:else}
+        <p class="empty">1099 readiness is unavailable.</p>
+      {/if}
+    </Card>
+    <Card>
+      <div class="card-headline">
         <h2>Vendors</h2>
         <Badge tone="neutral">{data.vendors.length} total</Badge>
       </div>
@@ -262,7 +304,24 @@
         <form method="POST" action="?/createVendor" use:enhance>
           <Field label="Name" id="vendor-name"><input id="vendor-name" name="name" required placeholder="Northwind Supplies" value={form?.values?.name ?? ""} /></Field>
           <Field label="Email" id="vendor-email"><input id="vendor-email" name="email" type="email" placeholder="ap@vendor.example" value={form?.values?.email ?? ""} /></Field>
-          <Field label="Currency" id="vendor-currency"><input id="vendor-currency" name="currency" maxlength="3" value={form?.values?.currency ?? "USD"} /></Field>
+          <Field label="Phone" id="vendor-phone"><input id="vendor-phone" name="phone" placeholder="+1 555 0101" value={form?.values?.phone ?? ""} /></Field>
+          <div class="form-row">
+            <Field label="Currency" id="vendor-currency"><input id="vendor-currency" name="currency" maxlength="3" value={form?.values?.currency ?? "USD"} /></Field>
+            <Field label="Terms days" id="vendor-terms"><input id="vendor-terms" name="defaultPaymentTermsDays" type="number" min="0" max="365" value={form?.values?.defaultPaymentTermsDays ?? "30"} /></Field>
+          </div>
+          <Field label="Address" id="vendor-address"><input id="vendor-address" name="addressLine1" placeholder="1 Market St" value={form?.values?.addressLine1 ?? ""} /></Field>
+          <div class="form-row">
+            <Field label="City" id="vendor-city"><input id="vendor-city" name="city" value={form?.values?.city ?? ""} /></Field>
+            <Field label="State" id="vendor-state"><input id="vendor-state" name="state" value={form?.values?.state ?? ""} /></Field>
+          </div>
+          <div class="form-row">
+            <Field label="Postal code" id="vendor-postal"><input id="vendor-postal" name="postalCode" value={form?.values?.postalCode ?? ""} /></Field>
+            <Field label="Country" id="vendor-country"><input id="vendor-country" name="country" value={form?.values?.country ?? ""} /></Field>
+          </div>
+          <div class="form-row">
+            <Field label="Tax ID" id="vendor-tax-id"><input id="vendor-tax-id" name="taxId" value={form?.values?.taxId ?? ""} /></Field>
+            <label class="check-row"><input type="checkbox" name="is1099Vendor" value="true" checked={form?.values?.is1099Vendor === true} /> 1099 vendor</label>
+          </div>
           <Field label="Default expense account" id="vendor-default-expense-account">
             <select id="vendor-default-expense-account" name="defaultExpenseAccountId">
               <option value="">None</option>
@@ -271,6 +330,7 @@
               {/each}
             </select>
           </Field>
+          <Field label="Notes" id="vendor-notes"><textarea id="vendor-notes" name="notes" rows="3">{form?.values?.notes ?? ""}</textarea></Field>
           <Button type="submit" variant="primary">Create vendor</Button>
         </form>
       </Card>
@@ -471,6 +531,9 @@
   .table-scroll {
     overflow-x: auto;
   }
+  .compact-table table {
+    min-width: 460px;
+  }
   table {
     width: 100%;
     min-width: 720px;
@@ -523,6 +586,31 @@
     gap: 10px;
     align-items: end;
     margin-block-end: 14px;
+  }
+  .summary-list {
+    display: grid;
+    gap: 10px;
+    margin: 0 0 14px;
+  }
+  .summary-list div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .summary-list dt {
+    color: var(--color-ink-faint);
+  }
+  .summary-list dd {
+    margin: 0;
+    font-weight: 600;
+  }
+  .check-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    min-height: 42px;
+    color: var(--color-ink);
+    font-size: 0.9rem;
   }
   .form-grid {
     display: grid;
