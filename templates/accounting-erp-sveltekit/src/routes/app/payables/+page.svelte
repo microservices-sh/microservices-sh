@@ -6,6 +6,9 @@
   let { data, form } = $props();
 
   const openBills = $derived(data.bills.filter((bill) => bill.amountDueCents > 0 && bill.status !== "void"));
+  const payableBills = $derived(
+    data.bills.filter((bill) => bill.amountDueCents > 0 && (bill.status === "payable" || bill.status === "partial"))
+  );
   const openAmount = $derived(openBills.reduce((total, bill) => total + bill.amountDueCents, 0));
   const overdueAmount = $derived((data.aging?.days1To30Cents ?? 0) + (data.aging?.days31To60Cents ?? 0) + (data.aging?.days61To90Cents ?? 0) + (data.aging?.days90PlusCents ?? 0));
   const activeRecurringBills = $derived(data.recurringBillTemplates.filter((template) => template.status === "active"));
@@ -31,6 +34,10 @@
     if (status === "paused") return "warn";
     if (status === "cancelled") return "bad";
     return "neutral";
+  }
+
+  function decimalAmount(cents) {
+    return (cents / 100).toFixed(2);
   }
 </script>
 
@@ -62,7 +69,7 @@
   {:else if form?.billMarkedPayable}
     <Alert tone="success">Bill marked payable and posted to the ledger.</Alert>
   {:else if form?.billPaymentRecorded}
-    <Alert tone="success">Bill payment recorded and posted to the ledger.</Alert>
+    <Alert tone="success">Bill payment recorded and posted to the ledger{form.paidBillCount ? ` for ${form.paidBillCount} bills` : ""}.</Alert>
   {:else if form?.error}
     <Alert tone="error">{form.error}</Alert>
   {/if}
@@ -275,6 +282,89 @@
           </div>
           <Field label="Memo" id="bill-memo"><textarea id="bill-memo" name="memo" rows="3">{form?.values?.memo ?? ""}</textarea></Field>
           <Button type="submit" variant="primary">Create bill</Button>
+        </form>
+      </Card>
+
+      <Card title="Record payment">
+        <form method="POST" action="?/recordPayment" use:enhance>
+          <div class="form-row">
+            <Field label="Vendor" id="payment-vendor">
+              <select id="payment-vendor" name="vendorId" required>
+                <option value="">Choose vendor</option>
+                {#each data.vendors as vendor (vendor.id)}
+                  <option value={vendor.id} selected={(form?.values?.vendorId ?? "") === vendor.id}>{vendor.name}</option>
+                {/each}
+              </select>
+            </Field>
+            <Field label="Payment date" id="payment-date"><input id="payment-date" name="paymentDate" type="date" required value={form?.values?.paymentDate ?? data.today} /></Field>
+          </div>
+          <div class="form-row">
+            <Field label="Pay from" id="payment-account">
+              <select id="payment-account" name="paymentAccountId" required>
+                <option value="">Choose account</option>
+                {#each paymentAccounts as account (account.id)}
+                  <option value={account.id} selected={(form?.values?.paymentAccountId ?? "") === account.id}>{account.code} · {account.name}</option>
+                {/each}
+              </select>
+            </Field>
+            <Field label="Method" id="payment-method">
+              <select id="payment-method" name="paymentMethod">
+                <option value="ach" selected={(form?.values?.paymentMethod ?? "ach") === "ach"}>ACH</option>
+                <option value="check" selected={form?.values?.paymentMethod === "check"}>Check</option>
+                <option value="wire" selected={form?.values?.paymentMethod === "wire"}>Wire</option>
+                <option value="card" selected={form?.values?.paymentMethod === "card"}>Card</option>
+                <option value="cash" selected={form?.values?.paymentMethod === "cash"}>Cash</option>
+                <option value="other" selected={form?.values?.paymentMethod === "other"}>Other</option>
+              </select>
+            </Field>
+          </div>
+          <div class="form-row">
+            <Field label="Reference" id="payment-reference"><input id="payment-reference" name="referenceNumber" placeholder="ACH-1007" value={form?.values?.referenceNumber ?? ""} /></Field>
+            <Field label="Memo" id="payment-memo"><input id="payment-memo" name="memo" placeholder="Optional memo" value={form?.values?.memo ?? ""} /></Field>
+          </div>
+
+          {#if payableBills.length > 0}
+            <div class="table-scroll payment-workbench">
+              <table>
+                <caption>Open payable bills</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Apply</th>
+                    <th scope="col">Bill</th>
+                    <th scope="col">Vendor</th>
+                    <th scope="col">Due date</th>
+                    <th scope="col">Open</th>
+                    <th scope="col">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each payableBills as bill (bill.id)}
+                    <tr>
+                      <td><input type="checkbox" name="applicationBillId" value={bill.id} aria-label={`Apply payment to ${bill.billNumber}`} /></td>
+                      <td><a href={`/app/payables/${bill.id}`}><code>{bill.billNumber}</code></a></td>
+                      <td>{data.vendors.find((vendor) => vendor.id === bill.vendorId)?.name ?? bill.vendorId}</td>
+                      <td>{bill.dueDate.slice(0, 10)}</td>
+                      <td>{money(bill.amountDueCents, bill.currency)}</td>
+                      <td>
+                        <input
+                          name={`applicationAmount-${bill.id}`}
+                          type="number"
+                          min="0"
+                          max={decimalAmount(bill.amountDueCents)}
+                          step="0.01"
+                          value={decimalAmount(bill.amountDueCents)}
+                          aria-label={`Payment amount for ${bill.billNumber}`}
+                        />
+                      </td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+            <Button type="submit" variant="primary">Record payment</Button>
+          {:else}
+            <p class="empty">No payable bills are ready for payment.</p>
+          {/if}
         </form>
       </Card>
 

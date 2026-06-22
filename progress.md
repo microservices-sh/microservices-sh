@@ -1507,6 +1507,25 @@
 | Create package | Bundled template closure and generated-app smoke still pass | `pnpm --filter create-microservices-app build` and `smoke:built` passed | Pass |
 | Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
 
+### Phase 104 AP payment workbench
+
+- **Status:** complete.
+- Goal: expose the donor-backed multi-bill partial payment workflow without adding AP payment read/history surfaces yet.
+- Added accounts-payable test coverage for one payment applied across multiple payable bills, including partial amount application plus payment method/reference persistence.
+- Extended `/app/payables` `recordPayment` to accept multiple selected bill applications, derive payment amount and currency from selected bills, include method/reference/memo, and generate a deterministic idempotency key for workbench submissions.
+- Added a server-rendered Record payment workbench over payable/partial bills with editable application amounts while preserving the existing row-level full-bill payment action.
+- Added template checks for `applicationBillId`, per-bill amount inputs, method/reference/memo handling, and workbench UI.
+- Deferred AP payment list/detail/history use cases and bill-detail payment history to a follow-up module slice, because they need store read methods beyond the existing posting path.
+
+| Check | Expectation | Result | Status |
+|---|---|---|---|
+| Accounts-payable tests | Multi-bill partial payment behavior and existing AP payment contracts remain green | `pnpm --filter @microservices-sh/accounts-payable test` passed, 16/16 | Pass |
+| Accounts-payable spec/build | Module contract and TypeScript build remain green | `pnpm --filter @microservices-sh/accounts-payable check:spec` and `pnpm --filter @microservices-sh/accounts-payable build` passed | Pass |
+| Accounting template spec/build | Payment workbench policy and SvelteKit build compile | `pnpm --dir templates/accounting-erp-sveltekit check:spec` and `pnpm --dir templates/accounting-erp-sveltekit build` passed | Pass |
+| Create app package | Bundled accounting template regenerates and create-app tests remain green | `pnpm --filter create-microservices-app build` and `pnpm --filter create-microservices-app test` passed, 19/19 | Pass |
+| Workspace specs | All module/template specs remain green | `pnpm spec:check:all` passed, 64 targets | Pass |
+| Whitespace | No trailing whitespace/conflict markers | `git diff --check` passed | Pass |
+
 ### Phase 66 recurring invoice accounting job parity
 
 - **Status:** complete.

@@ -326,9 +326,26 @@ export default function check({ assert, assertFileIncludes, assertFileIncludesAl
     "Payables route loads and applies persisted accounting AP default settings server-side."
   );
   assertFileIncludesAll(
+    "src/routes/app/payables/+page.server.ts",
+    [
+      "paymentApplications",
+      "applicationBillId",
+      "applicationAmount-",
+      "paymentIdempotencyKey",
+      "Select bills in one currency per payment.",
+      "memo: values.memo || null"
+    ],
+    "Payables route supports AP payment workbench submissions with multiple bill applications, method, reference, and memo."
+  );
+  assertFileIncludesAll(
     "src/routes/app/payables/+page.svelte",
     ["data.defaultApAccountId", "(bill.apAccountId ?? data.defaultApAccountId)", "form?.values?.apAccountId ?? data.defaultApAccountId"],
     "Payables AP account selectors default to persisted accounting settings when the bill has no AP account."
+  );
+  assertFileIncludesAll(
+    "src/routes/app/payables/+page.svelte",
+    ["Record payment", "applicationBillId", "applicationAmount-${bill.id}", "paidBillCount", "payment-workbench"],
+    "Payables UI exposes a multi-bill AP payment workbench while preserving row-level payment actions."
   );
   assertFileIncludesAll(
     "src/routes/app/payables/+page.server.ts",

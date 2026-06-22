@@ -4,7 +4,7 @@
 Create actionable planning documents that review the microservices.sh concept, define an MVP, and give the team a validation, development, launch, and measurement plan.
 
 ## Current Phase
-Phase 103
+Phase 104
 
 ## Phases
 
@@ -810,6 +810,14 @@ Phase 103
 - [x] Add a focused accounting Payables bill detail route with vendor, line item, totals, lifecycle, and memo views.
 - [x] Link the Payables bill ledger to the detail route while keeping mark-payable/payment side effects on the existing Payables action surface.
 - [x] Add module/template policy checks for the read use case and route boundary.
+- [x] Verify AP tests/spec/build, accounting template spec/build/build, create-app build/test, workspace specs, and whitespace checks.
+- **Status:** complete
+
+### Phase 104: AP Payment Workbench
+- [x] Add accounts-payable module coverage for one payment applied across multiple bills with partial amounts.
+- [x] Extend the focused accounting Payables payment action to accept multiple bill applications and method/reference/memo fields.
+- [x] Add a server-rendered AP payment workbench over open bills while preserving the existing one-click full-bill payment action.
+- [x] Add template policy checks for multi-application payment workflow.
 - [x] Verify AP tests/spec/build, accounting template spec/build/build, create-app build/test, workspace specs, and whitespace checks.
 - **Status:** complete
 

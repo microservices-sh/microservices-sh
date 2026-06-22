@@ -301,6 +301,77 @@ describe("accounts-payable: payments", () => {
     }
   });
 
+  it("applies one payment across multiple bills with partial amounts", async () => {
+    const store = createMemoryAccountsPayableStore();
+    const vendor = await seedVendor(store);
+
+    const firstCreated = await createBill(
+      {
+        tenantId: "tenant-1",
+        vendorId: vendor.id,
+        billDate: "2026-01-01T00:00:00.000Z",
+        dueDate: "2026-01-31T00:00:00.000Z",
+        lineItems: [{ description: "Hosting", quantity: 1, unitAmountCents: 10_000, taxCents: 0 }]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0) }
+    );
+    if (!firstCreated.ok) throw new Error(firstCreated.error.message);
+    const secondCreated = await createBill(
+      {
+        tenantId: "tenant-1",
+        vendorId: vendor.id,
+        billDate: "2026-01-02T00:00:00.000Z",
+        dueDate: "2026-02-01T00:00:00.000Z",
+        lineItems: [{ description: "Support", quantity: 1, unitAmountCents: 8_000, taxCents: 0 }]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0 + 1) }
+    );
+    if (!secondCreated.ok) throw new Error(secondCreated.error.message);
+
+    for (const billId of [firstCreated.data.bill.id, secondCreated.data.bill.id]) {
+      const payable = await markBillPayable(
+        { tenantId: "tenant-1", billId },
+        { accountsPayableStore: store, now: fixedNow(T0 + 2) }
+      );
+      if (!payable.ok) throw new Error(payable.error.message);
+    }
+
+    const payment = await recordBillPayment(
+      {
+        tenantId: "tenant-1",
+        vendorId: vendor.id,
+        paymentDate: "2026-01-05T00:00:00.000Z",
+        amountCents: 14_000,
+        paymentMethod: "ach",
+        referenceNumber: "ACH-42",
+        applications: [
+          { billId: firstCreated.data.bill.id, amountCents: 10_000 },
+          { billId: secondCreated.data.bill.id, amountCents: 4_000 }
+        ]
+      },
+      { accountsPayableStore: store, now: fixedNow(T0 + 3) }
+    );
+
+    expect(payment.ok).toBe(true);
+    if (!payment.ok) throw new Error(payment.error.message);
+    expect("bills" in payment.data).toBe(true);
+    if (!("bills" in payment.data)) throw new Error("expected fresh payment result");
+    expect(payment.data.payment).toMatchObject({
+      amountCents: 14_000,
+      unappliedAmountCents: 0,
+      paymentMethod: "ach",
+      referenceNumber: "ACH-42"
+    });
+    expect(payment.data.payment.applications).toHaveLength(2);
+    const freshPayment = payment.data as {
+      bills: Array<{ id: string; status: string; amountDueCents: number }>;
+    };
+    expect(freshPayment.bills.map((bill) => ({ id: bill.id, status: bill.status, due: bill.amountDueCents }))).toEqual([
+      { id: firstCreated.data.bill.id, status: "paid", due: 0 },
+      { id: secondCreated.data.bill.id, status: "partial", due: 4_000 }
+    ]);
+  });
+
   it("rejects overpayment above a bill open balance", async () => {
     const store = createMemoryAccountsPayableStore();
     const bill = await seedPayableBill(store);

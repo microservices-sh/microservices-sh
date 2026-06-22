@@ -14,6 +14,7 @@ import {
   recordBillPayment,
   updateRecurringBillTemplateStatus,
   type AccountsPayableStore,
+  type BillPaymentMethod,
   type RecurringBillFrequency,
   type RecurringBillStatus
 } from "@microservices-sh/accounts-payable";
@@ -47,6 +48,7 @@ function today(): string {
 
 const RECURRING_BILL_FREQUENCIES = new Set<RecurringBillFrequency>(["weekly", "monthly", "quarterly", "yearly", "custom"]);
 const RECURRING_BILL_STATUSES = new Set<RecurringBillStatus>(["active", "paused", "cancelled", "completed"]);
+const BILL_PAYMENT_METHODS = new Set<BillPaymentMethod>(["check", "ach", "wire", "card", "cash", "other"]);
 
 function recurringBillFrequency(value: string): RecurringBillFrequency | null {
   return RECURRING_BILL_FREQUENCIES.has(value as RecurringBillFrequency) ? (value as RecurringBillFrequency) : null;
@@ -54,6 +56,32 @@ function recurringBillFrequency(value: string): RecurringBillFrequency | null {
 
 function recurringBillStatus(value: string): RecurringBillStatus | null {
   return RECURRING_BILL_STATUSES.has(value as RecurringBillStatus) ? (value as RecurringBillStatus) : null;
+}
+
+function billPaymentMethod(value: string): BillPaymentMethod | null {
+  return BILL_PAYMENT_METHODS.has(value as BillPaymentMethod) ? (value as BillPaymentMethod) : null;
+}
+
+function paymentApplications(form: FormData) {
+  return form
+    .getAll("applicationBillId")
+    .map((value) => text(value))
+    .filter(Boolean)
+    .map((billId) => ({
+      billId,
+      amountCents: cents(text(form.get(`applicationAmount-${billId}`))) ?? 0
+    }))
+    .filter((application) => application.amountCents > 0);
+}
+
+function paymentIdempotencyKey(input: {
+  vendorId: string;
+  paymentDate: string;
+  referenceNumber: string;
+  applications: Array<{ billId: string; amountCents: number }>;
+}) {
+  const applied = input.applications.map((application) => `${application.billId}:${application.amountCents}`).join(",");
+  return `ap-payment:${input.vendorId}:${input.paymentDate}:${input.referenceNumber || "manual"}:${applied}`;
 }
 
 async function defaultApAccount(accountingCoreStore: AccountingCoreStore, tenantId: string) {
@@ -514,16 +542,87 @@ export const actions: Actions = {
     const { permissions } = await requireOrgPermission(cookies, locals.user.id, org.id, "member.manage", locals.rbacStore);
 
     const form = await request.formData();
+    const applications = paymentApplications(form);
     const values = {
       billId: text(form.get("billId")),
+      vendorId: text(form.get("vendorId")),
       paymentDate: text(form.get("paymentDate")),
       paymentAccountId: text(form.get("paymentAccountId")),
-      paymentMethod: text(form.get("paymentMethod")) || "ach",
-      referenceNumber: text(form.get("referenceNumber"))
+      paymentMethod: billPaymentMethod(text(form.get("paymentMethod"))) ?? "ach",
+      referenceNumber: text(form.get("referenceNumber")),
+      memo: text(form.get("memo"))
     };
     const paymentDate = dateToIso(values.paymentDate);
-    if (!values.billId || !paymentDate || !values.paymentAccountId) {
+    if ((!values.billId && applications.length === 0) || !paymentDate || !values.paymentAccountId) {
       return fail(400, { error: "Choose a bill, payment date, and payment account.", values });
+    }
+    if (applications.length > 0 && !values.vendorId) {
+      return fail(400, { error: "Choose a vendor for the payment workbench.", values });
+    }
+
+    if (applications.length > 0) {
+      const amountCents = applications.reduce((sum, application) => sum + application.amountCents, 0);
+      const billsResult = await listBills({ tenantId: org.id, limit: 500 }, { accountsPayableStore: locals.accountsPayableStore });
+      if (!billsResult.ok) return fail(billsResult.status, { error: billsResult.error.message, values });
+      const selectedBills = applications.map((application) =>
+        billsResult.data.bills.find((candidate) => candidate.id === application.billId)
+      );
+      if (selectedBills.some((bill) => !bill)) return fail(404, { error: "One or more selected bills were not found.", values });
+      const currencies = new Set(selectedBills.map((bill) => bill?.currency));
+      if (currencies.size !== 1) return fail(409, { error: "Select bills in one currency per payment.", values });
+      const currency = selectedBills[0]?.currency ?? "USD";
+      try {
+        const result = await recordBillPayment(
+          {
+            tenantId: org.id,
+            vendorId: values.vendorId,
+            paymentDate,
+            amountCents,
+            currency,
+            paymentAccountId: values.paymentAccountId,
+            paymentMethod: values.paymentMethod,
+            referenceNumber: values.referenceNumber || null,
+            memo: values.memo || null,
+            idempotencyKey: paymentIdempotencyKey({
+              vendorId: values.vendorId,
+              paymentDate,
+              referenceNumber: values.referenceNumber,
+              applications
+            }),
+            applications
+          },
+          {
+            accountsPayableStore: locals.accountsPayableStore,
+            accountingPoster: createAccountsPayableAccountingPoster({
+              accountingCoreStore: locals.accountingCoreStore,
+              actor: { id: locals.user.id, email: locals.user.email, permissions }
+            }),
+            actor: { id: locals.user.id, email: locals.user.email, permissions }
+          }
+        );
+        if (!result.ok) return fail(result.status, { error: result.error.message, values });
+
+        await recordEvent(
+          {
+            eventName: "accounts-payable.bill_payment_recorded",
+            actorId: locals.user.id,
+            entityType: "bill_payment",
+            entityId: result.data.payment.id,
+            source: "app/payables",
+            payload: {
+              vendorId: values.vendorId,
+              billIds: applications.map((application) => application.billId),
+              amountCents: result.data.payment.amountCents,
+              journalEntryId: result.data.payment.journalEntryId
+            }
+          },
+          { auditStore: locals.auditStore }
+        );
+
+        return { billPaymentRecorded: true, paidBillCount: applications.length };
+      } catch (error) {
+        return fail(409, { error: error instanceof Error ? error.message : "Could not post payment to accounting.", values });
+      }
     }
 
     const billsResult = await listBills({ tenantId: org.id, limit: 500 }, { accountsPayableStore: locals.accountsPayableStore });
@@ -541,8 +640,9 @@ export const actions: Actions = {
           amountCents: bill.amountDueCents,
           currency: bill.currency,
           paymentAccountId: values.paymentAccountId,
-          paymentMethod: values.paymentMethod as "check" | "ach" | "wire" | "card" | "cash" | "other",
+          paymentMethod: values.paymentMethod,
           referenceNumber: values.referenceNumber || null,
+          memo: values.memo || null,
           idempotencyKey: `ap-payment:${bill.id}:${paymentDate}`,
           applications: [{ billId: bill.id, amountCents: bill.amountDueCents }]
         },
